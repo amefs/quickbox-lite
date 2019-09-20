@@ -24,7 +24,7 @@ This project is a modified version of QuickBox community edition. The aim of thi
 
 ## Script status
 
-![Version](https://img.shields.io/badge/version-0.1.0-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.0.0-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
 
 ---
 
