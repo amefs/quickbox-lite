@@ -99,7 +99,7 @@ function _installSystemUpdates() {
 
 function _updateRepo() {
     _info "Updating QuickBox local repository..."
-    BRANCH="ssh://git@github.com:amefs/quickbox-lite.git"
+    BRANCH="git@github.com:amefs/quickbox-lite.git"
     if [[ ! -f /install/.developer.lock ]]; then
         # update to dev branch
         if [[ -d /etc/QuickBox ]]; then
