@@ -128,7 +128,7 @@ EOF
 chmod 600 /root/.ssh/QuickBox_Lite && chmod 700 /root/.ssh
 
 apt-get -yqq update; apt-get -yqq upgrade; apt-get -yqq install git lsb-release dos2unix; \
-git clone ssh://git@github.com:amefs/quickbox-lite.git /etc/QuickBox; \
+git clone git@github.com:amefs/quickbox-lite.git /etc/QuickBox; \
 dos2unix /etc/QuickBox/setup.sh; \
 bash /etc/QuickBox/setup.sh
 
