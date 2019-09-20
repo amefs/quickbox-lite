@@ -22,5 +22,5 @@ sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/widgets/data.php;
 sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/widgets/bw_tables.php;
 sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/inc/config.php;
 
-nginx -s reload
+nginx -s reload >/dev/null 2>&1
 /usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'

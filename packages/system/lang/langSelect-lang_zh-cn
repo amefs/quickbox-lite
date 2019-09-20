@@ -41,6 +41,6 @@ LCL
 rm -f /install/.lang_*
 touch /install/.${language}.lock
 chown www-data: /srv/dashboard/inc/localize.php
-nginx -s reload
+nginx -s reload >/dev/null 2>&1
 /usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'
 sleep 5
