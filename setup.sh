@@ -704,7 +704,7 @@ function _askbbr() {
 }
 
 function _insbbr() {
-    $(bash /usr/local/bin/quickbox/system/auxiliary/install-BBR.sh) >/dev/null 2>&1
+    $(bash /usr/local/bin/quickbox/system/auxiliary/install-BBR.sh -l ${OUTTO}) >/dev/null 2>&1
 }
 
 function _askrtgui() {
