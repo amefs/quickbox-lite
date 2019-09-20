@@ -1,0 +1,338 @@
+<?php
+
+/*******************************************************************************
+*                                                                              *
+*                               Chinese	                                       *
+*                                                                              *
+*                 Last entry update   : Sept 19, 2019 (v1.0.0)                 *
+*                                                                              *
+*              Last translations update  : Sept 19, 2019 (v1.0.0)              *
+*******************************************************************************/
+
+////////////////////////////////////////
+//DASHBOARD MENU
+///////////////////////////////////////
+
+// main menu tab
+$L['ANNOUNCEMENTS'] = '公告';
+$L['CHAT_CONNECT_TXT'] = '点击连接';
+$L['DEV_REPO_TXT'] = '你正向QuickBox开发部门报告';
+$L['DOWNLOADS'] = '下载';
+$L['ISSUE_REPORT_TXT'] = '报告问题';
+$L['JOIN_US_TXT'] = '与我们在线交流!';
+$L['LANG_SELECT'] = '选择语言';
+$L['MAIN_MENU'] = '主菜单';
+$L['MARKETPLACE'] = '市场';
+$L['THEME_SELECT'] = '选择主题';
+$L['WEB_CONSOLE'] = 'Web控制台';
+$L['DONATE'] = '捐助';
+
+// plugin menu tab
+$L['PLUGIN_MENU'] = '插件菜单';
+$L['RPLUGIN_MENU'] = 'ruTorrent插件菜单';
+$L['PMENU_NOTICE_TXT'] = '只需点击插件名称即可简单安装和删除ruTorrent插件';
+$L['PLUGINS'] = '插件';
+
+// quick help menu tab
+$L['HELP_COMMANDS'] = '帮助命令 & 更多';
+$L['QUICK_SYSTEM_TIPS'] = '快速系统提示';
+$L['SYS_UPGRADE_TXT'] = '使用此命令升级 QuickBox Lite 系统.';
+$L['SET_LANG_TXT'] = '使用此命令设置仪表盘语言.';
+$L['CHANGEINTERFACE_TXT'] = '使用此命令设置仪表盘统计的网口.';
+$L['CLEAN_MEM_TXT'] = '如果你决定清除系统的缓存, 请以root身份使用上述命令';
+$L['CLEAN_LOG_TXT'] = '使用此命令清理安装日志';
+$L['DISKTEST_TXT'] = '输入此命令来对磁盘进行一个快速的读写测试';
+
+// seedbox commands section
+$L['SEEDBOX_COMMANDS'] = 'Seedbox 命令';
+$L['APP_INSTALL_TXT'] = '使用此命令安装软件';
+$L['APP_UNINSTALL_TXT'] = '使用此命令卸载软件';
+$L['APP_UPGRADE_TXT'] = '使用此命令升级软件';
+$L['CHANGEUSERPASS_TXT'] = '在SSH中输入此命令来更改所需的用户密码.';
+$L['FIX_DPKG_TXT'] = '使用此命令解除软件安装 lock';
+$L['TROUBLESHOOT_TXT'] = '使用此命令生成日志以进行故障排查';
+
+// essential user commands section
+$L['ESSENTIAL_USER_COMMANDS'] = '基本用户命令';
+$L['SCREEN_RTORRNENT_TXT'] = '允许用户从SSH重新启动/重新挂载rtorrent';
+
+
+////////////////////////////////////////
+//DASHBOARD WIDGET TITLES
+///////////////////////////////////////
+
+// services status widget
+$L['SERVICE_CONTROL_CENTER'] = '服务控制中心';
+
+// services status widget
+$L['SERVICE_STATUS'] = '系统状态';
+
+// restart services widget
+$L['RESTART_SERVICES'] = '重启服务';
+
+// service controller widget
+$L['ENABLE_DISABLE_SERVICES'] = '启用/禁用';
+
+// package management center widget
+$L['PACKAGE_MANAGEMENT_CENTER'] = '组件管理中心';
+
+// bandwidth data widget
+$L['BANDWIDTH_DATA'] = '带宽数据';
+
+// disk status widget
+$L['YOUR_DISK_STATUS'] = '磁盘状态';
+
+// memory status widget
+$L['SYSTEM_RAM_STATUS'] = '系统内存状态';
+
+// cpu status widget
+$L['CPU_STATUS'] = 'CPU状态';
+
+// server load widget
+$L['SERVER_LOAD'] = '服务器负载';
+
+// recent updates widget
+$L['COMPARE_COMMITS'] = '将当前状态与最新的提交进行比较。';
+$L['CURRENT_COMMIT'] = '查看你当前的提交状态';
+$L['CURRENT_VERSIONS_CHANGELOG'] = '查看你当前的版本更新日志。';
+$L['LATEST_COMMIT'] = '最新';
+$L['QUICKBOX_COMMIT'] = '在QuickBox的提交 -';
+$L['RECENT_UPDATES'] = '近期更新';
+$L['RECENT_UPDATES_TXT'] = '要查看反馈，请使用鼠标滚轮进行滚动。';
+
+////////////////////////////////////////
+//PACKAGE MANAGEMENT CENTER
+///////////////////////////////////////
+
+// package management center notice
+$L['PMC_NOTICE_TXT'] = '<strong>注意!</strong> 这些选项与启用和禁用软件组件不同, 功能是安装或者卸载软件';
+
+// package management center column headers
+$L['NAME'] = '名称';
+$L['DETAILS'] = '详情';
+$L['AVAILABILITY'] = '状态';
+
+// packages
+$L['AUTODL'] = 'AutoDL-iRSSi 是一个 irssi 插件, 用于监视 IRC 发布频道并且可以根据用户定义的过滤器下载.';
+$L['BTSYNC'] = 'BitTorrent 公司的 BitTorrent Sync 是一个专有的对等文件同步工具.';
+$L['DELUGE'] = 'Deluge 是一款轻量级的免费软件, 跨平台的BitTorrent客户端.';
+$L['DENYHOSTS'] = 'DenyHosts 是针对 SSH 服务器的一个基于日志的入侵预防安全工具, 它使用Python编写.';
+$L['FAIL2BAN'] = 'Fail2Ban 是一种入侵防御软件框架, 可以保护计算机和服务器免受暴力攻击的威胁.';
+$L['FILEBROWSER'] = 'File Browser 提供了一个指定目录中的文件管理界面, 可以用于上传, 删除，预览, 重命名以及编辑. 它允许你创建多个用户, 每个用户可以拥有自己的目录.';
+$L['FLEXGET'] = 'FlexGet 是一款适用于所有媒体的多功能自动化工具. 它支持 torrents, nzbs, podcasts, comics, TV, movies, RSS, HTML, CSV, 等形式.';
+$L['FLOOD'] = 'Flood 是 rtorrent 的另一个 Web 界面. 它使用 Node.js 服务与 rTorrent API 交互, 存储数据, 并且提供 Web UI.';
+$L['LECERT'] = 'Let’s Encrypt 是一个免费, 自动化的和开放的证书颁发机构 (CA), 由 ISRG (<a href="https://letsencrypt.org/" target="_blank">Internet Security Research Group</a>) 运营.';
+$L['NETDATA'] = 'Netdata 分布式的, 实时的适用于应用与系统的性能与健康情况的监视器.';
+$L['NOVNC'] = 'noVNC 不仅是一个 VNC 客户端 JavaScript 库, 也是一个利用该库构建的应用程序. noVNC 可以在任何的现代浏览器包括移动浏览器 (iOS and Android) 中运行.';
+$L['PLEX'] = 'Plex 可让你将内容传输到任何支持 Plex 的设备.';
+$L['QBITTORRENT'] = 'qBittorrent 是一款免费可靠的 P2P BitTorrent 客户端, 先进的多平台 BitTorrent 客户端, 具有良好的 Qt 用户界面以及用于远程控制并且集成搜索引擎的 Web 用户界面.';
+$L['RTORRENT'] = 'rTorrent 是一个快速高效的 BitTorrent 客户端, 同时使用正在开发的 libtorrent 库 (并非 libtorrent-rasterbar). 它是利用 C ++ 和 ncurses 库编写的软件, 因此它使用一个字符用户界面.';
+$L['RUTORRENT'] = 'ruTorrent 是一个受欢迎的 BitTorrent 客户端 rTorrent 的前端. 主要特性: 轻量级的服务端, 因此可以被安装在一些较老以及较地段的服务器上, 甚至可以安装在一些 SOHO 路由器上; 可扩展, 它拥有很多插件, 每个人都可以创建自己的插件; 带有 <a href="https://lab.quickbox.io/QuickBox/club-QuickBox" target="_blank">club-QuickBox 皮肤</a>.';
+$L['SYNCTHING'] = '开源的 BitTorrent 文件同步软件.';
+$L['TRANSMISSION'] = 'Transmission 被设计为功能强大而易于使用的客户端. 它的默认设置即可直接运行, 只需要简单的点击就可以配置例如如监视目录，不良 peers 拦截列表和 Web 界面等高级功能. Ubuntu 以它作为默认的 BitTorrent 客户端, 其中最重要的理由就是它简单易学.';
+$L['X2GO'] = 'X2Go 是一款使用 NX 技术协议的 Linux 开源远程桌面软件.';
+$L['ZNC'] = 'ZNC 是一个 IRC 网络辅助软件. 它可以将客户端从实际的 IRC 服务器以及选定的频道中分离出来.';
+
+// package management center buttons
+$L['CLI'] = '仅限Web控制台';
+$L['INSTALL'] = '安装';
+$L['INSTALLED'] = '已安装';
+$L['BOX'] = '仅限BOX';
+$L['BOX_TOOLTIP_DENYHOSTS'] = '从 Web 控制台输入: box install denyhosts 安装此功能';
+$L['BOX_TOOLTIP_FAIL2BAN'] = '从 Web 控制台输入: box install fail2ban 启用此功能';
+$L['BOX_TOOLTIP_LECERT'] = '从 Web 控制台输入: box install lecert 自动签发 HTTPS 证书';
+$L['BOX_TOOLTIP_ZNC'] = '从 Web 控制台输入: box install znc 访问此功能';
+
+////////////////////////////////////////
+//BANDWIDTH & DATA TABLES
+///////////////////////////////////////
+
+// column headers and dropdown toggle button
+$L['NETWORK'] = '网络';
+$L['UPLOAD'] = '上传';
+$L['DOWNLOAD'] = '下载';
+$L['VIEW_ADDITIONAL_BANDWIDTH_DETAILS'] = '查看额外的带宽详情';
+
+// main table headers
+$L['Summary'] = '概要';
+$L['Top 10 days'] = '前10天';
+$L['Last 24 hours'] = '过去24小时';
+$L['Last 30 days'] = '过去30天';
+$L['Last 12 months'] = '过去12个月';
+
+// traffic table columns
+$L['In'] = 'In';
+$L['Out'] = 'Out';
+$L['Total'] = '合计';
+
+// summary rows
+$L['This hour'] = 'This hour';
+$L['This day'] = 'This day';
+$L['This month'] = 'This month';
+$L['All time'] = 'All time';
+
+// date formats
+$L['datefmt_days'] = '%d %B';
+$L['datefmt_days_img'] = '%d';
+$L['datefmt_months'] = '%B %Y';
+$L['datefmt_months_img'] = '%b';
+$L['datefmt_hours'] = '%l%p';
+$L['datefmt_hours_img'] = '%l';
+$L['datefmt_top'] = '%d %B %Y';
+
+
+////////////////////////////////////////
+//DISK STATUS WIDGET
+///////////////////////////////////////
+
+$L['FREE'] = '空余';
+$L['USED'] = '使用';
+$L['SIZE'] = '大小';
+$L['DISK_SPACE'] = '磁盘空间';
+$L['PERCENTAGE_TXT_1'] = '已使用';
+$L['PERCENTAGE_TXT_2'] = '的磁盘空间';
+$L['RTORRENTS_TITLE'] = 'rtorrent的种子';
+$L['DTORRENTS_TITLE'] = 'deluge的种子';
+$L['TRTORRENTS_TITLE'] = 'Transmission的种子';
+$L['QTORRENTS_TITLE'] = 'qBittorrent的种子';
+$L['TORRENTS_LOADED_1'] = '总计加载了';
+$L['TORRENTS_LOADED_2'] = '个种子';
+
+
+////////////////////////////////////////
+//SYSTEM RAM STATUS WIDGET
+///////////////////////////////////////
+
+// physical memory
+$L['PHYSICAL_MEMORY_TITLE'] = '物理内存使用情况';
+$L['PHYSICAL_MEMORY_USED_TXT'] = '已使用';
+$L['PHYSICAL_MEMORY_IDLE_TXT'] = '空闲';
+
+//cached memory
+$L['CACHED_MEMORY_TITLE'] = '高速缓存使用情况';
+$L['CACHED_MEMORY_USAGE_TXT'] = '高速缓存已使用';
+$L['CACHED_MEMORY_BUFFERS_TXT'] = '缓冲区';
+
+// real memory
+$L['REAL_MEMORY_TITLE'] = '实际内存使用情况';
+$L['REAL_MEMORY_USAGE_TXT'] = '实际内存已使用';
+$L['REAL_MEMORY_FREE_TXT'] = '实际内存空闲';
+
+// swap usage
+$L['SWAP_TITLE'] = 'Swap使用情况';
+$L['SWAP_TOTAL_TXT'] = 'SWAP区域';
+$L['SWAP_USED_TXT'] = '已使用';
+$L['SWAP_IDLE_TXT'] = '空闲';
+
+// total ram
+$L['TOTAL_RAM'] = '系统内存总计';
+
+// clean mem button
+$L['CLEAR_CACHE'] = '清除缓存';
+
+
+////////////////////////////////////////
+//CPU STATUS WIDGET
+///////////////////////////////////////
+
+// used percentage
+$L['CPU_USED'] = '已使用';
+
+// idle percentage
+$L['CPU_IDLE'] = '空闲';
+
+
+////////////////////////////////////////
+//SERVER LOAD WIDGET
+///////////////////////////////////////
+
+$L['SL_TXT'] = '服务器当前的平均负载';
+$L['UPTIME'] = '正常运行时间';
+
+
+////////////////////////////////////////
+//SERVICE TOGGLES
+///////////////////////////////////////
+
+$L['ENABLED'] = '已启用';
+$L['DISABLED'] = '禁用';
+
+$L['INSTALLED'] = '已安装';
+$L['UNINSTALLED'] = '已卸载';
+$L['INSTALLING'] = '安装中';
+$L['UNINSTALLING'] = '卸载中';
+
+
+////////////////////////////////////////
+//STATUS BUTTONS
+///////////////////////////////////////
+
+$L['REFRESH'] = '刷新';
+$L['UPDATE'] = '运行更新程序';
+
+$L['CANCEL'] = '取消';
+$L['AGREE'] = '我明白，继续！';
+
+$L['CLOSE_REFRESH'] = '关闭&刷新';
+
+////////////////////////////////////////
+//ADDITIONAL DICTIONARY
+///////////////////////////////////////
+
+$L['IDLE'] = '空闲';
+$L['TOTAL'] = '总计';
+$L['USED'] = '已使用';
+
+$L['DAYS_L'] = '天';
+$L['HOURS_L'] = '小时';
+$L['MINUTES_L'] = '分';
+$L['SECONDS_L'] = '秒';
+$L['IDLE_L'] = '空闲';
+$L['TOTAL_L'] = '总计';
+$L['USED_L'] = '已使用';
+
+
+////////////////////////////////////////
+//MODALS & POPUP NOTICES
+///////////////////////////////////////
+
+//MODAL TITLES
+$L['UNINSTALL_TITLE'] = '卸载';
+
+//MODAL TEXT
+$L['UNINSTALL_AUTODL_TXT'] = '即将从系统中卸载 AutoDL-iRSSi. <br/> <br/>这将完全删除你的所有配置和共享文件夹设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 AutoDL-iRSSi, 但是, 你的存储路径和链接的文件夹设置将被重置为默认值.';
+$L['UNINSTALL_BTSYNC_TXT'] = '即将从系统中卸载 BitTorrent Sync.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 BitTorrent Sync, 但是, 你的存储路径和链接的文件夹设置将被重置为默认值.';
+$L['UNINSTALL_DELUGE_TXT'] = '即将从系统中卸载 Deluge.<br/> <br/>这将彻底删除<strong>所有用户</ strong>的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 Deluge, 但是, 你的存储路径和链接文件夹设置将被重置为默认值.';
+$L['UNINSTALL_FILEBROWSER_TXT'] = '即将从系统中卸载 File Browser.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 File Browser, 但是你的存储路径和链接的文件夹设置将被重置为默认值.';
+$L['UNINSTALL_FLEXGET_TXT'] = '即将从系统中卸载 FlexGet.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 FlexGet, 但是你的设置将被重置为默认值.';
+$L['UNINSTALL_FLOOD_TXT'] = '即将从系统中卸载 Flood.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 Flood, 但是你的设置将被重置为默认值.';
+$L['UNINSTALL_NETDATA_TXT'] = '即将从系统中卸载 Netdata.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 Netdata, 但是你的设置将被重置为默认值.';
+$L['UNINSTALL_NOVNC_TXT'] = '即将从系统中卸载 noVNC.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 noVNC, 但是你的设置将被重置为默认值.';
+$L['UNINSTALL_PLEX_TXT'] = '即将从系统中卸载 Plex Media Server.<br/> <br/>这将完全删除你的所有配置和库设置...这个操作是不可逆的. <br/> <br/>你可以随时重新安装 Plex, 但是, 你的磁带库设置将被重置为默认值.';
+$L['UNINSTALL_QBITTORRENT_TXT'] = '即将从系统中卸载 qBittorrent.<br/> <br/>这将完全删除你的所有配置设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 qBittorrent, 但是你的配置设置将被重置为默认值.';
+$L['UNINSTALL_RTORRENT_TXT'] = '即将从系统中卸载 rTorrent.<br/> <br/>这将完全删除你的所有配置设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 rTorrent, 但是你的配置设置将被重置为默认值.';
+$L['UNINSTALL_RUTORRENT_TXT'] = '即将从系统中卸载 ruTorrent.<br/> <br/>这将完全删除你的所有配置设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 ruTorrent, 但是你的配置设置将被重置为默认值.';
+$L['UNINSTALL_SYNCTHING_TXT'] = '即将从系统中卸载 Syncthing.<br/> <br/>这将完全删除你的所有配置设置...这个操作是不可逆的. <br/> <br/>你可以随时重新安装 Syncthing, 但是你的配置设置将被重置为默认值.';
+$L['UNINSTALL_TRANSMISSION_TXT'] = '即将从系统中卸载 Transmission.<br/> <br/>这将完全删除你的所有配置设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 Transmission, 但是你的配置设置将被重置为默认值.';
+$L['UNINSTALL_X2GO_TXT'] = '即将从系统中卸载 x2go.<br/> <br/>这将彻底清除系统中的 x2goserver 和 xfce4 桌面环境.';
+$L['UNINSTALL_ZNC_TXT'] = '即将从系统中卸载 ZNC.<br/> <br/>这将完全删除你的所有配置和设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 ZNC, 但是你的设置将被重置为默认值.';
+$L['THEME_CHANGE_TXT'] = '即将改变主题. 如果主题在刷新后没有正确显示, 则可能需要清除浏览器缓存并重试.';
+
+//SYSTEM RESPONSE MODAL
+$L['SYSTEM_RESPONSE_TITLE'] = '系统响应';
+
+//GRITTER POPUPS
+$L['UNINSTALLING_TITLE'] = '卸载中';
+
+//GRITTER TEXT
+$L['UNINSTALLING_TXT_1'] = '请稍候';
+$L['UNINSTALLING_TXT_2'] = '正在从你的系统中卸载。';
+
+
+////////////////////////////////////////////////////////////////////////////
+// SAMPLE
+// $L['SAMPLE'] = 'Sample';
+////////////////////////////////////////////////////////////////////////////
+
+
+?>

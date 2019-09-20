@@ -1,0 +1,25 @@
+#!/bin/bash
+
+######################################################################
+#  USAGE: showspace (bytes)
+#  ABSTRACT: Converts a numeric parameter to a human readable format.
+######################################################################
+function showspace() { # Divides by 2^10 until < 1024 and then append metric suffix
+declare -a METRIC=('B' 'KB' 'MB' 'GB' 'TB' 'XB' 'PB') # Array of suffixes
+MAGNITUDE=0  # magnitude of 2^10
+PRECISION="scale=1" # change this numeric value to inrease decimal precision
+UNITS=`echo $1 | tr -d ','`  # numeric arg val (in bytes) to be converted
+while [ ${UNITS/.*} -ge 1024 ] # compares integers (b/c no floats in bash)
+  do
+   UNITS=`echo "$PRECISION; $UNITS/1024" | bc` # floating point math via `bc`
+   ((MAGNITUDE++)) # increments counter for array pointer
+  done
+echo -n "$UNITS${METRIC[$MAGNITUDE]}"
+}
+
+cd /home/ && du */ -bs | awk '$1 > 500 { print $0 }' | while read LINE; do
+    SIZE=$(echo "$LINE" | cut -f 1)
+    HRSIZE=$(showspace "$SIZE")
+    DIR=$(echo "$LINE" | cut -f 2)
+    printf "%8s %s\n" "$HRSIZE" "$DIR"
+done

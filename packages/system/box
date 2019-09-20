@@ -1,0 +1,227 @@
+#!/bin/bash
+#
+# [QuickBox Lite box Command resolver]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.0.0
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+#   Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+#################################################################################
+# HELP FUNCTIONS
+#################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _excute() {
+    ($1 >> "${OUTTO}" 2>&1;)
+}
+function _print() {
+    printf "${_norm}%s${_norm}\n" "$@"
+}
+function _info() {
+    printf "${_cyan}➜ %s${_norm}\n" "$@"
+}
+function _success() {
+    printf "${_green}✓ %s${_norm}\n" "$@"
+}
+function _warning() {
+    printf "${_tan}⚠ %s${_norm}\n" "$@"
+}
+function _error() {
+    printf "${_red}✗ %s${_norm}\n" "$@"
+}
+#################################################################################
+# SCRIPT FUNCTIONS
+#################################################################################
+function _batchInstall() {
+    applist=()
+    locks=($(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2 | grep -v "Template\|lecert\|denyhosts\|fail2ban" | sort -d))
+    for i in "${locks[@]}"; do
+        app=${i}
+        if [[ ! -f /install/.$app.lock && ! -f /install/.*.$app.lock ]]; then
+            applist+=("$i" '""')
+        fi
+    done
+    installlist=$(whiptail --title "Install Software" --checklist --noitem --separate-output "Make some choices:" 20 28 14 "${applist[@]}" 3>&1 1>&2 2>&3)
+    echo "Batch Installing..."
+    for i in ${installlist[@]}; do
+        source /usr/local/bin/quickbox/package/install/installpackage-$i
+    done
+}
+
+function _help() {
+    # print help info
+    echo -e "\nQuickBox Lite Cli Tools"
+    echo -e "\nUsage: \n$(basename "$0") COMMAND"
+    echo -e "\nOptions:\n"
+    echo "install <appname>             install applications, leave appname"
+    echo "                              blank to use batch install"
+    echo "remove <appname>              remove installed application"
+    echo "update <appname>              upgrade installed application"
+    echo "lang <de|dk|en|es|fr|zh>      change dashboard language"
+    echo "clean <mem|log>               clean memory or installation log"
+    echo "fix <dpkg|time|interface>     fix your setting"    
+    echo "set <interface|passwd>        change interface setting/password"
+    echo "iotest                        run IO test"
+    echo "troubleshoot                  generate log for troubleshoot"
+    echo "unban <IP adress>             remove a IP/all IP from banned list"
+    echo ""
+    echo "help                          display this help and exit"
+}
+#################################################################################
+# ARGUMENT SETTING
+#################################################################################
+resolver=$1
+
+if [[ $resolver == "lang" ]]; then
+    langname=$2
+    case $langname in
+        "de"|"deutsch"|"germany"|"lang_de") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_de;;
+        "dk"|"dansk"|"danish"|"lang_dk") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_dk;;
+        "en"|"en-us"|"english"|"lang_en") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en;;
+        "es"|"spanish"|"lang_fr") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_es;;
+        "fr"|"french"|"lang_es") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_fr;;
+        "zh"|"zh-cn"|"chinese"|"lang_zh-cn"|"lang_zh") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_zh-cn;;
+    esac
+fi
+
+if [[ $resolver == "install" ]]; then
+    extraarg="${@:2}"
+    appname=$2
+    if [[ -z $extraarg ]]; then
+        _batchInstall
+    elif [[ $appname == "bbr" || $appname == "BBR" ]]; then
+        bash /usr/local/bin/quickbox/system/auxiliary/install-BBR.sh ${@:3}
+    else
+        if [[ -f /usr/local/bin/quickbox/package/install/installpackage-${appname} ]]; then
+            bash /usr/local/bin/quickbox/package/install/installpackage-${appname} ${@:3}
+        else
+            _error "${appname} Installer not exist"
+        fi
+    fi
+fi
+
+if [[ $resolver == "remove" ]]; then
+    extraarg="${@:2}"
+    appname=$2
+    if [[ -z $extraarg ]]; then
+         _error "Nothing will be removed"
+    else
+        if [[ -f /usr/local/bin/quickbox/package/remove/removepackage-${appname} ]]; then
+            bash /usr/local/bin/quickbox/package/remove/removepackage-${appname} ${@:3}
+        else
+            _error "Nothing will be removed"
+        fi
+    fi
+fi
+
+if [[ $resolver == "update" ]]; then
+    extraarg="${@:2}"
+    appname=$2
+    if [[ $appname == "quickbox" ]]; then
+        bash /usr/local/bin/quickbox/system/qbUpdate
+    elif [[ ! -z $extraarg ]]; then
+        if [[ -f /usr/local/bin/quickbox/package/update/updatepackage-${appname} ]]; then
+            bash /usr/local/bin/quickbox/package/update/updatepackage-${appname} ${@:3}
+        else
+            _error "Updater not exist"
+        fi
+    fi
+fi
+
+if [[ $resolver == "clean" ]]; then
+    command=$2
+    if [[ $command == "mem" || $command == "memory" ]]; then
+        bash /usr/local/bin/quickbox/system/auxiliary/clean_mem
+    elif [[ $command == "log" ]]; then
+        bash /usr/local/bin/quickbox/system/auxiliary/clean_log
+    fi
+fi
+
+if [[ $resolver == "troubleshoot" ]]; then
+    bash /usr/local/bin/quickbox/system/auxiliary/logCollector.sh
+fi
+
+if [[ $resolver == "set" ]]; then
+    command=$2
+    case $command in
+        "interface")
+            echo $3 > /srv/dashboard/db/interface.txt
+            \cp -f /etc/QuickBox/setup/dashboard/widgets/stat.php /srv/dashboard/widgets/stat.php
+            \cp -f /etc/QuickBox/setup/dashboard/widgets/data.php /srv/dashboard/widgets/data.php
+            \cp -f /etc/QuickBox/setup/dashboard/widgets/bw_tables.php /srv/dashboard/widgets/bw_tables.php
+            \cp -f /etc/QuickBox/setup/dashboard/inc/config.php /srv/dashboard/inc/config.php
+            bash /usr/local/bin/quickbox/system/auxiliary/set_interface
+            chown -R www-data: /srv/dashboard
+            ;;
+        "passwd"|"password")
+            bash /usr/local/bin/quickbox/system/users/changePass -p ${@:3}
+    esac
+fi
+
+if [[ $resolver == "fix" ]]; then
+    command=$2
+    case $command in
+        "dpkg"|"lock") bash /usr/local/bin/quickbox/system/auxiliary/fixDpkg;;
+        "time") bash /usr/local/bin/quickbox/system/auxiliary/fixTime;;
+        "interface") bash /usr/local/bin/quickbox/system/auxiliary/set_interface;;
+    esac
+fi
+
+if [[ $resolver =~ ("iotest"|"disktest") ]]; then
+    bash /usr/local/bin/quickbox/system/auxiliary/iotest
+fi
+
+if [[ $resolver == "unban" ]]; then
+    if [[ -f /install/.denyhosts.lock ]]; then
+        bash /usr/local/bin/quickbox/system/auxiliary/denyunban ${@:2}
+    fi
+    if [[ -f /install/.fail2ban.lock ]]; then
+        bash /usr/local/bin/quickbox/system/auxiliary/failunban ${@:2}
+    fi
+fi
+
+if [[ $resolver == "help" ]]; then
+    _help
+    exit 0
+fi
+
+#################################################################################
+# ERROR HANDLER
+#################################################################################
+
+if [[ ! $resolver =~ ("lang"|"install"|"remove"|"update"|"clean"|"troubleshoot"|"set"|"fix"|"iotest"|"disktest"|"unban"|"help") ]]; then
+    _error "Command not exist!"
+    _help
+    exit 1
+fi

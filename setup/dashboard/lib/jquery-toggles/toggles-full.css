@@ -1,0 +1,241 @@
+.toggle-slide {
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+  direction: ltr;
+}
+.toggle-slide .toggle-on,
+.toggle-slide .toggle-off,
+.toggle-slide .toggle-blob {
+  float: left;
+}
+.toggle-slide .toggle-blob {
+  position: relative;
+  z-index: 99;
+  cursor: hand;
+  cursor: -webkit-grab;
+  cursor: -moz-grab;
+  cursor: grab;
+}
+.toggle-dark .toggle-slide {
+  border-radius: 5px;
+  -webkit-box-shadow: 0 0 0 1px #242529, 0 1px 0 1px #666;
+          box-shadow: 0 0 0 1px #242529, 0 1px 0 1px #666;
+}
+.toggle-dark .toggle-on,
+.toggle-dark .toggle-off,
+.toggle-dark .toggle-blob {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+}
+.toggle-dark .toggle-on,
+.toggle-dark .toggle-select .toggle-inner .active {
+  background: -webkit-gradient(linear, left top, left bottom, from(#1a70be), to(#31a2e1));
+  background: -webkit-linear-gradient(top, #1a70be 0%, #31a2e1 100%);
+  background: linear-gradient(top, #1a70be 0%, #31a2e1 100%);
+}
+.toggle-dark .toggle-off,
+.toggle-dark .toggle-select .toggle-on {
+  background: -webkit-gradient(linear, left top, left bottom, from(#242529), to(#34363b));
+  background: -webkit-linear-gradient(top, #242529 0%, #34363b 100%);
+  background: linear-gradient(top, #242529 0%, #34363b 100%);
+}
+.toggle-dark .toggle-blob {
+  border-radius: 4px;
+  background: -webkit-gradient(linear, left top, left bottom, from(#cfcfcf), to(#f5f5f5));
+  background: -webkit-linear-gradient(top, #cfcfcf 0%, #f5f5f5 100%);
+  background: linear-gradient(top, #cfcfcf 0%, #f5f5f5 100%);
+  -webkit-box-shadow: inset 0 0 0 1px #888, inset 0 0 0 2px white;
+          box-shadow: inset 0 0 0 1px #888, inset 0 0 0 2px white;
+}
+.toggle-dark .toggle-blob:hover {
+  background: -webkit-gradient(linear, left top, left bottom, from(#c0c0c0), to(#dadada));
+  background: -webkit-linear-gradient(top, #c0c0c0 0%, #dadada 100%);
+  background: linear-gradient(top, #c0c0c0 0%, #dadada 100%);
+  -webkit-box-shadow: inset 0 0 0 1px #888,inset 0 0 0 2px #ddd;
+          box-shadow: inset 0 0 0 1px #888,inset 0 0 0 2px #ddd;
+}
+.toggle-iphone .toggle-slide {
+  border-radius: 9999px;
+  -webkit-box-shadow: 0 0 0 1px #999;
+          box-shadow: 0 0 0 1px #999;
+}
+.toggle-iphone .toggle-on,
+.toggle-iphone .toggle-off {
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+.toggle-iphone .toggle-on {
+  border-radius: 9999px 0 0 9999px;
+  background: #037bda;
+  -webkit-box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.4);
+          box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.4);
+}
+.toggle-iphone .toggle-on:after {
+  background: -webkit-gradient(linear, left top, left bottom, from(#1189f1), to(#3797ef));
+  background: -webkit-linear-gradient(top, #1189f1 0%, #3797ef 100%);
+  background: linear-gradient(to bottom, #1189f1 0%, #3797ef 100%);
+  height: 50%;
+  content: '';
+  margin-top: -19%;
+  display: block;
+  border-radius: 9999px;
+  margin-left: 10%;
+}
+.toggle-iphone .toggle-off {
+  -webkit-box-shadow: inset -2px 2px 5px rgba(0, 0, 0, 0.4);
+          box-shadow: inset -2px 2px 5px rgba(0, 0, 0, 0.4);
+  border-radius: 0 9999px 9999px 0;
+  color: #828282;
+  background: #ECECEC;
+  text-shadow: 0 0 1px white;
+}
+.toggle-iphone .toggle-off:after {
+  background: -webkit-gradient(linear, left top, left bottom, from(#fafafa), to(#fdfdfd));
+  background: -webkit-linear-gradient(top, #fafafa 0%, #fdfdfd 100%);
+  background: linear-gradient(to bottom, #fafafa 0%, #fdfdfd 100%);
+  height: 50%;
+  content: '';
+  margin-top: -19%;
+  display: block;
+  margin-right: 10%;
+  border-radius: 9999px;
+}
+.toggle-iphone .toggle-blob {
+  border-radius: 50px;
+  background: -webkit-gradient(linear, left top, left bottom, from(#d1d1d1), to(#fafafa));
+  background: -webkit-linear-gradient(top, #d1d1d1 0%, #fafafa 100%);
+  background: linear-gradient(to bottom, #d1d1d1 0%, #fafafa 100%);
+  -webkit-box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), inset 0 0 0 2px #ffffff, 0 0 3px rgba(0, 0, 0, 0.6);
+          box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6), inset 0 0 0 2px #ffffff, 0 0 3px rgba(0, 0, 0, 0.6);
+}
+.toggle-light .toggle-slide {
+  border-radius: 9999px;
+  -webkit-box-shadow: 0 0 0 1px #999;
+          box-shadow: 0 0 0 1px #999;
+}
+.toggle-light .toggle-on,
+.toggle-light .toggle-off {
+  font-size: 11px;
+  font-weight: 500;
+}
+.toggle-light .toggle-on,
+.toggle-light .toggle-select .toggle-inner .active {
+  background: #45a31f;
+  -webkit-box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.2);
+          box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.2);
+  text-shadow: 1px 1px rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+.toggle-light .toggle-off,
+.toggle-light .toggle-select .toggle-on {
+  color: rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px rgba(255, 255, 255, 0.2);
+  background: -webkit-gradient(linear, left top, left bottom, from(#cfcfcf), to(#f5f5f5));
+  background: -webkit-linear-gradient(#cfcfcf, #f5f5f5);
+  background: linear-gradient(#cfcfcf, #f5f5f5);
+}
+.toggle-light .toggle-blob {
+  border-radius: 50px;
+  background: -webkit-gradient(linear, left top, left bottom, from(#f5f5f5), to(#cfcfcf));
+  background: -webkit-linear-gradient(#f5f5f5, #cfcfcf);
+  background: linear-gradient(#f5f5f5, #cfcfcf);
+  -webkit-box-shadow: 1px 1px 2px #888;
+          box-shadow: 1px 1px 2px #888;
+}
+.toggle-light .toggle-blob:hover {
+  background: -webkit-gradient(linear, left top, left bottom, from(#e4e4e4), to(#f9f9f9));
+  background: -webkit-linear-gradient(#e4e4e4, #f9f9f9);
+  background: linear-gradient(#e4e4e4, #f9f9f9);
+}
+.toggle-modern .toggle-slide {
+  border-radius: 4px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25), 0 0 1px rgba(0, 0, 0, 0.2);
+  background: -webkit-gradient(linear, left top, left bottom, from(#c0c5c9), to(#a1a9af));
+  background: -webkit-linear-gradient(#c0c5c9, #a1a9af);
+  background: linear-gradient(#c0c5c9, #a1a9af);
+  -webkit-box-shadow: inset 0 2px 1px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.15), 0 1px 0 rgba(255, 255, 255, 0.15);
+          box-shadow: inset 0 2px 1px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.15), 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.toggle-modern .toggle-on,
+.toggle-modern .toggle-off {
+  -webkit-transition: all 0.1s ease-out;
+          transition: all 0.1s ease-out;
+  color: white;
+  text-shadow: 1px 1px rgba(0, 0, 0, 0.1);
+  font-size: 11px;
+  -webkit-box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.2), inset 0 -1px 1px rgba(0, 0, 0, 0.1), 0 1px 1px rgba(0, 0, 0, 0.2);
+          box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.2), inset 0 -1px 1px rgba(0, 0, 0, 0.1), 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+.toggle-modern .toggle-select .toggle-off,
+.toggle-modern .toggle-select .toggle-on {
+  background: none;
+}
+.toggle-modern .toggle-off,
+.toggle-modern .toggle-off.active {
+  background: -webkit-gradient(linear, left top, left bottom, from(#737e8d), to(#3f454e));
+  background: -webkit-linear-gradient(#737e8d, #3f454e);
+  background: linear-gradient(#737e8d, #3f454e);
+}
+.toggle-modern .toggle-on,
+.toggle-modern .toggle-on.active {
+  background: -webkit-gradient(linear, left top, left bottom, from(#4894cd), to(#2852a6));
+  background: -webkit-linear-gradient(#4894cd, #2852a6);
+  background: linear-gradient(#4894cd, #2852a6);
+}
+.toggle-modern .toggle-blob {
+  background: -webkit-gradient(linear, left top, left bottom, from(#c0c6c9), to(#81898f));
+  background: -webkit-linear-gradient(#c0c6c9, #81898f);
+  background: linear-gradient(#c0c6c9, #81898f);
+  -webkit-box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.2), inset 0 -1px 1px rgba(0, 0, 0, 0.1), 1px 1px 2px rgba(0, 0, 0, 0.2);
+          box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.2), inset 0 -1px 1px rgba(0, 0, 0, 0.1), 1px 1px 2px rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+.toggle-modern .toggle-blob:hover {
+  background-image: -webkit-gradient(linear, left top, left bottom, from(#a1a9af), to(#a1a9af));
+  background-image: -webkit-linear-gradient(#a1a9af, #a1a9af);
+  background-image: linear-gradient(#a1a9af, #a1a9af);
+}
+.toggle-soft .toggle-slide {
+  border-radius: 5px;
+  -webkit-box-shadow: 0 0 0 1px #999;
+          box-shadow: 0 0 0 1px #999;
+}
+.toggle-soft .toggle-on,
+.toggle-soft .toggle-off {
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 11px;
+  text-shadow: 1px 1px white;
+}
+.toggle-soft .toggle-on,
+.toggle-soft .toggle-select .toggle-inner .active {
+  background: -webkit-gradient(linear, left top, left bottom, from(#d2ff52), to(#91e842));
+  background: -webkit-linear-gradient(#d2ff52, #91e842);
+  background: linear-gradient(#d2ff52, #91e842);
+}
+.toggle-soft .toggle-off,
+.toggle-soft .toggle-select .toggle-on {
+  background: -webkit-gradient(linear, left top, left bottom, from(#cfcfcf), to(#f5f5f5));
+  background: -webkit-linear-gradient(#cfcfcf, #f5f5f5);
+  background: linear-gradient(#cfcfcf, #f5f5f5);
+}
+.toggle-soft .toggle-blob {
+  border-radius: 4px;
+  background: -webkit-gradient(linear, left top, left bottom, from(#cfcfcf), to(#f5f5f5));
+  background: -webkit-linear-gradient(#cfcfcf, #f5f5f5);
+  background: linear-gradient(#cfcfcf, #f5f5f5);
+  -webkit-box-shadow: inset 0 0 0 1px #bbb, inset 0 0 0 2px white;
+          box-shadow: inset 0 0 0 1px #bbb, inset 0 0 0 2px white;
+}
+.toggle-soft .toggle-blob:hover {
+  background: -webkit-gradient(linear, left top, left bottom, from(#e4e4e4), to(#f9f9f9));
+  background: -webkit-linear-gradient(#e4e4e4, #f9f9f9);
+  background: linear-gradient(#e4e4e4, #f9f9f9);
+  -webkit-box-shadow: inset 0 0 0 1px #ddd,inset 0 0 0 2px #ddd;
+          box-shadow: inset 0 0 0 1px #ddd,inset 0 0 0 2px #ddd;
+}

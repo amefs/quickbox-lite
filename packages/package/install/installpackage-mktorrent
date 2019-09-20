@@ -1,0 +1,504 @@
+#!/bin/bash
+#
+# [QuickBox Lite mktorrent Installer]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.0.0
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+#   Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+DISTRO=$(lsb_release -is)
+RELEASE=$(lsb_release -rs)
+CODENAME=$(lsb_release -cs)
+SETNAME=$(lsb_release -rc)
+# Server IP Address
+SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _excute() {
+    ($1 >> "${OUTTO}" 2>&1;)
+}
+function _print() {
+    printf "${_norm}%s${_norm}\n" "$@"
+}
+function _info() {
+    printf "${_cyan}➜ %s${_norm}\n" "$@"
+}
+function _success() {
+    printf "${_green}✓ %s${_norm}\n" "$@"
+}
+function _warning() {
+    printf "${_tan}⚠ %s${_norm}\n" "$@"
+}
+function _error() {
+    printf "${_red}✗ %s${_norm}\n" "$@"
+}
+
+#################################################################################
+# APP VARIABLE
+#################################################################################
+APP_TITLE="mktorrent"
+APP_NAME="mktorrent"
+APP_SERVICE=""
+APP_BASEDEPS="mktorrent dialog"
+APP_WEB_PORT=""
+APP_DAEMON_PORT=""
+APP_HOST=""
+
+# RANDOM PORT
+APP_WEB_PORT_LOW=""
+APP_WEB_PORT_HIGH=""
+APP_DAEMON_PORT_LOW=""
+APP_DAEMON_PORT_HIGH=""
+
+APP_LOCK=`echo .$APP_NAME.lock`
+OUTTO=/srv/dashboard/db/output.log
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+    echo -e "\nQuickBox Lite $APP_TITLE Installer"
+    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+    echo -e "\nOptions:\n"
+    echo "-l, --log <logfile>       specific log file"
+    echo ""
+    echo "-h, --help                display this help and exit"
+}
+################################################################################
+# INSTALL FUNCTIONS
+################################################################################
+function _lockCheck() {
+    if [[ -f "/install/.install.lock" ]]; then
+        prevApp=$(cat /install/.install.lock)
+        _info "$prevApp process running."
+        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
+        _error "Exiting..."
+        exit 1
+    fi
+    if [[ -f "/install/$APP_LOCK" ]]; then
+        _error "${APP_TITLE} already installed !"
+        exit 1
+    fi
+}
+function _setLock() {
+    echo "${APP_TITLE}" > /install/.install.lock
+}
+function _lockCleanup() {
+    echo "$APP_TITLE Install Complete!
+
+
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+    rm -f /install/.install.lock
+}
+
+function _installInfo() {
+    _print "
+$APP_TITLE will now be installed.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _installSystemUpdates() {
+    _info "Checking and performing updates to system... ";
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+    ## auto solve lock
+    if [ "$?" -eq 2 ]; then
+        _warning "dpkg database is locked."
+        _info "fixing dpkg lock..."
+        rm -f /var/lib/dpkg/updates/0*
+        locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+        if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+            for l in ${locks}; do
+                rm -rf ${l}
+            done
+            _excute "dpkg --configure -a"
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+        fi
+        apt-get check >/dev/null 2>&1
+        if [ "$?" -ne 0 ]; then
+            _excute "apt-get install -f"
+            apt-get check >/dev/null 2>&1
+            if [ "$?" -ne 0 ]; then
+                _error "apt-get check failed, you may have broken packages."
+                exit 1
+            fi
+        fi
+    fi
+    _success "System updated."
+}
+
+function _installDepends() {
+    _info "Installing ${APP_TITLE} dependencies..."
+    local DEPLIST="${APP_BASEDEPS}"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    local DEPLIST="apt-transport-https"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    if [[ $dependError != "1" ]]; then
+        _success "${APP_TITLE} dependencies installed."
+    else
+        _error "${APP_TITLE} dependencies failed to install."
+        exit 1
+    fi
+}
+
+function _configureApp() {
+    _info "Configuring ${APP_TITLE}..."
+    if [[ ! -f /etc/dialogrc ]]; then
+        cat > /etc/dialogrc <<'EOF'
+# Dialog Theme <B/W>
+aspect = 0
+separate_widget = ""
+tab_len = 0
+visit_items = OFF
+use_shadow = OFF
+use_colors = ON
+screen_color = (CYAN,BLACK,ON)
+shadow_color = (BLACK,BLACK,OFF)
+dialog_color = (BLACK,WHITE,OFF)
+title_color = (BLACK,WHITE,OFF)
+border_color = (WHITE,WHITE,ON)
+button_active_color = (WHITE,BLUE,ON)
+button_inactive_color = dialog_color
+button_key_active_color = button_active_color
+button_key_inactive_color = (RED,WHITE,OFF)
+button_label_active_color = (YELLOW,BLUE,ON)
+button_label_inactive_color = (BLACK,WHITE,ON)
+inputbox_color = dialog_color
+inputbox_border_color = dialog_color
+searchbox_color = dialog_color
+searchbox_title_color = title_color
+searchbox_border_color = border_color
+position_indicator_color = title_color
+menubox_color = dialog_color
+menubox_border_color = border_color
+item_color = dialog_color
+item_selected_color = button_active_color
+tag_color = title_color
+tag_selected_color = button_label_active_color
+tag_key_color = button_key_inactive_color
+tag_key_selected_color = (BLACK,BLUE,ON)
+check_color = dialog_color
+check_selected_color = button_active_color
+uarrow_color = (RED,WHITE,ON)
+darrow_color = uarrow_color
+itemhelp_color = (WHITE,BLACK,OFF)
+form_active_text_color = button_active_color
+form_text_color = (WHITE,CYAN,ON)
+form_item_readonly_color = (CYAN,WHITE,ON)
+gauge_color = (BLUE,WHITE,ON)
+border2_color = dialog_color
+inputbox_border2_color = dialog_color
+searchbox_border2_color = dialog_color
+menubox_border2_color = dialog_color
+EOF
+    fi
+    if [[ ! -f /usr/local/bin/createtorrent ]]; then
+        cat > /usr/local/bin/createtorrent <<'EOF'
+#!/bin/bash
+#
+# [QuickBox Lite Mktorrent Wapper]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.0.0
+# URL:
+# Original Repo:    https://github.com/Aniverse/inexistence
+# Credits to:       Aniverse
+#
+#   Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+#################################################################################
+# INIT
+#################################################################################
+inputpath=""
+outputpath=$(pwd)"Untitled.torrent"
+quitrun=0
+piecesize=24
+OUTTO=$(pwd)
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+    echo -e "\nQuick Box Lite mktorrent wrapper"
+    echo -e "\nUsage: \n$(basename "$0") [-hq] [-i inputfile] [-l logfile] [-o outputfile]"
+    echo -e "\nOptions:\n"
+    echo "-i, --input <inputfile>       input file path"
+    echo "-l, --log <logfile>           specific log file"
+    echo "-o, --output <outputfile>     output torrent path"
+    echo "-p, --piece <piece-length>    set the piece length to 2^n bytes"
+    echo ""
+    echo "-q, --quit                    create torrent without any choice"
+    echo "-h, --help                    display this help and exit"
+}
+function _input_announce() {
+    ANNOUNCE=$(dialog --title "Tracker URL" --inputbox "Please input a private tracker URL" 8 72 3>&1 1>&2 2>&3)
+}
+function _menucreate() {
+    # get target
+    inputpath=$(dialog --title "Open Path" --title "Please choose a file or folder to make torrent" --fselect $(pwd) 14 64 3>&1 1>&2 2>&3)
+    if [[ -d ${inputpath} || -f ${inputpath} ]]; then
+        # torrent file path
+        filepath=${inputpath}
+        file_title=$(basename "$filepath")
+        file_title_clean="$(echo "$file_title" | tr '[:space:]' '.')"
+        file_title_clean="$(echo "$file_title_clean" | sed s'/[.]$//')"
+        file_title_clean="$(echo "$file_title_clean" | tr -d '(')"
+        file_title_clean="$(echo "$file_title_clean" | tr -d ')')"
+        file_title_clean="`   echo "$file_title_clean" | sed 's/\//\./'   `"
+        outputpath=$(dialog --title "Torrent Name" --inputbox "Input your torrent path here:" 8 72 "$(pwd)/${file_title_clean}.torrent" 3>&1 1>&2 2>&3)
+        # check output
+        if [[ -f ${outputpath} ]]; then
+            dialog --title "Error" --msgbox "Output torrent already exist!" 6 48
+            exit 1
+        fi
+        # tracker
+        trackerop=$(dialog --title "Tracker" --radiolist \
+"Which tracker type you want to use?" 12 64 6 \
+"01" "Create a private torrent with empty announce" on \
+"02" "Create a private torrent and specify an announce" off \
+"03" "Create a public torrent for public trackers" off 3>&1 1>&2 2>&3)
+        case $trackerop in
+            01) private=1 ; ANNOUNCE="-a \"\"" ;;
+            02) private=1 ; _input_announce ;;
+            03) private=0 ; ANNOUNCE="-a udp://tracker.coppersurfer.tk:6969/announce \
+            -a udp://tracker.opentrackr.org:1337/announce \
+            -a udp://tracker.open-internet.nl:6969/announce \
+            -a udp://tracker.leechers-paradise.org:6969/announce \
+            -a udp://tracker.internetwarriors.net:1337/announce \
+            -a udp://9.rarbg.to:2710/announce \
+            -a udp://9.rarbg.me:2710/announce \
+            -a http://tracker3.itzmx.com:6961/announce \
+            -a http://tracker1.itzmx.com:8080/announce \
+            -a udp://tracker.openbittorrent.com:80/announce \
+            -a udp://exodus.desync.com:6969/announce \
+            -a udp://tracker2.itzmx.com:6961/announce \
+            -a udp://tracker.torrent.eu.org:451/announce \
+            -a udp://tracker.tiny-vps.com:6969/announce \
+            -a udp://retracker.lanta-net.ru:2710/announce \
+            -a udp://open.demonii.si:1337/announce \
+            -a udp://denis.stalker.upeer.me:6969/announce \
+            -a udp://bt.xxx-tracker.com:2710/announce \
+            -a udp://tracker.cyberia.is:6969/announce \
+            -a udp://open.stealth.si:80/announce ";;
+        esac
+        # piece size
+        piecesize=$(dialog --title "Piece Length" --radiolist \
+"Which piece length?\nFor more information see:\nhttps://wiki.vuze.com/w/Torrent_Piece_Size" 16 48 12 \
+"20" "1MB block" off \
+"21" "2MB block" off \
+"22" "4MB block" off \
+"23" "8MB block" off \
+"24" "16MB block" on \
+"25" "32MB block" off 3>&1 1>&2 2>&3)
+    else
+        dialog --title "Error" --msgbox "Input path not exist!" 6 48
+        exit 1
+    fi
+}
+################################################################################
+# MAIN FUNCTIONS
+################################################################################
+function _createtorrent() {
+if [[ ${quitrun} != 1 ]]; then
+    if [[ ${private} == 1 ]]; then
+        mktorrent -v -p -l ${piecesize} -a "${ANNOUNCE}" -o "${outputpath}" "$filepath"
+    else
+        mktorrent -v -l ${piecesize} -a "${ANNOUNCE}" -o "${outputpath}" "$filepath"
+    fi
+else
+    mktorrent -v -l ${piecesize} -a "${ANNOUNCE}" -o "${outputpath}" "$filepath"
+fi
+}
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+ARGS=`getopt -a -o hi:l:o:p:q -l help,input:,log:,output:,piece:,quit -- "$@"`
+eval set -- "${ARGS}"
+while true
+do
+    case "$1" in
+    -h|--help)
+        _usage
+        exit 1
+        ;;
+    -i|--input)
+        inputpath="$2"
+        shift
+        ;;
+    -l|--log)
+        OUTTO="$2"
+        shift
+        ;;
+    -o|--output)
+        outputpath="$2"
+        shift
+        ;;
+    -p|--piece)
+        piecesize="$2"
+        shift
+        ;;
+    -q|--quit)
+        quitrun=1
+        ;;
+    --)
+    shift
+    break
+    ;;
+    esac
+shift
+done
+if [[ ${quitrun} != 1 ]]; then
+    _menucreate
+else
+    if [[ -d ${inputpath} || -f ${inputpath} ]]; then
+        filepath=${inputpath}
+        file_title=$(basename "$filepath")
+        file_title_clean="$(echo "$file_title" | tr '[:space:]' '.')"
+        file_title_clean="$(echo "$file_title_clean" | sed s'/[.]$//')"
+        file_title_clean="$(echo "$file_title_clean" | tr -d '(')"
+        file_title_clean="$(echo "$file_title_clean" | tr -d ')')"
+        file_title_clean="`   echo "$file_title_clean" | sed 's/\//\./'   `"
+        ANNOUNCE="-a udp://tracker.coppersurfer.tk:6969/announce \
+-a udp://tracker.opentrackr.org:1337/announce \
+-a udp://tracker.open-internet.nl:6969/announce \
+-a udp://tracker.leechers-paradise.org:6969/announce \
+-a udp://tracker.internetwarriors.net:1337/announce \
+-a udp://9.rarbg.to:2710/announce \
+-a udp://9.rarbg.me:2710/announce \
+-a http://tracker3.itzmx.com:6961/announce \
+-a http://tracker1.itzmx.com:8080/announce \
+-a udp://tracker.openbittorrent.com:80/announce \
+-a udp://exodus.desync.com:6969/announce \
+-a udp://tracker2.itzmx.com:6961/announce \
+-a udp://tracker.torrent.eu.org:451/announce \
+-a udp://tracker.tiny-vps.com:6969/announce \
+-a udp://retracker.lanta-net.ru:2710/announce \
+-a udp://open.demonii.si:1337/announce \
+-a udp://denis.stalker.upeer.me:6969/announce \
+-a udp://bt.xxx-tracker.com:2710/announce \
+-a udp://tracker.cyberia.is:6969/announce \
+-a udp://open.stealth.si:80/announce "
+        if [[ -z ${outputpath} ]]; then
+            echo "Error! Output file not set"
+            exit 1
+        fi
+        if [[ -f ${outputpath} ]]; then
+            echo "Output torrent already exist!"
+            exit 1
+        fi
+    else
+        echo "Error! Input File not exist!"
+        exit 1
+    fi
+fi
+_createtorrent
+EOF
+    chmod +x /usr/local/bin/createtorrent
+    fi
+    _success "${APP_TITLE} configured."
+}
+
+function _installAppLock() {
+    _info "Configuring ${APP_TITLE} lock..."
+    touch /install/${APP_LOCK}
+    _success "${APP_TITLE} lock configured."
+}
+
+function _installAppStart() {
+    _info "Starting ${APP_TITLE}..."
+    
+    _success "${APP_TITLE} started."
+}
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+ARGS=`getopt -a -o hl: -l help,log: -- "$@"`
+eval set -- "${ARGS}"
+while true
+do
+    case "$1" in
+    -h|--help)
+        _usage
+        exit 1
+        ;;
+    -l|--log)
+        OUTTO="$2"
+        shift
+        ;;
+    --)
+    shift
+    break
+    ;;
+    esac
+shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
+_lockCheck
+_setLock
+_installInfo
+if [[ ! -f /install/.system.lock ]]; then
+    _installSystemUpdates
+fi
+_installDepends
+_configureApp
+_installAppLock
+_lockCleanup

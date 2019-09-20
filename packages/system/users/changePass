@@ -1,0 +1,249 @@
+#!/bin/bash
+#
+# [QuickBox Lite Change Password]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.0.0
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+#   Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+DISTRO=$(lsb_release -is)
+RELEASE=$(lsb_release -rs)
+CODENAME=$(lsb_release -cs)
+SETNAME=$(lsb_release -rc)
+# Server IP Address
+SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _excute() {
+    ($1 >> "${OUTTO}" 2>&1;)
+}
+function _print() {
+    printf "${_norm}%s${_norm}\n" "$@"
+}
+function _info() {
+    printf "${_cyan}➜ %s${_norm}\n" "$@"
+}
+function _success() {
+    printf "${_green}✓ %s${_norm}\n" "$@"
+}
+function _warning() {
+    printf "${_tan}⚠ %s${_norm}\n" "$@"
+}
+function _error() {
+    printf "${_red}✗ %s${_norm}\n" "$@"
+}
+
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+OUTTO=/srv/dashboard/db/output.log
+username=$(cat /root/.admin.info | cut -d: -f1)
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+    echo -e "\nQuickBox Lite $APP_TITLE Installer"
+    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username] [-p password]"
+    echo -e "\nOptions:\n"
+    echo "-l, --log <logfile>       specific log file"
+    echo "-u, --user <username>     username"
+    echo "-p, --password <password> new password"
+    echo ""
+    echo "-h, --help                display this help and exit"
+}
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _checkUser() {
+    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+    if [[ ! $username =~ $(echo $userlist) ]]; then
+        _error "User not exist !"
+        exit 1
+    fi
+}
+
+function _checkPass() {
+    count=`echo -n $password | wc -c`
+    strength=`echo "$password" | grep -P '(?=^.{8,32}$)(?=^[^\s]*$)(?=.*\d)(?=.*[A-Z])(?=.*[a-z])'`
+    if [[ $count -lt 8 ]]; then 
+        _error "Your password cannot less than 8 characters !"
+        exit 1
+    else
+        if [[ $strength == "" ]]; then 
+            _error "Your password must consist: 1.digital numbers 2.at least one lower case letter 3.one upper case letter"
+            exit 1
+        fi
+    fi
+}
+
+function _chPasswd() {
+    # Update system password
+    chpasswd<<<"${username}:${password}"
+    _success "System password updated"
+    # Update htpasswd
+    sed -i "/${username}/d" /etc/htpasswd
+    printf "${username}:$(openssl passwd -apr1 ${password})\n" >> /etc/htpasswd
+    printf "${username}:$(openssl passwd -apr1 ${password})\n" > /etc/htpasswd.d/htpasswd.${username}
+    _success "WebUI password updated"
+    # Update pass record
+    if [[ -f /root/.ssh/local_user ]]; then
+        passphrase=$(cat /root/.ssh/local_user)
+    else
+        passphrase=$(openssl rand -hex 64)
+        mkdir -p /root/.ssh
+        echo ${passphrase} > /root/.ssh/local_user
+        chmod 600 /root/.ssh/local_user && chmod 700 /root/.ssh
+    fi
+    if [[ $username == "$(cat /root/.admin.info | cut -d: -f1)" ]]; then
+        if [[ $CODENAME == xenial ]]; then
+            echo "${username}:$(echo ${password} | openssl enc -aes-128-ecb -a -e -pass pass:${passphrase} -nosalt)" > /root/.admin.info
+        else
+            echo "${username}:$(echo ${password} | openssl enc -aes-128-ecb -pbkdf2 -a -e -pass pass:${passphrase} -nosalt)" > /root/.admin.info
+        fi
+    fi
+    if [[ $CODENAME == xenial ]]; then
+        echo "${username}:$(echo ${password} | openssl enc -aes-128-ecb -a -e -pass pass:${passphrase} -nosalt)" > /root/.qbuser/${username}.info
+    else
+        echo "${username}:$(echo ${password} | openssl enc -aes-128-ecb -pbkdf2 -a -e -pass pass:${passphrase} -nosalt)" > /root/.qbuser/${username}.info
+    fi
+    _success "User info updated"
+
+    # Update application password
+    if [[ -f /install/.deluge.lock ]]; then
+        _excute "systemctl stop deluged@${username}"
+        _excute "systemctl stop deluge-web@${username}"
+        DWSALT=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)
+        DWP=$(python2 /usr/local/bin/quickbox/system/auxiliary/deluge.Userpass.py ${password} ${DWSALT})
+        sed -i "s/.*$username.*/${username}:${password}:10/" /home/$username/.config/deluge/auth
+        sed -i "s/.*pwd_salt.*/  \"pwd_salt\": \"${DWSALT}\",/" /home/$username/.config/deluge/web.conf
+        sed -i "s/.*pwd_sha1.*/  \"pwd_sha1\": \"${DWP}\",/" /home/$username/.config/deluge/web.conf
+        sed -i "/$username/{n;s/.*/      \"${password}\"/}" /home/${username}/.config/deluge/hostlist.conf.1.2
+        _excute "systemctl start deluged@${username}"
+        _excute "systemctl start deluge-web@${username}"
+        _success "Deluge password updated"
+    fi
+    if [[ -f /install/.filebrowser.lock ]]; then
+        _excute "systemctl stop filebrowser@${username}"
+        filebrowser -d /home/${username}/.config/filebrowser/filebrowser.db users update ${username} --password="${password}" >/dev/null 2>&1
+        _excute "systemctl start filebrowser@${username}"
+        _success "File Browser password updated"
+    fi
+    if [[ -f /install/.${username}.flexget.lock ]]; then
+        _excute "systemctl stop flexget@${username}"
+        pypath=$(su ${username} -c 'python2 -m site --user-site')
+        binpath=/home/${username}/.local/bin
+        su ${username} -c "${binpath}/flexget -c /home/${username}/.config/flexget/config.yml web passwd ${password} >/dev/null 2>&1"
+        chown ${username}.${username} -R /home/${username}/.config/flexget/
+        _excute "systemctl start flexget@${username}"
+        _success "FlexGet password updated"
+    fi
+    if [[ -f /install/.novnc.lock ]]; then
+        prog=/usr/bin/vncpasswd
+        _excute "runuser -l $username -c /usr/bin/expect" <<EOF
+spawn "$prog"
+expect "Password:"
+send "$password\r"
+expect "Verify:"
+send "$password\r"
+expect "(y/n)?\r"
+send "n\r"
+expect dof
+exit
+EOF
+        _success "VNC password updated"
+    fi
+    if [[ -f /install/.qbittorrent.lock ]]; then
+        _excute "systemctl stop qbittorrent@${username}"
+        sleep 3
+        ha1pass=$(echo -n "${password}"|md5sum |cut -f1 -d' ')
+        sed -i "s/.*Password_ha1.*/WebUI\\\Password_ha1=@ByteArray(${ha1pass})/" /home/${username}/.config/qBittorrent/qBittorrent.conf
+        _excute "systemctl start qbittorrent@${username}"
+        _success "qBittorrent password updated"
+    fi
+    if [[ -f /install/.transmission.lock ]]; then
+        _excute "systemctl stop transmission@${username}"
+        sleep 3
+        sed -i "s/.*rpc-password.*/    \"rpc-password\": \"${password}\",/" /home/${username}/.config/transmission/settings.json
+        _excute "systemctl start transmission@${username}"
+        _success "Transmission password updated"
+    fi
+}
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+ARGS=`getopt -a -o hl:u:p: -l help,log:,user:,password: -- "$@"`
+eval set -- "${ARGS}"
+while true
+do
+    case "$1" in
+    -h|--help)
+        _usage
+        exit 1
+        ;;
+    -l|--log)
+        OUTTO="$2"
+        shift
+        ;;
+    -u|--user)
+        username="$2"
+        shift
+        ;;
+    -p|--password)
+        password="$2"
+        shift
+        ;;
+    --)
+    shift
+    break
+    ;;
+    esac
+shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
+_checkUser
+_checkPass
+_chPasswd

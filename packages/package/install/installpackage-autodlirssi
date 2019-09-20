@@ -1,0 +1,340 @@
+#!/bin/bash
+#
+# [QuickBox Lite Autodl-irssi Installer]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.0.0
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+#   Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+DISTRO=$(lsb_release -is)
+RELEASE=$(lsb_release -rs)
+CODENAME=$(lsb_release -cs)
+SETNAME=$(lsb_release -rc)
+# Server IP Address
+SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _excute() {
+    ($1 >> "${OUTTO}" 2>&1;)
+}
+function _print() {
+    printf "${_norm}%s${_norm}\n" "$@"
+}
+function _info() {
+    printf "${_cyan}➜ %s${_norm}\n" "$@"
+}
+function _success() {
+    printf "${_green}✓ %s${_norm}\n" "$@"
+}
+function _warning() {
+    printf "${_tan}⚠ %s${_norm}\n" "$@"
+}
+function _error() {
+    printf "${_red}✗ %s${_norm}\n" "$@"
+}
+
+function _string() { perl -le 'print map {(a..z,A..Z,0..9)[rand 62] } 0..pop' 15 ; }
+
+#################################################################################
+# APP VARIABLE
+#################################################################################
+APP_TITLE="AutoDL IRSSI"
+APP_NAME="autodlirssi"
+APP_SERVICE="irssi"
+APP_BASEDEPS="irssi screen unzip libarchive-zip-perl libnet-ssleay-perl libhtml-parser-perl
+libxml-libxml-perl libjson-perl libjson-xs-perl libxml-libxslt-perl"
+APP_WEB_PORT=""
+APP_DAEMON_PORT=""
+APP_HOST="127.0.0.1"
+
+# RANDOM PORT
+APP_WEB_PORT_LOW="15001"
+APP_WEB_PORT_HIGH="15050"
+APP_DAEMON_PORT_LOW=""
+APP_DAEMON_PORT_HIGH=""
+
+APP_LOCK=`echo .$APP_NAME.lock`
+OUTTO=/srv/dashboard/db/output.log
+
+APPSRC="http://git.io/vlcND"
+PLUGINSRC="https://github.com/autodl-community/autodl-rutorrent.git"
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+    echo -e "\nQuickBox Lite $APP_TITLE Installer"
+    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+    echo -e "\nOptions:\n"
+    echo "-l, --log <logfile>       specific log file"
+    # not required by multi-user applications
+    echo ""
+    echo "-h, --help                display this help and exit"
+}
+################################################################################
+# INSTALL FUNCTIONS
+################################################################################
+function _lockCheck() {
+    if [[ -f "/install/.install.lock" ]]; then
+        prevApp=$(cat /install/.install.lock)
+        _info "$prevApp process running."
+        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
+        _error "Exiting..."
+        exit 1
+    fi
+    if [[ -f "/install/$APP_LOCK" ]]; then
+        _error "${APP_TITLE} already installed !"
+        exit 1
+    fi
+}
+function _setLock() {
+    echo "${APP_TITLE}" > /install/.install.lock
+}
+function _lockCleanup() {
+    echo "$APP_TITLE Install Complete!
+
+
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+    rm -f /install/.install.lock
+}
+
+function _installInfo() {
+    _print "
+$APP_TITLE will now be installed.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _installSystemUpdates() {
+    _info "Checking and performing updates to system... ";
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+    ## auto solve lock
+    if [ "$?" -eq 2 ]; then
+        _warning "dpkg database is locked."
+        _info "fixing dpkg lock..."
+        rm -f /var/lib/dpkg/updates/0*
+        locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+        if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+            for l in ${locks}; do
+                rm -rf ${l}
+            done
+            _excute "dpkg --configure -a"
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+        fi
+        apt-get check >/dev/null 2>&1
+        if [ "$?" -ne 0 ]; then
+            _excute "apt-get install -f"
+            apt-get check >/dev/null 2>&1
+            if [ "$?" -ne 0 ]; then
+                _error "apt-get check failed, you may have broken packages."
+                exit 1
+            fi
+        fi
+    fi
+    _success "System updated."
+}
+
+function _installDepends() {
+    _info "Installing ${APP_TITLE} dependencies..."
+    local DEPLIST="${APP_BASEDEPS}"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    local DEPLIST="apt-transport-https"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    if [[ $dependError != "1" ]]; then
+        _success "${APP_TITLE} dependencies installed."
+    else
+        _error "${APP_TITLE} dependencies failed to install."
+        exit 1
+    fi
+}
+
+function _installApp() {
+    _info "Building ${APP_TITLE}..."
+    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+    for username in $userlist; do
+        AUTODLPASSWORD=$(_string)
+        # get used port
+        local usedport=""
+        if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
+            usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
+        fi
+        # generate available port
+        PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
+        while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do 
+            PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1); 
+        done
+        echo $PORT > /install/$username.$APP_NAME.port
+        _excute "mkdir -p /home/${username}/.irssi/scripts/autorun/"
+        cd "/home/${username}/.irssi/scripts/"
+        curl -sL ${APPSRC} | grep -Po '(?<="browser_download_url": ")(.*-v[\d.]+.zip)' | xargs wget --quiet -O autodl-irssi.zip
+        _excute "unzip -o autodl-irssi.zip"
+        rm autodl-irssi.zip
+        cp autodl-irssi.pl autorun/
+        _excute "mkdir -p /home/${username}/.autodl"
+        touch "/home/${username}/.autodl/autodl.cfg"
+        
+        cat >"/home/${username}/.autodl/autodl.cfg"<<ADLC
+[options]
+gui-server-port = ${PORT}
+gui-server-password = ${AUTODLPASSWORD}
+ADLC
+        sed -i 's/my $got = Net::SSLeay::read($self->{ssl}, $len);/my $got = Net::SSLeay::ssl_read_all($self->{ssl}, $len);/g' /home/${username}/.irssi/scripts/AutodlIrssi/SslSocket.pm
+        chown -R ${username}: /home/${username}/.autodl/
+        chown -R ${username}: /home/${username}/.irssi/
+    done
+    
+    if [[ -f /install/.rutorrent.lock ]]; then
+        cd /srv/rutorrent/plugins/
+        if [[ ! -d /srv/rutorrent/plugins/autodl-irssi ]]; then
+        _excute "git clone ${PLUGINSRC} autodl-irssi"
+        _excute "chown -R www-data:www-data autodl-irssi/"
+        fi
+        
+        userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+        for username in $userlist; do
+            AUTODLPASSWORD=$(cat /home/${username}/.autodl/autodl.cfg | grep password | cut -d= -f2 | sed 's/ //g' )
+            if [[ -z $(grep autodl /srv/rutorrent/conf/users/${username}/config.php) ]]; then
+                sed -i '/?>/d' /srv/rutorrent/conf/users/${username}/config.php
+                sed -i '/autodl/d' /srv/rutorrent/conf/users/${username}/config.php
+                echo "\$autodlPort = \"$AUTODL_PORT\";" >> /srv/rutorrent/conf/users/${username}/config.php
+                echo "\$autodlPassword = \"${AUTODLPASSWORD}\";" >> /srv/rutorrent/conf/users/${username}/config.php
+                echo "?>" >> /srv/rutorrent/conf/users/${username}/config.php
+            fi
+        done
+    fi
+    _success "${APP_TITLE} Built."
+}
+
+function _configureApp() {
+    _info "Configuring ${APP_TITLE}..."
+    cat >/etc/systemd/system/${APP_SERVICE}@.service<<EOF
+[Unit]
+Description=AutoDL IRSSI
+After=network.target
+
+[Service]
+Type=forking
+KillMode=none
+User=%I
+ExecStart=/usr/bin/screen -d -m -fa -S irssi /usr/bin/irssi
+ExecStop=/usr/bin/screen -S irssi -X stuff '/quit\n'
+WorkingDirectory=/home/%I/
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    _excute "systemctl daemon-reload"
+    _success "${APP_TITLE} configured."
+}
+
+function _installAppLock() {
+    _info "Configuring ${APP_TITLE} lock..."
+    touch /install/$APP_LOCK
+    _success "${APP_TITLE} lock configured."
+}
+
+function _installAppStart() {
+    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+    for username in $userlist; do
+        _excute "systemctl enable irssi@${username}"
+        _excute "systemctl start irssi@${username}"
+    done
+    _success "${APP_TITLE} started."
+}
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+ARGS=`getopt -a -o ghl:u:v: -l gui,help,log:,user:,version: -- "$@"`
+eval set -- "${ARGS}"
+while true
+do
+    case "$1" in
+    -g|--gui)
+        _menuinstall
+        break
+        ;;
+    -h|--help)
+        _usage
+        exit 1
+        ;;
+    -l|--log)
+        OUTTO="$2"
+        shift
+        ;;
+    -u|--user)
+        username="$2"
+        shift
+        ;;
+    -v|--version)
+        version="$2"
+        shift
+        ;;
+    --)
+    shift
+    break
+    ;;
+    esac
+shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
+_lockCheck
+_setLock
+_installInfo
+_installSystemUpdates
+_installDepends
+_installApp
+_configureApp
+_installAppLock
+_installAppStart
+_lockCleanup

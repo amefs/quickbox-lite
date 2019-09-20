@@ -1,0 +1,274 @@
+#!/bin/bash
+#
+# [QuickBox Lite FFmpeg Installer]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.0.0
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+#   Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+DISTRO=$(lsb_release -is)
+RELEASE=$(lsb_release -rs)
+CODENAME=$(lsb_release -cs)
+SETNAME=$(lsb_release -rc)
+# Server IP Address
+SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _excute() {
+    ($1 >> "${OUTTO}" 2>&1;)
+}
+function _print() {
+    printf "${_norm}%s${_norm}\n" "$@"
+}
+function _info() {
+    printf "${_cyan}➜ %s${_norm}\n" "$@"
+}
+function _success() {
+    printf "${_green}✓ %s${_norm}\n" "$@"
+}
+function _warning() {
+    printf "${_tan}⚠ %s${_norm}\n" "$@"
+}
+function _error() {
+    printf "${_red}✗ %s${_norm}\n" "$@"
+}
+
+#################################################################################
+# APP VARIABLE
+#################################################################################
+APP_TITLE="FFmpeg"
+APP_NAME="ffmpeg"
+APP_SERVICE=""
+APP_BASEDEPS="ffmpeg"
+APP_WEB_PORT=""
+APP_DAEMON_PORT=""
+APP_HOST=""
+
+# RANDOM PORT
+APP_WEB_PORT_LOW=""
+APP_WEB_PORT_HIGH=""
+APP_DAEMON_PORT_LOW=""
+APP_DAEMON_PORT_HIGH=""
+
+APP_LOCK=`echo .$APP_NAME.lock`
+OUTTO=/srv/dashboard/db/output.log
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+    echo -e "\nQuickBox Lite $APP_TITLE Installer"
+    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-p ppa]"
+    echo -e "\nOptions:\n"
+    echo "-l, --log <logfile>       specific log file"
+    echo "-p, --ppa                 use ppa source"
+    echo ""
+    echo "-h, --help                display this help and exit"
+}
+################################################################################
+# INSTALL FUNCTIONS
+################################################################################
+function _lockCheck() {
+    if [[ -f "/install/.install.lock" ]]; then
+        prevApp=$(cat /install/.install.lock)
+        _info "$prevApp process running."
+        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
+        _error "Exiting..."
+        exit 1
+    fi
+    if [[ -f "/install/$APP_LOCK" ]]; then
+        _error "${APP_TITLE} already installed !"
+        exit 1
+    fi
+}
+function _setLock() {
+    echo "${APP_TITLE}" > /install/.install.lock
+}
+function _lockCleanup() {
+    echo "$APP_TITLE Install Complete!
+
+
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+    rm -f /install/.install.lock
+}
+
+function _installInfo() {
+    _print "
+$APP_TITLE will now be installed.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _installAddSources() {
+    _info "Adding additional keys and sources ${APP_TITLE}..."
+    #curl -sL https://example.ppa/something.key | sudo apt-key add - >/dev/null 2>&1
+    #echo "deb https://example.ppa/ubuntu CODENAME stable" | sudo tee /etc/apt/sources.list.d/app.list >/dev/null 2>&1
+    _success "Keys and sources added."
+}
+
+function _installSystemUpdates() {
+    _info "Checking and performing updates to system... ";
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+    ## auto solve lock
+    if [ "$?" -eq 2 ]; then
+        _warning "dpkg database is locked."
+        _info "fixing dpkg lock..."
+        rm -f /var/lib/dpkg/updates/0*
+        locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+        if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+            for l in ${locks}; do
+                rm -rf ${l}
+            done
+            _excute "dpkg --configure -a"
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+        fi
+        apt-get check >/dev/null 2>&1
+        if [ "$?" -ne 0 ]; then
+            _excute "apt-get install -f"
+            apt-get check >/dev/null 2>&1
+            if [ "$?" -ne 0 ]; then
+                _error "apt-get check failed, you may have broken packages."
+                exit 1
+            fi
+        fi
+    fi
+    _success "System updated."
+}
+
+function _installDepends() {
+    _info "Installing ${APP_TITLE} dependencies..."
+    local DEPLIST="${APP_BASEDEPS}"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    local DEPLIST="apt-transport-https"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    if [[ $dependError != "1" ]]; then
+        _success "${APP_TITLE} dependencies installed."
+    else
+        _error "${APP_TITLE} dependencies failed to install."
+        exit 1
+    fi
+}
+
+function _installApp() {
+    _info "Building ${APP_TITLE}..."
+    if [[ ppa == 1 ]]; then
+        _installDepends
+    else
+        cd /tmp
+        wget -t2 -T5 -q -N -O ffmpeg-release-amd64-static.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+        mkdir ffmpeg
+        _excute "tar xvf ffmpeg-release-amd64-static.tar.xz -C /tmp/ffmpeg --strip-components=1"
+        cd /tmp/ffmpeg
+        _excute "cp -f ffmpeg /usr/bin"
+        _excute "cp -f ffprobe /usr/bin"
+        _excute "cp -f qt-faststart /usr/bin"
+        rm -rf /tmp/{ffmpeg-release-amd64-static.tar.xz,ffmpeg}
+    fi
+    _success "${APP_TITLE} Built."
+}
+
+function _configureApp() {
+    _info "Configuring ${APP_TITLE}..."
+    
+    _success "${APP_TITLE} configured."
+}
+
+function _installAppLock() {
+    _info "Configuring ${APP_TITLE} lock..."
+    touch /install/${APP_LOCK}
+    _success "${APP_TITLE} lock configured."
+}
+
+function _installAppStart() {
+    _info "Starting ${APP_TITLE}..."
+    
+    _success "${APP_TITLE} started."
+}
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+ARGS=`getopt -a -o hl:p -l help,log:,ppa -- "$@"`
+eval set -- "${ARGS}"
+while true
+do
+    case "$1" in
+    -h|--help)
+        _usage
+        exit 1
+        ;;
+    -l|--log)
+        OUTTO="$2"
+        shift
+        ;;
+    -p|--ppa)
+        ppa=1
+        ;;
+    --)
+    shift
+    break
+    ;;
+    esac
+shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
+_lockCheck
+_setLock
+_installInfo
+if [[ ! -f /install/.system.lock ]]; then
+    _installSystemUpdates
+fi
+_installApp
+_installAppLock
+_lockCleanup

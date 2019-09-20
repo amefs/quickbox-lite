@@ -1,0 +1,13 @@
+#------------------------------------------------------------------------------#
+#                            OFFICIAL DEBIAN REPOS                             #
+#------------------------------------------------------------------------------#
+
+###### Debian Update Repos
+deb https://mirrors.tuna.tsinghua.edu.cn/debian/ RELEASE main contrib non-free
+#deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ RELEASE main contrib non-free
+deb http://security.debian.org/ RELEASE/updates main contrib non-free
+#deb-src http://security.debian.org/ RELEASE/updates main contrib non-free
+deb https://mirrors.tuna.tsinghua.edu.cn/debian/ RELEASE-updates main contrib non-free
+#deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ RELEASE-updates main contrib non-free
+deb https://mirrors.tuna.tsinghua.edu.cn/debian/ RELEASE-backports main contrib non-free
+#deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ RELEASE-backports main contrib non-free

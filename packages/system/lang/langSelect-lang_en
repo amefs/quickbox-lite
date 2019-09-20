@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# [Quick Box :: Set US English Language function]
+#
+# QuickLab REPOS
+# QuickLab _ packages  :   https://github.com/QuickBox/quickbox_packages
+# LOCAL REPOS
+# Local _ packages   :   /etc/QuickBox/packages
+# Author             :   QuickBox.IO | JMSolo
+# URL                :   https://quickbox.io
+#
+# QuickBox Copyright (C) 2017 QuickBox.io
+# Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+
+locale='en_US.UTF-8'
+language='lang_en'
+
+cat >/srv/dashboard/inc/localize.php<<LCL
+<?php
+    \$locale = 'en_US.UTF-8';
+    \$language = 'lang_en';
+    setlocale(LC_ALL, $locale);
+    require (\$_SERVER['DOCUMENT_ROOT']."/lang/$language");
+
+    function T(\$str)
+    {
+        global \$L;
+        if (isset(\$L[\$str]))
+            return \$L[\$str];
+        else
+            return \$str;
+    }
+
+?>
+LCL
+
+rm -f /install/.lang_*
+touch /install/.${language}.lock
+chown www-data: /srv/dashboard/inc/localize.php
+nginx -s reload
+/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'
+sleep 5

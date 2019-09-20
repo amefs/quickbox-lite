@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# [Quick Box :: Set Defaulted Theme function]
+#
+# QuickLab REPOS
+# QuickLab _ packages  :   https://github.com/QuickBox/QB/packages
+# LOCAL REPOS
+# Local _ packages   :   /etc/QuickBox/packages
+# Author             :   QuickBox.IO | JMSolo
+# URL                :   https://quickbox.io
+#
+# QuickBox Copyright (C) 2017 QuickBox.io
+# Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+function _updatedashboard() {
+  \cp -fR  ${local_themes}defaulted/skins/* ${dashboard}skins
+  rm -rf ${dashboard}db/.smoked.lock >/dev/null 2>&1
+  printf "" > ${dashboard}db/.defaulted.lock
+  service nginx reload >/dev/null 2>&1
+  /usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'
+  sleep 5
+
+}
+
+local_themes=/etc/QuickBox/setup/themes/
+dashboard=/srv/dashboard/
+
+_updatedashboard

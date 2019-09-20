@@ -1,0 +1,95 @@
+user www-data;
+pid /run/nginx.pid;
+
+  # you must set worker processes based on your CPU cores, nginx does not benefit from setting more than that
+  worker_processes auto; #some last versions calculate it automatically
+
+  # number of file descriptors used for nginx
+  # the limit for the maximum FDs on the server is usually set by the OS.
+  # if you don't set FD's then OS settings will be used which is by default 2000
+  worker_rlimit_nofile 8192;
+
+  # Ubuntu 18.04 and Debian 9 requires the fancyindex module to be loaded
+  load_module "modules/ngx_http_fancyindex_module.so";
+  
+events {
+  worker_connections 1024;
+  multi_accept on;
+  use epoll;
+}
+
+http {
+
+  ##
+  # Basic Settings
+  ##
+
+  types_hash_max_size 2048;
+  server_tokens off;
+
+  # server_names_hash_bucket_size 64;
+  # server_name_in_redirect off;
+  include /etc/nginx/mime.types;
+  default_type application/octet-stream;
+
+  ##
+  # SSL Settings
+  ##
+  ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+  ssl_prefer_server_ciphers on;
+
+  ##
+  # Logging Settings
+  ##
+  access_log off;
+  error_log /var/log/nginx/error.log crit;
+
+  # copies data between one FD and other from within the kernel
+  # faster then read() + write()
+  sendfile on;
+
+  # send headers in one peace, its better then sending them one by one
+  tcp_nopush on;
+
+  # don't buffer data sent, good for small data bursts in real time
+  tcp_nodelay on;
+
+  ##
+  # Gzip Settings
+  ##
+  gzip on;
+  gzip_disable "msie6";
+  gzip_vary on;
+  gzip_proxied expired no-cache no-store private auth;
+  gzip_min_length 1024;
+  gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+  #gzip on; - enables gzip compression
+  #gzip_vary on: - tells proxies to cache both gzipped and regular versions of a resource
+  #gzip_min_length 1024; - informs NGINX to not compress anything smaller than the defined size
+  #gzip_proxied - compress data even for clients that are connecting via proxies (here we're enabling compression if: a response header includes the "expired", "no-cache", "no-store", "private", and "Authorization" parameters)
+  #gzip_types - enables the types of files that can be compressed
+  #gzip_disable "MSIE [1-6]\."; - disable compression for Internet Explorer versions 1-6
+
+  # allow the server to close connection on non responding client, this will free up memory
+  reset_timedout_connection on;
+
+  # request timed out -- default 60
+  client_body_timeout 10;
+
+  # if client stop responding, free up memory -- default 60
+  send_timeout 2;
+
+  # server will close connection after this time -- default 75
+  keepalive_timeout 30;
+
+  # number of requests client can make over keep-alive -- for testing environment
+  #keepalive_requests 100000;
+
+  ##
+  # Virtual Host Configs
+  ##
+
+  include /etc/nginx/conf.d/*.conf;
+  include /etc/nginx/sites-enabled/*;
+}

@@ -1,0 +1,28 @@
+if ($request_method = POST) {
+  set $no_cache 1;
+}
+
+if ($query_string != "") {
+  set $no_cache 1;
+}
+
+location / {
+    alias /srv/dashboard/ ;
+    try_files $uri $uri/ /index.php?q=$uri&$args;
+    index index.php;
+    allow all;
+
+    location ~ \.php$ {
+
+		auth_basic "password Required";
+		auth_basic_user_file /etc/htpasswd;
+
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+
+        include snippets/fastcgi-php.conf;
+        fastcgi_read_timeout 240;
+        fastcgi_pass unix:/run/php/php7.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME /srv/dashboard$fastcgi_script_name;
+
+    }
+}

@@ -1,0 +1,47 @@
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+
+    location /.well-known {
+      alias /srv/.well-known;
+      allow all;
+      default_type "text/plain";
+      autoindex    on;
+    }
+
+    location / {
+      return 301 https://\$host\$request_uri;
+    }
+}
+
+# SSL configuration
+server {
+    listen 443 ssl http2 default_server;
+    listen [::]:443 ssl http2 default_server;
+    server_name _;
+    ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;
+    ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
+    include snippets/ssl-params.conf;
+    client_max_body_size 40M;
+    server_tokens off;
+    root /srv/;
+
+    index index.html index.php index.htm;
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php7.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    }
+
+    include /etc/nginx/apps/*.conf;
+
+    location ~ /\.ht {
+        deny all;
+    }
+
+    location /fancyindex {
+
+    }
+}

@@ -1,0 +1,9 @@
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore
+!branding-l.php
+!branding-m.php
+#!domain.list
+!.smoked.lock
+#!interface.txt

@@ -1,0 +1,16 @@
+[global]
+logpath         : /var/log/lshell/
+loglevel        : 2
+
+[default]
+allowed         : ['cd','cp','-d','-dmS','git','irssi','ll','ls','-m','mkdir','mv','nano','pwd','-R','rm','rtorrent','rsync','-S','scp','screen','tar','unrar','unzip','nano','wget','rar','unrar']
+forbidden       : [';', '&', '|','`','>','<', '$(', '${','sudo','vi','vim','./']
+warning_counter : 2
+aliases         : {'ls':'ls --color=auto','ll':'ls -l'}
+intro           : "Welcome To Your QuickBox Lite Shell\nType '?' to get the list of allowed commands"
+home_path       : '/home/%u'
+env_path        : ':/usr/local/bin:/usr/sbin'
+allowed_cmd_path: ['/home/']
+scp             : 1
+sftp            : 0
+overssh         : ['ls','rsync','scp']

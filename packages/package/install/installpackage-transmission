@@ -1,0 +1,457 @@
+#!/bin/bash
+#
+# [QuickBox Lite Transmission Installer]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.0.0
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+#   Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+DISTRO=$(lsb_release -is)
+RELEASE=$(lsb_release -rs)
+CODENAME=$(lsb_release -cs)
+SETNAME=$(lsb_release -rc)
+# Server IP Address
+SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _excute() {
+    ($1 >> "${OUTTO}" 2>&1;)
+}
+function _print() {
+    printf "${_norm}%s${_norm}\n" "$@"
+}
+function _info() {
+    printf "${_cyan}➜ %s${_norm}\n" "$@"
+}
+function _success() {
+    printf "${_green}✓ %s${_norm}\n" "$@"
+}
+function _warning() {
+    printf "${_tan}⚠ %s${_norm}\n" "$@"
+}
+function _error() {
+    printf "${_red}✗ %s${_norm}\n" "$@"
+}
+
+#################################################################################
+# APP VARIABLE
+#################################################################################
+APP_TITLE="Transmission"
+APP_NAME="transmission"
+APP_SERVICE="transmission"
+APP_BASEDEPS="transmission-daemon transmission-cli transmission-common"
+APP_WEB_PORT=""
+APP_DAEMON_PORT=""
+APP_HOST="127.0.0.1"
+
+# RANDOM PORT
+APP_WEB_PORT_LOW="15101"
+APP_WEB_PORT_HIGH="15150"
+APP_DAEMON_PORT_LOW=""
+APP_DAEMON_PORT_HIGH=""
+
+APP_LOCK=`echo .$APP_NAME.lock`
+OUTTO=/srv/dashboard/db/output.log
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+    echo -e "\nQuickBox Lite $APP_TITLE Installer"
+    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-p ppa]"
+    echo -e "\nOptions:\n"
+    echo "-l, --log <logfile>       specific log file"
+    echo "-p, --ppa                 use ppa source"
+    echo ""
+    echo "-h, --help                display this help and exit"
+}
+################################################################################
+# INSTALL FUNCTIONS
+################################################################################
+function _lockCheck() {
+    if [[ -f "/install/.install.lock" ]]; then
+        prevApp=$(cat /install/.install.lock)
+        _info "$prevApp process running."
+        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
+        _error "Exiting..."
+        exit 1
+    fi
+    if [[ -f "/install/$APP_LOCK" ]]; then
+        _error "${APP_TITLE} already installed !"
+        exit 1
+    fi
+}
+function _setLock() {
+    echo "${APP_TITLE}" > /install/.install.lock
+}
+function _lockCleanup() {
+    echo "$APP_TITLE Install Complete!
+
+
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+    rm -f /install/.install.lock
+}
+
+function _installInfo() {
+    _print "
+$APP_TITLE will now be installed.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _installAddSources() {
+    _info "Adding additional keys and sources ${APP_TITLE}..."
+    if [[ $DISTRO == Ubuntu ]]; then
+      sudo add-apt-repository -y ppa:transmissionbt/ppa >/dev/null 2>&1
+    fi
+    _success "Keys and sources added."
+}
+
+function _installSystemUpdates() {
+    _info "Checking and performing updates to system... ";
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+    ## auto solve lock
+    if [ "$?" -eq 2 ]; then
+        _warning "dpkg database is locked."
+        _info "fixing dpkg lock..."
+        rm -f /var/lib/dpkg/updates/0*
+        locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+        if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+            for l in ${locks}; do
+                rm -rf ${l}
+            done
+            _excute "dpkg --configure -a"
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+        fi
+        apt-get check >/dev/null 2>&1
+        if [ "$?" -ne 0 ]; then
+            _excute "apt-get install -f"
+            apt-get check >/dev/null 2>&1
+            if [ "$?" -ne 0 ]; then
+                _error "apt-get check failed, you may have broken packages."
+                exit 1
+            fi
+        fi
+    fi
+    _success "System updated."
+}
+
+function _installDepends() {
+    _info "Installing ${APP_TITLE} dependencies..."
+    local DEPLIST="${APP_BASEDEPS}"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    local DEPLIST="apt-transport-https"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    if [[ $dependError != "1" ]]; then
+        _success "${APP_TITLE} dependencies installed."
+    else
+        _error "${APP_TITLE} dependencies failed to install."
+        exit 1
+    fi
+}
+
+function _installApp() {
+    _info "Building ${APP_TITLE}..."
+    if [[ ${ppa} == 1 ]]; then
+        _installDepends
+    else
+        # get deb packages
+        cd /tmp
+        TRCOMM=transmission-common_2.94-1mod1_all.deb
+        TRSCLI=transmission-cli_2.94-1mod1_amd64.deb
+        TRSDAEMON=transmission-daemon_2.94-1mod1_amd64.deb
+        wget -q -O ${TRCOMM} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRCOMM}/download
+        wget -q -O ${TRSCLI} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRSCLI}/download
+        wget -q -O ${TRSDAEMON} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRSDAEMON}/download
+        _excute "apt install -y /tmp/${TRCOMM}"
+        _excute "apt install -y /tmp/${TRSCLI}"
+        _excute "apt install -y /tmp/${TRSDAEMON}"
+        rm -rf {${TRCOMM},${TRSCLI},${TRSDAEMON}}
+    fi
+    _success "${APP_TITLE} Built."
+}
+
+function _configureApp() {
+    _info "Configuring ${APP_TITLE}..."
+    _excute "systemctl disable transmission-daemon"
+    _excute "systemctl stop transmission-daemon"
+    sleep 2
+    # install enhancement WebUI
+    echo 1 | bash -c "$(wget -qO- https://github.com/ronggang/transmission-web-control/raw/master/release/install-tr-control.sh)" >> "${OUTTO}" 2>&1;
+
+    # get userlist
+    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+    for username in $userlist; do
+        # get used port
+        local usedport=""
+        if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
+            usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
+        fi
+        # generate available port
+        PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
+        while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do 
+            PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1); 
+        done
+        echo $PORT > /install/$username.$APP_NAME.port
+        passphrase=$(cat /root/.ssh/local_user)
+        passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
+        if [[ $CODENAME == xenial ]]; then
+            password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:${passphrase} -nosalt)
+        else
+            password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
+        fi
+    
+        _info "Initializing $APP_TITLE for ${username} ... "
+    
+        if [[ ! -d /home/${username}/.config/transmission ]]; then
+        mkdir -p /home/${username}/.config/transmission/blocklists
+        mkdir -p /home/${username}/.config/transmission/resume
+        mkdir -p /home/${username}/.config/transmission/torrents
+        fi
+        cat > /home/${username}/.config/transmission/settings.json<<TRC
+{
+    "alt-speed-down": 50,
+    "alt-speed-enabled": false,
+    "alt-speed-time-begin": 540,
+    "alt-speed-time-day": 127,
+    "alt-speed-time-enabled": false,
+    "alt-speed-time-end": 1020,
+    "alt-speed-up": 50,
+    "bind-address-ipv4": "0.0.0.0",
+    "bind-address-ipv6": "::",
+    "blocklist-enabled": false,
+    "blocklist-url": "http://www.example.com/blocklist",
+    "cache-size-mb": 4,
+    "dht-enabled": true,
+    "download-dir": "/home/${username}/torrents/transmission",
+    "download-limit": 100,
+    "download-limit-enabled": 0,
+    "download-queue-enabled": true,
+    "download-queue-size": 5,
+    "encryption": 1,
+    "idle-seeding-limit": 30,
+    "idle-seeding-limit-enabled": false,
+    "incomplete-dir": "/home/${username}/torrents/transmission",
+    "incomplete-dir-enabled": false,
+    "lpd-enabled": false,
+    "max-peers-global": 200,
+    "message-level": 1,
+    "peer-congestion-algorithm": "",
+    "peer-id-ttl-hours": 6,
+    "peer-limit-global": 200,
+    "peer-limit-per-torrent": 50,
+    "peer-port": 51413,
+    "peer-port-random-high": 65535,
+    "peer-port-random-low": 49152,
+    "peer-port-random-on-start": true,
+    "peer-socket-tos": "default",
+    "pex-enabled": true,
+    "port-forwarding-enabled": false,
+    "preallocation": 1,
+    "prefetch-enabled": true,
+    "queue-stalled-enabled": true,
+    "queue-stalled-minutes": 30,
+    "ratio-limit": 2,
+    "ratio-limit-enabled": false,
+    "rename-partial-files": true,
+    "rpc-authentication-required": true,
+    "rpc-bind-address": "0.0.0.0",
+    "rpc-enabled": true,
+    "rpc-host-whitelist": "",
+    "rpc-host-whitelist-enabled": true,
+    "rpc-password": "${password}",
+    "rpc-port": ${PORT},
+    "rpc-url": "/transmission/",
+    "rpc-username": "${username}",
+    "rpc-whitelist": "127.0.0.1",
+    "rpc-whitelist-enabled": true,
+    "scrape-paused-torrents-enabled": true,
+    "script-torrent-done-enabled": false,
+    "script-torrent-done-filename": "",
+    "seed-queue-enabled": false,
+    "seed-queue-size": 10,
+    "speed-limit-down": 100,
+    "speed-limit-down-enabled": false,
+    "speed-limit-up": 100,
+    "speed-limit-up-enabled": false,
+    "start-added-torrents": true,
+    "trash-original-torrent-files": false,
+    "umask": 18,
+    "upload-limit": 100,
+    "upload-limit-enabled": 0,
+    "upload-slots-per-torrent": 14,
+    "utp-enabled": true,
+    "watch-dir": "/home/${username}/trwatch",
+    "watch-dir-enabled": true
+}
+TRC
+        mkdir -p /home/${username}/torrents/transmission
+        mkdir -p /home/${username}/trwatch
+        chmod -R 755 /home/${username}/.config
+        chown -R ${username}.${username} /home/${username}/.config/
+        chmod -R 755 /home/${username}/torrents/transmission
+        chown -R ${username}.${username} /home/${username}/torrents/transmission
+        chmod -R 755 /home/${username}/trwatch
+        chown -R ${username}.${username} /home/${username}/trwatch
+    
+        # create reverse proxy
+        cat > /etc/nginx/conf.d/${username}.transmission.conf <<EOF
+upstream ${username}.transmission {
+  server 127.0.0.1:${PORT};
+}
+EOF
+
+        cat > /etc/nginx/apps/${username}.trdlindex.conf <<EOF
+location /${username}.transmission.downloads {
+  alias /home/${username}/torrents/transmission;
+  include /etc/nginx/snippets/fancyindex.conf;
+  auth_basic "Password Required";
+  auth_basic_user_file /etc/htpasswd.d/htpasswd.${username};
+
+  location ~* \.php$ {
+
+  }
+}
+EOF
+    done
+
+cat > /etc/nginx/apps/transmission.conf <<'EOF'
+location /transmission {
+  return 301 /transmission/web/;
+}
+location /transmission/ {
+    include /etc/nginx/snippets/proxy.conf;
+    auth_basic "Password Required";
+    auth_basic_user_file /etc/htpasswd.d/htpasswd.$remote_user;
+    proxy_pass http://$remote_user.transmission;
+    proxy_pass_header X-Transmission-Session-Id;
+}
+EOF
+
+    cat >/etc/systemd/system/transmission@.service<<'TSD'
+[Unit]
+Description=Transmission BitTorrent Daemon
+After=network.target
+
+[Service]
+User=%I
+Type=simple
+ExecStart=/usr/bin/transmission-daemon -f --log-error -g /home/%i/.config/transmission
+ExecReload=/bin/kill -s HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+TSD
+    _excute "systemctl daemon-reload"
+    _excute "nginx -s reload"
+    _success "${APP_TITLE} configured."
+}
+
+function _installAppLock() {
+    _info "Configuring ${APP_TITLE} lock..."
+    touch /install/${APP_LOCK}
+    _success "${APP_TITLE} lock configured."
+}
+
+function _installAppStart() {
+    _info "Starting ${APP_TITLE}..."
+    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+    for username in $userlist; do
+        _excute "systemctl enable ${APP_SERVICE}@${username}"
+        _excute "systemctl start ${APP_SERVICE}@${username}"
+    done
+    _success "${APP_TITLE} started."
+}
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+ARGS=`getopt -a -o hl:p -l help,log:,ppa -- "$@"`
+eval set -- "${ARGS}"
+while true
+do
+    case "$1" in
+    -h|--help)
+        _usage
+        exit 1
+        ;;
+    -l|--log)
+        OUTTO="$2"
+        shift
+        ;;
+    -p|--ppa)
+        ppa=1
+        ;;
+    --)
+    shift
+    break
+    ;;
+    esac
+shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
+_lockCheck
+_setLock
+_installInfo
+if [[ ${ppa} == 1 ]]; then
+_installAddSources
+fi
+if [[ ! -f /install/.system.lock ]]; then
+    _installSystemUpdates
+fi
+_installApp
+_configureApp
+_installAppLock
+_installAppStart
+_lockCleanup

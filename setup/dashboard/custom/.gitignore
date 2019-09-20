@@ -1,0 +1,7 @@
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore
+#!custom.menu.php
+#!custom.css
+#!url.override.php

@@ -1,0 +1,374 @@
+#!/bin/bash
+#
+# [QuickBox Lite FlexGet Installer]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.0.0
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+#   Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+DISTRO=$(lsb_release -is)
+RELEASE=$(lsb_release -rs)
+CODENAME=$(lsb_release -cs)
+SETNAME=$(lsb_release -rc)
+# Server IP Address
+SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _excute() {
+    ($1 >> "${OUTTO}" 2>&1;)
+}
+function _print() {
+    printf "${_norm}%s${_norm}\n" "$@"
+}
+function _info() {
+    printf "${_cyan}➜ %s${_norm}\n" "$@"
+}
+function _success() {
+    printf "${_green}✓ %s${_norm}\n" "$@"
+}
+function _warning() {
+    printf "${_tan}⚠ %s${_norm}\n" "$@"
+}
+function _error() {
+    printf "${_red}✗ %s${_norm}\n" "$@"
+}
+
+#################################################################################
+# APP VARIABLE
+#################################################################################
+APP_TITLE="FlexGet"
+APP_NAME="flexget"
+APP_SERVICE="flexget"
+APP_BASEDEPS="python-pip"
+APP_WEB_PORT=""
+APP_DAEMON_PORT=""
+APP_HOST="127.0.0.1"
+
+# RANDOM PORT
+APP_WEB_PORT_LOW="15351"
+APP_WEB_PORT_HIGH="15400"
+APP_DAEMON_PORT_LOW=""
+APP_DAEMON_PORT_HIGH=""
+
+APP_LOCK=`echo .$APP_NAME.lock`
+OUTTO=/srv/dashboard/db/output.log
+username=$(cat /root/.admin.info | cut -d: -f1)
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+    echo -e "\nQuickBox Lite $APP_TITLE Installer"
+    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username]"
+    echo -e "\nOptions:\n"
+    echo "-l, --log <logfile>       specific log file"
+    echo "-u, --user <username>     the user for this installer"
+    echo ""
+    echo "-h, --help                display this help and exit"
+}
+################################################################################
+# INSTALL FUNCTIONS
+################################################################################
+function _lockCheck() {
+    if [[ -f "/install/.install.lock" ]]; then
+        prevApp=$(cat /install/.install.lock)
+        _info "$prevApp process running."
+        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
+        _error "Exiting..."
+        exit 1
+    fi
+    if [[ -f "/install/.${username}.${APP_NAME}.lock" ]]; then
+        _error "${APP_TITLE} already installed !"
+        exit 1
+    fi
+}
+function _setLock() {
+    echo "${APP_TITLE}" > /install/.install.lock
+}
+function _lockCleanup() {
+    echo "$APP_TITLE Install Complete!
+
+
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+    rm -f /install/.install.lock
+}
+
+function _installInfo() {
+    _print "
+$APP_TITLE will now be installed.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _installAddSources() {
+    _info "Adding additional keys and sources ${APP_TITLE}..."
+    _success "Keys and sources added."
+}
+
+function _installSystemUpdates() {
+    _info "Checking and performing updates to system... ";
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+    ## auto solve lock
+    if [ "$?" -eq 2 ]; then
+        _warning "dpkg database is locked."
+        _info "fixing dpkg lock..."
+        rm -f /var/lib/dpkg/updates/0*
+        locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+        if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+            for l in ${locks}; do
+                rm -rf ${l}
+            done
+            _excute "dpkg --configure -a"
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+        fi
+        apt-get check >/dev/null 2>&1
+        if [ "$?" -ne 0 ]; then
+            _excute "apt-get install -f"
+            apt-get check >/dev/null 2>&1
+            if [ "$?" -ne 0 ]; then
+                _error "apt-get check failed, you may have broken packages."
+                exit 1
+            fi
+        fi
+    fi
+    _success "System updated."
+}
+
+function _installDepends() {
+    _info "Installing ${APP_TITLE} dependencies..."
+    local DEPLIST="${APP_BASEDEPS}"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    local DEPLIST="apt-transport-https"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    if [[ $dependError != "1" ]]; then
+        _success "${APP_TITLE} dependencies installed."
+    else
+        _error "${APP_TITLE} dependencies failed to install."
+        exit 1
+    fi
+}
+
+function _installApp() {
+    _info "Building ${APP_TITLE}..."
+    # Install for single user
+    _excute 'pip2 install --upgrade pyopenssl'
+    _excute 'pip2 install --upgrade cryptography'
+    _excute 'pip2 install --upgrade pip'
+    su ${username} -c 'pip2 install --user flexget' >> "${OUTTO}" 2>&1;
+    _success "${APP_TITLE} Built."
+}
+
+function _configureApp() {
+    _info "Configuring ${APP_TITLE}..."
+    pypath=$(su ${username} -c 'python2 -m site --user-site')
+    binpath=/home/${username}/.local/bin
+    passphrase=$(cat /root/.ssh/local_user)
+    passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
+    if [[ $CODENAME == xenial ]]; then
+        password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:${passphrase} -nosalt)
+    else
+        password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
+    fi
+    mkdir -p /tmp/
+    cat > /tmp/flexget-user-passwd.patch <<'EOF'
+diff -Nur '--exclude=.git' '--exclude=.vs' flexget/webserver.py flexget-patched/webserver.py
+--- flexget/webserver.py	2019-07-02 18:07:23.109855300 +0200
++++ flexget-patched/webserver.py	2019-07-02 20:44:50.134619000 +0200
+@@ -232,7 +232,7 @@
+ 
+ 
+ @with_session
+-def get_user(username='flexget', session=None):
++def get_user(username='replace', session=None):
+     user = session.query(User).filter(User.name == username).first()
+     if not user:
+         user = User()
+@@ -242,8 +242,9 @@
+ 
+ 
+ @with_session
+-def change_password(username='flexget', password='', session=None):
++def change_password(username='replace', password='', session=None):
+     check = zxcvbn.zxcvbn(password, user_inputs=[username])
++    check['score'] = 4
+     if check['score'] < 3:
+         warning = check['feedback']['warning']
+         suggestions = ' '.join(check['feedback']['suggestions'])
+@@ -260,7 +261,7 @@
+ 
+ 
+ @with_session
+-def generate_token(username='flexget', session=None):
++def generate_token(username='replace', session=None):
+     user = get_user(username=username, session=session)
+     user.token = generate_key()
+     session.commit()
+EOF
+    sed -i "s/username='replace'/username='${username}'/g" /tmp/flexget-user-passwd.patch
+    patch -p1 -d ${pypath}/flexget/ < /tmp/flexget-user-passwd.patch >> "${OUTTO}" 2>&1;
+    su ${username} -c "python2 -m compileall ${pypath}/flexget/webserver.py" >> "${OUTTO}" 2>&1;
+    rm -rf /tmp/flexget-user-passwd.patch
+    sed -i "s/\\\'flexget\\\'/\\\'\\\'/g" ${pypath}/flexget/ui/v1/app/scripts/app.js
+
+    # get used port
+    local usedport=""
+    if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
+        usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
+    fi
+    # generate available port
+    PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
+    while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do 
+        PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1); 
+    done
+    echo $PORT > /install/$username.$APP_NAME.port
+  
+    mkdir -p /home/${username}/.config/flexget/
+    cat > /home/${username}/.config/flexget/config.yml <<EOF
+web_server:
+  bind: ${APP_HOST}
+  port: ${PORT}
+  web_ui: yes
+  base_url: /flexget
+  run_v2: yes
+
+tasks:
+  example:
+    priority: 2
+    rss: http://example.com/rss/rss.xml
+EOF
+
+    chown ${username}.${username} -R /home/${username}/.config/flexget/
+    su ${username} -c "${binpath}/flexget -c /home/${username}/.config/flexget/config.yml web passwd ${password}"
+  
+    cat > /etc/nginx/apps/${username}.flexget.conf <<EOF
+location /${username}.flexget/ {
+    include /etc/nginx/snippets/proxy.conf;
+    proxy_pass http://127.0.0.1:${PORT}/flexget/;
+}
+EOF
+
+    cat > /etc/systemd/system/flexget@${username}.service <<EOF
+[Unit]
+Description=Flexget Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=${username}
+Group=${username}
+UMask=000
+WorkingDirectory=/home/${username}/.config/flexget/
+ExecStart=/home/${username}/.local/bin/flexget -c /home/${username}/.config/flexget/config.yml daemon start
+ExecStop=/home/${username}/.local/bin/flexget -c /home/${username}/.config/flexget/config.yml daemon stop
+ExecReload=/home/${username}/.local/bin/flexget -c /home/${username}/.config/flexget/config.yml daemon reload
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    _excute "systemctl daemon-reload"
+    _excute "nginx -s reload"
+    _success "${APP_TITLE} configured."
+}
+
+function _installAppLock() {
+    _info "Configuring ${APP_TITLE} lock..."
+    touch /install/.${username}.${APP_NAME}.lock
+    _success "${APP_TITLE} lock configured."
+}
+
+function _installAppStart() {
+    _info "Starting ${APP_TITLE}..."
+    _excute "systemctl enable ${APP_SERVICE}@${username}"
+    _excute "systemctl start ${APP_SERVICE}@${username}"
+    _success "${APP_TITLE} started."
+}
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+ARGS=`getopt -a -o hl:u: -l help,log:,user: -- "$@"`
+eval set -- "${ARGS}"
+while true
+do
+    case "$1" in
+    -h|--help)
+        _usage
+        exit 1
+        ;;
+    -l|--log)
+        OUTTO="$2"
+        shift
+        ;;
+    -u|--user)
+        username="$2"
+        shift
+        ;;
+    --)
+    shift
+    break
+    ;;
+    esac
+shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
+_lockCheck
+_setLock
+_installInfo
+_installSystemUpdates
+_installDepends
+_installApp
+_configureApp
+_installAppLock
+_installAppStart
+_lockCleanup

@@ -1,0 +1,8 @@
+fancyindex on;
+fancyindex_localtime on;
+fancyindex_exact_size off;
+fancyindex_header "/fancyindex/header.html";
+fancyindex_footer "/fancyindex/footer.html";
+#fancyindex_ignore "examplefile.html"; # Ignored files will not show up in the directory listing, but will still be public. 
+#fancyindex_ignore "Nginx-Fancyindex-Theme"; # Making sure folder where files are don't show up in the listing. 
+fancyindex_name_length 255; # Maximum file name length in bytes, change as you like.

@@ -1,0 +1,8 @@
+CREATE TABLE `shouts` (
+  `id` INTEGER UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(45) NOT NULL,
+  `email` VARCHAR(60) NOT NULL,
+  `post` TEXT NOT NULL,
+  `ipaddress` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`id`)
+);

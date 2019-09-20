@@ -1,0 +1,772 @@
+#!/bin/bash
+#
+# [QuickBox Lite Deluge Installer]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.0.0
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+#   Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+DISTRO=$(lsb_release -is)
+RELEASE=$(lsb_release -rs)
+CODENAME=$(lsb_release -cs)
+SETNAME=$(lsb_release -rc)
+# Server IP Address
+SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _excute() {
+    ($1 >> "${OUTTO}" 2>&1;)
+}
+function _print() {
+    printf "${_norm}%s${_norm}\n" "$@"
+}
+function _info() {
+    printf "${_cyan}➜ %s${_norm}\n" "$@"
+}
+function _success() {
+    printf "${_green}✓ %s${_norm}\n" "$@"
+}
+function _warning() {
+    printf "${_tan}⚠ %s${_norm}\n" "$@"
+}
+function _error() {
+    printf "${_red}✗ %s${_norm}\n" "$@"
+}
+
+function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+#################################################################################
+# APP VARIABLE
+#################################################################################
+APP_TITLE="Deluge"
+APP_NAME="deluge"
+APP_SERVICE=""
+APP_WEB_PORT=""
+APP_DAEMON_PORT=""
+APP_HOST="127.0.0.1"
+
+# RANDOM PORT
+APP_WEB_PORT_LOW="15201"
+APP_WEB_PORT_HIGH="15250"
+APP_DAEMON_PORT_LOW="10001"
+APP_DAEMON_PORT_HIGH="10050"
+
+APP_LOCK=`echo .$APP_NAME.lock`
+OUTTO=/srv/dashboard/db/output.log
+libtversion=1.1.13
+deversion=1.3.15
+
+BRANCH_LT="https://github.com/arvidn/libtorrent.git"
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _menuinstall() {
+    OUTTO=$(whiptail --title "Log" --inputbox "Specify a log path?\nENTER to make no changes" 10 72 3>&1 1>&2 2>&3)
+    if [[ $OUTTO == "" ]]; then
+        OUTTO=/srv/dashboard/db/output.log
+    fi
+    deversion=$(whiptail --title "App Version" --radiolist \
+    "Choose an available version" 10 36 4 \
+    "1.3.15" "stable" on \
+    "2.0.3" "latest version" off \
+    "other" "custom version" off 3>&1 1>&2 2>&3 )
+    if [[ ${deversion} == "other" ]]; then
+        if [[ ! -f /install/.libtorrent-rasterbar9.lock && ! -f /install/.libtorrent-rasterbar.lock ]]; then
+            if (whiptail --title "Application Version" --yesno "Want to install a custom version of Libtorrent?" --defaultno 8 56); then
+                libtversion=$(whiptail --title "Libtorrent" --inputbox "Enter a Custom Libtorrent version\ne.g. 1.1.13" 10 64 3>&1 1>&2 2>&3)
+            fi
+        elif [[ -f /install/.libtorrent-rasterbar9.lock ]]; then
+            libtversion=1.1.13
+        elif [[ -f /install/.libtorrent-rasterbar.lock ]]; then
+            libtversion=$(cat /install/.libtorrent-rasterbar.lock)
+        else
+            libtversion=""
+        fi
+        deversion=$(whiptail --title "Deluge" --inputbox "Enter a Custom Deluge version\ne.g. 1.3.15" 10 64 3>&1 1>&2 2>&3)
+    fi
+}
+
+function _usage() {
+    echo -e "\nQuickBox Lite $APP_TITLE Installer"
+    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-g gui] [--lt] [--de]"
+    echo -e "\nOptions:\n"
+    echo "-g, --gui                 use a menu configuration to install"
+    echo "-l, --log <logfile>       specific log file"
+    echo "--lt <version>            the libtorrent version you want to install"
+    echo "--de <version>            the deluge version you want to install"
+    echo ""
+    echo "-h, --help                display this help and exit"
+}
+################################################################################
+# INSTALL FUNCTIONS
+################################################################################
+function _lockCheck() {
+    if [[ -f "/install/.install.lock" ]]; then
+        prevApp=$(cat /install/.install.lock)
+        _info "$prevApp process running."
+        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
+        _error "Exiting..."
+        exit 1
+    fi
+    if [[ -f "/install/$APP_LOCK" ]]; then
+        _error "${APP_TITLE} already installed !"
+        exit 1
+    fi
+}
+function _setLock() {
+    echo "${APP_TITLE}" > /install/.install.lock
+}
+function _lockCleanup() {
+    echo "$APP_TITLE Install Complete!
+
+
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+    rm -f /install/.install.lock
+}
+
+function _installInfo() {
+    _print "
+$APP_TITLE will now be installed.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _installSystemUpdates() {
+    _info "Checking and performing updates to system... ";
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+    ## auto solve lock
+    if [ "$?" -eq 2 ]; then
+        _warning "dpkg database is locked."
+        _info "fixing dpkg lock..."
+        rm -f /var/lib/dpkg/updates/0*
+        locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+        if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+            for l in ${locks}; do
+                rm -rf ${l}
+            done
+            _excute "dpkg --configure -a"
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+        fi
+        apt-get check >/dev/null 2>&1
+        if [ "$?" -ne 0 ]; then
+            _excute "apt-get install -f"
+            apt-get check >/dev/null 2>&1
+            if [ "$?" -ne 0 ]; then
+                _error "apt-get check failed, you may have broken packages."
+                exit 1
+            fi
+        fi
+    fi
+    _success "System updated."
+}
+
+function _installDepends() {
+    _info "Installing ${APP_TITLE} dependencies..."
+    local DEPLIST="${APP_BASEDEPS}"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    local DEPLIST="apt-transport-https"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    if [[ $dependError != "1" ]]; then
+        _success "${APP_TITLE} dependencies installed."
+    else
+        _error "${APP_TITLE} dependencies failed to install."
+        exit 1
+    fi
+}
+
+function _installFpm () {
+    fpm -h > /dev/null 2>&1
+    exit=$?
+    if [[ ! $exit == '0' ]]; then
+        _info "Installing fpm package management..."
+        _excute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
+        _excute "gem install --no-ri --no-rdoc fpm"
+        _success "fpm installed."
+    fi
+}
+
+function _installApp() {
+    _info "Building ${APP_TITLE}..."
+    # Libtorrent
+    if [[ ${libtversion} == 1.1.13 && ! -f /install/.libtorrent-rasterbar.lock ]]; then
+        _info "Installing Libtorrent..."
+        cd /tmp
+        if [[ ! -f /install/.libtorrent-rasterbar9.lock ]]; then
+            LIBTBIN=libtorrent-rasterbar9_1.1.13-1build1_amd64.deb
+            wget -q -O ${LIBTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${LIBTBIN}/download
+            _excute "apt install -y /tmp/${LIBTBIN}"
+            LIBTDEVBIN=libtorrent-rasterbar-dev_1.1.13-1build1_amd64.deb
+            wget -q -O ${LIBTDEVBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${LIBTBIN}/download
+            _excute "apt install -y /tmp/${LIBTDEVBIN}"
+            rm -rf {${LIBTBIN},${LIBTDEVBIN}}
+        fi
+        touch /install/.libtorrent-rasterbar9.lock
+        cd /tmp
+        if _version_gt ${deversion} 2.0 ; then
+            PYLIBTBIN=python3-libtorrent_1.1.13-1build1_amd64.deb
+            wget -q -O ${PYLIBTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${PYLIBTBIN}/download
+            _excute "apt install -y /tmp/${PYLIBTBIN}"
+            rm -rf ${PYLIBTBIN}
+        else
+            PYLIBTBIN=python-libtorrent_1.1.13-1build1_amd64.deb
+            wget -q -O ${PYLIBTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${PYLIBTBIN}/download
+            _excute "apt install -y /tmp/${PYLIBTBIN}"
+            rm -rf ${PYLIBTBIN}
+        fi
+    elif [[ ${libtversion} != 1.1.13 && ! -f /install/.libtorrent-rasterbar.lock && ! -f /install/.libtorrent-rasterbar9.lock ]]; then
+        cd /tmp
+        # prepare package toolchain
+        APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev zlib1g-dev"
+        _installDepends
+        _installFpm
+        if [ ${CODENAME} == 'xenial' ]; then
+            _excute "apt purge -y libssl-dev"
+            _excute "apt install -y libssl-dev=1.0.*"
+        fi
+        _info "Build libtorrent for $APP_TITLE ... "
+        if _version_gt ${libtversion} 1.1.0; then
+            LTRC=RC_1_1
+            case ${libtversion} in
+                1.1.0) LTCIMMIT="2921caf";;
+                1.1.1) LTCIMMIT="599967c";;
+                1.1.2) LTCIMMIT="a42d439";;
+                1.1.3) LTCIMMIT="b065536";;
+                1.1.4) LTCIMMIT="5188c19";;
+                1.1.5) LTCIMMIT="6214103";;
+                1.1.6) LTCIMMIT="b45acf2";;
+                1.1.7) LTCIMMIT="aaf9304";;
+                1.1.8) LTCIMMIT="4576723";;
+                1.1.9) LTCIMMIT="19df645";;
+                1.1.10) LTCIMMIT="200bb49";;
+                1.1.11) LTCIMMIT="25a1f12";;
+                1.1.12) LTCIMMIT="4342725";;
+                1.1.13) LTCIMMIT="6f1250c";;
+                *) LTCIMMIT="6f1250c";;
+            esac
+        else
+            LTRC=RC_1_0
+            case ${libtversion} in
+                1.0.0) LTCIMMIT="1633ee2";;
+                1.0.1) LTCIMMIT="49c2ec9";;
+                1.0.2) LTCIMMIT="8f2c17c";;
+                1.0.3) LTCIMMIT="edfe81b";;
+                1.0.4) LTCIMMIT="a586deb";;
+                1.0.5) LTCIMMIT="45521a3";;
+                1.0.6) LTCIMMIT="b709199";;
+                1.0.7) LTCIMMIT="15b1cd9";;
+                1.0.8) LTCIMMIT="e44e8da";;
+                1.0.9) LTCIMMIT="b342192";;
+                1.0.10) LTCIMMIT="e650ecc";;
+                1.0.11) LTCIMMIT="4e90eb1";;
+                *) LTCIMMIT="4e90eb1";;
+            esac
+        fi
+        mkdir -p /root/pool
+        mkdir -p /tmp/dist
+
+        cd /tmp
+        _excute "git clone -b ${LTRC} ${BRANCH_LT} libtorrent"
+        cd libtorrent
+        _excute "git checkout ${LTCIMMIT}"
+        wget --no-check-certificate -q -O libtorrent-rasterbar-${LTRC}.patch https://raw.githubusercontent.com/amefs/QB/master/setup/sources/libtorrent-rasterbar-${LTRC}.patch
+        patch -p1 < libtorrent-rasterbar-${LTRC}.patch >/dev/null
+        LTVERSION=`cat configure.ac | grep -Eo "AC_INIT\(\[libtorrent-rasterbar\],.*" | grep -Eo "[0-9.]+" | head -n1`
+        _excute "./autotool.sh"
+        _excute "./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++11 CPPFLAGS=-std=c++11 --prefix=/tmp/dist/libtorrent-rasterbar/usr/local"
+        _excute "make -j$(nproc)"
+        mkdir -p /tmp/dist/libtorrent-rasterbar/usr/local
+        _excute "make install"
+        mv /tmp/dist/libtorrent-rasterbar/usr/local/lib/python2.7/site-packages /tmp/dist/libtorrent-rasterbar/usr/local/lib/python2.7/dist-packages
+        fpm -f -C /tmp/dist/libtorrent-rasterbar -p /root/pool/libtorrent-rasterbar_${LTVERSION}.deb -s dir -t deb -n libtorrent-rasterbar --version ${LTVERSION} --description "libtorrent-rasterbar compiled by QuickBox Lite" > /dev/null 2>&1
+        _excute "dpkg -i /root/pool/libtorrent-rasterbar_${LTVERSION}.deb"
+        echo ${libtversion} > /install/.libtorrent-rasterbar.lock
+        _excute "ldconfig"
+        cd /tmp
+        rm -rf {libtorrent,dist}
+        _success "Libtorrent Built."
+    fi
+
+    # version check
+    if ( [ $CODENAME == "buster" ] && _version_gt $deversion 2.0 ); then
+        _warning "Deluge 2.0.x currently not available in buster, fallback to v1.3.15"
+        deversion=1.3.15
+    fi
+    if [[ ("${deversion}" == "1.3.15" || "${deversion}" == "2.0.3") && ! -f /install/.libtorrent-rasterbar.lock ]]; then
+        _info "Installing Deluge ${deversion}..."
+        cd /tmp
+        if _version_gt ${deversion} 2.0 ; then
+            APP_BASEDEPS="libgeoip-dev librsvg2-common geoip-database python3-dev python3-twisted python3-openssl python3-setuptools python3-xdg python3-chardet python3-pip python3-mako xdg-utils"
+            _installDepends
+            _excute "pip3 install --upgrade twisted[tls]"
+            DEBASE="deluge-common_2.0.3-1build1_all.deb deluge-console_2.0.3-1build1_all.deb deluge-gtk_2.0.3-1build1_all.deb deluge-web_2.0.3-1build1_all.deb deluged_2.0.3-1build1_all.deb"
+            for deapp in $DEBASE; do
+                wget -q -O ${deapp} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/deluge/${deapp}/download
+                _excute "apt-get -y --allow-unauthenticated -f install /tmp/${deapp}"
+                rm -rf /tmp/${deapp}
+            done
+        else
+            DEBASE="deluge-common_1.3.15-1build1_all.deb deluge-console_1.3.15-1build1_all.deb deluge-gtk_1.3.15-1build1_all.deb deluge-web_1.3.15-1build1_all.deb deluged_1.3.15-1build1_all.deb"
+            for deapp in $DEBASE; do
+                wget -q -O ${deapp} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/deluge/${deapp}/download
+                _excute "apt-get -y --allow-unauthenticated -f install /tmp/${deapp}"
+                rm -rf /tmp/${deapp}
+            done
+        fi
+    else
+        cd /tmp
+        if _version_gt ${deversion} 2.0 ; then
+            while true; do
+                wget -q -O deluge-${deversion}.tar.xz http://download.deluge-torrent.org/source/2.0/deluge-${deversion}.tar.xz && break
+            done
+        else
+            while true; do
+                wget -q -O deluge-${deversion}.tar.xz http://download.deluge-torrent.org/source/deluge-${deversion}.tar.gz && break
+            done
+        fi
+        APP_BASEDEPS="build-essential intltool libtool libssl-dev libgeoip-dev librsvg2-common  geoip-database python-dev python-twisted python-openssl python-setuptools python-xdg python-chardet python-notify python-pip python-pygame python-glade2 xdg-utils python-mako"
+        _installDepends
+        _excute "pip2 install --upgrade twisted[tls]"
+        tar -xf deluge-${deversion}.tar.xz
+        cd deluge-${deversion}
+        _excute "python2 setup.py build"
+        _excute "python2 setup.py install --record /install/.deluge.install.record --install-layout=deb"
+        _excute "python2 setup.py install_data"
+        cd ..
+        rm -rf {deluge-${deversion},libtorrent}
+        rm -f deluge-${deversion}.tar.xz
+    fi
+    _success "${APP_TITLE} Built."
+}
+
+function _configureApp() {
+    _info "Configuring ${APP_TITLE}..."
+
+    killall deluged > /dev/null 2>&1
+    killall deluge-web > /dev/null 2>&1
+    # download plugin
+    if [[ ! -d /usr/local/bin/quickbox/deluge/plugins ]]; then
+    mkdir -p /usr/local/bin/quickbox/deluge/plugins
+    fi
+    wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/ltConfig-0.3.1-py2.7.egg https://github.com/ratanakvlun/deluge-ltconfig/releases/download/v0.3.1/ltConfig-0.3.1-py2.7.egg
+    wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/ltConfig-2.0.0.egg https://github.com/ratanakvlun/deluge-ltconfig/releases/download/v2.0.0/ltConfig-2.0.0.egg
+    wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/YaRSS2-1.4.3-py2.7.egg https://bitbucket.org/bendikro/deluge-yarss-plugin/downloads/YaRSS2-1.4.3-py2.7.egg
+    wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/AutoRemovePlus-0.6.1-py2.7.egg https://github.com/omaralvarez/deluge-autoremoveplus/releases/download/0.6.1/AutoRemovePlus-0.6.1-py2.7.egg
+    wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/LabelPlus-0.3.2.2-py2.7.egg https://github.com/ratanakvlun/deluge-labelplus/releases/download/v0.3.2.2/LabelPlus-0.3.2.2-py2.7.egg
+    wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/TotalTraffic-0.5-py2.7.egg https://forum.deluge-torrent.org/download/file.php?id=4247
+
+    # get userlist
+    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+    for username in $userlist; do
+        # get used port
+        local usedport=""
+        if [[ ! -z $(find /install/ -type f | grep .deluged.port) ]]; then
+            usedport=$(cat $(find /install/ -type f | grep .deluged.port))
+        fi
+        # generate daemon port
+        DPORT=$(shuf -i ${APP_DAEMON_PORT_LOW}-${APP_DAEMON_PORT_HIGH} -n 1)
+        while [[ "$(netstat -ln | grep ':'"$DPORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $DPORT ]]; do 
+            DPORT=$(shuf -i ${APP_DAEMON_PORT_LOW}-${APP_DAEMON_PORT_HIGH} -n 1); 
+        done
+        echo $PORT > /install/$username.deluged.port
+        # get used port
+        local usedport=""
+        if [[ ! -z $(find /install/ -type f | grep .deluge-web.port) ]]; then
+            usedport=$(cat $(find /install/ -type f | grep .deluge-web.port))
+        fi
+        # generate web port
+        DWPORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
+        while [[ "$(netstat -ln | grep ':'"$DWPORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $DWPORT ]]; do 
+            DWPORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1); 
+        done
+        echo $PORT > /install/$username.deluge-web.port
+        passphrase=$(cat /root/.ssh/local_user)
+        passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
+        if [[ $CODENAME == xenial ]]; then
+            password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:${passphrase} -nosalt)
+        else
+            password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
+        fi
+        DWSALT=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)
+        DWP=$(python2 /usr/local/bin/quickbox/system/auxiliary/deluge.Userpass.py ${password} ${DWSALT})
+        DUDID=$(python2 /usr/local/bin/quickbox/system/auxiliary/deluge.addHost.py)
+
+        if [[ ! -d /home/${username}/.config/deluge/plugins ]]; then
+            mkdir -p /home/${username}/.config/deluge/plugins
+        fi
+        if _version_gt ${deversion} 2.0 ; then
+            cp -f /usr/local/bin/quickbox/deluge/plugins/ltConfig-2.0.0.egg /home/${username}/.config/deluge/plugins/
+        else
+            cp -f /usr/local/bin/quickbox/deluge/plugins/ltConfig-0.3.1-py2.7.egg /home/${username}/.config/deluge/plugins/
+        fi
+        cp -f /usr/local/bin/quickbox/deluge/plugins/YaRSS2-1.4.3-py2.7.egg /home/${username}/.config/deluge/plugins/
+        cp -f /usr/local/bin/quickbox/deluge/plugins/AutoRemovePlus-0.6.1-py2.7.egg /home/${username}/.config/deluge/plugins/
+        cp -f /usr/local/bin/quickbox/deluge/plugins/LabelPlus-0.3.2.2-py2.7.egg /home/${username}/.config/deluge/plugins/
+        cp -f /usr/local/bin/quickbox/deluge/plugins/TotalTraffic-0.5-py2.7.egg /home/${username}/.config/deluge/plugins/
+        cat >/home/${username}/.config/deluge/core.conf<<DC
+  {
+    "file": 1,
+    "format": 1
+  }{
+    "info_sent": 0.0,
+    "lsd": true,
+    "max_download_speed": -1.0,
+    "send_info": false,
+    "natpmp": true,
+    "move_completed_path": "/home/${username}/Downloads",
+    "peer_tos": "0x08",
+    "enc_in_policy": 1,
+    "queue_new_to_top": false,
+    "ignore_limits_on_local_network": true,
+    "rate_limit_ip_overhead": true,
+    "daemon_port": ${DPORT},
+    "torrentfiles_location": "/home/${username}/dwatch",
+    "max_active_limit": -1,
+    "geoip_db_location": "/usr/share/GeoIP/GeoIP.dat",
+    "upnp": false,
+    "utpex": true,
+    "max_active_downloading": 3,
+    "max_active_seeding": -1,
+    "allow_remote": true,
+    "outgoing_ports": [
+      0,
+      0
+    ],
+    "enabled_plugins": [
+      "ltConfig",
+      "TotalTraffic"
+    ],
+    "max_half_open_connections": 50,
+    "download_location": "/home/${username}/torrents/deluge",
+    "compact_allocation": true,
+    "max_upload_speed": -1.0,
+    "plugins_location": "/home/${username}/.config/deluge/plugins",
+    "max_connections_global": -1,
+    "enc_prefer_rc4": true,
+    "cache_expiry": 60,
+    "dht": true,
+    "stop_seed_at_ratio": false,
+    "stop_seed_ratio": 2.0,
+    "max_download_speed_per_torrent": -1,
+    "prioritize_first_last_pieces": true,
+    "max_upload_speed_per_torrent": -1,
+    "auto_managed": true,
+    "enc_level": 2,
+    "copy_torrent_file": false,
+    "max_connections_per_second": 50,
+    "listen_ports": [
+      6881,
+      6891
+    ],
+    "max_connections_per_torrent": -1,
+    "del_copy_torrent_file": false,
+    "move_completed": false,
+    "autoadd_enable": false,
+    "proxies": {
+      "peer": {
+        "username": "",
+        "password": "",
+        "hostname": "",
+        "type": 0,
+        "port": 8080
+      },
+      "web_seed": {
+        "username": "",
+        "password": "",
+        "hostname": "",
+        "type": 0,
+        "port": 8080
+      },
+      "tracker": {
+        "username": "",
+        "password": "",
+        "hostname": "",
+        "type": 0,
+        "port": 8080
+      },
+      "dht": {
+        "username": "",
+        "password": "",
+        "hostname": "",
+        "type": 0,
+        "port": 8080
+      }
+    },
+    "dont_count_slow_torrents": true,
+    "add_paused": false,
+    "random_outgoing_ports": true,
+    "max_upload_slots_per_torrent": -1,
+    "new_release_check": false,
+    "enc_out_policy": 1,
+    "seed_time_ratio_limit": 7.0,
+    "remove_seed_at_ratio": false,
+    "autoadd_location": "/home/${username}/dwatch/",
+    "max_upload_slots_global": -1,
+    "seed_time_limit": 180,
+    "cache_size": 512,
+    "share_ratio_limit": 2.0,
+    "random_port": true,
+    "listen_interface": "${SERVERIP}"
+  }
+DC
+
+        cat >/home/${username}/.config/deluge/web.conf<<DWC
+{
+  "file": 1,
+  "format": 1
+}{
+  "port": ${DWPORT},
+  "enabled_plugins": [],
+  "pwd_sha1": "${DWP}",
+  "theme": "gray",
+  "show_sidebar": true,
+  "sidebar_show_zero": false,
+  "pkey": "ssl/daemon.pkey",
+  "https": false,
+  "sessions": {},
+  "base": "/",
+  "interface": "${APP_HOST}",
+  "pwd_salt": "${DWSALT}",
+  "show_session_speed": false,
+  "first_login": false,
+  "cert": "ssl/daemon.cert",
+  "session_timeout": 3600,
+  "default_daemon": "${DUDID}",
+  "sidebar_multiple_filters": true
+}
+DWC
+
+        cat >/home/${username}/.config/deluge/hostlist.conf.1.2<<DHL
+{
+  "file": 1,
+  "format": 1
+}{
+  "hosts": [
+    [
+      "${DUDID}",
+      "127.0.0.1",
+      ${DPORT},
+      "${username}",
+      "${password}"
+    ]
+  ]
+}
+DHL
+        chmod 755 -R /home/${username}/.config/deluge
+        echo "${username}:${password}:10" > /home/${username}/.config/deluge/auth
+        chmod 600 /home/${username}/.config/deluge/auth
+        chown -R ${username}.${username} /home/${username}/.config/
+
+        if [[ ! -d /home/${username}/dwatch ]]; then
+        mkdir -p /home/${username}/dwatch
+        fi
+        chown ${username}: /home/${username}/dwatch
+        if [[ ! -d /home/${username}/torrents/deluge ]]; then
+        mkdir -p /home/${username}/torrents/deluge
+        fi
+        chown ${username}: /home/${username}/torrents/deluge
+
+        cat > /etc/nginx/conf.d/${username}.deluge.conf <<EOF
+upstream ${username}.deluge {
+  server 127.0.0.1:${DWPORT};
+}
+EOF
+        cat > /etc/nginx/apps/${username}.ddlindex.conf<<EOF
+location /${username}.deluge.downloads {
+  alias /home/${username}/torrents/deluge;
+  include /etc/nginx/snippets/fancyindex.conf;
+  auth_basic "Password Required";
+  auth_basic_user_file /etc/htpasswd.d/htpasswd.${username};
+
+  location ~* \.php$ {
+
+  }
+}
+EOF
+    done
+    cat > /etc/nginx/apps/deluge.conf <<'DRP'
+location /deluge {
+  return 301 /deluge/;
+}
+
+location /deluge/ {
+  include /etc/nginx/snippets/proxy.conf;
+  auth_basic "Password Required";
+  auth_basic_user_file /etc/htpasswd.d/htpasswd.$remote_user;
+  proxy_set_header X-Deluge-Base "/deluge/";
+  rewrite ^/deluge/(.*) /$1 break;
+  proxy_pass http://$remote_user.deluge;
+}
+DRP
+    cat > /etc/systemd/system/deluged@.service <<DDS
+[Unit]
+Description=Deluge Bittorrent Client Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=%I
+ExecStart=/usr/bin/deluged -d
+ExecStop=/usr/bin/killall -w -s 9 /usr/bin/deluged
+Restart=on-failure
+TimeoutStopSec=300
+
+[Install]
+WantedBy=multi-user.target
+DDS
+    if _version_gt ${deversion} 2.0 ; then
+        cat > /etc/systemd/system/deluge-web@.service <<DWS
+[Unit]
+Description=Deluge Bittorrent Client Web Interface
+After=network.target
+
+[Service]
+Type=simple
+User=%I
+
+ExecStart=/usr/bin/deluge-web -d
+ExecStop=/usr/bin/killall -w -s 9 /usr/bin/deluge-web
+TimeoutStopSec=300
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+DWS
+  else
+        cat > /etc/systemd/system/deluge-web@.service <<DWS
+[Unit]
+Description=Deluge Bittorrent Client Web Interface
+After=network.target
+
+[Service]
+Type=simple
+User=%I
+
+ExecStart=/usr/bin/deluge-web
+ExecStop=/usr/bin/killall -w -s 9 /usr/bin/deluge-web
+TimeoutStopSec=300
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+DWS
+    fi
+    _excute "systemctl daemon-reload"
+    _excute "nginx -s reload"
+    _success "${APP_TITLE} configured."
+}
+
+function _installAppLock() {
+    _info "Configuring ${APP_TITLE} lock..."
+    touch /install/${APP_LOCK}
+    _success "${APP_TITLE} lock configured."
+}
+
+function _installAppStart() {
+    _info "Starting ${APP_TITLE}..."
+    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+    for username in $userlist; do
+        _excute "systemctl enable deluged@${username}"
+        _excute "systemctl start deluged@${username}"
+        _excute "systemctl enable deluge-web@${username}"
+        _excute "systemctl start deluge-web@${username}"
+    done
+    _success "${APP_TITLE} started."
+}
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+ARGS=`getopt -a -o ghl: -l gui,help,log:,de,lt -- "$@"`
+eval set -- "${ARGS}"
+while true
+do
+    case "$1" in
+    -g|--gui)
+        _menuinstall
+        break
+        ;;
+    -h|--help)
+        _usage
+        exit 1
+        ;;
+    -l|--log)
+        OUTTO="$2"
+        shift
+        ;;
+    --de)
+        deversion="$2"
+        shift
+        ;;
+    --lt)
+        libitversion="$2"
+        shift
+        ;;
+    --)
+    shift
+    break
+    ;;
+    esac
+shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
+_lockCheck
+_setLock
+_installInfo
+if [[ ! -f /install/.system.lock ]]; then
+    _installSystemUpdates
+fi
+_installApp
+_configureApp
+_installAppLock
+_installAppStart
+_lockCleanup

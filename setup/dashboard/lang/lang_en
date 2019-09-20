@@ -1,0 +1,338 @@
+<?php
+
+/*******************************************************************************
+*                                                                              *
+*                               English	                                       *
+*                                                                              *
+*                 Last entry update   : Sept 19, 2019 (v1.0.0)                 *
+*                                                                              *
+*              Last translations update  : Sept 19, 2019 (v1.0.0)              *
+*******************************************************************************/
+
+////////////////////////////////////////
+//DASHBOARD MENU
+///////////////////////////////////////
+
+// main menu tab
+$L['ANNOUNCEMENTS'] = 'Announcements';
+$L['CHAT_CONNECT_TXT'] = 'Click to connect';
+$L['DEV_REPO_TXT'] = 'You are on the QuickBox Development Repo';
+$L['DOWNLOADS'] = 'Downloads';
+$L['ISSUE_REPORT_TXT'] = 'Report an issue';
+$L['JOIN_US_TXT'] = 'Join Us On Live Chat!';
+$L['LANG_SELECT'] = 'Select Language';
+$L['MAIN_MENU'] = 'Main Menu';
+$L['MARKETPLACE'] = 'Marketplace';
+$L['THEME_SELECT'] = 'Select Theme';
+$L['WEB_CONSOLE'] = 'Web Console';
+$L['DONATE'] = 'Donate';
+
+// plugin menu tab
+$L['PLUGIN_MENU'] = 'Plugin Menu';
+$L['RPLUGIN_MENU'] = 'ruTorrent Plugin Menu';
+$L['PMENU_NOTICE_TXT'] = 'Easily install and uninstall ruTorrent plugins simply by clicking on the plugin name';
+$L['PLUGINS'] = 'Plugins';
+
+// quick help menu tab
+$L['HELP_COMMANDS'] = 'Help Commands & More';
+$L['QUICK_SYSTEM_TIPS'] = 'Quick System Tips';
+$L['SYS_UPGRADE_TXT'] = 'Type this command to upgrade your QuickBox Lite system.';
+$L['SET_LANG_TXT'] = 'Type this command to setup dashboard Language.';
+$L['CHANGEINTERFACE_TXT'] = 'Type this command to setup network interface to be analyse.';
+$L['CLEAN_MEM_TXT'] = 'Use the above command as root if/when you decide to clear your systems Physical Memory Cache';
+$L['CLEAN_LOG_TXT'] = 'Type this command to clean installation logs';
+$L['DISKTEST_TXT'] = 'Type this command to perform a quick r/w test of your disk.';
+
+// seedbox commands section
+$L['SEEDBOX_COMMANDS'] = 'Seedbox Commands';
+$L['APP_INSTALL_TXT'] = 'Type this command to install a software';
+$L['APP_UNINSTALL_TXT'] = 'Type this command to uninstall a software';
+$L['APP_UPGRADE_TXT'] = 'Type this command to upgrade a software';
+$L['CHANGEUSERPASS_TXT'] = 'Typing this command in ssh allows you to change a desired users password.';
+$L['FIX_DPKG_TXT'] = 'Type this command to resolve installation lock';
+$L['TROUBLESHOOT_TXT'] = 'Type this command to generate a log for troubleshooting';
+
+// essential user commands section
+$L['ESSENTIAL_USER_COMMANDS'] = 'Essential User Commands';
+$L['SCREEN_RTORRNENT_TXT'] = 'allows user to restart/remount rtorrent from SSH';
+
+
+////////////////////////////////////////
+//DASHBOARD WIDGET TITLES
+///////////////////////////////////////
+
+// services status widget
+$L['SERVICE_CONTROL_CENTER'] = 'Service Control Center';
+
+// services status widget
+$L['SERVICE_STATUS'] = 'Service Status';
+
+// restart services widget
+$L['RESTART_SERVICES'] = 'Restart Services';
+
+// service controller widget
+$L['ENABLE_DISABLE_SERVICES'] = 'Enable/Disable';
+
+// package management center widget
+$L['PACKAGE_MANAGEMENT_CENTER'] = 'Package Management Center';
+
+// bandwidth data widget
+$L['BANDWIDTH_DATA'] = 'Bandwidth Data';
+
+// disk status widget
+$L['YOUR_DISK_STATUS'] = 'Your Disk Status';
+
+// memory status widget
+$L['SYSTEM_RAM_STATUS'] = 'System RAM Status';
+
+// cpu status widget
+$L['CPU_STATUS'] = 'CPU Status';
+
+// server load widget
+$L['SERVER_LOAD'] = 'Server Load';
+
+// recent updates widget
+$L['COMPARE_COMMITS'] = 'compare your current status to the latest commits.';
+$L['CURRENT_COMMIT'] = 'View your current commit status';
+$L['CURRENT_VERSIONS_CHANGELOG'] = 'View your current versions changelog.';
+$L['LATEST_COMMIT'] = 'latest.';
+$L['QUICKBOX_COMMIT'] = 'You are on the QuickBox commit - ';
+$L['RECENT_UPDATES'] = 'Recent Activity';
+$L['RECENT_UPDATES_TXT'] = 'To view feed, scroll with your mouse wheel.';
+
+////////////////////////////////////////
+//PACKAGE MANAGEMENT CENTER
+///////////////////////////////////////
+
+// package management center notice
+$L['PMC_NOTICE_TXT'] = '<strong>Heads Up!</strong> Please be advised that these options are not the same as enabling and disabling a software package. These options are designed to either install or uninstall.';
+
+// package management center column headers
+$L['NAME'] = 'Name';
+$L['DETAILS'] = 'Details';
+$L['AVAILABILITY'] = 'Availability';
+
+// packages
+$L['AUTODL'] = 'AutoDL-iRSSi is a plugin for irssi that monitors IRC announce channels and downloads torrent files based on user-defined filters.';
+$L['BTSYNC'] = 'BitTorrent Sync by BitTorrent, Inc is a proprietary peer-to-peer file synchronization tool.';
+$L['DELUGE'] = 'Deluge is a lightweight, Free Software, cross-platform BitTorrent client.';
+$L['DENYHOSTS'] = 'DenyHosts is a log-based intrusion-prevention security tool for SSH servers written in Python.';
+$L['FAIL2BAN'] = 'Fail2Ban is an intrusion prevention software framework that protects computer servers from brute-force attacks.';
+$L['FILEBROWSER'] = 'filebrowser provides a file managing interface within a specified directory and it can be used to upload, delete, preview, rename and edit your files. It allows the creation of multiple users and each user can have its own directory. It can be used as a standalone app or as a middleware.';
+$L['FLEXGET'] = 'FlexGet is a multipurpose automation tool for all of your media Support for torrents, nzbs, podcasts, comics, TV, movies, RSS, HTML, CSV, and more.';
+$L['FLOOD'] = 'Flood is another web interface for rtorrent. It implements a Node.js server for communicating with the rTorrent API, storing historical data, and serving the web UI.';
+$L['LECERT'] = 'Let’s Encrypt is a free, automated, and open certificate authority (CA), run for the public’s benefit. It is a service provided by the <a href="https://letsencrypt.org/" target="_blank">Internet Security Research Group (ISRG)</a>.';
+$L['NETDATA'] = 'Netdata is distributed, real-time, performance and health monitoring for systems and applications.';
+$L['NOVNC'] = 'noVNC is both a VNC client JavaScript library as well as an application built on top of that library. noVNC runs well in any modern browser including mobile browsers (iOS and Android).';
+$L['PLEX'] = 'Plex lets you stream your content to any Plex enabled device.';
+$L['QBITTORRENT'] = 'qBittorrent is a free and reliable P2P BitTorrent client. An advanced and multi-platform BitTorrent client with a nice Qt user interface as well as a Web UI for remote control and an integrated search engine.';
+$L['RTORRENT'] = 'rTorrent is a quick and efficient BitTorrent client that uses, and is in development alongside, the libTorrent (not to be confused with libtorrent-rasterbar) library. It is written in C++ and uses the ncurses programming library, which means it uses a text user interface.';
+$L['RUTORRENT'] = 'ruTorrent is a front-end for the popular Bittorrent client rtorrent. Main features: Lightweight server side, so it can be installed on old and low-end servers and even on some SOHO routers, Extensible - there are several plugins and everybody can create their own one, comes with <a href="https://lab.quickbox.io/QuickBox/club-QuickBox" target="_blank">club-QuickBox skin</a>.';
+$L['SYNCTHING'] = 'Open Source Continuous File Synchronization with BitTorrent';
+$L['TRANSMISSION'] = 'Transmission is designed for easy, powerful use. The defaults are set to Just Work and it only takes a few clicks to configure advanced features like watch directories, bad peer blocklists, and the web interface. When Ubuntu chose Transmission as its default BitTorrent client, one of the most-cited reasons was its easy learning curve.';
+$L['X2GO'] = 'X2Go is an open source remote desktop software for Linux that uses the NX technology protocol.';
+$L['ZNC'] = 'ZNC is an IRC network bouncer or BNC. It can detach the client from the actual IRC server, and also from selected channels.';
+
+// package management center buttons
+$L['CLI'] = 'Web Console Only';
+$L['INSTALL'] = 'Install';
+$L['INSTALLED'] = 'Installed';
+$L['BOX'] = 'BOX Only';
+$L['BOX_TOOLTIP_DENYHOSTS'] = 'Access this feature from ssh by typing: box install denyhosts';
+$L['BOX_TOOLTIP_FAIL2BAN'] = 'Access this feature from ssh by typing: box install fail2ban';
+$L['BOX_TOOLTIP_LECERT'] = 'Get new HTTPS certificate by typing: box install lecert';
+$L['BOX_TOOLTIP_ZNC'] = 'Access this feature from ssh by typing: box install znc';
+
+////////////////////////////////////////
+//BANDWIDTH & DATA TABLES
+///////////////////////////////////////
+
+// column headers and dropdown toggle button
+$L['NETWORK'] = 'Network';
+$L['UPLOAD'] = 'Upload';
+$L['DOWNLOAD'] = 'Download';
+$L['VIEW_ADDITIONAL_BANDWIDTH_DETAILS'] = 'View Additional Bandwidth Details';
+
+// main table headers
+$L['Summary'] = 'Summary';
+$L['Top 10 days'] = 'Top 10 days';
+$L['Last 24 hours'] = 'Last 24 hours';
+$L['Last 30 days'] = 'Last 30 days';
+$L['Last 12 months'] = 'Last 12 months';
+
+// traffic table columns
+$L['In'] = 'In';
+$L['Out'] = 'Out';
+$L['Total'] = 'Total';
+
+// summary rows
+$L['This hour'] = 'This hour';
+$L['This day'] = 'This day';
+$L['This month'] = 'This month';
+$L['All time'] = 'All time';
+
+// date formats
+$L['datefmt_days'] = '%d %B';
+$L['datefmt_days_img'] = '%d';
+$L['datefmt_months'] = '%B %Y';
+$L['datefmt_months_img'] = '%b';
+$L['datefmt_hours'] = '%l%p';
+$L['datefmt_hours_img'] = '%l';
+$L['datefmt_top'] = '%d %B %Y';
+
+
+////////////////////////////////////////
+//DISK STATUS WIDGET
+///////////////////////////////////////
+
+$L['FREE'] = 'Free';
+$L['USED'] = 'Used';
+$L['SIZE'] = 'Size';
+$L['DISK_SPACE'] = 'Disk Space';
+$L['PERCENTAGE_TXT_1'] = 'You have used';
+$L['PERCENTAGE_TXT_2'] = 'of your total disk space';
+$L['RTORRENTS_TITLE'] = 'Torrents in rtorrent';
+$L['DTORRENTS_TITLE'] = 'Torrents in deluge';
+$L['TRTORRENTS_TITLE'] = 'Torrents in transmission';
+$L['QTORRENTS_TITLE'] = 'Torrents in qBittorrent';
+$L['TORRENTS_LOADED_1'] = 'There are';
+$L['TORRENTS_LOADED_2'] = 'torrents loaded';
+
+
+////////////////////////////////////////
+//SYSTEM RAM STATUS WIDGET
+///////////////////////////////////////
+
+// physical memory
+$L['PHYSICAL_MEMORY_TITLE'] = 'Physical Memory Usage';
+$L['PHYSICAL_MEMORY_USED_TXT'] = 'used';
+$L['PHYSICAL_MEMORY_IDLE_TXT'] = 'idle';
+
+//cached memory
+$L['CACHED_MEMORY_TITLE'] = 'Cached Memory Usage';
+$L['CACHED_MEMORY_USAGE_TXT'] = 'Cache memory usage is at';
+$L['CACHED_MEMORY_BUFFERS_TXT'] = 'Buffers are at';
+
+// real memory
+$L['REAL_MEMORY_TITLE'] = 'Real Memory Usage';
+$L['REAL_MEMORY_USAGE_TXT'] = 'Real memory usage';
+$L['REAL_MEMORY_FREE_TXT'] = 'Real memory free';
+
+// swap usage
+$L['SWAP_TITLE'] = 'Swap Usage';
+$L['SWAP_TOTAL_TXT'] = 'SWAP Area';
+$L['SWAP_USED_TXT'] = 'used';
+$L['SWAP_IDLE_TXT'] = 'idle';
+
+// total ram
+$L['TOTAL_RAM'] = 'Total System RAM';
+
+// clean mem button
+$L['CLEAR_CACHE'] = 'Clear Memory Cache';
+
+
+////////////////////////////////////////
+//CPU STATUS WIDGET
+///////////////////////////////////////
+
+// used percentage
+$L['CPU_USED'] = 'used';
+
+// idle percentage
+$L['CPU_IDLE'] = 'idle';
+
+
+////////////////////////////////////////
+//SERVER LOAD WIDGET
+///////////////////////////////////////
+
+$L['SL_TXT'] = 'This is your servers current load average';
+$L['UPTIME'] = 'Uptime';
+
+
+////////////////////////////////////////
+//SERVICE TOGGLES
+///////////////////////////////////////
+
+$L['ENABLED'] = 'Enabled';
+$L['DISABLED'] = 'Disabled';
+
+$L['INSTALLED'] = 'Installed';
+$L['UNINSTALLED'] = 'Uninstalled';
+$L['INSTALLING'] = 'Installing';
+$L['UNINSTALLING'] = 'Uninstalling';
+
+
+////////////////////////////////////////
+//STATUS BUTTONS
+///////////////////////////////////////
+
+$L['REFRESH'] = 'Refresh';
+$L['UPDATE'] = 'Run Updater';
+
+$L['CANCEL'] = 'Cancel';
+$L['AGREE'] = 'I understand, do it!';
+
+$L['CLOSE_REFRESH'] = 'Close & Refresh';
+
+////////////////////////////////////////
+//ADDITIONAL DICTIONARY
+///////////////////////////////////////
+
+$L['IDLE'] = 'Idle';
+$L['TOTAL'] = 'Total';
+$L['USED'] = 'Used';
+
+$L['DAYS_L'] = 'days';
+$L['HOURS_L'] = 'hrs';
+$L['MINUTES_L'] = 'min';
+$L['SECONDS_L'] = 'sec';
+$L['IDLE_L'] = 'idle';
+$L['TOTAL_L'] = 'total';
+$L['USED_L'] = 'used';
+
+
+////////////////////////////////////////
+//MODALS & POPUP NOTICES
+///////////////////////////////////////
+
+//MODAL TITLES
+$L['UNINSTALL_TITLE'] = 'Uninstall';
+
+//MODAL TEXT
+$L['UNINSTALL_AUTODL_TXT'] = 'You are about to uninstall AutoDL-iRSSi from your system.<br/><br/>This will completely remove all of your configuration and shared folder settings... this action is irreversible. <br/><br/>You may reinstall AutoDL-iRSSi at any time, however, your storage path and linked folder settings will be reset to default.';
+$L['UNINSTALL_BTSYNC_TXT'] = 'You are about to uninstall BitTorrent Sync from your system.<br/><br/>This will completely remove all of your configuration and shared folder settings... this action is irreversible. <br/><br/>You may reinstall BitTorrent Sync at any time, however, your storage path and linked folder settings will be reset to default.';
+$L['UNINSTALL_DELUGE_TXT'] = 'You are about to uninstall Deluge from your system.<br/><br/>This will completely remove all of your configuration and shared folder settings for <strong>all users</strong>... this action is irreversible. <br/><br/>You may reinstall Deluge at any time, however, your storage path and linked folder settings will be reset to default.';
+$L['UNINSTALL_FILEBROWSER_TXT'] = 'You are about to uninstall filebrowser from your system.<br/><br/>This will completely remove all of your configuration and shared folder settings... this action is irreversible. <br/><br/>You may reinstall filebrowser at any time, however, your storage path and linked folder settings will be reset to default.';
+$L['UNINSTALL_FLEXGET_TXT'] = 'You are about to uninstall flexget from your system.<br/><br/>This will completely remove all of your configurations... this action is irreversible. <br/><br/>You may reinstall flexget at any time, however, your storage path and linked folder settings will be reset to default.';
+$L['UNINSTALL_FLOOD_TXT'] = 'You are about to uninstall Flood from your system.<br/><br/>This will completely remove all of your configuration and shared folder settings... this action is irreversible. <br/><br/>You may reinstall Flood at any time, however, your storage path and linked folder settings will be reset to default.';
+$L['UNINSTALL_NETDATA_TXT'] = 'You are about to uninstall Netdata from your system.<br/><br/>This will completely remove all of your configuration and shared folder settings... this action is irreversible. <br/><br/>You may reinstall Netdata at any time, however, your storage path and linked folder settings will be reset to default.';
+$L['UNINSTALL_NOVNC_TXT'] = 'You are about to uninstall noVNC from your system.<br/><br/>This will completely remove all of your configuration and shared folder settings... this action is irreversible. <br/><br/>You may reinstall noVNC at any time, however, your storage path and linked folder settings will be reset to default.';
+$L['UNINSTALL_PLEX_TXT'] = 'You are about to uninstall Plex Media Server from your system.<br/><br/>This will completely remove all of your configuration and library settings... this action is irreversible. <br/><br/>You may reinstall Plex at any time, however, your library settings will be reset to default.';
+$L['UNINSTALL_QBITTORRENT_TXT'] = 'You are about to uninstall qBittorrent from your system.<br/><br/>This will completely remove all of your configuration settings... this action is irreversible. <br/><br/>You may reinstall qBittorrent at any time, however, your configuration settings will be reset to default.';
+$L['UNINSTALL_RTORRENT_TXT'] = 'You are about to uninstall rTorrent from your system.<br/><br/>This will completely remove all of your configuration settings... this action is irreversible. <br/><br/>You may reinstall rTorrent at any time, however, your configuration settings will be reset to default.';
+$L['UNINSTALL_RUTORRENT_TXT'] = 'You are about to uninstall ruTorrent from your system.<br/><br/>This will completely remove all of your configuration settings... this action is irreversible. <br/><br/>You may reinstall ruTorrent at any time, however, your configuration settings will be reset to default.';
+$L['UNINSTALL_SYNCTHING_TXT'] = 'You are about to uninstall Syncthing from your system.<br/><br/>This will completely remove all of your configuration settings... this action is irreversible. <br/><br/>You may reinstall Syncthing at any time, however, your configuration settings will be reset to default.';
+$L['UNINSTALL_TRANSMISSION_TXT'] = 'You are about to uninstall Transmission from your system.<br/><br/>This will completely remove all of your configuration settings... this action is irreversible. <br/><br/>You may reinstall Transmission at any time, however, your configuration settings will be reset to default.';
+$L['UNINSTALL_X2GO_TXT'] = 'You are about to uninstall x2go from your system.<br/><br/> This will completely remove x2goserver and xfce4 desktop environment from your system.';
+$L['UNINSTALL_ZNC_TXT'] = 'You are about to uninstall ZNC from your system.<br/><br/>This will completely remove all of your configurations and settings... this action is irreversible. <br/><br/>You may reinstall ZNC at any time, however, your settings will be reset to default.';
+$L['THEME_CHANGE_TXT'] = 'You are about to change themes. If the theme doesn\'t appear correctly for you after the refresh, you probably need to clear your browser cache and retry.';
+
+//SYSTEM RESPONSE MODAL
+$L['SYSTEM_RESPONSE_TITLE'] = 'System Response';
+
+//GRITTER POPUPS
+$L['UNINSTALLING_TITLE'] = 'Uninstalling';
+
+//GRITTER TEXT
+$L['UNINSTALLING_TXT_1'] = 'Please wait while';
+$L['UNINSTALLING_TXT_2'] = 'is being uninstalled from your system.';
+
+
+////////////////////////////////////////////////////////////////////////////
+// SAMPLE
+// $L['SAMPLE'] = 'Sample';
+////////////////////////////////////////////////////////////////////////////
+
+
+?>
