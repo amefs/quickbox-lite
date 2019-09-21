@@ -216,7 +216,7 @@ function _configureApp() {
     UIlang=es
     elif [[ -f /install/.lang_fr.lock ]]; then
     UIlang=fr
-    elif [[ -f /install/.lang_zh-cn.lock ]]; then
+    elif [[ -f /install/.lang_zh.lock ]]; then
     UIlang=zh-cn
     fi
 
