@@ -206,7 +206,7 @@ function _installApp() {
     _excute "apt-get -y install libappindicator-dev"
     fi
     cd /tmp
-    wget -q -O master.zip 'https://rawcdn.githack.com/novnc/noVNC/archive/master.zip'
+    wget -q -O master.zip 'https://github.com/novnc/noVNC/archive/master.zip'
     _excute "unzip master.zip"
     rm -rf master.zip
     _excute "mv noVNC-master /srv/novnc/"
