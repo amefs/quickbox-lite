@@ -33,63 +33,8 @@
 <script type="text/javascript" src="inc/panel.app_status.ajax.js"></script>
 
 <script type="text/javascript">
-$(document).ready(function(){getJSONData();});
-var OutSpeed2=<?php echo floor($NetOutSpeed[2]) ?>;
-var OutSpeed3=<?php echo floor($NetOutSpeed[3]) ?>;
-var OutSpeed4=<?php echo floor($NetOutSpeed[4]) ?>;
-var OutSpeed5=<?php echo floor($NetOutSpeed[5]) ?>;
-var InputSpeed2=<?php echo floor($NetInputSpeed[2]) ?>;
-var InputSpeed3=<?php echo floor($NetInputSpeed[3]) ?>;
-var InputSpeed4=<?php echo floor($NetInputSpeed[4]) ?>;
-var InputSpeed5=<?php echo floor($NetInputSpeed[5]) ?>;
-function getJSONData()
-{
-  setTimeout("getJSONData()", 1000);
-  $.getJSON('?act=rt&callback=?', displayData);
-}
-function ForDight(Dight,How)
-{
-  if (Dight<0){
-    var Last=0+"B/s";
-  }else if (Dight<1024){
-    var Last=Math.round(Dight*Math.pow(10,How))/Math.pow(10,How)+"B/s";
-  }else if (Dight<1048576){
-    Dight=Dight/1024;
-    var Last=Math.round(Dight*Math.pow(10,How))/Math.pow(10,How)+"KB/s";
-  }else{
-    Dight=Dight/1048576;
-    var Last=Math.round(Dight*Math.pow(10,How))/Math.pow(10,How)+"MB/s";
-  }
-  return Last;
-}
-function displayData(dataJSON) {
-  $("#NetOut2").html(dataJSON.NetOut2);
-  $("#NetOut3").html(dataJSON.NetOut3);
-  $("#NetOut4").html(dataJSON.NetOut4);
-  $("#NetOut5").html(dataJSON.NetOut5);
-  $("#NetOut6").html(dataJSON.NetOut6);
-  $("#NetOut7").html(dataJSON.NetOut7);
-  $("#NetOut8").html(dataJSON.NetOut8);
-  $("#NetOut9").html(dataJSON.NetOut9);
-  $("#NetOut10").html(dataJSON.NetOut10);
-  $("#NetInput2").html(dataJSON.NetInput2);
-  $("#NetInput3").html(dataJSON.NetInput3);
-  $("#NetInput4").html(dataJSON.NetInput4);
-  $("#NetInput5").html(dataJSON.NetInput5);
-  $("#NetInput6").html(dataJSON.NetInput6);
-  $("#NetInput7").html(dataJSON.NetInput7);
-  $("#NetInput8").html(dataJSON.NetInput8);
-  $("#NetInput9").html(dataJSON.NetInput9);
-  $("#NetInput10").html(dataJSON.NetInput10);
-  $("#NetOutSpeed2").html(ForDight((dataJSON.NetOutSpeed2-OutSpeed2),3)); OutSpeed2=dataJSON.NetOutSpeed2;
-  $("#NetOutSpeed3").html(ForDight((dataJSON.NetOutSpeed3-OutSpeed3),3)); OutSpeed3=dataJSON.NetOutSpeed3;
-  $("#NetOutSpeed4").html(ForDight((dataJSON.NetOutSpeed4-OutSpeed4),3)); OutSpeed4=dataJSON.NetOutSpeed4;
-  $("#NetOutSpeed5").html(ForDight((dataJSON.NetOutSpeed5-OutSpeed5),3)); OutSpeed5=dataJSON.NetOutSpeed5;
-  $("#NetInputSpeed2").html(ForDight((dataJSON.NetInputSpeed2-InputSpeed2),3)); InputSpeed2=dataJSON.NetInputSpeed2;
-  $("#NetInputSpeed3").html(ForDight((dataJSON.NetInputSpeed3-InputSpeed3),3)); InputSpeed3=dataJSON.NetInputSpeed3;
-  $("#NetInputSpeed4").html(ForDight((dataJSON.NetInputSpeed4-InputSpeed4),3)); InputSpeed4=dataJSON.NetInputSpeed4;
-  $("#NetInputSpeed5").html(ForDight((dataJSON.NetInputSpeed5-InputSpeed5),3)); InputSpeed5=dataJSON.NetInputSpeed5;
-}
+  window.NetOutSpeed = <?php echo json_encode($NetOutSpeed) ?>;
+  window.NetInputSpeed = <?php echo json_encode($NetInputSpeed) ?>;
 </script>
 
   <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
