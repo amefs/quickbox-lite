@@ -190,6 +190,9 @@
   });
 
   function start_status_update(tasks) {
+    if (window.app_status_interval_info !== undefined) {
+      return;
+    }
     // record all interval id in a global object
     window.app_status_interval_info = {};
 
@@ -229,7 +232,7 @@
   }
 
   function stop_status_update() {
-    if (window.app_status_interval_info !== undefined) {
+    if (window.app_status_interval_info !== undefined && document.hidden) {
       for (const time_str of Object.keys(window.app_status_interval_info)) {
         clearInterval(window.app_status_interval_info[time_str]);
       }
@@ -245,9 +248,17 @@
           start_status_update(task_info);
         }
       } else {
+        // avoid unnecessary update pause
         setTimeout(stop_status_update, 5000);
       }
     });
+    window.onfocus = () => {
+      setTimeout(() => {
+        if (window.app_status_interval_info === undefined) {
+          start_status_update(task_info);
+        }
+      }, 100);
+    };
   });
 
 })(window.jQuery);
