@@ -67,6 +67,28 @@ function formatsize($size) {
   return $fsize;
 }
 
+
+//NIC flow
+$strs = @file("/proc/net/dev");
+for ($i = 2; $i < count($strs); $i++ ) {
+  preg_match_all("/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
+  $NetInputSpeed[$i] = $info[2][0]; // Receive data in bytes
+  $NetOutSpeed[$i] = $info[10][0]; // Transmit data in bytes
+}
+
+//Real-time refresh ajax calls
+if ($_GET["act"] == "rt") {
+  $arr=array(
+    "NetOutSpeed2"=>"$NetOutSpeed[2]","NetOutSpeed3"=>"$NetOutSpeed[3]","NetOutSpeed4"=>"$NetOutSpeed[4]","NetOutSpeed5"=>"$NetOutSpeed[5]",
+    "NetInputSpeed2"=>"$NetInputSpeed[2]","NetInputSpeed3"=>"$NetInputSpeed[3]","NetInputSpeed4"=>"$NetInputSpeed[4]","NetInputSpeed5"=>"$NetInputSpeed[5]"
+  );
+  $jarr=json_encode($arr);
+  $_GET["callback"] = htmlspecialchars($_GET["callback"]);
+  echo $_GET["callback"],"(",$jarr,")";
+  exit;
+}
+
+
 function GetCoreInformation() {$data = file('/proc/stat');$cores = array();foreach( $data as $line ) {if( preg_match('/^cpu[0-9]/', $line) ){$info = explode(' ', $line);$cores[]=array('user'=>$info[1],'nice'=>$info[2],'sys' => $info[3],'idle'=>$info[4],'iowait'=>$info[5],'irq' => $info[6],'softirq' => $info[7]);}}return $cores;}
 function GetCpuPercentages($stat1, $stat2) {if(count($stat1)!==count($stat2)){return;}$cpus=array();for( $i = 0, $l = count($stat1); $i < $l; $i++) { $dif = array(); $dif['user'] = $stat2[$i]['user'] - $stat1[$i]['user'];$dif['nice'] = $stat2[$i]['nice'] - $stat1[$i]['nice'];  $dif['sys'] = $stat2[$i]['sys'] - $stat1[$i]['sys'];$dif['idle'] = $stat2[$i]['idle'] - $stat1[$i]['idle'];$dif['iowait'] = $stat2[$i]['iowait'] - $stat1[$i]['iowait'];$dif['irq'] = $stat2[$i]['irq'] - $stat1[$i]['irq'];$dif['softirq'] = $stat2[$i]['softirq'] - $stat1[$i]['softirq'];$total = array_sum($dif);$cpu = array();foreach($dif as $x=>$y) $cpu[$x] = round($y / $total * 100, 2);$cpus['cpu' . $i] = $cpu;}return $cpus;}
 $stat1 = GetCoreInformation();sleep(1);$stat2 = GetCoreInformation();$data = GetCpuPercentages($stat1, $stat2);
@@ -97,20 +119,20 @@ function sys_linux()
     @preg_match_all("/cpu\s+MHz\s{0,}\:+\s{0,}([\d\.]+)[\r\n]+/", $str, $mhz);
     @preg_match_all("/cache\s+size\s{0,}\:+\s{0,}([\d\.]+\s{0,}[A-Z]+[\r\n]+)/", $str, $cache);
     if (false !== is_array($model[1]))
-  {
-        $res['cpu']['num'] = sizeof($model[1]);
+    {
+      $res['cpu']['num'] = sizeof($model[1]);
 
-    if($res['cpu']['num']==1)
-      $x1 = '';
-    else
-      $x1 = ' ×'.$res['cpu']['num'];
-    $mhz[1][0] = ' <span style="color:#999;font-weight:600">Frequency:</span> '.$mhz[1][0];
-    $cache[1][0] = ' <br /> <span style="color:#999;font-weight:600">Secondary cache:</span> '.$cache[1][0];
-    $res['cpu']['model'][] = '<h4>'.$model[1][0].'</h4>'.$mhz[1][0].$cache[1][0].$x1;
-        if (false !== is_array($res['cpu']['model'])) $res['cpu']['model'] = implode("<br />", $res['cpu']['model']);
-        if (false !== is_array($res['cpu']['mhz'])) $res['cpu']['mhz'] = implode("<br />", $res['cpu']['mhz']);
-        if (false !== is_array($res['cpu']['cache'])) $res['cpu']['cache'] = implode("<br />", $res['cpu']['cache']);
-  }
+      if($res['cpu']['num']==1)
+        $x1 = '';
+      else
+        $x1 = ' ×'.$res['cpu']['num'];
+      $mhz[1][0] = ' <span style="color:#999;font-weight:600">Frequency:</span> '.$mhz[1][0];
+      $cache[1][0] = ' <br /> <span style="color:#999;font-weight:600">Secondary cache:</span> '.$cache[1][0];
+      $res['cpu']['model'][] = '<h4>'.$model[1][0].'</h4>'.$mhz[1][0].$cache[1][0].$x1;
+      if (false !== is_array($res['cpu']['model'])) $res['cpu']['model'] = implode("<br />", $res['cpu']['model']);
+      if (false !== is_array($res['cpu']['mhz'])) $res['cpu']['mhz'] = implode("<br />", $res['cpu']['mhz']);
+      if (false !== is_array($res['cpu']['cache'])) $res['cpu']['cache'] = implode("<br />", $res['cpu']['cache']);
+    }
 
     return $res;
 }
@@ -180,26 +202,6 @@ function GetWMI($wmi,$strClass, $strValue = array()) {
     $arrData[] = $arrInstance;
   }
   return $arrData;
-}
-
-//NIC flow
-$strs = @file("/proc/net/dev");
-
-for ($i = 2; $i < count($strs); $i++ ) {
-  preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
-  $NetOutSpeed[$i] = $info[10][0];
-  $NetInputSpeed[$i] = $info[2][0];
-  $NetInput[$i] = formatsize($info[2][0]);
-  $NetOut[$i]  = formatsize($info[10][0]);
-}
-
-//Real-time refresh ajax calls
-if ($_GET['act'] == "rt") {
-  $arr=array('NetOut2'=>"$NetOut[2]",'NetOut3'=>"$NetOut[3]",'NetOut4'=>"$NetOut[4]",'NetOut5'=>"$NetOut[5]",'NetOut6'=>"$NetOut[6]",'NetOut7'=>"$NetOut[7]",'NetOut8'=>"$NetOut[8]",'NetOut9'=>"$NetOut[9]",'NetOut10'=>"$NetOut[10]",'NetInput2'=>"$NetInput[2]",'NetInput3'=>"$NetInput[3]",'NetInput4'=>"$NetInput[4]",'NetInput5'=>"$NetInput[5]",'NetInput6'=>"$NetInput[6]",'NetInput7'=>"$NetInput[7]",'NetInput8'=>"$NetInput[8]",'NetInput9'=>"$NetInput[9]",'NetInput10'=>"$NetInput[10]",'NetOutSpeed2'=>"$NetOutSpeed[2]",'NetOutSpeed3'=>"$NetOutSpeed[3]",'NetOutSpeed4'=>"$NetOutSpeed[4]",'NetOutSpeed5'=>"$NetOutSpeed[5]",'NetInputSpeed2'=>"$NetInputSpeed[2]",'NetInputSpeed3'=>"$NetInputSpeed[3]",'NetInputSpeed4'=>"$NetInputSpeed[4]",'NetInputSpeed5'=>"$NetInputSpeed[5]");
-  $jarr=json_encode($arr);
-  $_GET['callback'] = htmlspecialchars($_GET['callback']);
-  echo $_GET['callback'],'(',$jarr,')';
-  exit;
 }
 
 function session_start_timeout($timeout=5, $probability=100, $cookie_domain='/') {

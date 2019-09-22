@@ -101,35 +101,37 @@
     url: "/?act=rt&callback=?",
     id: undefined,
     overload: (task) => {
-      function ForDight(digit, exp) {
-        let Last = "";
-        if (digit < 0) {
-          Last = 0 + "B/s";
-        } else if (digit < 1024) {
-          Last = Math.round(digit * Math.pow(10, exp)) / Math.pow(10, exp) + "B/s";
-        } else if (digit < 1048576) {
-          digit = digit / 1024;
-          Last = Math.round(digit * Math.pow(10, exp)) / Math.pow(10, exp) + "KB/s";
-        } else {
-          digit = digit / 1048576;
-          Last = Math.round(digit * Math.pow(10, exp)) / Math.pow(10, exp) + "MB/s";
-        }
-        return Last;
+      function format(length, factor, tail, fractionDigits) {
+        return (length / 2 ** factor).toFixed(fractionDigits).toString() + tail;
       }
-      $.getJSON(task.url, (dataJSON) => {
-        for (let i = 2; i <= 10; ++i) {
-          $("#NetOut" + i).html(dataJSON["NetOut" + i]);
-          $("#NetInput" + i).html(dataJSON["NetInput" + i]);
-        }
 
-        $("#NetOutSpeed2").html(ForDight((dataJSON.NetOutSpeed2 - window.NetOutSpeed[2]), 3)); window.NetOutSpeed[2] = dataJSON.NetOutSpeed2;
-        $("#NetOutSpeed3").html(ForDight((dataJSON.NetOutSpeed3 - window.NetOutSpeed[3]), 3)); window.NetOutSpeed[3] = dataJSON.NetOutSpeed3;
-        $("#NetOutSpeed4").html(ForDight((dataJSON.NetOutSpeed4 - window.NetOutSpeed[4]), 3)); window.NetOutSpeed[4] = dataJSON.NetOutSpeed4;
-        $("#NetOutSpeed5").html(ForDight((dataJSON.NetOutSpeed5 - window.NetOutSpeed[5]), 3)); window.NetOutSpeed[5] = dataJSON.NetOutSpeed5;
-        $("#NetInputSpeed2").html(ForDight((dataJSON.NetInputSpeed2 - window.NetInputSpeed[2]), 3)); window.NetInputSpeed[2] = dataJSON.NetInputSpeed2;
-        $("#NetInputSpeed3").html(ForDight((dataJSON.NetInputSpeed3 - window.NetInputSpeed[3]), 3)); window.NetInputSpeed[3] = dataJSON.NetInputSpeed3;
-        $("#NetInputSpeed4").html(ForDight((dataJSON.NetInputSpeed4 - window.NetInputSpeed[4]), 3)); window.NetInputSpeed[4] = dataJSON.NetInputSpeed4;
-        $("#NetInputSpeed5").html(ForDight((dataJSON.NetInputSpeed5 - window.NetInputSpeed[5]), 3)); window.NetInputSpeed[5] = dataJSON.NetInputSpeed5;
+      function formatsize(length) {
+        if (length >= 2 ** 40) {
+            return format(length, 40, "TB/s", 2);
+        } else if (length >= 2 ** 30) {
+            return format(length, 30, "GB/s", 2);
+        } else if (length >= 2 ** 20) {
+            return format(length, 20, "MB/s", 2);
+        } else if (length >= 2 ** 10) {
+            return format(length, 10, "KB/s", 2);
+        } else {
+            return format(Math.max(0, length), 0, "B/s", 0);
+        }
+      }
+
+      $.getJSON(task.url, (dataJSON) => {
+        for (let i = 2; i < 5; ++i) {
+          if (window.NetOutSpeed[i] !== undefined) {
+            const speed_str = formatsize(dataJSON.NetOutSpeed[i] - window.NetOutSpeed[i]);
+            window.NetOutSpeed[i] = dataJSON.NetOutSpeed[i];
+            $("#NetOutSpeed" + i).html(speed_str);
+          }
+          if (window.NetInputSpeed[i] !== undefined) {
+            const speed_str = formatsize(dataJSON.NetInputSpeed[i] - window.NetInputSpeed[i]);
+            window.NetInputSpeed[i] = dataJSON.NetInputSpeed[i];
+            $("#NetInputSpeed" + i).html(speed_str);
+          }
+        }
       });
     },
     time: 1000
@@ -183,6 +185,9 @@
 
   // group task with time
   const task_info = groupBy([].concat(service_status_list, system_status_list), "time");
+  $.ajaxSetup({
+    timeout: 5000
+  });
 
   function start_status_update(tasks) {
     // record all interval id in a global object
@@ -203,7 +208,10 @@
               // only displayed element will be updated
               if (task.id && $(task.id).length > 0) {
                 $.ajax({
-                  url: task.url, cache: true, success: (result) => {
+                  url: task.url,
+                  cache: true,
+
+                  success: (result) => {
                     $(task.id).html(result);
                   }
                 });
