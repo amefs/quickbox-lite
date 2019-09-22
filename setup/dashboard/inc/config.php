@@ -79,8 +79,8 @@ for ($i = 2; $i < count($strs); $i++ ) {
 //Real-time refresh ajax calls
 if ($_GET["act"] == "rt") {
   $arr=array(
-    "NetOutSpeed2"=>"$NetOutSpeed[2]","NetOutSpeed3"=>"$NetOutSpeed[3]","NetOutSpeed4"=>"$NetOutSpeed[4]","NetOutSpeed5"=>"$NetOutSpeed[5]",
-    "NetInputSpeed2"=>"$NetInputSpeed[2]","NetInputSpeed3"=>"$NetInputSpeed[3]","NetInputSpeed4"=>"$NetInputSpeed[4]","NetInputSpeed5"=>"$NetInputSpeed[5]"
+    "NetOutSpeed" => $NetOutSpeed,
+    "NetInputSpeed" => $NetInputSpeed
   );
   $jarr=json_encode($arr);
   $_GET["callback"] = htmlspecialchars($_GET["callback"]);
