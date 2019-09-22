@@ -77,7 +77,7 @@ function _error() {
 APP_TITLE="noVNC"
 APP_NAME="novnc"
 APP_SERVICE=""
-APP_BASEDEPS="xfce4 xfce4-goodies tightvncserver iceweasel fonts-noto"
+APP_BASEDEPS="xfce4 xfce4-goodies tightvncserver fonts-noto firefox-esr"
 
 APP_LOCK=`echo .$APP_NAME.lock`
 OUTTO=/srv/dashboard/db/output.log

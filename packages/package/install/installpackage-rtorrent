@@ -256,6 +256,7 @@ function _installApp() {
         # installation process
         if [[ ${version} == feature-bind ]]; then
             # prepare package toolchain
+            _installDepends
             _installFpm
             if [ ${CODENAME} == 'xenial' ]; then
                 _do "apt purge -y libssl-dev"
@@ -295,6 +296,8 @@ function _installApp() {
             rm -rf /tmp/rtorrent
             rm -rf /tmp/dist
         else
+            APP_BASEDEPS="screen unzip"
+            _installDepends
             # get deb packages
             cd /tmp
             wget -q -O ${LTORRENTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rakshasa/${LTORRENTBIN}/download
@@ -469,7 +472,6 @@ _installInfo
 if [[ ! -f /install/.system.lock ]]; then
     _installSystemUpdates
 fi
-_installDepends
 _installApp
 _configureApp
 _installAppLock
