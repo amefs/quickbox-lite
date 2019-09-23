@@ -80,6 +80,9 @@ function _init() {
     export LANG="en_US.UTF-8" >/dev/null 2>&1
     export LC_ALL="en_US.UTF-8" >/dev/null 2>&1
     export LANGUAGE="en_US.UTF-8" >/dev/null 2>&1
+    if ( ! $(export | grep -q sbin) ); then
+        export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
+    fi
     {
     # prepare scripts
     echo -e "XXX\n00\nPreparing scripts... \nXXX"
