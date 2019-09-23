@@ -444,7 +444,7 @@ QBC
         mkdir -p /home/${username}/qbwatch
         chown ${username}: /home/${username}/qbwatch
         mkdir -p /home/${username}/torrents/qbittorrent
-        chown ${username}: /home/${username}/torrents/qbittorrent
+        chown -R ${username}: /home/${username}/torrents
 
         cat > /etc/nginx/conf.d/${username}.qbittorrent.conf <<EOF
 upstream ${username}.qbittorrent {
@@ -571,7 +571,6 @@ _installInfo
 if [[ ! -f /install/.system.lock ]]; then
     _installSystemUpdates
 fi
-_installDepends
 _installApp
 _configureApp
 _installAppLock

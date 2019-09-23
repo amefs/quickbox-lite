@@ -375,6 +375,8 @@ fi
 EOF
         cp ${local_setup_template}bash_qb.template /root/.bash_qb
     fi
+    # set home permission
+    chmod 755 /home/${username}
 }
 
 function _askmount() {
@@ -527,7 +529,7 @@ function _dependency() {
     DEPLIST="sudo bc curl wget nginx-extras subversion ssl-cert php-memcached memcached php7.2 php7.2-cli php7.2-curl php7.2-dev php7.2-fpm php7.2-gd php7.2-geoip php7.2-json php7.2-mbstring php7.2-opcache php7.2-xml php7.2-xmlrpc php7.2-zip libfcgi0ldbl mcrypt libmcrypt-dev nano python-dev unzip htop iotop vnstat vnstati automake make openssl net-tools debconf-utils ntp rsync"
     for depend in $DEPLIST; do
         echo -e "XXX\n12\n$INFO_TEXT_PROGRESS_Extra_2${depend}\nXXX"
-        apt-get -y install ${depend} --allow-unauthenticated >> ${OUTTO} 2>&1 || { local dependError=1; }
+        DEBIAN_FRONTEND=noninteractive apt-get -y install ${depend} --allow-unauthenticated >> ${OUTTO} 2>&1 || { local dependError=1; }
         if [[ $dependError == "1" ]]; then
             whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1${depend}" 8 64; 
             exit 1;

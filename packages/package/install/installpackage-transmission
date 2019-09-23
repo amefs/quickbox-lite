@@ -338,7 +338,7 @@ TRC
         chmod -R 755 /home/${username}/.config
         chown -R ${username}.${username} /home/${username}/.config/
         chmod -R 755 /home/${username}/torrents/transmission
-        chown -R ${username}.${username} /home/${username}/torrents/transmission
+        chown -R ${username}.${username} /home/${username}/torrents
         chmod -R 755 /home/${username}/trwatch
         chown -R ${username}.${username} /home/${username}/trwatch
     

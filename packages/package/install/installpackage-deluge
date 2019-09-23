@@ -610,7 +610,7 @@ DHL
         if [[ ! -d /home/${username}/torrents/deluge ]]; then
         mkdir -p /home/${username}/torrents/deluge
         fi
-        chown ${username}: /home/${username}/torrents/deluge
+        chown -R ${username}: /home/${username}/torrents
 
         cat > /etc/nginx/conf.d/${username}.deluge.conf <<EOF
 upstream ${username}.deluge {

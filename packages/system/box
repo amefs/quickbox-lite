@@ -195,6 +195,7 @@ if [[ $resolver == "fix" ]]; then
         "dpkg"|"lock") bash /usr/local/bin/quickbox/system/auxiliary/fixDpkg;;
         "time") bash /usr/local/bin/quickbox/system/auxiliary/fixTime;;
         "interface") bash /usr/local/bin/quickbox/system/auxiliary/set_interface;;
+        "home") bash /usr/local/bin/quickbox/system/auxiliary/fixHome ${@:3};;
     esac
 fi
 
