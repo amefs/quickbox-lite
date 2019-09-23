@@ -1,244 +1,264 @@
-$(document).ready(function() {
+(($) => {
+  const service_status_list = [{
+    name: "BTSYNC",
+    url: "/widgets/app_status/app_status_btsync.php",
+    id: "#appstat_btsync",
+    time: 5000
+  }, {
+    name: "DELUGED",
+    url: "/widgets/app_status/app_status_deluged.php",
+    id: "#appstat_deluged",
+    time: 5000
+  }, {
+    name: "DELUGE WEB",
+    url: "/widgets/app_status/app_status_delugeweb.php",
+    id: "#appstat_delugeweb",
+    time: 5000
+  }, {
+    name: "DENYHOSTS",
+    url: "/widgets/app_status/app_status_denyhosts.php",
+    id: "#appstat_denyhosts",
+    time: 5000
+  }, {
+    name: "FAIL2BAN",
+    url: "/widgets/app_status/app_status_fail2ban.php",
+    id: "#appstat_fail2ban",
+    time: 5000
+  }, {
+    name: "FILEBROWSER",
+    url: "/widgets/app_status/app_status_filebrowser.php",
+    id: "#appstat_filebrowser",
+    time: 5000
+  }, {
+    name: "FLEXGET",
+    url: "/widgets/app_status/app_status_flexget.php",
+    id: "#appstat_flexget",
+    time: 5000
+  }, {
+    name: "FLOOD",
+    url: "/widgets/app_status/app_status_flood.php",
+    id: "#appstat_flood",
+    time: 5000
+  }, {
+    name: "IRSSI",
+    url: "/widgets/app_status/app_status_irssi.php",
+    id: "#appstat_irssi",
+    time: 5000
+  }, {
+    name: "NETDATA",
+    url: "/widgets/app_status/app_status_netdata.php",
+    id: "#appstat_netdata",
+    time: 5000
+  }, {
+    name: "NOVNC",
+    url: "/widgets/app_status/app_status_novnc.php",
+    id: "#appstat_novnc",
+    time: 5000
+  }, {
+    name: "PLEX",
+    url: "/widgets/app_status/app_status_plex.php",
+    id: "#appstat_plex",
+    time: 5000
+  }, {
+    name: "RTORRENT",
+    url: "/widgets/app_status/app_status_rtorrent.php",
+    id: "#appstat_rtorrent",
+    time: 5000
+  }, {
+    name: "SYNCTHING",
+    url: "/widgets/app_status/app_status_syncthing.php",
+    id: "#appstat_syncthing",
+    time: 5000
+  }, {
+    name: "TRANSMISSION",
+    url: "/widgets/app_status/app_status_transmission.php",
+    id: "#appstat_transmission",
+    time: 5000
+  }, {
+    name: "QBITTORRENT",
+    url: "/widgets/app_status/app_status_qbittorrent.php",
+    id: "#appstat_qbittorrent",
+    time: 5000
+  }, {
+    name: "WEB CONSOLE",
+    url: "/widgets/app_status/app_status_webconsole.php",
+    id: "#appstat_webconsole",
+    time: 5000
+  }, {
+    name: "X2GO",
+    url: "/widgets/app_status/app_status_x2go.php",
+    id: "#appstat_x2go",
+    time: 5000
+  }, {
+    name: "ZNC",
+    url: "/widgets/app_status/app_status_znc.php",
+    id: "#appstat_znc",
+    time: 5000
+  }];
 
-  /////////////////////////////////////////////
-  // BEGIN AJAX APP CALLS ON SERVICE STATUS //
-  ///////////////////////////////////////////
+  const system_status_list = [{
+    name: "NETWORK",
+    url: "/?act=rt&callback=?",
+    id: undefined,
+    overload: (task) => {
+      function format(length, factor, tail, fractionDigits) {
+        return (length / 2 ** factor).toFixed(fractionDigits).toString() + tail;
+      }
 
-  // <<-------- BTSYNC -------->> //
-  function appstat_btsync() {
-    $.ajax({url: "/widgets/app_status/app_status_btsync.php", cache:true, success: function (result) {
-      $('#appstat_btsync').html(result);
-      setTimeout(function(){appstat_btsync()}, 5000);
-    }});
+      function formatsize(length) {
+        if (length >= 2 ** 40) {
+            return format(length, 40, "TB/s", 2);
+        } else if (length >= 2 ** 30) {
+            return format(length, 30, "GB/s", 2);
+        } else if (length >= 2 ** 20) {
+            return format(length, 20, "MB/s", 2);
+        } else if (length >= 2 ** 10) {
+            return format(length, 10, "KB/s", 2);
+        } else {
+            return format(Math.max(0, length), 0, "B/s", 0);
+        }
+      }
+
+      $.getJSON(task.url, (dataJSON) => {
+        for (let i = 2; i < 5; ++i) {
+          if (window.NetOutSpeed[i] !== undefined) {
+            const speed_str = formatsize(dataJSON.NetOutSpeed[i] - window.NetOutSpeed[i]);
+            window.NetOutSpeed[i] = dataJSON.NetOutSpeed[i];
+            $("#NetOutSpeed" + i).html(speed_str);
+          }
+          if (window.NetInputSpeed[i] !== undefined) {
+            const speed_str = formatsize(dataJSON.NetInputSpeed[i] - window.NetInputSpeed[i]);
+            window.NetInputSpeed[i] = dataJSON.NetInputSpeed[i];
+            $("#NetInputSpeed" + i).html(speed_str);
+          }
+        }
+      });
+    },
+    time: 1000
+  }, {
+    name: "UPTIME",
+    url: "/widgets/up.php",
+    id: "#uptime",
+    time: 60000
+  }, {
+    name: "TOP",
+    url: "/widgets/load.php",
+    id: "#cpuload",
+    time: 60000
+  }, {
+    name: "BANDWIDTH",
+    url: "/widgets/bw_tables.php",
+    id: "#bw_tables",
+    time: 60000
+  }, {
+    name: "DISK USAGE",
+    url: "/widgets/disk_data.php",
+    id: "#disk_data",
+    time: 15000
+  }, {
+    name: "RAM USAGE",
+    url: "/widgets/ram_stats.php",
+    id: "#meterram",
+    time: 10000
+  }, {
+    name: "QUICKBOX FEED",
+    url: "/widgets/activity_feed.php",
+    id: "#activityfeed",
+    time: 300000
+  }, {
+    name: "SSH OUTPUT",
+    url: "/db/output.log",
+    id: "#sshoutput",
+    time: 5000,
+    after: () => {
+      const element = $("#sysPre");
+      element.scrollTop(element.prop("scrollHeight"));
+    }
+  }];
+
+  function groupBy(xs, key) {
+    return xs.reduce((rv, x) => {
+      (rv[x[key]] = rv[x[key]] || []).push(x);
+      return rv;
+    }, {});
   }
-  appstat_btsync();
 
-  // <<-------- DELUGED -------->> //
-  function appstat_deluged() {
-    $.ajax({url: "/widgets/app_status/app_status_deluged.php", cache:true, success: function (result) {
-      $('#appstat_deluged').html(result);
-      setTimeout(function(){appstat_deluged()}, 5000);
-    }});
-  }
-  appstat_deluged();
-
-  // <<-------- DELUGE WEB -------->> //
-  function appstat_delugeweb() {
-    $.ajax({url: "/widgets/app_status/app_status_delugeweb.php", cache:true, success: function (result) {
-      $('#appstat_delugeweb').html(result);
-      setTimeout(function(){appstat_delugeweb()}, 5000);
-    }});
-  }
-  appstat_delugeweb();
-
-  // <<-------- DENYHOSTS -------->> //
-  function appstat_denyhosts() {
-    $.ajax({url: "/widgets/app_status/app_status_denyhosts.php", cache:true, success: function (result) {
-      $('#appstat_denyhosts').html(result);
-      setTimeout(function(){appstat_denyhosts()}, 5000);
-    }});
-  }
-  appstat_denyhosts();
-
-  // <<-------- FAIL2BAN -------->> //
-  function appstat_fail2ban() {
-    $.ajax({url: "/widgets/app_status/app_status_fail2ban.php", cache:true, success: function (result) {
-      $('#appstat_fail2ban').html(result);
-      setTimeout(function(){appstat_fail2ban()}, 5000);
-    }});
-  }
-  appstat_fail2ban();
-
-  // <<-------- FILEBROWSER -------->> //
-  function appstat_filebrowser() {
-    $.ajax({url: "/widgets/app_status/app_status_filebrowser.php", cache:true, success: function (result) {
-      $('#appstat_filebrowser').html(result);
-      setTimeout(function(){appstat_filebrowser()}, 5000);
-    }});
-  }
-  appstat_filebrowser();
-
-  // <<-------- FLEXGET -------->> //
-  function appstat_flexget() {
-    $.ajax({url: "/widgets/app_status/app_status_flexget.php", cache:true, success: function (result) {
-      $('#appstat_flexget').html(result);
-      setTimeout(function(){appstat_flexget()}, 5000);
-    }});
-  }
-  appstat_flexget();
-
-  // <<-------- FLOOD -------->> //
-  function appstat_flood() {
-    $.ajax({url: "/widgets/app_status/app_status_flood.php", cache:true, success: function (result) {
-      $('#appstat_flood').html(result);
-      setTimeout(function(){appstat_flood()}, 5000);
-    }});
-  }
-  appstat_flood();
-
-  // <<-------- IRSSI -------->> //
-  function appstat_irssi() {
-    $.ajax({url: "/widgets/app_status/app_status_irssi.php", cache:true, success: function (result) {
-      $('#appstat_irssi').html(result);
-      setTimeout(function(){appstat_irssi()}, 5000);
-    }});
-  }
-  appstat_irssi();
-
-  // <<-------- NETDATA -------->> //
-  function appstat_netdata() {
-    $.ajax({url: "/widgets/app_status/app_status_netdata.php", cache:true, success: function (result) {
-      $('#appstat_netdata').html(result);
-      setTimeout(function(){appstat_netdata()}, 5000);
-    }});
-  }
-  appstat_netdata();
-
-  // <<-------- NOVNC -------->> //
-  function appstat_novnc() {
-    $.ajax({url: "/widgets/app_status/app_status_novnc.php", cache:true, success: function (result) {
-      $('#appstat_novnc').html(result);
-      setTimeout(function(){appstat_novnc()}, 5000);
-    }});
-  }
-  appstat_novnc();
-
-  // <<-------- PLEX -------->> //
-  function appstat_plex() {
-    $.ajax({url: "/widgets/app_status/app_status_plex.php", cache:true, success: function (result) {
-      $('#appstat_plex').html(result);
-      setTimeout(function(){appstat_plex()}, 5000);
-    }});
-  }
-  appstat_plex();
-
-  // <<-------- RTORRENT -------->> //
-  function appstat_rtorrent() {
-    $.ajax({url: "/widgets/app_status/app_status_rtorrent.php", cache:true, success: function (result) {
-      $('#appstat_rtorrent').html(result);
-      setTimeout(function(){appstat_rtorrent()}, 5000);
-    }});
-  }
-  appstat_rtorrent();
-
-  // <<-------- SYNCTHING -------->> //
-  function appstat_syncthing() {
-    $.ajax({url: "/widgets/app_status/app_status_syncthing.php", cache:true, success: function (result) {
-      $('#appstat_syncthing').html(result);
-      setTimeout(function(){appstat_syncthing()}, 5000);
-    }});
-  }
-  appstat_syncthing();
-
-  // <<-------- TRANSMISSION -------->> //
-  function appstat_transmission() {
-    $.ajax({url: "/widgets/app_status/app_status_transmission.php", cache:true, success: function (result) {
-      $('#appstat_transmission').html(result);
-      setTimeout(function(){appstat_transmission()}, 5000);
-    }});
-  }
-  appstat_transmission();
-  
-    // <<-------- QBITTORRENT -------->> //
-  function appstat_qbittorrent() {
-    $.ajax({url: "/widgets/app_status/app_status_qbittorrent.php", cache:true, success: function (result) {
-      $('#appstat_qbittorrent').html(result);
-      setTimeout(function(){appstat_qbittorrent()}, 5000);
-    }});
-  }
-  appstat_qbittorrent();
-
-  // <<-------- WEB CONSOLE -------->> //
-  function appstat_webconsole() {
-    $.ajax({url: "/widgets/app_status/app_status_webconsole.php", cache:true, success: function (result) {
-      $('#appstat_webconsole').html(result);
-      setTimeout(function(){appstat_webconsole()}, 5000);
-    }});
-  }
-  appstat_webconsole();
-
-  // <<-------- X2GO -------->> //
-  function appstat_x2go() {
-    $.ajax({url: "/widgets/app_status/app_status_x2go.php", cache:true, success: function (result) {
-      $('#appstat_x2go').html(result);
-      setTimeout(function(){appstat_x2go()}, 5000);
-    }});
-  }
-  appstat_x2go();
-
-  // <<-------- ZNC -------->> //
-  function appstat_znc() {
-    $.ajax({url: "/widgets/app_status/app_status_znc.php", cache:true, success: function (result) {
-      $('#appstat_znc').html(result);
-      setTimeout(function(){appstat_znc()}, 5000);
-    }});
-  }
-  appstat_znc();
-  
-
-  ///////////////////////////////////////////
-  // END AJAX APP CALLS ON SERVICE STATUS //
-  /////////////////////////////////////////
-
-  function uptime() {
-    $.ajax({url: "/widgets/up.php", cache:true, success: function (result) {
-      $('#uptime').html(result);
-      setTimeout(function(){uptime()}, 60000);
-    }});
-  }
-  uptime();
-
-  function sload() {
-    $.ajax({url: "/widgets/load.php", cache:true, success: function (result) {
-      $('#cpuload').html(result);
-      setTimeout(function(){sload()}, 60000);
-    }});
-  }
-  sload();
-
-  function bwtables() {
-    $.ajax({url: "/widgets/bw_tables.php", cache:false, success: function (result) {
-      $('#bw_tables').html(result);
-      setTimeout(function(){bwtables()}, 60000);
-    }});
-  }
-  bwtables();
-
-  function diskstats() {
-    $.ajax({url: "/widgets/disk_data.php", cache:false, success: function (result) {
-      $('#disk_data').html(result);
-      setTimeout(function(){diskstats()}, 15000);
-    }});
-  }
-  diskstats();
-
-  function ramstats() {
-    $.ajax({url: "/widgets/ram_stats.php", cache:false, success: function (result) {
-      $('#meterram').html(result);
-      setTimeout(function(){ramstats()}, 10000);
-    }});
-  }
-  ramstats();
-
-  function activefeed() {
-    $.ajax({url: "/widgets/activity_feed.php", cache:false, success: function (result) {
-      $('#activityfeed').html(result);
-      setTimeout(function(){activefeed()}, 300000);
-    }});
-  }
-  activefeed();
-
-  function msgoutput() {
-    $.ajax({url: "/db/output.log", cache:false, success: function (result) {
-      $('#sshoutput').html(result);
-      setTimeout(function(){msgoutput()}, 5000);
-    }});
-    jQuery( function(){
-      var pre = jQuery("#sysPre");
-      pre.scrollTop( pre.prop("scrollHeight") );
-    });
-  }
-  msgoutput();
-
+  // group task with time
+  const task_info = groupBy([].concat(service_status_list, system_status_list), "time");
+  $.ajaxSetup({
+    timeout: 5000
   });
-  //success: function (result)
+
+  function start_status_update(tasks) {
+    if (window.app_status_interval_info !== undefined) {
+      return;
+    }
+    // record all interval id in a global object
+    window.app_status_interval_info = {};
+
+    for (const time_str of Object.keys(tasks)) {
+      const time_number = parseInt(time_str);
+      const task_list = tasks[time_str];
+      const task_entity = () => {
+        let delay = 0;
+        for (const task of task_list) {
+          // set a delay for each task.
+          setTimeout(() => {
+            if (task.before) task.before(task);
+            if (task.overload) {
+              task.overload(task);
+            } else {
+              // only displayed element will be updated
+              if (task.id && $(task.id).length > 0) {
+                $.ajax({
+                  url: task.url,
+                  cache: true,
+
+                  success: (result) => {
+                    $(task.id).html(result);
+                  }
+                });
+              }
+            }
+            if (task.after) task.after(task);
+          }, delay);
+          // make sure all requests have been sent in half cycle.
+          delay += time_number / (task_list.length * 2);
+        }
+      };
+      window.app_status_interval_info[time_str] = setInterval(task_entity, parseInt(time_number));
+      task_entity();
+    }
+  }
+
+  function stop_status_update() {
+    if (window.app_status_interval_info !== undefined && document.hidden) {
+      for (const time_str of Object.keys(window.app_status_interval_info)) {
+        clearInterval(window.app_status_interval_info[time_str]);
+      }
+      window.app_status_interval_info = undefined;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    start_status_update(task_info);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        if (window.app_status_interval_info === undefined) {
+          start_status_update(task_info);
+        }
+      } else {
+        // avoid unnecessary update pause
+        setTimeout(stop_status_update, 5000);
+      }
+    });
+    window.onfocus = () => {
+      setTimeout(() => {
+        if (window.app_status_interval_info === undefined) {
+          start_status_update(task_info);
+        }
+      }, 100);
+    };
+  });
+
+})(window.jQuery);
