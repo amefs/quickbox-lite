@@ -1,4 +1,4 @@
-(($) => {
+(function($) {
   const service_status_list = [{
     name: "BTSYNC",
     url: "/widgets/app_status/app_status_btsync.php",
@@ -100,26 +100,26 @@
     name: "NETWORK",
     url: "/?act=rt&callback=?",
     id: undefined,
-    overload: (task) => {
+    overload: function (task) {
       function format(length, factor, tail, fractionDigits) {
-        return (length / 2 ** factor).toFixed(fractionDigits).toString() + tail;
+        return (length / Math.pow(2, factor)).toFixed(fractionDigits).toString() + tail;
       }
 
       function formatsize(length) {
-        if (length >= 2 ** 40) {
+        if (length >= Math.pow(2, 40)) {
             return format(length, 40, "TB/s", 2);
-        } else if (length >= 2 ** 30) {
+        } else if (length >= Math.pow(2, 30)) {
             return format(length, 30, "GB/s", 2);
-        } else if (length >= 2 ** 20) {
+        } else if (length >= Math.pow(2, 20)) {
             return format(length, 20, "MB/s", 2);
-        } else if (length >= 2 ** 10) {
+        } else if (length >= Math.pow(2, 10)) {
             return format(length, 10, "KB/s", 2);
         } else {
             return format(Math.max(0, length), 0, "B/s", 0);
         }
       }
 
-      $.getJSON(task.url, (dataJSON) => {
+      $.getJSON(task.url, function (dataJSON) {
         for (let i = 2; i < 5; ++i) {
           if (window.NetOutSpeed[i] !== undefined) {
             const speed_str = formatsize(dataJSON.NetOutSpeed[i] - window.NetOutSpeed[i]);
@@ -170,40 +170,40 @@
     url: "/db/output.log",
     id: "#sshoutput",
     time: 5000,
-    after: () => {
+    after: function () {
       const element = $("#sysPre");
       element.scrollTop(element.prop("scrollHeight"));
     }
   }];
 
   function groupBy(xs, key) {
-    return xs.reduce((rv, x) => {
+    return xs.reduce(function(rv, x) {
       (rv[x[key]] = rv[x[key]] || []).push(x);
       return rv;
     }, {});
   }
 
-  // group task with time
-  const task_info = groupBy([].concat(service_status_list, system_status_list), "time");
   $.ajaxSetup({
     timeout: 5000
   });
 
-  function start_status_update(tasks) {
-    if (window.app_status_interval_info !== undefined) {
-      return;
-    }
-    // record all interval id in a global object
-    window.app_status_interval_info = {};
+  let first_request = true;
 
-    for (const time_str of Object.keys(tasks)) {
+  function start_status_update() {
+    // group task with time
+    const task_info = groupBy([].concat(service_status_list, system_status_list), "time");
+    for (let time_str in task_info) {
+      if (task_info.hasOwnProperty(time_str) === false) {
+        continue;
+      }
       const time_number = parseInt(time_str);
-      const task_list = tasks[time_str];
-      const task_entity = () => {
+      const task_list = task_info[time_str];
+      const task_entity = function () {
         let delay = 0;
-        for (const task of task_list) {
+        for (let i = 0; i < task_list.length; ++i) {
+          const task = task_list[i];
           // set a delay for each task.
-          setTimeout(() => {
+          setTimeout(function() {
             if (task.before) task.before(task);
             if (task.overload) {
               task.overload(task);
@@ -213,8 +213,7 @@
                 $.ajax({
                   url: task.url,
                   cache: true,
-
-                  success: (result) => {
+                  success: function(result) {
                     $(task.id).html(result);
                   }
                 });
@@ -222,43 +221,20 @@
             }
             if (task.after) task.after(task);
           }, delay);
-          // make sure all requests have been sent in half cycle.
-          delay += time_number / (task_list.length * 2);
+          // let all requests sent in half cycle evenly except first round.
+          if (first_request === false) {
+            delay += time_number / (task_list.length * 2);
+          }
         }
       };
-      window.app_status_interval_info[time_str] = setInterval(task_entity, parseInt(time_number));
+      Visibility.every(time_number, 10 * time_number, task_entity);
       task_entity();
     }
+    first_request = false;
   }
 
-  function stop_status_update() {
-    if (window.app_status_interval_info !== undefined && document.hidden) {
-      for (const time_str of Object.keys(window.app_status_interval_info)) {
-        clearInterval(window.app_status_interval_info[time_str]);
-      }
-      window.app_status_interval_info = undefined;
-    }
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    start_status_update(task_info);
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) {
-        if (window.app_status_interval_info === undefined) {
-          start_status_update(task_info);
-        }
-      } else {
-        // avoid unnecessary update pause
-        setTimeout(stop_status_update, 5000);
-      }
-    });
-    window.onfocus = () => {
-      setTimeout(() => {
-        if (window.app_status_interval_info === undefined) {
-          start_status_update(task_info);
-        }
-      }, 100);
-    };
+  document.addEventListener("DOMContentLoaded", function() {
+    Visibility.afterPrerendering(start_status_update);
   });
 
 })(window.jQuery);

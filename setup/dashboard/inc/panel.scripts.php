@@ -380,6 +380,9 @@
 <script src="lib/jquery-toggles/toggles.js"></script>
 <script src="lib/jquery-knob/jquery.knob.js"></script>
 <script src="lib/jquery.gritter/jquery.gritter.js"></script>
+<script src="lib/visibility/visibility.fallback.js"></script>
+<script src="lib/visibility/visibility.core.js"></script>
+<script src="lib/visibility/visibility.timers.js"></script>
 <script src="js/quick.js"></script>
 <script src="js/lobipanel.js"></script>
 <script>
