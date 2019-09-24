@@ -84,19 +84,19 @@ function _help() {
     echo -e "\nQuickBox Lite Cli Tools"
     echo -e "\nUsage: \n$(basename "$0") COMMAND"
     echo -e "\nOptions:\n"
-    echo "install <appname>             install applications, leave appname"
-    echo "                              blank to use batch install"
-    echo "remove <appname>              remove installed application"
-    echo "update <appname>              upgrade installed application"
-    echo "lang <de|dk|en|es|fr|zh>      change dashboard language"
-    echo "clean <mem|log>               clean memory or installation log"
-    echo "fix <dpkg|time|interface>     fix your setting"    
-    echo "set <interface|passwd>        change interface setting/password"
-    echo "iotest                        run IO test"
-    echo "troubleshoot                  generate log for troubleshoot"
-    echo "unban <IP adress>             remove a IP/all IP from banned list"
+    echo "install <appname>                 install applications, leave appname"
+    echo "                                  blank to use batch install"
+    echo "remove <appname>                  remove installed application"
+    echo "update <appname>                  upgrade installed application"
+    echo "lang <de|dk|en|es|fr|zh>          change dashboard language"
+    echo "clean <mem|log>                   clean memory or installation log"
+    echo "fix <dpkg|time|interface|home>    fix your setting"    
+    echo "set <interface|passwd|mount>      change interface setting/password"
+    echo "iotest                            run IO test"
+    echo "troubleshoot                      generate log for troubleshoot"
+    echo "unban <IP adress>                 remove a IP/all IP from banned list"
     echo ""
-    echo "help                          display this help and exit"
+    echo "help                              display this help and exit"
 }
 #################################################################################
 # ARGUMENT SETTING
@@ -186,6 +186,10 @@ if [[ $resolver == "set" ]]; then
             ;;
         "passwd"|"password")
             bash /usr/local/bin/quickbox/system/users/changePass -p ${@:3}
+            ;;
+        "mount")
+            bash /usr/local/bin/quickbox/system/auxiliary/set_mount ${@:3}
+            ;;
     esac
 fi
 
@@ -200,7 +204,7 @@ if [[ $resolver == "fix" ]]; then
 fi
 
 if [[ $resolver =~ ("iotest"|"disktest") ]]; then
-    bash /usr/local/bin/quickbox/system/auxiliary/iotest
+    bash /usr/local/bin/quickbox/system/auxiliary/iotest ${@:2}
 fi
 
 if [[ $resolver == "unban" ]]; then

@@ -1,0 +1,76 @@
+#!/bin/bash
+#
+# [Quick Mount point switcher]
+#
+# GitHub:   https://github.com/QuickBox/QuickBox
+# Author:   QuickBox.IO
+# URL:      https://quickbox.io
+#
+# QuickBox Copyright (C) 2017 QuickBox.io
+# Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+DISTRO=$(lsb_release -is)
+RELEASE=$(lsb_release -rs)
+CODENAME=$(lsb_release -cs)
+SETNAME=$(lsb_release -rc)
+# Server IP Address
+SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+OUTTO=/srv/dashboard/db/output.log
+device=$1
+
+function _excute() {
+    ($1 >> "${OUTTO}" 2>&1;)
+}
+function _print() {
+    printf "${_norm}%s${_norm}\n" "$@"
+}
+function _info() {
+    printf "${_cyan}➜ %s${_norm}\n" "$@"
+}
+function _success() {
+    printf "${_green}✓ %s${_norm}\n" "$@"
+}
+function _warning() {
+    printf "${_tan}⚠ %s${_norm}\n" "$@"
+}
+function _error() {
+    printf "${_red}✗ %s${_norm}\n" "$@"
+}
+
+################################################################################
+# MAIN FUNCTIONS
+################################################################################
+function _setMount() {
+    # fix Disk Widget
+    if [[ $device == "/home" ]]; then
+        rm -f /srv/dashboard/widgets/disk_data.php
+        cp /etc/QuickBox/setup/dashboard/widgets/disk_datah.php /srv/dashboard/widgets/disk_data.php
+        _success "Set primary mount to /home"
+    else
+        rm -f /srv/dashboard/widgets/disk_data.php
+        cp /etc/QuickBox/setup/dashboard/widgets/disk_data.php /srv/dashboard/widgets/disk_data.php
+        _success "Set primary mount to /"
+    fi
+    chown -R www-data: /srv/dashboard
+}
+
+_setMount
+nginx -s reload >/dev/null 2>&1
+/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'
