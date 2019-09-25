@@ -116,11 +116,11 @@ class FioTest(object):
 		io_speed = format_bytes(bw)
 
 		if name in rwResult.keys():
-			rwResult[name][rw_iops] = "{:d}".format(iops)
+			rwResult[name][rw_iops] = "{:d}".format(int(iops))
 			rwResult[name][rw_bw] = io_speed
 		else:
 			rwResult[name]={}
-			rwResult[name][rw_iops] = "{:d}".format(iops)
+			rwResult[name][rw_iops] = "{:d}".format(int(iops))
 			rwResult[name][rw_bw] = io_speed
 
 	def saveResult(self):

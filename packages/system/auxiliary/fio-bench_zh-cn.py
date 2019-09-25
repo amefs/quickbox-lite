@@ -42,11 +42,8 @@ def printResult():
 	for k,v in rwResult.items():
 		list = [k,v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
 		table.add_row(list)
+	table.align = "r"
 	table.align["Test Data"] = "l"
-	table.align["写入 IOPS"] = "r"
-	table.align["写入速度"] = "r"
-	table.align["读取 IOPS"] = "r"
-	table.align["读取速度"] = "r"
 	print table.get_string(sortby="Test Data", reversesort=True)
 
 class FioTest(object):
@@ -116,11 +113,11 @@ class FioTest(object):
 		io_speed = format_bytes(bw)
 
 		if name in rwResult.keys():
-			rwResult[name][rw_iops] = "{:d}".format(iops)
+			rwResult[name][rw_iops] = "{:d}".format(int(iops))
 			rwResult[name][rw_bw] = io_speed
 		else:
 			rwResult[name]={}
-			rwResult[name][rw_iops] = "{:d}".format(iops)
+			rwResult[name][rw_iops] = "{:d}".format(int(iops))
 			rwResult[name][rw_bw] = io_speed
 
 	def saveResult(self):

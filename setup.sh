@@ -529,7 +529,7 @@ DPHP
 
 function _dependency() {
     _addPHP
-    DEPLIST="sudo bc curl wget nginx-extras subversion ssl-cert php-memcached memcached php7.2 php7.2-cli php7.2-curl php7.2-dev php7.2-fpm php7.2-gd php7.2-geoip php7.2-json php7.2-mbstring php7.2-opcache php7.2-xml php7.2-xmlrpc php7.2-zip libfcgi0ldbl mcrypt libmcrypt-dev nano python-dev unzip htop iotop vnstat vnstati automake make openssl net-tools debconf-utils ntp rsync"
+    DEPLIST="sudo bc curl wget nginx-extras subversion ssl-cert php7.2-memcached memcached php7.2 php7.2-cli php7.2-curl php7.2-dev php7.2-fpm php7.2-gd php7.2-geoip php7.2-json php7.2-mbstring php7.2-opcache php7.2-xml php7.2-xmlrpc php7.2-zip libfcgi0ldbl mcrypt libmcrypt-dev nano python-dev unzip htop iotop vnstat vnstati automake make openssl net-tools debconf-utils ntp rsync"
     for depend in $DEPLIST; do
         echo -e "XXX\n12\n$INFO_TEXT_PROGRESS_Extra_2${depend}\nXXX"
         DEBIAN_FRONTEND=noninteractive apt-get -y install ${depend} --allow-unauthenticated >> ${OUTTO} 2>&1 || { local dependError=1; }
