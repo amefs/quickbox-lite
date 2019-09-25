@@ -80,7 +80,8 @@ for ($i = 2; $i < count($strs); $i++ ) {
 if ($_GET["act"] == "rt") {
   $arr=array(
     "NetOutSpeed" => $NetOutSpeed,
-    "NetInputSpeed" => $NetInputSpeed
+    "NetInputSpeed" => $NetInputSpeed,
+    "NetTimeStamp" => microtime(true)
   );
   $jarr=json_encode($arr);
   $_GET["callback"] = htmlspecialchars($_GET["callback"]);

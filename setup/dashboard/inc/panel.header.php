@@ -35,6 +35,7 @@
 <script type="text/javascript">
   window.NetOutSpeed = <?php echo json_encode($NetOutSpeed) ?>;
   window.NetInputSpeed = <?php echo json_encode($NetInputSpeed) ?>;
+  window.NetTimeStamp = <?php echo json_encode(microtime(true)) ?>;
 </script>
 
   <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
