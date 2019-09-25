@@ -107,30 +107,34 @@
 
       function formatsize(length) {
         if (length >= Math.pow(2, 40)) {
-            return format(length, 40, "TB/s", 2);
+          return format(length, 40, "TB/s", 2);
         } else if (length >= Math.pow(2, 30)) {
-            return format(length, 30, "GB/s", 2);
+          return format(length, 30, "GB/s", 2);
         } else if (length >= Math.pow(2, 20)) {
-            return format(length, 20, "MB/s", 2);
+          return format(length, 20, "MB/s", 2);
         } else if (length >= Math.pow(2, 10)) {
-            return format(length, 10, "KB/s", 2);
+          return format(length, 10, "KB/s", 2);
         } else {
-            return format(Math.max(0, length), 0, "B/s", 0);
+          return format(Math.max(0, length), 0, "B/s", 0);
         }
       }
 
       $.getJSON(task.url, function (dataJSON) {
+        const duration = (dataJSON.NetTimeStamp - window.NetTimeStamp);
         for (let i = 2; i < 5; ++i) {
           if (window.NetOutSpeed[i] !== undefined) {
-            const speed_str = formatsize(dataJSON.NetOutSpeed[i] - window.NetOutSpeed[i]);
-            window.NetOutSpeed[i] = dataJSON.NetOutSpeed[i];
+            const speed = (dataJSON.NetOutSpeed[i] - window.NetOutSpeed[i]) / duration;
+            const speed_str = formatsize(speed);
             $("#NetOutSpeed" + i).html(speed_str);
           }
           if (window.NetInputSpeed[i] !== undefined) {
-            const speed_str = formatsize(dataJSON.NetInputSpeed[i] - window.NetInputSpeed[i]);
-            window.NetInputSpeed[i] = dataJSON.NetInputSpeed[i];
+            const speed = (dataJSON.NetInputSpeed[i] - window.NetInputSpeed[i]) / duration;
+            const speed_str = formatsize(speed);
             $("#NetInputSpeed" + i).html(speed_str);
           }
+          window.NetOutSpeed = dataJSON.NetOutSpeed;
+          window.NetInputSpeed = dataJSON.NetInputSpeed;
+          window.NetTimeStamp = dataJSON.NetTimeStamp;
         }
       });
     },
