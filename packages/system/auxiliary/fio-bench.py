@@ -33,6 +33,9 @@ def format_bytes(size):
     out = "{} {}".format(size,power_labels[n])
     return out
 
+def cleanup(filename=None):
+	os.remove(filename)
+
 def printResult():
 	print(G+"\nTest Results:"+N)
 	table = PrettyTable(["Test Data", "Read IOPS", "Read Speed", "Write IOPS", "Write Speed"])
@@ -40,10 +43,10 @@ def printResult():
 		list = [k,v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
 		table.add_row(list)
 	table.align["Test Data"] = "l"
-	table.align["Write IOPS"] = "c"
-	table.align["Write Speed"] = "c"
-	table.align["Read IOPS"] = "c"
-	table.align["Read Speed"] = "c"
+	table.align["Write IOPS"] = "r"
+	table.align["Write Speed"] = "r"
+	table.align["Read IOPS"] = "r"
+	table.align["Read Speed"] = "r"
 	print table.get_string(sortby="Test Data", reversesort=True)
 
 class FioTest(object):
@@ -113,11 +116,11 @@ class FioTest(object):
 		io_speed = format_bytes(bw)
 
 		if name in rwResult.keys():
-			rwResult[name][rw_iops] = "{:.2f}".format(iops)
+			rwResult[name][rw_iops] = "{:d}".format(iops)
 			rwResult[name][rw_bw] = io_speed
 		else:
 			rwResult[name]={}
-			rwResult[name][rw_iops] = "{:.2f}".format(iops)
+			rwResult[name][rw_iops] = "{:d}".format(iops)
 			rwResult[name][rw_bw] = io_speed
 
 	def saveResult(self):
@@ -202,4 +205,5 @@ if __name__ == '__main__':
 		print(Y+'Test Random 4KiB Write with Queuedepth=1 Thread=1'+N)
 		cmd = FioTest(name="4K", rw="randwrite", iodepth=1, ioengine="libaio", direct=1, bs="4k", size=test_size, runtime=60, filename=test_file)
 		cmd.saveResult()
+	cleanup(filename=test_file)
 	printResult()
