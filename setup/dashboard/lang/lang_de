@@ -272,7 +272,7 @@ $L['UPDATE'] = 'Updater ausführen';
 $L['CANCEL'] = 'Abbrechen';
 $L['AGREE'] = 'Ich verstehe, zieh durch!';
 
-$L['CLOSE_REFRESH'] = 'Schließen & Aktualisieren';
+$L['CLOSE_REFRESH'] = 'Schließen &amp; Aktualisieren';
 
 ////////////////////////////////////////
 //ADDITIONAL DICTIONARY
