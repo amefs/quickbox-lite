@@ -275,7 +275,7 @@ $L['UPDATE'] = 'Opdater';
 $L['CANCEL'] = 'Fortryd';
 $L['AGREE'] = 'Jeg er med, gør det!';
 
-$L['CLOSE_REFRESH'] = 'Luk & Genopfrisk';
+$L['CLOSE_REFRESH'] = 'Luk &amp; Genopfrisk';
 
 ////////////////////////////////////////
 //ADDITIONAL DICTIONARY

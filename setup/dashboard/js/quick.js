@@ -1,5 +1,3 @@
-
-
 $(document).ready(function() {
 
   'use strict';
@@ -21,33 +19,19 @@ $(document).ready(function() {
 
 
   function toggleMenu(marginLeft, marginMain) {
-
-    var emailList = ($(window).width() <= 768 && $(window).width() > 640)? 320 : 360;
-
     if($('.mainpanel').css('position') === 'relative') {
-
       $('.logopanel, .leftpanel').animate({left: marginLeft}, 'fast');
       $('.headerbar, .mainpanel').animate({left: marginMain}, 'fast');
-
-      $('.emailcontent, .email-options').animate({left: marginMain}, 'fast');
-      $('.emailpanel').animate({left: marginMain + emailList}, 'fast');
 
       if($('body').css('overflow') == 'hidden') {
         $('body').css({overflow: ''});
       } else {
         $('body').css({overflow: 'hidden'});
       }
-
     } else {
-
       $('.logopanel, .leftpanel').animate({marginLeft: marginLeft}, 'fast');
       $('.headerbar, .mainpanel').animate({marginLeft: marginMain}, 'fast');
-
-      $('.emailcontent, .email-options').animate({left: marginMain}, 'fast');
-      $('.emailpanel').animate({left: marginMain + emailList}, 'fast');
-
     }
-
   }
 
 

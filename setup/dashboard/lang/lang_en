@@ -273,7 +273,7 @@ $L['UPDATE'] = 'Run Updater';
 $L['CANCEL'] = 'Cancel';
 $L['AGREE'] = 'I understand, do it!';
 
-$L['CLOSE_REFRESH'] = 'Close & Refresh';
+$L['CLOSE_REFRESH'] = 'Close &amp; Refresh';
 
 ////////////////////////////////////////
 //ADDITIONAL DICTIONARY
