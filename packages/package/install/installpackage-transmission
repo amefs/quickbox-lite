@@ -384,6 +384,7 @@ After=network.target
 [Service]
 User=%I
 Type=simple
+LimitNOFILE=infinity
 ExecStart=/usr/bin/transmission-daemon -f --log-error -g /home/%i/.config/transmission
 ExecReload=/bin/kill -s HUP $MAINPID
 

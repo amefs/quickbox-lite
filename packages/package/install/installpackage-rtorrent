@@ -403,6 +403,7 @@ After=network.target
 Type=forking
 KillMode=none
 User=%I
+LimitNOFILE=infinity
 ExecStartPre=-/bin/rm -f /home/%I/.sessions/rtorrent.lock
 ExecStart=/usr/bin/screen -d -m -fa -S rtorrent /usr/bin/rtorrent
 ExecStop=/usr/bin/screen -X -S rtorrent quit

@@ -652,6 +652,7 @@ After=network.target
 [Service]
 Type=simple
 User=%I
+LimitNOFILE=infinity
 ExecStart=/usr/bin/deluged -d
 ExecStop=/usr/bin/killall -w -s 9 /usr/bin/deluged
 Restart=on-failure
