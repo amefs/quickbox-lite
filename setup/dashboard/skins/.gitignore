@@ -1,0 +1,9 @@
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore
+#!bootstrap.min.css
+#!filters.svg
+#!lobipanel.css
+#!quick.css
+#!resources.svg
