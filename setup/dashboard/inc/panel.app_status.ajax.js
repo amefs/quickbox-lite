@@ -132,10 +132,10 @@
             const speed_str = formatsize(speed);
             $("#NetInputSpeed" + i).html(speed_str);
           }
-          window.NetOutSpeed = dataJSON.NetOutSpeed;
-          window.NetInputSpeed = dataJSON.NetInputSpeed;
-          window.NetTimeStamp = dataJSON.NetTimeStamp;
         }
+        window.NetOutSpeed = dataJSON.NetOutSpeed;
+        window.NetInputSpeed = dataJSON.NetInputSpeed;
+        window.NetTimeStamp = dataJSON.NetTimeStamp;
       });
     },
     time: 1000
