@@ -29,6 +29,11 @@ server {
 
     index index.html index.php index.htm;
 
+    # resolve multi-redirect
+    if ($request_uri ~ "^[^?]*?//") {
+    rewrite "^" $scheme://$host$uri permanent;
+    }
+
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/run/php/php7.2-fpm.sock;

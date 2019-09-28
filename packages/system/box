@@ -109,8 +109,8 @@ if [[ $resolver == "lang" ]]; then
         "de"|"deutsch"|"germany"|"lang_de") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_de;;
         "dk"|"dansk"|"danish"|"lang_dk") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_dk;;
         "en"|"en-us"|"english"|"lang_en") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en;;
-        "es"|"spanish"|"lang_fr") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_es;;
-        "fr"|"french"|"lang_es") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_fr;;
+        "es"|"spanish"|"lang_es") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_es;;
+        "fr"|"french"|"lang_fr") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_fr;;
         "zh"|"zh-cn"|"chinese"|"lang_zh-cn"|"lang_zh") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_zh-cn;;
     esac
 fi

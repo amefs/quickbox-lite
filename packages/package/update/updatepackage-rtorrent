@@ -234,8 +234,8 @@ function _updateApp() {
         cd /tmp
         wget -q -O ${LTORRENTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rakshasa/${LTORRENTBIN}/download
         wget -q -O ${RTORRENTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/rtorrent/${RTORRENTBIN}/download
-        _excute "apt install /tmp/${LTORRENTBIN}"
-        _excute "apt install /tmp/${RTORRENTBIN}"
+        _excute "apt install -y /tmp/${LTORRENTBIN}"
+        _excute "apt install -y /tmp/${RTORRENTBIN}"
         rm -rf {${LTORRENTBIN},${RTORRENTBIN}}
         # disable auto upgrade
         _excute "apt-mark hold rtorrent"
