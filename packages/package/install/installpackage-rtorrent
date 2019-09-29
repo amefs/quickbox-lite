@@ -336,30 +336,51 @@ function _configureApp() {
 # -- START HERE --
 directory.default.set = /home/${username}/torrents/rtorrent
 encoding.add = UTF-8
-encryption = allow_incoming,try_outgoing,enable_retry
 execute.nothrow = chmod,777,/home/${username}/.config/rpc.socket
 execute.nothrow = chmod,777,/home/${username}/.sessions
+
+### Networking
 network.port_random.set = no
 network.port_range.set = $PORT-$PORT
 network.scgi.open_local = /var/run/${username}/.rtorrent.sock
 schedule2 = chmod_scgi_socket, 0, 0, "execute2=chmod,\"g+w,o=\",/var/run/${username}/.rtorrent.sock"
 network.tos.set = throughput
 network.receive_buffer.size.set =  4M
-network.send_buffer.size.set    = 12M
+network.send_buffer.size.set    = 32M
+network.xmlrpc.size_limit.set = 4M
+protocol.pex.set = no
+protocol.encryption.set = allow_incoming,try_outgoing,enable_retry
+
+### Memory Settings
 pieces.hash.on_completion.set = no
 pieces.memory.max.set = 2048M
-protocol.pex.set = no
+pieces.preload.type.set = 1
+pieces.preload.min_size.set = 262144
+pieces.preload.min_rate.set = 5120
+
+### Auto load
 schedule = watch_directory,5,5,load.start=/home/${username}/rwatch/*.torrent
 session.path.set = /home/${username}/.sessions/
+
+### BitTorrent
+# Global upload and download rate in KiB, 0 for unlimited
 throttle.global_down.max_rate.set = 0
 throttle.global_up.max_rate.set = 0
-throttle.max_peers.normal.set = 100
-throttle.max_peers.seed.set = -1
-throttle.max_uploads.global.set = 100
+
+# Maximum number of simultaneous downloads and uploads slots
+throttle.max_downloads.global.set = 4000
+throttle.max_uploads.global.set = 4000
+
+# Maximum and minimum number of peers to connect to per torrent while downloading
 throttle.min_peers.normal.set = 1
+throttle.max_peers.normal.set = 4000
+
+# Same as above but for seeding completed torrents (seeds per torrent)
+throttle.max_peers.seed.set = -1
 throttle.min_peers.seed.set = -1
 trackers.use_udp.set = yes
 
+# ruTorrent
 execute = {sh,-c,/usr/bin/php /srv/rutorrent/php/initplugins.php ${username} &}
 
 # -- END HERE --

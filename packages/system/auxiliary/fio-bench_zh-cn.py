@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import time
 import os
 import sys
 import shlex
@@ -38,13 +37,13 @@ def cleanup(filename=None):
 
 def printResult():
 	print(G+"\n测试结果:"+N)
-	table = PrettyTable(["Test Data", "读取 IOPS", "读取速度", "写入 IOPS", "写入速度"])
+	table = PrettyTable(["Test Item", "读取 IOPS", "读取速度", "写入 IOPS", "写入速度"])
 	for k,v in rwResult.items():
 		list = [k,v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
 		table.add_row(list)
 	table.align = "r"
-	table.align["Test Data"] = "l"
-	print table.get_string(sortby="Test Data", reversesort=True)
+	table.align["Test Item"] = "l"
+	print table.get_string(sortby="Test Item", reversesort=True)
 
 class FioTest(object):
 	def __init__(self,name,filename,rw,bs,size,direct=1,iodepth=1,ioengine="libaio",runtime=60):
@@ -128,12 +127,13 @@ class FioTest(object):
 
 if __name__ == '__main__':
 
+	defult_path=os.getcwd()+'/fio_test.bin'
 	# read parameters
 	parser = argparse.ArgumentParser(prog='fio 基准测试工具', description='使用 fio 测量 HDD 和 SSD 的性能', formatter_class=RawTextHelpFormatter)
 	parser.add_argument('-a', '--all', dest='alltest', action='store_true', required=False, help='完整测试 [R/W in Seq Q32T1, 4K Q32T1, Seq, 4K] (默认).')
 	parser.add_argument('-t', '--test', metavar='integer', dest='test_num', type=int, default=None, required=False, nargs='+', help='可选测试 [1. Seq Q32T1], [2. 4K Q32T1], [3. Seq], [4. 4K].')
 	parser.add_argument('-s', '--size', metavar='String', dest='test_size', type=str, default=None, required=False, nargs='+', help='IO 测试文件大小 (默认 2g)')
-	parser.add_argument('-f', '--file', metavar='String', dest='test_file', type=str, default=None, required=False, nargs='+', help='IO 测试文件路径 (默认 /root/fio_test.bin)')
+	parser.add_argument('-f', '--file', metavar='String', dest='test_file', type=str, default=None, required=False, nargs='+', help='IO 测试文件路径 (默认 {})'.format(defult_path))
 	args = parser.parse_args()
 
 	# get opts.
@@ -158,11 +158,11 @@ if __name__ == '__main__':
 	if args.test_size is None:
 		test_size = '2g'
 	else:
-		test_size = args.test_size
+		test_size = "".join(args.test_size)
 	if args.test_file is None:
-		test_file = '/root/fio_test.bin'
+		test_file = defult_path
 	else:
-		test_file = args.test_file
+		test_file = "".join(args.test_file)
 
 	print(R+'开始进行下列测试:\n'+N)
 	if test1: print('- Seq Q32T1')

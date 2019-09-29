@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import time
 import os
 import sys
 import shlex
@@ -38,16 +37,16 @@ def cleanup(filename=None):
 
 def printResult():
 	print(G+"\nTest Results:"+N)
-	table = PrettyTable(["Test Data", "Read IOPS", "Read Speed", "Write IOPS", "Write Speed"])
+	table = PrettyTable(["Test Item", "Read IOPS", "Read Speed", "Write IOPS", "Write Speed"])
 	for k,v in rwResult.items():
 		list = [k,v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
 		table.add_row(list)
-	table.align["Test Data"] = "l"
+	table.align["Test Item"] = "l"
 	table.align["Write IOPS"] = "r"
 	table.align["Write Speed"] = "r"
 	table.align["Read IOPS"] = "r"
 	table.align["Read Speed"] = "r"
-	print table.get_string(sortby="Test Data", reversesort=True)
+	print table.get_string(sortby="Test Item", reversesort=True)
 
 class FioTest(object):
 	def __init__(self,name,filename,rw,bs,size,direct=1,iodepth=1,ioengine="libaio",runtime=60):
@@ -131,12 +130,13 @@ class FioTest(object):
 
 if __name__ == '__main__':
 
+	defult_path=os.getcwd()+'/fio_test.bin'
 	# read parameters
 	parser = argparse.ArgumentParser(prog='fio Benchmark tool', description='Use fio to Measure Hard Drive and SSD Performance', formatter_class=RawTextHelpFormatter)
 	parser.add_argument('-a', '--all', dest='alltest', action='store_true', required=False, help='Perform a full test [R/W in Seq Q32T1, 4K Q32T1, Seq, 4K] (Default).')
 	parser.add_argument('-t', '--test', metavar='integer', dest='test_num', type=int, default=None, required=False, nargs='+', help='Available test [1. Seq Q32T1], [2. 4K Q32T1], [3. Seq], [4. 4K].')
 	parser.add_argument('-s', '--size', metavar='String', dest='test_size', type=str, default=None, required=False, nargs='+', help='IO test file size (Default 2g)')
-	parser.add_argument('-f', '--file', metavar='String', dest='test_file', type=str, default=None, required=False, nargs='+', help='IO test file path (Default /root/fio_test.bin)')
+	parser.add_argument('-f', '--file', metavar='String', dest='test_file', type=str, default=None, required=False, nargs='+', help='IO test file path (Default {})'.format(defult_path))
 	args = parser.parse_args()
 
 	# get opts.
@@ -161,13 +161,13 @@ if __name__ == '__main__':
 	if args.test_size is None:
 		test_size = '2g'
 	else:
-		test_size = args.test_size
+		test_size = "".join(args.test_size)
 	if args.test_file is None:
-		test_file = '/root/fio_test.bin'
+		test_file = defult_path
 	else:
-		test_file = args.test_file
+		test_file = "".join(args.test_file)
 
-	print(R+'Following will be test:\n'+N)
+	print(R+'Following item will be test:\n'+N)
 	if test1: print('- Seq Q32T1')
 	if test2: print('- 4K Q32T1')
 	if test3: print('- Seq')
