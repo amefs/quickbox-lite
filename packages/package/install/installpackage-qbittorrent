@@ -91,6 +91,9 @@ APP_DAEMON_PORT_HIGH=""
 
 APP_LOCK=`echo .$APP_NAME.lock`
 OUTTO=/srv/dashboard/db/output.log
+deb_version_list=[\
+'4.1.7',\
+'4.1.8']
 qbitversion=4.1.7
 libtversion=1.1.13
 
@@ -328,8 +331,9 @@ function _installApp() {
         rm -rf {libtorrent,dist}
         _success "Libtorrent Built."
     fi
-    
-    if [[ ${qbitversion} == 4.1.7 && ! -f /install/.libtorrent-rasterbar.lock ]]; then
+
+    # qBittorrent
+    if [[ ${deb_version_list[*]} =~ ${qbitversion} && ! -f /install/.libtorrent-rasterbar.lock ]]; then
         cd /tmp
         if [[ ! -f /install/.deluge.lock ]]; then
             LIBTBIN=libtorrent-rasterbar9_${libtversion}-1build1_amd64.deb
@@ -337,7 +341,7 @@ function _installApp() {
             _excute "apt install -y /tmp/${LIBTBIN}"
             rm -rf ${LIBTBIN}
         fi
-        QBITBIN=qbittorrent-nox_4.1.7-libt1.1-1build1_amd64.deb
+        QBITBIN=qbittorrent-nox_${qbitversion}-libt1.1-1build1_amd64.deb
         wget -q -O ${QBITBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qbittorrent/${QBITBIN}/download
         _excute "apt install -y /tmp/${QBITBIN}"
         rm -rf ${QBITBIN}
@@ -360,6 +364,8 @@ function _installApp() {
         _excute "dpkg -i /root/pool/qbittorrent_${qbitversion}.deb"
         cd /tmp
         rm -rf {qBittorrent,libtorrent,dist}
+        # disable auto upgrade
+        _excute "apt-mark hold qbittorrent-nox"
     fi
     _success "${APP_TITLE} Built."
 }
@@ -528,8 +534,7 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-#ARGS=`getopt -a -o hl:v: -l help,log:,version: -- "$@"`
-ARGS=`getopt -a -o ghl: -l gui,help,log:,qb,lt -- "$@"`
+ARGS=`getopt -a -o ghl: -l gui,help,log:,qb:,lt: -- "$@"`
 eval set -- "${ARGS}"
 while true
 do

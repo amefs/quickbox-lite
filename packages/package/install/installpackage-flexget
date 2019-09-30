@@ -283,6 +283,92 @@ tasks:
   example:
     priority: 2
     rss: http://example.com/rss/rss.xml
+
+# Here are some guides
+#
+# https://ymgblog.com/2018/04/30/396/
+# https://npchk.info/linux-flexget-rss/
+# https://linkthis.me/2018/02/15/the-note-of-using-flexget/
+#
+# https://github.com/Aniverse/WiKi/blob/master/Flexget.md
+# https://github.com/Aniverse/WiKi/blob/master/How.to.use.RSS.md#flexget-rss
+#
+# For more usages, check the offical site: https://flexget.com
+
+# templates:
+#   freespace:
+#     free_space:
+#       path: /home/${username}
+#       space: 10240
+#   qb:
+#     qbittorrent:
+#       path: /home/${username}/torrents/qbittorrent/
+#       host: localhost
+#       port: 2017
+#       username: ${username}
+#       password: SCRIPTPASSWORD
+#   tr:
+#     transmission:
+#       path: /home/${username}/torrents/transmission/
+#       host: localhost
+#       port: 9099
+#       username: ${username}
+#       password: SCRIPTPASSWORD
+#   de:
+#     deluge:
+#       path: /home/${username}/torrents/deluge/
+#       host: localhost
+#       port: 58846
+#       username: ${username}
+#       password: SCRIPTPASSWORD
+#   size:
+#     content_size:
+#       min: 6000
+#       max: 666666
+#       strict: no
+# tasks:
+#   Web-HDSky:
+#     rss: https://hdsky.me/torrentrss.php
+#     # In order to accept entries that have different urls but share the same title
+#     seen:
+#       fields:
+#         - url
+#     regexp:
+#       accept:
+#         - HDSWEB
+#     template: de
+#     content_size:
+#       min: 3000
+#       max: 500000
+#       strict: no
+#     deluge:
+#       label: WEB-DL
+#       # Limit upload speed to 100 MiB/s in case of being auto-banned
+#       max_up_speed: 102400
+#       move_completed_path: /mnt/HDSky/HDSWEB
+#   ADC-AnimeBD-JPN:
+#     rss: http://asiandvdclub.org/rss.xml
+#     if:
+#       - "'Anime' and 'AVC' in title": accept
+#       - "'subs only' in title": reject
+#       - "'Custom' in description": reject
+#     # RSS on ADC requires cookies for authentication
+#     headers:
+#       Cookie: "uid=12345; pass=abcdefg"
+#     # manipulate download page's URLs into proper download URLs
+#     urlrewrite:
+#       sitename:
+#         regexp: 'http://asiandvdclub.org/details.php\?id=(?P<id>\d+)'
+#         format: 'http://asiandvdclub.org/download.php?id=\g<id>'
+#     qbittorrent:
+#       label: ADC
+#       maxdownspeed: 30000
+#       # DO NOT USE qBittorrent 3.3.11 if you would like to limit speed by flexget !!!
+#       # It seems this function only works for qBittorent 4.1.0 and later
+# schedules:
+#   - tasks: [Web-HDSky]
+#     interval:
+#       minutes: 20
 EOF
 
     chown ${username}.${username} -R /home/${username}/.config/flexget/
