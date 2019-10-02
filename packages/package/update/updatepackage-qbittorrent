@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.0.0
+# Current version:  v1.1.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -147,7 +147,7 @@ function _updateApp() {
     cur_version=$(dpkg -s qbittorrent-nox | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
     if ( _version_gt ${qbitversion} ${cur_version} ); then
         _info "Updating ${APP_TITLE}..."
-        _info "Remiving old ${APP_TITLE}..."
+        _info "Removing old ${APP_TITLE}..."
         userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
         for username in $userlist; do
             _excute "systemctl stop ${APP_SERVICE}@${username}"
@@ -156,12 +156,6 @@ function _updateApp() {
         _excute "apt remove -y qbittorrent-nox"
         if [[ ${deb_version_list[*]} =~ ${qbitversion} && ! -f /install/.libtorrent-rasterbar.lock ]]; then
             cd /tmp
-            if [[ ! -f /install/.deluge.lock ]]; then
-                LIBTBIN=libtorrent-rasterbar9_${libtversion}-1build1_amd64.deb
-                wget -q -O ${LIBTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${LIBTBIN}/download
-                _excute "apt install -y /tmp/${LIBTBIN}"
-                rm -rf ${LIBTBIN}
-            fi
             QBITBIN=qbittorrent-nox_${qbitversion}-libt1.1-1build1_amd64.deb
             wget -q -O ${QBITBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qbittorrent/${QBITBIN}/download
             _excute "apt install -y /tmp/${QBITBIN}"

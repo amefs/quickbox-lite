@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.0.0
+# Current version:  v1.1.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -99,7 +99,7 @@ function _installSystemUpdates() {
 
 function _updateRepo() {
     _info "Updating QuickBox local repository..."
-    BRANCH="git@github.com:amefs/quickbox-lite.git"
+    BRANCH="https://github.com/amefs/quickbox-lite.git"
     if [[ ! -f /install/.developer.lock ]]; then
         # update to dev branch
         if [[ -d /etc/QuickBox ]]; then

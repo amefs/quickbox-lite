@@ -8,23 +8,25 @@
 
 ---
 
-This project is a modified version of QuickBox community edition. The aim of this project is to build a lightweight QuickBox software kit. Most of the functions of QuickBox CE will be retained, but only the most commonly used stable third party software will be included. The prebuilt BT client will also be included, which can greatly reduce the installation time as well as CPU requirement to compile them. Most of the softwares will be available as modules, the panel no longer needs the support of ruTorrent, you can select what you need, this is also why the project named 'Lite'.
+This project is a modified version of the QuickBox community edition. This project aims to build a lightweight QuickBox software kit. Most of the functions of QuickBox CE are retained, but only the most commonly used stable third party software included. The prebuilt BT client also available here, which can significantly reduce the installation time as well as CPU requirement to compile them. Most of the software is available as modules. The panel no longer needs the support of ruTorrent. You can select what you need, and this is also why the project named "Lite".
+
+For more information, please check our [wiki](https://github.com/amefs/quickbox-lite/wiki).
 
 ---
 
 ## Main feature
 
 1. Graphical installation guide (Multi-language available)
-2. Use nginx instead of apache
+2. Use Nginx instead of apache
 3. Modular installation
 4. Latest OS support
-5. up to date apps (include prebuild deb packages)
+5. up to date apps (prebuild deb packages included)
 
 ---
 
 ## Script status
 
-![Version](https://img.shields.io/badge/version-1.0.0-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.1.0-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
 
 ---
 
@@ -32,7 +34,7 @@ This project is a modified version of QuickBox community edition. The aim of thi
 
 ### before install
 
-Hard ware requirement:
+Hardware requirement:
 
 - CPU: At least a 64bit Compatible x86_64 CPU
 - RAM: large than 1GB (recommend more for better performance)
@@ -62,73 +64,8 @@ Server Support:
 **Run the following command to grab our latest stable release ...**
 
 ```
-mkdir -p /root/.ssh
-
-cat > /root/.ssh/QuickBox_Lite <<EOF
------BEGIN OPENSSH PRIVATE KEY-----
-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
------END OPENSSH PRIVATE KEY-----
-
-EOF
-cat  >> /root/.ssh/config <<EOF
-# Private QuickBox efs mod
-# SSH Key
-# Title: QuickBox_Deploy
-# Host github.com
-# RSAAuthentication yes
-IdentityFile ~/.ssh/QuickBox_Lite
-EOF
-
-chmod 600 /root/.ssh/QuickBox_Lite && chmod 700 /root/.ssh
-
 apt-get -yqq update; apt-get -yqq upgrade; apt-get -yqq install git lsb-release dos2unix; \
-git clone git@github.com:amefs/quickbox-lite.git /etc/QuickBox; \
+git clone https://github.com/amefs/quickbox-lite.git /etc/QuickBox; \
 dos2unix /etc/QuickBox/setup.sh; \
 bash /etc/QuickBox/setup.sh
 
@@ -141,7 +78,7 @@ bash /etc/QuickBox/setup.sh
 ```
 mkdir /install/ && touch /install/.developer.lock; \
 apt-get -yqq update; apt-get -yqq upgrade; apt-get -yqq install git lsb-release dos2unix; \
-git clone --branch "development" git@github.com:amefs/quickbox-lite.git /etc/QuickBox; \
+git clone --branch "development" https://github.com/amefs/quickbox-lite.git /etc/QuickBox; \
 dos2unix /etc/QuickBox/setup.sh; \
 bash /etc/QuickBox/setup.sh
 ```
@@ -159,10 +96,9 @@ sudo box update quickbox
 
 ## Installed Features
 
-- LShell - (LimitedShell for additional users to ssh)
 - pureftp - vsftp (CuteFTP multi-segmented download friendly)
 - SSH Server (for SSH terminal and sFTP connections)
-- HTTPS - Web Console
+- Web Console (Shellinabox)
 - QuickBox Dashboard
 
 ---
@@ -200,3 +136,8 @@ sudo box update quickbox
 - Fail2ban
 - Let's Encrypt
 - ZNC
+
+## Have trouble with QuickBox Lite
+
+If you still have questions about the QuickBox Lite or need to report bugs, be sure to read the [Wiki](https://github.com/amefs/quickbox-lite/wiki) first. When you still have trouble with it, please assign an issue [here](https://github.com/amefs/quickbox-lite/issues/new), I will try my best to help you.
+

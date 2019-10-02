@@ -10,6 +10,8 @@
 
 该项目是 QuickBox 社区版的 mod. 主要目的是创建一个轻量级的 QuickBox 套件。大部分 QuickBox 社区版的功能都将被保留，但是只有最为常用的第三方软件会被加入这个项目。同时这个项目会提供一些预编译的 BT 客户端来减少安装时间，同时降低对 CPU 的要求。大多数的软件会以模块的形式存在，QuickBox 面板不再依赖 ruTorrent，可以自由选择各种客户端，这也是该项目称为 Lite 的原因。
 
+[更多信息参见 Wiki](https://github.com/amefs/quickbox-lite/wiki/%E4%B8%BB%E9%A1%B5)
+
 ---
 
 ## 主要特性
@@ -24,7 +26,7 @@
 
 ## 当前版本
 
-![Version](https://img.shields.io/badge/version-1.0.0-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.1.0-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
 
 ---
 
@@ -59,73 +61,8 @@
 **运行以下指令来抓取最新的代码 ...**
 
 ```
-mkdir -p /root/.ssh
-
-cat > /root/.ssh/QuickBox_Lite <<EOF
------BEGIN OPENSSH PRIVATE KEY-----
-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
------END OPENSSH PRIVATE KEY-----
-
-EOF
-cat  >> /root/.ssh/config <<EOF
-# Private QuickBox efs mod
-# SSH Key
-# Title: QuickBox_Deploy
-# Host github.com
-# RSAAuthentication yes
-IdentityFile ~/.ssh/QuickBox_Lite
-EOF
-
-chmod 600 /root/.ssh/QuickBox_Lite && chmod 700 /root/.ssh
-
 apt-get -yqq update; apt-get -yqq upgrade; apt-get -yqq install git lsb-release dos2unix; \
-git clone git@github.com:amefs/quickbox-lite.git /etc/QuickBox; \
+git clone https://github.com/amefs/quickbox-lite.git /etc/QuickBox; \
 dos2unix /etc/QuickBox/setup.sh; \
 bash /etc/QuickBox/setup.sh
 
@@ -139,7 +76,7 @@ bash /etc/QuickBox/setup.sh
 mkdir /install/ && touch /install/.developer.lock; \
 apt-get -yqq update; apt-get -yqq upgrade; apt-get -yqq install git lsb-release dos2unix; \
 mkdir /install/ && touch /install/.developer.lock \
-git clone --branch "development" git@github.com:amefs/quickbox-lite.git /etc/QuickBox; \
+git clone --branch "development" https://github.com/amefs/quickbox-lite.git /etc/QuickBox; \
 dos2unix /etc/QuickBox/setup.sh; \
 bash /etc/QuickBox/setup.sh
 ```
@@ -157,10 +94,9 @@ sudo box update quickbox
 
 ## 默认安装的功能
 
-- LShell - (为用户安装的 Limit Shell)
 - pureftp - vsftp (FTP客户端)
 - SSH Server
-- 默认开启 HTTPS
+- Web 控制台 (Shellinabox)
 - QuickBox 面板
 
 ---
@@ -198,3 +134,7 @@ sudo box update quickbox
 - Fail2ban
 - Let's Encrypt
 - ZNC
+
+## 对 QuickBox Lite 有疑问
+
+如果你对 QuickBox Lite 的功能仍然有疑问或者需要汇报 Bug，请务必先阅读 [Wiki](https://github.com/amefs/quickbox-lite/wiki/%E4%B8%BB%E9%A1%B5)。如果 Wiki 描述仍然不能解决你的疑惑，请尝试在 [issue](https://github.com/amefs/quickbox-lite/issues/new) 中提交你的问题，我会尽力解决这些问题。

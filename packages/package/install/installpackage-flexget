@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.0.0
+# Current version:  v1.1.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -179,11 +179,6 @@ function _installSystemUpdates() {
 function _installDepends() {
     _info "Installing ${APP_TITLE} dependencies..."
     local DEPLIST="${APP_BASEDEPS}"
-    for depend in $DEPLIST; do
-        _info "Installing ${depend}... "
-        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
-    done
-    local DEPLIST="apt-transport-https"
     for depend in $DEPLIST; do
         _info "Installing ${depend}... "
         _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }

@@ -45,7 +45,7 @@
                               <h5>QuickBox :: <span style="color: #fff;text-shadow: 0px 0px 6px #fff;"><?php echo "$version"; ?></span></h5>
                               <!-- Changelog and ReadME Link -->
                               <small><a href="https://github.com/amefs/quickbox-lite/blob/master/README.md" target="_blank">README.md</a></small>
-                              <small><a href="https://github.com/amefs/quickbox-lite/blob/master/CHANGELOG<?php echo $version; ?>" target="_blank">CHANGELOG</a></small>
+                              <small><a href="https://github.com/amefs/quickbox-lite/blob/master/CHANGELOG.md#changelog-<?php echo $version; ?>" target="_blank">CHANGELOG</a></small>
                             </div>
                           </div>
                         </li>

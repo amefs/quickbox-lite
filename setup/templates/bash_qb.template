@@ -16,7 +16,7 @@
 
 # If not running interactively, don't do anything
 [ -z "$PS1" ] && return
-QUICKBOX_VERSION=v1.0.0
+QUICKBOX_VERSION=v1.1.0
 
 export TERM=xterm;TERM=xterm
 EDITOR=nano; export EDITOR=nano
@@ -971,8 +971,7 @@ complete -F _killall killall killps
 #
 #=========================================================================
 
-function rarit() { rar a -m5 -ma5 -v1m $1 $1; }
-function disktest() { dd if=/dev/zero of=test bs=64k count=16k conv=fdatasync;rm -rf test ; }
+function rarit() { rar a -rr5 -m0 -ma5 -v2g $1 $1; }
 function newpass() { perl -le 'print map {(a..z,A..Z,0..9)[rand 62] } 0..pop' 15 ; }
 
 transfer() {
@@ -1020,9 +1019,3 @@ export NVM_DIR="/root/.nvm"
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases # --> Read ~/.bash_aliases, if present.
 fi
-
-#-------------------------------------------------------------
-# Autocomplete
-#-------------------------------------------------------------
-#. /etc/bash_completion.d/qb
-#EXECIGNORE=/usr/local/bin/quickbox/apps/*

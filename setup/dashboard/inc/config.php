@@ -6,7 +6,7 @@ if (isset($_SESSION))
 
 include '/srv/dashboard/inc/util.php';
 include ($_SERVER['DOCUMENT_ROOT'].'/widgets/class.php');
-$version = "v1.0.0";
+$version = "v1.1.0";
 error_reporting(E_ERROR);
 $master = file_get_contents('/srv/dashboard/db/master.txt');
 $master=preg_replace('/\s+/', '', $master);
