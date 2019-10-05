@@ -25,7 +25,7 @@ RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
 SETNAME=$(lsb_release -rc)
 # Server IP Address
-SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
 ################################################################################
 # HELP FUNCTIONS
@@ -53,22 +53,22 @@ _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
 function _excute() {
-    ($1 >> "${OUTTO}" 2>&1;)
+	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
-    printf "${_norm}%s${_norm}\n" "$@"
+	printf "${_norm}%s${_norm}\n" "$@"
 }
 function _info() {
-    printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
 }
 function _success() {
-    printf "${_green}✓ %s${_norm}\n" "$@"
+	printf "${_green}✓ %s${_norm}\n" "$@"
 }
 function _warning() {
-    printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
 }
 function _error() {
-    printf "${_red}✗ %s${_norm}\n" "$@"
+	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
 #################################################################################
@@ -78,7 +78,7 @@ APP_TITLE="ruTorrent"
 APP_NAME="rutorrent"
 APP_SERVICE=""
 
-APP_LOCK=`echo .$APP_NAME.lock`
+APP_LOCK=$(echo .$APP_NAME.lock)
 OUTTO=/srv/dashboard/db/output.log
 BRANCH="https://github.com/Novik/ruTorrent.git"
 
@@ -86,38 +86,38 @@ BRANCH="https://github.com/Novik/ruTorrent.git"
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
-    echo -e "\nQuickBox Lite $APP_TITLE Updater"
-    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
-    echo -e "\nOptions:\n"
-    echo "-l, --log <logfile>       specific log file"
-    echo ""
-    echo "-h, --help                display this help and exit"
+	echo -e "\nQuickBox Lite $APP_TITLE Updater"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+	echo -e "\nOptions:\n"
+	echo "-l, --log <logfile>       specific log file"
+	echo ""
+	echo "-h, --help                display this help and exit"
 }
 ################################################################################
 # REMOVE FUNCTIONS
 ################################################################################
 function _lockCheck() {
-    if [[ -f "/install/.install.lock" ]]; then
-        prevApp=$(cat /install/.install.lock)
-        _info "$prevApp process running."
-        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
-        _error "Exiting..."
-        exit 1
-    fi
-    if [[ ! -f "/install/$APP_LOCK" ]]; then
-        _error "${APP_TITLE} haven't installed ..."
-        exit 1
-    fi
+	if [[ -f "/install/.install.lock" ]]; then
+		prevApp=$(cat /install/.install.lock)
+		_info "$prevApp process running."
+		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
+		_error "Exiting..."
+		exit 1
+	fi
+	if [[ ! -f "/install/$APP_LOCK" ]]; then
+		_error "${APP_TITLE} haven't installed ..."
+		exit 1
+	fi
 }
 function _setLock() {
-    echo "${APP_TITLE}" > /install/.install.lock
+	echo "${APP_TITLE}" >/install/.install.lock
 }
 function _lockCleanup() {
-    rm -f /install/.install.lock
+	rm -f /install/.install.lock
 }
 
 function _updateInfo() {
-    _print "
+	_print "
 $APP_TITLE will now be updated.
 
 This process may take a few minutes
@@ -126,31 +126,31 @@ Please wait until the process is completed
 }
 
 function _updateApp() {
-    _info "Updating ${APP_TITLE}..."
-    cd /srv
-    rm -rf /srv/$APP_NAME
-    _excute "git clone --recurse-submodules $BRANCH $APP_NAME"
-    chown -R www-data:www-data /srv/$APP_NAME
-    rm -rf /srv/$APP_NAME/plugins/throttle
-    rm -rf /srv/$APP_NAME/plugins/extratio
-    rm -rf /srv/$APP_NAME/conf/config.php
-    _info "Setting up plugins... "
-    plugin_lib="/usr/local/bin/quickbox/rutorrent/plugins/"
-    rm -rf ${plugin_lib}
-    if [[ ! -d ${plugin_lib} ]]; then
-        _excute "sudo svn co https://github.com/Novik/ruTorrent/trunk/plugins ${plugin_lib}"
-        if [[ ! -d ${plugin_lib}fileupload ]]; then
-            _excute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileupload ${plugin_lib}fileupload"
-        fi
-        if [[ ! -d ${plugin_lib}fileshare ]]; then
-            _excute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileshare ${plugin_lib}fileshare"
-        fi
-        if [[ ! -d ${plugin_lib}pausewebui ]]; then
-            _excute "sudo svn co https://github.com/Gyran/rutorrent-pausewebui/trunk/ ${plugin_lib}pausewebui"
-        fi
-        if [[ ! -d ${plugin_lib}filemanager ]]; then
-            _excute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/filemanager ${plugin_lib}filemanager"
-            cat >${plugin_lib}filemanager/conf.php<<EOF
+	_info "Updating ${APP_TITLE}..."
+	cd /srv
+	rm -rf /srv/$APP_NAME
+	_excute "git clone --recurse-submodules $BRANCH $APP_NAME"
+	chown -R www-data:www-data /srv/$APP_NAME
+	rm -rf /srv/$APP_NAME/plugins/throttle
+	rm -rf /srv/$APP_NAME/plugins/extratio
+	rm -rf /srv/$APP_NAME/conf/config.php
+	_info "Setting up plugins... "
+	plugin_lib="/usr/local/bin/quickbox/rutorrent/plugins/"
+	rm -rf ${plugin_lib}
+	if [[ ! -d ${plugin_lib} ]]; then
+		_excute "sudo svn co https://github.com/Novik/ruTorrent/trunk/plugins ${plugin_lib}"
+		if [[ ! -d ${plugin_lib}fileupload ]]; then
+			_excute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileupload ${plugin_lib}fileupload"
+		fi
+		if [[ ! -d ${plugin_lib}fileshare ]]; then
+			_excute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileshare ${plugin_lib}fileshare"
+		fi
+		if [[ ! -d ${plugin_lib}pausewebui ]]; then
+			_excute "sudo svn co https://github.com/Gyran/rutorrent-pausewebui/trunk/ ${plugin_lib}pausewebui"
+		fi
+		if [[ ! -d ${plugin_lib}filemanager ]]; then
+			_excute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/filemanager ${plugin_lib}filemanager"
+			cat >${plugin_lib}filemanager/conf.php <<EOF
 <?php
 
   \$fm['tempdir'] = '/tmp';
@@ -173,73 +173,73 @@ function _updateApp() {
 
 ?>
 EOF
-        fi
+		fi
 
-        if [[ ! -d ${plugin_lib}ratiocolor ]]; then
-            _excute "sudo svn co https://github.com/Gyran/rutorrent-ratiocolor.git/trunk ${plugin_lib}ratiocolor"
-            sed -i "s/changeWhat = \"cell-background\";/changeWhat = \"font\";/g" ${plugin_lib}ratiocolor/init.js
-        fi
-        if [[ ! -d ${plugin_lib}logoff ]]; then
-            cd ${plugin_lib}
-            _excute "wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/rutorrent-logoff/logoff-1.3.tar.gz"
-            _excute "tar xf logoff-1.3.tar.gz"
-            rm -rf logoff-1.3.tar.gz
-        fi
-        if [[ ! -d ${plugin_lib}mobile ]]; then
-            _excute "sudo git clone https://github.com/xombiemp/rutorrentMobile.git ${plugin_lib}mobile"
-        fi
-        if [[ ! -d ${plugin_lib}stream ]]; then
-            _excute "sudo svn co https://github.com/hashknot/rutorrent-stream/trunk/stream ${plugin_lib}stream"
-        fi
-    fi
-    rm -rf /srv/rutorrent/plugins/_cloudflare
+		if [[ ! -d ${plugin_lib}ratiocolor ]]; then
+			_excute "sudo svn co https://github.com/Gyran/rutorrent-ratiocolor.git/trunk ${plugin_lib}ratiocolor"
+			sed -i "s/changeWhat = \"cell-background\";/changeWhat = \"font\";/g" ${plugin_lib}ratiocolor/init.js
+		fi
+		if [[ ! -d ${plugin_lib}logoff ]]; then
+			cd ${plugin_lib}
+			_excute "wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/rutorrent-logoff/logoff-1.3.tar.gz"
+			_excute "tar xf logoff-1.3.tar.gz"
+			rm -rf logoff-1.3.tar.gz
+		fi
+		if [[ ! -d ${plugin_lib}mobile ]]; then
+			_excute "sudo git clone https://github.com/xombiemp/rutorrentMobile.git ${plugin_lib}mobile"
+		fi
+		if [[ ! -d ${plugin_lib}stream ]]; then
+			_excute "sudo svn co https://github.com/hashknot/rutorrent-stream/trunk/stream ${plugin_lib}stream"
+		fi
+	fi
+	rm -rf /srv/rutorrent/plugins/_cloudflare
 
-    _info "Initializing ruTorrent plugins... "
-    cd /srv/rutorrent/
-    sed -i 's/useExternal = false;/useExternal = "mktorrent";/' /srv/rutorrent/plugins/create/conf.php
-    sed -i 's/pathToCreatetorrent = '\'\''/pathToCreatetorrent = '\''\/usr\/bin\/mktorrent'\''/' /srv/rutorrent/plugins/create/conf.php
-    sed -i "s/\$pathToExternals\['sox'\] = ''/\$pathToExternals\['sox'\] = '\/usr\/bin\/sox'/g" /srv/rutorrent/plugins/spectrogram/conf.php
-  
-    if [[ ! -d /srv/rutorrent/plugins/theme/themes/club-QuickBox ]]; then
-        cd /srv/rutorrent/plugins/theme/themes
-        _excute "sudo git clone https://lab.quickbox.io/QuickBox/club-QuickBox.git club-QuickBox"
-        sudo perl -pi -e "s/\$defaultTheme \= \"\"\;/\$defaultTheme \= \"club-QuickBox\"\;/g" /srv/rutorrent/plugins/theme/conf.php
-    fi
-  
-    if [[ ! -d /srv/rutorrent/plugins/filemanager ]]; then
-        cd /srv/rutorrent/plugins/
-        cp -R ${plugin_lib}filemanager .
-        chown -R www-data: /srv/rutorrent/plugins/filemanager
-        chmod -R +x filemanager/scripts
-    fi
-  
-    if [[ ! -d /srv/rutorrent/plugins/ratiocolor ]]; then
-        cd /srv/rutorrent/plugins
-        cp -R ${plugin_lib}ratiocolor .
-        sed -i "s/changeWhat = \"cell-background\";/changeWhat = \"font\";/g" /srv/rutorrent/plugins/ratiocolor/init.js
-    fi
-  
-    if [[ ! -d /srv/rutorrent/plugins/mobile ]]; then
-        cd /srv/rutorrent/plugins
-        cp -R ${plugin_lib}mobile .
-        chown -R www-data: mobile
-    fi
-  
-    if [[ ! -d /srv/rutorrent/plugins/logoff ]]; then
-        cd /srv/rutorrent/plugins
-        cp -R ${plugin_lib}logoff .
-        chown -R www-data: logoff
-    fi
+	_info "Initializing ruTorrent plugins... "
+	cd /srv/rutorrent/
+	sed -i 's/useExternal = false;/useExternal = "mktorrent";/' /srv/rutorrent/plugins/create/conf.php
+	sed -i 's/pathToCreatetorrent = '\'\''/pathToCreatetorrent = '\''\/usr\/bin\/mktorrent'\''/' /srv/rutorrent/plugins/create/conf.php
+	sed -i "s/\$pathToExternals\['sox'\] = ''/\$pathToExternals\['sox'\] = '\/usr\/bin\/sox'/g" /srv/rutorrent/plugins/spectrogram/conf.php
 
-    if [[ ! -d /srv/rutorrent/plugins/stream ]]; then
-        cd /srv/rutorrent/plugins
-        cp -R ${plugin_lib}stream .
-        chown -R www-data: stream
-    fi
-  
-  _info "Performing adjustments to ruTorrent diskspace plugin... "
-  
-cat > /srv/rutorrent/plugins/diskspace/action.php <<'EOF'
+	if [[ ! -d /srv/rutorrent/plugins/theme/themes/club-QuickBox ]]; then
+		cd /srv/rutorrent/plugins/theme/themes
+		_excute "sudo git clone https://lab.quickbox.io/QuickBox/club-QuickBox.git club-QuickBox"
+		sudo perl -pi -e "s/\$defaultTheme \= \"\"\;/\$defaultTheme \= \"club-QuickBox\"\;/g" /srv/rutorrent/plugins/theme/conf.php
+	fi
+
+	if [[ ! -d /srv/rutorrent/plugins/filemanager ]]; then
+		cd /srv/rutorrent/plugins/
+		cp -R ${plugin_lib}filemanager .
+		chown -R www-data: /srv/rutorrent/plugins/filemanager
+		chmod -R +x filemanager/scripts
+	fi
+
+	if [[ ! -d /srv/rutorrent/plugins/ratiocolor ]]; then
+		cd /srv/rutorrent/plugins
+		cp -R ${plugin_lib}ratiocolor .
+		sed -i "s/changeWhat = \"cell-background\";/changeWhat = \"font\";/g" /srv/rutorrent/plugins/ratiocolor/init.js
+	fi
+
+	if [[ ! -d /srv/rutorrent/plugins/mobile ]]; then
+		cd /srv/rutorrent/plugins
+		cp -R ${plugin_lib}mobile .
+		chown -R www-data: mobile
+	fi
+
+	if [[ ! -d /srv/rutorrent/plugins/logoff ]]; then
+		cd /srv/rutorrent/plugins
+		cp -R ${plugin_lib}logoff .
+		chown -R www-data: logoff
+	fi
+
+	if [[ ! -d /srv/rutorrent/plugins/stream ]]; then
+		cd /srv/rutorrent/plugins
+		cp -R ${plugin_lib}stream .
+		chown -R www-data: stream
+	fi
+
+	_info "Performing adjustments to ruTorrent diskspace plugin... "
+
+	cat >/srv/rutorrent/plugins/diskspace/action.php <<'EOF'
 <?php
 
 #################################################################################
@@ -284,10 +284,10 @@ cat > /srv/rutorrent/plugins/diskspace/action.php <<'EOF'
 
 ?>
 EOF
-  
-    _info "Setting up configs for ruTorrent... "
-  
-    cat >/srv/rutorrent/conf/config.php<<EOF
+
+	_info "Setting up configs for ruTorrent... "
+
+	cat >/srv/rutorrent/conf/config.php <<EOF
 <?php
 // configuration parameters
 
@@ -348,19 +348,19 @@ EOF
 
 ?>
 EOF
-    cat > /srv/rutorrent/plugins/_task/conf.php <<TAS
+	cat >/srv/rutorrent/plugins/_task/conf.php <<TAS
 <?php
 // configuration parameters
 \$pathToExternals['pgrep'] = '/usr/bin/pgrep';
 \$maxConcurentTasks      = 3;
 \$showTabAlways          = 1;
 TAS
-    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-    for username in $userlist; do
-        if [[ ! -f /srv/rutorrent/conf/users/${username}/config.php ]]; then
-            mkdir -p /srv/rutorrent/conf/users/${username}/
-        fi
-        cat >/srv/rutorrent/conf/users/${username}/config.php<<RUCONF
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		if [[ ! -f /srv/rutorrent/conf/users/${username}/config.php ]]; then
+			mkdir -p /srv/rutorrent/conf/users/${username}/
+		fi
+		cat >/srv/rutorrent/conf/users/${username}/config.php <<RUCONF
 <?php
 \$topDirectory = '/home/${username}';
 \$scgi_port = 0;
@@ -369,32 +369,31 @@ TAS
 \$quotaUser = "${username}";
 ?>
 RUCONF
-    done
-    _success "${APP_TITLE} is now update to date."
+	done
+	_success "${APP_TITLE} is now update to date."
 }
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=`getopt -a -o hl: -l help,log: -- "$@"`
+ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
 eval set -- "${ARGS}"
-while true
-do
-    case "$1" in
-    -h|--help)
-        _usage
-        exit 1
-        ;;
-    -l|--log)
-        OUTTO="$2"
-        shift
-        ;;
-    --)
-    shift
-    break
-    ;;
-    esac
-shift
+while true; do
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 1
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
 done
 
 #################################################################################

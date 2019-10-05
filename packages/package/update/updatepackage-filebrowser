@@ -25,7 +25,7 @@ RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
 SETNAME=$(lsb_release -rc)
 # Server IP Address
-SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
 ################################################################################
 # HELP FUNCTIONS
@@ -53,22 +53,22 @@ _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
 function _excute() {
-    ($1 >> "${OUTTO}" 2>&1;)
+	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
-    printf "${_norm}%s${_norm}\n" "$@"
+	printf "${_norm}%s${_norm}\n" "$@"
 }
 function _info() {
-    printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
 }
 function _success() {
-    printf "${_green}✓ %s${_norm}\n" "$@"
+	printf "${_green}✓ %s${_norm}\n" "$@"
 }
 function _warning() {
-    printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
 }
 function _error() {
-    printf "${_red}✗ %s${_norm}\n" "$@"
+	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
 #################################################################################
@@ -78,45 +78,45 @@ APP_TITLE="File Browser"
 APP_NAME="filebrowser"
 APP_SERVICE="filebrowser"
 
-APP_LOCK=`echo .$APP_NAME.lock`
+APP_LOCK=$(echo .$APP_NAME.lock)
 OUTTO=/srv/dashboard/db/output.log
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
-    echo -e "\nQuickBox Lite $APP_TITLE Updater"
-    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] "
-    echo -e "\nOptions:\n"
-    echo "-l, --log <logfile>       specific log file"
-    echo ""
-    echo "-h, --help                display this help and exit"
+	echo -e "\nQuickBox Lite $APP_TITLE Updater"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] "
+	echo -e "\nOptions:\n"
+	echo "-l, --log <logfile>       specific log file"
+	echo ""
+	echo "-h, --help                display this help and exit"
 }
 ################################################################################
 # REMOVE FUNCTIONS
 ################################################################################
 function _lockCheck() {
-    if [[ -f "/install/.install.lock" ]]; then
-        prevApp=$(cat /install/.install.lock)
-        _info "$prevApp process running."
-        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
-        _error "Exiting..."
-        exit 1
-    fi
-    if [[ ! -f "/install/$APP_LOCK" ]]; then
-        _error "${APP_TITLE} haven't installed ..."
-        exit 1
-    fi
+	if [[ -f "/install/.install.lock" ]]; then
+		prevApp=$(cat /install/.install.lock)
+		_info "$prevApp process running."
+		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
+		_error "Exiting..."
+		exit 1
+	fi
+	if [[ ! -f "/install/$APP_LOCK" ]]; then
+		_error "${APP_TITLE} haven't installed ..."
+		exit 1
+	fi
 }
 function _setLock() {
-    echo "${APP_TITLE}" > /install/.install.lock
+	echo "${APP_TITLE}" >/install/.install.lock
 }
 function _lockCleanup() {
-    rm -f /install/.install.lock
+	rm -f /install/.install.lock
 }
 
 function _updateInfo() {
-    _print "
+	_print "
 $APP_TITLE will now be updated.
 
 This process may take a few minutes
@@ -125,42 +125,41 @@ Please wait until the process is completed
 }
 
 function _updateApp() {
-    _info "Updating ${APP_TITLE}..."
-    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-    for username in $userlist; do
-        _excute "systemctl stop ${APP_SERVICE}@${username}"
-    done
-    cd /tmp
-    curl -fsSL https://filebrowser.xyz/get.sh | bash >/dev/null 2>&1
-    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-    for username in $userlist; do
-        _excute "systemctl start ${APP_SERVICE}@${username}"
-    done
-    _success "${APP_TITLE} is now update to date."
+	_info "Updating ${APP_TITLE}..."
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		_excute "systemctl stop ${APP_SERVICE}@${username}"
+	done
+	cd /tmp
+	curl -fsSL https://filebrowser.xyz/get.sh | bash >/dev/null 2>&1
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		_excute "systemctl start ${APP_SERVICE}@${username}"
+	done
+	_success "${APP_TITLE} is now update to date."
 }
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=`getopt -a -o hl: -l help,log: -- "$@"`
+ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
 eval set -- "${ARGS}"
-while true
-do
-    case "$1" in
-    -h|--help)
-        _usage
-        exit 1
-        ;;
-    -l|--log)
-        OUTTO="$2"
-        shift
-        ;;
-    --)
-    shift
-    break
-    ;;
-    esac
-shift
+while true; do
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 1
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
 done
 
 #################################################################################

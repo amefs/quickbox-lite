@@ -25,7 +25,7 @@ RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
 SETNAME=$(lsb_release -rc)
 # Server IP Address
-SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
 ################################################################################
 # HELP FUNCTIONS
@@ -53,22 +53,22 @@ _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
 function _excute() {
-    ($1 >> "${OUTTO}" 2>&1;)
+	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
-    printf "${_norm}%s${_norm}\n" "$@"
+	printf "${_norm}%s${_norm}\n" "$@"
 }
 function _info() {
-    printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
 }
 function _success() {
-    printf "${_green}✓ %s${_norm}\n" "$@"
+	printf "${_green}✓ %s${_norm}\n" "$@"
 }
 function _warning() {
-    printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
 }
 function _error() {
-    printf "${_red}✗ %s${_norm}\n" "$@"
+	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
 #################################################################################
@@ -78,7 +78,7 @@ APP_TITLE="FlexGet"
 APP_NAME="flexget"
 APP_SERVICE="flexget"
 
-APP_LOCK=`echo .$APP_NAME.lock`
+APP_LOCK=$(echo .$APP_NAME.lock)
 OUTTO=/srv/dashboard/db/output.log
 username=$(cat .admin.info | cut -d: -f1)
 
@@ -86,39 +86,39 @@ username=$(cat .admin.info | cut -d: -f1)
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
-    echo -e "\nQuickBox Lite $APP_TITLE Remover"
-    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username]"
-    echo -e "\nOptions:\n"
-    echo "-l, --log <logfile>       specific log file"
-    echo "-u, --user <username>     the user for this remover"
-    echo ""
-    echo "-h, --help                display this help and exit"
+	echo -e "\nQuickBox Lite $APP_TITLE Remover"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username]"
+	echo -e "\nOptions:\n"
+	echo "-l, --log <logfile>       specific log file"
+	echo "-u, --user <username>     the user for this remover"
+	echo ""
+	echo "-h, --help                display this help and exit"
 }
 ################################################################################
 # REMOVE FUNCTIONS
 ################################################################################
 function _lockCheck() {
-    if [[ -f "/install/.install.lock" ]]; then
-        prevApp=$(cat /install/.install.lock)
-        _info "$prevApp process running."
-        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
-        _error "Exiting..."
-        exit 1
-    fi
-    if [[ ! -f "/install/.${username}.${APP_NAME}.lock" ]]; then
-        _error "${APP_TITLE} haven't installed ..."
-        exit 1
-    fi
+	if [[ -f "/install/.install.lock" ]]; then
+		prevApp=$(cat /install/.install.lock)
+		_info "$prevApp process running."
+		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
+		_error "Exiting..."
+		exit 1
+	fi
+	if [[ ! -f "/install/.${username}.${APP_NAME}.lock" ]]; then
+		_error "${APP_TITLE} haven't installed ..."
+		exit 1
+	fi
 }
 function _setLock() {
-    echo "${APP_TITLE}" > /install/.install.lock
+	echo "${APP_TITLE}" >/install/.install.lock
 }
 function _lockCleanup() {
-    rm -f /install/.install.lock
+	rm -f /install/.install.lock
 }
 
 function _removeInfo() {
-    _print "
+	_print "
 $APP_TITLE will now be removed.
 
 This process may take a few minutes
@@ -127,67 +127,66 @@ Please wait until the process is completed
 }
 
 function _removeService() {
-    _info "Removing ${APP_TITLE} service..."
-    _excute "systemctl enable ${APP_SERVICE}@${username}"
-    _excute "systemctl start ${APP_SERVICE}@${username}"
-    rm -rf /etc/systemd/system/flexget@${username}.service
-    _excute "systemctl daemon-reload"
-    _success "${APP_TITLE} service removed."
+	_info "Removing ${APP_TITLE} service..."
+	_excute "systemctl enable ${APP_SERVICE}@${username}"
+	_excute "systemctl start ${APP_SERVICE}@${username}"
+	rm -rf /etc/systemd/system/flexget@${username}.service
+	_excute "systemctl daemon-reload"
+	_success "${APP_TITLE} service removed."
 }
 
 function _removeDepends() {
-    _info "Removing ${APP_TITLE} dependencies..."
-    local DEPLIST="${APP_BASEDEPS}"
-    for depend in $DEPLIST; do
-        _info "Removing ${depend}... "
-        _excute "apt-get -y purge ${depend}"
-        _excute "apt-get -y autoremove"
-        _excute "apt-get -y autoclean"
-    done
-    _success "${APP_TITLE} dependencies removed."
+	_info "Removing ${APP_TITLE} dependencies..."
+	local DEPLIST="${APP_BASEDEPS}"
+	for depend in $DEPLIST; do
+		_info "Removing ${depend}... "
+		_excute "apt-get -y purge ${depend}"
+		_excute "apt-get -y autoremove"
+		_excute "apt-get -y autoclean"
+	done
+	_success "${APP_TITLE} dependencies removed."
 }
 
 function _removeApp() {
-    _info "Removing ${APP_TITLE}..."
-    rm -rf /home/${username}/.config/flexget/
-    rm -f /etc/nginx/apps/${username}.flexget.conf
-    su ${username} -c 'python2 -m pip uninstall flexget -y' >> "${OUTTO}" 2>&1;
-    rm -f /install/${username}.${APP_NAME}.port
-    _success "${APP_TITLE} removed."
+	_info "Removing ${APP_TITLE}..."
+	rm -rf /home/${username}/.config/flexget/
+	rm -f /etc/nginx/apps/${username}.flexget.conf
+	su ${username} -c 'python2 -m pip uninstall flexget -y' >>"${OUTTO}" 2>&1
+	rm -f /install/${username}.${APP_NAME}.port
+	_success "${APP_TITLE} removed."
 }
 
 function _removeAppLock() {
-    _info "Removing ${APP_TITLE} lock..."
-    rm -f /install/.${username}.${APP_NAME}.lock
-    _success "${APP_TITLE} lock removed."
+	_info "Removing ${APP_TITLE} lock..."
+	rm -f /install/.${username}.${APP_NAME}.lock
+	_success "${APP_TITLE} lock removed."
 }
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=`getopt -a -o hl:u: -l help,log:,user: -- "$@"`
+ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
 eval set -- "${ARGS}"
-while true
-do
-    case "$1" in
-    -h|--help)
-        _usage
-        exit 1
-        ;;
-    -l|--log)
-        OUTTO="$2"
-        shift
-        ;;
-    -u|--user)
-        username="$2"
-        shift
-        ;;
-    --)
-    shift
-    break
-    ;;
-    esac
-shift
+while true; do
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 1
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	-u | --user)
+		username="$2"
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
 done
 
 #################################################################################

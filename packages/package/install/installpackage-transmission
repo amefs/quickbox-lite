@@ -25,7 +25,7 @@ RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
 SETNAME=$(lsb_release -rc)
 # Server IP Address
-SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
 ################################################################################
 # HELP FUNCTIONS
@@ -53,22 +53,22 @@ _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
 function _excute() {
-    ($1 >> "${OUTTO}" 2>&1;)
+	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
-    printf "${_norm}%s${_norm}\n" "$@"
+	printf "${_norm}%s${_norm}\n" "$@"
 }
 function _info() {
-    printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
 }
 function _success() {
-    printf "${_green}✓ %s${_norm}\n" "$@"
+	printf "${_green}✓ %s${_norm}\n" "$@"
 }
 function _warning() {
-    printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
 }
 function _error() {
-    printf "${_red}✗ %s${_norm}\n" "$@"
+	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
 #################################################################################
@@ -88,50 +88,50 @@ APP_WEB_PORT_HIGH="15150"
 APP_DAEMON_PORT_LOW=""
 APP_DAEMON_PORT_HIGH=""
 
-APP_LOCK=`echo .$APP_NAME.lock`
+APP_LOCK=$(echo .$APP_NAME.lock)
 OUTTO=/srv/dashboard/db/output.log
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
-    echo -e "\nQuickBox Lite $APP_TITLE Installer"
-    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-p ppa]"
-    echo -e "\nOptions:\n"
-    echo "-l, --log <logfile>       specific log file"
-    echo "-p, --ppa                 use ppa source"
-    echo ""
-    echo "-h, --help                display this help and exit"
+	echo -e "\nQuickBox Lite $APP_TITLE Installer"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-p ppa]"
+	echo -e "\nOptions:\n"
+	echo "-l, --log <logfile>       specific log file"
+	echo "-p, --ppa                 use ppa source"
+	echo ""
+	echo "-h, --help                display this help and exit"
 }
 ################################################################################
 # INSTALL FUNCTIONS
 ################################################################################
 function _lockCheck() {
-    if [[ -f "/install/.install.lock" ]]; then
-        prevApp=$(cat /install/.install.lock)
-        _info "$prevApp process running."
-        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
-        _error "Exiting..."
-        exit 1
-    fi
-    if [[ -f "/install/$APP_LOCK" ]]; then
-        _error "${APP_TITLE} already installed !"
-        exit 1
-    fi
+	if [[ -f "/install/.install.lock" ]]; then
+		prevApp=$(cat /install/.install.lock)
+		_info "$prevApp process running."
+		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
+		_error "Exiting..."
+		exit 1
+	fi
+	if [[ -f "/install/$APP_LOCK" ]]; then
+		_error "${APP_TITLE} already installed !"
+		exit 1
+	fi
 }
 function _setLock() {
-    echo "${APP_TITLE}" > /install/.install.lock
+	echo "${APP_TITLE}" >/install/.install.lock
 }
 function _lockCleanup() {
-    echo "$APP_TITLE Install Complete!
+	echo "$APP_TITLE Install Complete!
 
 
-Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
-    rm -f /install/.install.lock
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
+	rm -f /install/.install.lock
 }
 
 function _installInfo() {
-    _print "
+	_print "
 $APP_TITLE will now be installed.
 
 This process may take a few minutes
@@ -140,118 +140,118 @@ Please wait until the process is completed
 }
 
 function _installAddSources() {
-    _info "Adding additional keys and sources ${APP_TITLE}..."
-    if [[ $DISTRO == Ubuntu ]]; then
-      sudo add-apt-repository -y ppa:transmissionbt/ppa >/dev/null 2>&1
-    fi
-    _success "Keys and sources added."
+	_info "Adding additional keys and sources ${APP_TITLE}..."
+	if [[ $DISTRO == Ubuntu ]]; then
+		sudo add-apt-repository -y ppa:transmissionbt/ppa >/dev/null 2>&1
+	fi
+	_success "Keys and sources added."
 }
 
 function _installSystemUpdates() {
-    _info "Checking and performing updates to system... ";
-    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
-    ## auto solve lock
-    if [ "$?" -eq 2 ]; then
-        _warning "dpkg database is locked."
-        _info "fixing dpkg lock..."
-        rm -f /var/lib/dpkg/updates/0*
-        locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
-        if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
-            for l in ${locks}; do
-                rm -rf ${l}
-            done
-            _excute "dpkg --configure -a"
-            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
-        fi
-        apt-get check >/dev/null 2>&1
-        if [ "$?" -ne 0 ]; then
-            _excute "apt-get install -f"
-            apt-get check >/dev/null 2>&1
-            if [ "$?" -ne 0 ]; then
-                _error "apt-get check failed, you may have broken packages."
-                exit 1
-            fi
-        fi
-    fi
-    _success "System updated."
+	_info "Checking and performing updates to system... "
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+	## auto solve lock
+	if [ "$?" -eq 2 ]; then
+		_warning "dpkg database is locked."
+		_info "fixing dpkg lock..."
+		rm -f /var/lib/dpkg/updates/0*
+		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+			for l in ${locks}; do
+				rm -rf ${l}
+			done
+			_excute "dpkg --configure -a"
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+		fi
+		apt-get check >/dev/null 2>&1
+		if [ "$?" -ne 0 ]; then
+			_excute "apt-get install -f"
+			apt-get check >/dev/null 2>&1
+			if [ "$?" -ne 0 ]; then
+				_error "apt-get check failed, you may have broken packages."
+				exit 1
+			fi
+		fi
+	fi
+	_success "System updated."
 }
 
 function _installDepends() {
-    _info "Installing ${APP_TITLE} dependencies..."
-    local DEPLIST="${APP_BASEDEPS}"
-    for depend in $DEPLIST; do
-        _info "Installing ${depend}... "
-        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
-    done
-    if [[ $dependError != "1" ]]; then
-        _success "${APP_TITLE} dependencies installed."
-    else
-        _error "${APP_TITLE} dependencies failed to install."
-        exit 1
-    fi
+	_info "Installing ${APP_TITLE} dependencies..."
+	local DEPLIST="${APP_BASEDEPS}"
+	for depend in $DEPLIST; do
+		_info "Installing ${depend}... "
+		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+	done
+	if [[ $dependError != "1" ]]; then
+		_success "${APP_TITLE} dependencies installed."
+	else
+		_error "${APP_TITLE} dependencies failed to install."
+		exit 1
+	fi
 }
 
 function _installApp() {
-    _info "Building ${APP_TITLE}..."
-    if [[ ${ppa} == 1 ]]; then
-        _installDepends
-    else
-        # get deb packages
-        cd /tmp
-        TRCOMM=transmission-common_2.94-1mod1_all.deb
-        TRSCLI=transmission-cli_2.94-1mod1_amd64.deb
-        TRSDAEMON=transmission-daemon_2.94-1mod1_amd64.deb
-        wget -q -O ${TRCOMM} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRCOMM}/download
-        wget -q -O ${TRSCLI} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRSCLI}/download
-        wget -q -O ${TRSDAEMON} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRSDAEMON}/download
-        _excute "apt install -y /tmp/${TRCOMM}"
-        _excute "apt install -y /tmp/${TRSCLI}"
-        _excute "apt install -y /tmp/${TRSDAEMON}"
-        rm -rf {${TRCOMM},${TRSCLI},${TRSDAEMON}}
-    fi
-    _success "${APP_TITLE} Built."
+	_info "Building ${APP_TITLE}..."
+	if [[ ${ppa} == 1 ]]; then
+		_installDepends
+	else
+		# get deb packages
+		cd /tmp
+		TRCOMM=transmission-common_2.94-1mod1_all.deb
+		TRSCLI=transmission-cli_2.94-1mod1_amd64.deb
+		TRSDAEMON=transmission-daemon_2.94-1mod1_amd64.deb
+		wget -q -O ${TRCOMM} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRCOMM}/download
+		wget -q -O ${TRSCLI} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRSCLI}/download
+		wget -q -O ${TRSDAEMON} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRSDAEMON}/download
+		_excute "apt install -y /tmp/${TRCOMM}"
+		_excute "apt install -y /tmp/${TRSCLI}"
+		_excute "apt install -y /tmp/${TRSDAEMON}"
+		rm -rf {${TRCOMM},${TRSCLI},${TRSDAEMON}}
+	fi
+	_success "${APP_TITLE} Built."
 }
 
 function _configureApp() {
-    _info "Configuring ${APP_TITLE}..."
-    _excute "systemctl disable transmission-daemon"
-    _excute "systemctl stop transmission-daemon"
-    sleep 2
-    # install enhancement WebUI
-    echo 1 | bash -c "$(wget -qO- https://github.com/ronggang/transmission-web-control/raw/master/release/install-tr-control.sh)" >> "${OUTTO}" 2>&1;
+	_info "Configuring ${APP_TITLE}..."
+	_excute "systemctl disable transmission-daemon"
+	_excute "systemctl stop transmission-daemon"
+	sleep 2
+	# install enhancement WebUI
+	echo 1 | bash -c "$(wget -qO- https://github.com/ronggang/transmission-web-control/raw/master/release/install-tr-control.sh)" >>"${OUTTO}" 2>&1
 
-    # get userlist
-    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-    for username in $userlist; do
-        # get used port
-        local usedport=""
-        if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
-            usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
-        fi
-        # generate available port
-        PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
-        while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do 
-            PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1); 
-        done
-        echo $PORT > /install/$username.$APP_NAME.port
-        passphrase=$(cat /root/.ssh/local_user)
-        passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
-        if [[ $CODENAME == xenial ]]; then
-            password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:${passphrase} -nosalt)
-        else
-            password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
-        fi
-    
-        _info "Initializing $APP_TITLE for ${username} ... "
-    
-        if [[ ! -d /home/${username}/.config/transmission ]]; then
-        mkdir -p /home/${username}/.config/transmission/blocklists
-        mkdir -p /home/${username}/.config/transmission/resume
-        mkdir -p /home/${username}/.config/transmission/torrents
-        fi
-        cat > /home/${username}/.config/transmission/settings.json<<TRC
+	# get userlist
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		# get used port
+		local usedport=""
+		if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
+			usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
+		fi
+		# generate available port
+		PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
+		while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do
+			PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
+		done
+		echo $PORT >/install/$username.$APP_NAME.port
+		passphrase=$(cat /root/.ssh/local_user)
+		passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
+		if [[ $CODENAME == xenial ]]; then
+			password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:${passphrase} -nosalt)
+		else
+			password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
+		fi
+
+		_info "Initializing $APP_TITLE for ${username} ... "
+
+		if [[ ! -d /home/${username}/.config/transmission ]]; then
+			mkdir -p /home/${username}/.config/transmission/blocklists
+			mkdir -p /home/${username}/.config/transmission/resume
+			mkdir -p /home/${username}/.config/transmission/torrents
+		fi
+		cat >/home/${username}/.config/transmission/settings.json <<TRC
 {
     "alt-speed-down": 50,
     "alt-speed-enabled": false,
@@ -328,23 +328,23 @@ function _configureApp() {
     "watch-dir-enabled": true
 }
 TRC
-        mkdir -p /home/${username}/torrents/transmission
-        mkdir -p /home/${username}/trwatch
-        chmod -R 755 /home/${username}/.config
-        chown -R ${username}.${username} /home/${username}/.config/
-        chmod -R 755 /home/${username}/torrents/transmission
-        chown -R ${username}.${username} /home/${username}/torrents
-        chmod -R 755 /home/${username}/trwatch
-        chown -R ${username}.${username} /home/${username}/trwatch
-    
-        # create reverse proxy
-        cat > /etc/nginx/conf.d/${username}.transmission.conf <<EOF
+		mkdir -p /home/${username}/torrents/transmission
+		mkdir -p /home/${username}/trwatch
+		chmod -R 755 /home/${username}/.config
+		chown -R ${username}.${username} /home/${username}/.config/
+		chmod -R 755 /home/${username}/torrents/transmission
+		chown -R ${username}.${username} /home/${username}/torrents
+		chmod -R 755 /home/${username}/trwatch
+		chown -R ${username}.${username} /home/${username}/trwatch
+
+		# create reverse proxy
+		cat >/etc/nginx/conf.d/${username}.transmission.conf <<EOF
 upstream ${username}.transmission {
   server 127.0.0.1:${PORT};
 }
 EOF
 
-        cat > /etc/nginx/apps/${username}.trdlindex.conf <<EOF
+		cat >/etc/nginx/apps/${username}.trdlindex.conf <<EOF
 location /${username}.transmission.downloads {
   alias /home/${username}/torrents/transmission;
   include /etc/nginx/snippets/fancyindex.conf;
@@ -356,9 +356,9 @@ location /${username}.transmission.downloads {
   }
 }
 EOF
-    done
+	done
 
-cat > /etc/nginx/apps/transmission.conf <<'EOF'
+	cat >/etc/nginx/apps/transmission.conf <<'EOF'
 location /transmission {
   return 301 /transmission/web/;
 }
@@ -371,7 +371,7 @@ location /transmission/ {
 }
 EOF
 
-    cat >/etc/systemd/system/transmission@.service<<'TSD'
+	cat >/etc/systemd/system/transmission@.service <<'TSD'
 [Unit]
 Description=Transmission BitTorrent Daemon
 After=network.target
@@ -386,52 +386,51 @@ ExecReload=/bin/kill -s HUP $MAINPID
 [Install]
 WantedBy=multi-user.target
 TSD
-    _excute "systemctl daemon-reload"
-    _excute "nginx -s reload"
-    _success "${APP_TITLE} configured."
+	_excute "systemctl daemon-reload"
+	_excute "nginx -s reload"
+	_success "${APP_TITLE} configured."
 }
 
 function _installAppLock() {
-    _info "Configuring ${APP_TITLE} lock..."
-    touch /install/${APP_LOCK}
-    _success "${APP_TITLE} lock configured."
+	_info "Configuring ${APP_TITLE} lock..."
+	touch /install/${APP_LOCK}
+	_success "${APP_TITLE} lock configured."
 }
 
 function _installAppStart() {
-    _info "Starting ${APP_TITLE}..."
-    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-    for username in $userlist; do
-        _excute "systemctl enable ${APP_SERVICE}@${username}"
-        _excute "systemctl start ${APP_SERVICE}@${username}"
-    done
-    _success "${APP_TITLE} started."
+	_info "Starting ${APP_TITLE}..."
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		_excute "systemctl enable ${APP_SERVICE}@${username}"
+		_excute "systemctl start ${APP_SERVICE}@${username}"
+	done
+	_success "${APP_TITLE} started."
 }
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=`getopt -a -o hl:p -l help,log:,ppa -- "$@"`
+ARGS=$(getopt -a -o hl:p -l help,log:,ppa -- "$@")
 eval set -- "${ARGS}"
-while true
-do
-    case "$1" in
-    -h|--help)
-        _usage
-        exit 1
-        ;;
-    -l|--log)
-        OUTTO="$2"
-        shift
-        ;;
-    -p|--ppa)
-        ppa=1
-        ;;
-    --)
-    shift
-    break
-    ;;
-    esac
-shift
+while true; do
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 1
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	-p | --ppa)
+		ppa=1
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
 done
 
 #################################################################################
@@ -441,10 +440,10 @@ _lockCheck
 _setLock
 _installInfo
 if [[ ${ppa} == 1 ]]; then
-_installAddSources
+	_installAddSources
 fi
 if [[ ! -f /install/.system.lock ]]; then
-    _installSystemUpdates
+	_installSystemUpdates
 fi
 _installApp
 _configureApp

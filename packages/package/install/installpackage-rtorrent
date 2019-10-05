@@ -25,7 +25,7 @@ RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
 SETNAME=$(lsb_release -rc)
 # Server IP Address
-SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
 ################################################################################
 # HELP FUNCTIONS
@@ -53,22 +53,22 @@ _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
 function _excute() {
-    ($1 >> "${OUTTO}" 2>&1;)
+	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
-    printf "${_norm}%s${_norm}\n" "$@"
+	printf "${_norm}%s${_norm}\n" "$@"
 }
 function _info() {
-    printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
 }
 function _success() {
-    printf "${_green}✓ %s${_norm}\n" "$@"
+	printf "${_green}✓ %s${_norm}\n" "$@"
 }
 function _warning() {
-    printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
 }
 function _error() {
-    printf "${_red}✗ %s${_norm}\n" "$@"
+	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
 #################################################################################
@@ -88,7 +88,7 @@ APP_WEB_PORT_HIGH=""
 APP_DAEMON_PORT_LOW="55001"
 APP_DAEMON_PORT_HIGH="55050"
 
-APP_LOCK=`echo .$APP_NAME.lock`
+APP_LOCK=$(echo .$APP_NAME.lock)
 OUTTO=/srv/dashboard/db/output.log
 version=0.9.6
 
@@ -96,58 +96,60 @@ version=0.9.6
 # SCRIPT FUNCTIONS
 ################################################################################
 function _menuinstall() {
-    OUTTO=$(whiptail --title "Log" --inputbox "Specify a log path?\nENTER to make no changes" 10 72 3>&1 1>&2 2>&3)
-    if [[ $OUTTO == "" ]]; then
-        OUTTO=/srv/dashboard/db/output.log
-    fi
-    version=$(whiptail --title "App Version" --radiolist \
-    "Choose an available version" 14 56 6 \
-    "0.9.4" "oldstable" off \
-    "0.9.6" "stable" on \
-    "0.9.7" "feature" off \
-    "0.9.8" "feature" off \
-    "feature-bind" "latest experiment code" off 3>&1 1>&2 2>&3 )
+	OUTTO=$(whiptail --title "Log" --inputbox "Specify a log path?\nENTER to make no changes" 10 72 3>&1 1>&2 2>&3)
+	if [[ $OUTTO == "" ]]; then
+		OUTTO=/srv/dashboard/db/output.log
+	fi
+	version=$(
+		whiptail --title "App Version" --radiolist \
+		"Choose an available version" 14 56 6 \
+		"0.9.4" "oldstable" off \
+		"0.9.6" "stable" on \
+		"0.9.7" "feature" off \
+		"0.9.8" "feature" off \
+		"feature-bind" "latest experiment code" off 3>&1 1>&2 2>&3
+	)
 }
 
 function _usage() {
-    echo -e "\nQuickBox Lite $APP_TITLE Installer"
-    echo -e "\nUsage: \n$(basename "$0") [-gh] [-l logfile] [-u username] [-v version]"
-    echo -e "\nOptions:\n"
-    echo "-g, --gui                 use a menu configuration to install"
-    echo "-l, --log <logfile>       specific log file"
-    echo "-v, --version <version>   the application version you want to install"
-    echo ""
-    echo "-h, --help                display this help and exit"
+	echo -e "\nQuickBox Lite $APP_TITLE Installer"
+	echo -e "\nUsage: \n$(basename "$0") [-gh] [-l logfile] [-u username] [-v version]"
+	echo -e "\nOptions:\n"
+	echo "-g, --gui                 use a menu configuration to install"
+	echo "-l, --log <logfile>       specific log file"
+	echo "-v, --version <version>   the application version you want to install"
+	echo ""
+	echo "-h, --help                display this help and exit"
 }
 ################################################################################
 # INSTALL FUNCTIONS
 ################################################################################
 function _lockCheck() {
-    if [[ -f "/install/.install.lock" ]]; then
-        prevApp=$(cat /install/.install.lock)
-        _info "$prevApp process running."
-        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
-        _error "Exiting..."
-        exit 1
-    fi
-    if [[ -f "/install/$APP_LOCK" ]]; then
-        _error "${APP_TITLE} already installed !"
-        exit 1
-    fi
+	if [[ -f "/install/.install.lock" ]]; then
+		prevApp=$(cat /install/.install.lock)
+		_info "$prevApp process running."
+		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
+		_error "Exiting..."
+		exit 1
+	fi
+	if [[ -f "/install/$APP_LOCK" ]]; then
+		_error "${APP_TITLE} already installed !"
+		exit 1
+	fi
 }
 function _setLock() {
-    echo "${APP_TITLE}" > /install/.install.lock
+	echo "${APP_TITLE}" >/install/.install.lock
 }
 function _lockCleanup() {
-    echo "$APP_TITLE Install Complete!
+	echo "$APP_TITLE Install Complete!
 
 
-Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
-    rm -f /install/.install.lock
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
+	rm -f /install/.install.lock
 }
 
 function _installInfo() {
-    _print "
+	_print "
 $APP_TITLE will now be installed.
 
 This process may take a few minutes
@@ -156,178 +158,178 @@ Please wait until the process is completed
 }
 
 function _installAddSources() {
-    _info "Adding additional keys and sources ${APP_TITLE}..."
+	_info "Adding additional keys and sources ${APP_TITLE}..."
 
-    _success "Keys and sources added."
+	_success "Keys and sources added."
 }
 
 function _installSystemUpdates() {
-    _info "Checking and performing updates to system... ";
-    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
-    ## auto solve lock
-    if [ "$?" -eq 2 ]; then
-        _warning "dpkg database is locked."
-        _info "fixing dpkg lock..."
-        rm -f /var/lib/dpkg/updates/0*
-        locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
-        if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
-            for l in ${locks}; do
-                rm -rf ${l}
-            done
-            _excute "dpkg --configure -a"
-            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
-        fi
-        apt-get check >/dev/null 2>&1
-        if [ "$?" -ne 0 ]; then
-            _excute "apt-get install -f"
-            apt-get check >/dev/null 2>&1
-            if [ "$?" -ne 0 ]; then
-                _error "apt-get check failed, you may have broken packages."
-                exit 1
-            fi
-        fi
-    fi
-    _success "System updated."
+	_info "Checking and performing updates to system... "
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+	## auto solve lock
+	if [ "$?" -eq 2 ]; then
+		_warning "dpkg database is locked."
+		_info "fixing dpkg lock..."
+		rm -f /var/lib/dpkg/updates/0*
+		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+			for l in ${locks}; do
+				rm -rf ${l}
+			done
+			_excute "dpkg --configure -a"
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+		fi
+		apt-get check >/dev/null 2>&1
+		if [ "$?" -ne 0 ]; then
+			_excute "apt-get install -f"
+			apt-get check >/dev/null 2>&1
+			if [ "$?" -ne 0 ]; then
+				_error "apt-get check failed, you may have broken packages."
+				exit 1
+			fi
+		fi
+	fi
+	_success "System updated."
 }
 
 function _installDepends() {
-    _info "Installing ${APP_TITLE} dependencies..."
-    local DEPLIST="${APP_BASEDEPS}"
-    for depend in $DEPLIST; do
-        _info "Installing ${depend}... "
-        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
-    done
-    if [[ $dependError != "1" ]]; then
-        _success "${APP_TITLE} dependencies installed."
-    else
-        _error "${APP_TITLE} dependencies failed to install."
-        exit 1
-    fi
+	_info "Installing ${APP_TITLE} dependencies..."
+	local DEPLIST="${APP_BASEDEPS}"
+	for depend in $DEPLIST; do
+		_info "Installing ${depend}... "
+		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+	done
+	if [[ $dependError != "1" ]]; then
+		_success "${APP_TITLE} dependencies installed."
+	else
+		_error "${APP_TITLE} dependencies failed to install."
+		exit 1
+	fi
 }
 
-function _installFpm () {
-    fpm -h > /dev/null 2>&1
-    exit=$?
-    if [[ ! $exit == '0' ]]; then
-        _info "Installing fpm package management..."
-        _excute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
-        _excute "gem install --no-ri --no-rdoc fpm"
-        _success "fpm installed."
-    fi
+function _installFpm() {
+	fpm -h >/dev/null 2>&1
+	exit=$?
+	if [[ ! $exit == '0' ]]; then
+		_info "Installing fpm package management..."
+		_excute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
+		_excute "gem install --no-ri --no-rdoc fpm"
+		_success "fpm installed."
+	fi
 }
 
 function _installApp() {
-    _info "Building ${APP_TITLE}..."
-        # get app version
-        case ${version} in
-            feature-bind ) 
-                RTVERSION=feature-bind
-                LTORRENT=feature-bind
-                ;;
-            0.9.8 ) 
-                RTORRENTBIN=rtorrent_0.9.8-1build1_amd64.deb
-                LTORRENTBIN=libtorrent21_0.13.8-1build1_amd64.deb
-                ;;
-            0.9.7 ) 
-                RTORRENTBIN=rtorrent_0.9.7-1build1_amd64.deb
-                LTORRENTBIN=libtorrent20_0.13.7-1build1_amd64.deb
-                ;;
-            0.9.6 ) 
-                RTORRENTBIN=rtorrent_0.9.6-1build1_amd64.deb
-                LTORRENTBIN=libtorrent19_0.13.6-1build1_amd64.deb
-                ;;
-            0.9.4 ) 
-                RTORRENTBIN=rtorrent_0.9.4-1build1_amd64.deb
-                LTORRENTBIN=libtorrent18_0.13.4-1build1_amd64.deb
-                ;;
-            * | "")
-                RTORRENTBIN=rtorrent_0.9.6-1build1_amd64.deb
-                LTORRENTBIN=libtorrent19_0.13.6-1build1_amd64.deb
-                ;;
-        esac
+	_info "Building ${APP_TITLE}..."
+	# get app version
+	case ${version} in
+	feature-bind)
+		RTVERSION=feature-bind
+		LTORRENT=feature-bind
+		;;
+	0.9.8)
+		RTORRENTBIN=rtorrent_0.9.8-1build1_amd64.deb
+		LTORRENTBIN=libtorrent21_0.13.8-1build1_amd64.deb
+		;;
+	0.9.7)
+		RTORRENTBIN=rtorrent_0.9.7-1build1_amd64.deb
+		LTORRENTBIN=libtorrent20_0.13.7-1build1_amd64.deb
+		;;
+	0.9.6)
+		RTORRENTBIN=rtorrent_0.9.6-1build1_amd64.deb
+		LTORRENTBIN=libtorrent19_0.13.6-1build1_amd64.deb
+		;;
+	0.9.4)
+		RTORRENTBIN=rtorrent_0.9.4-1build1_amd64.deb
+		LTORRENTBIN=libtorrent18_0.13.4-1build1_amd64.deb
+		;;
+	* | "")
+		RTORRENTBIN=rtorrent_0.9.6-1build1_amd64.deb
+		LTORRENTBIN=libtorrent19_0.13.6-1build1_amd64.deb
+		;;
+	esac
 
-        # installation process
-        if [[ ${version} == feature-bind ]]; then
-            # prepare package toolchain
-            _installDepends
-            _installFpm
-            if [ ${CODENAME} == 'xenial' ]; then
-                _do "apt purge -y libssl-dev"
-                _do "apt install -y libssl-dev=1.0.*"
-            fi
-            # compiling
-            BRANCH_LT="https://github.com/rakshasa/libtorrent.git"
-            BRANCH_RT="https://github.com/rakshasa/rtorrent.git"
-        
-            # libtorrent-rakshasa
-            mkdir -p /root/pool
-            mkdir -p /root/dist
-            cd /tmp
-            _excute "git clone -b ${LTORRENT} ${BRANCH_LT} libtorrent"
-            cd libtorrent
-            _excute "./autogen.sh"
-            _excute "./configure --prefix=/usr --disable-debug"
-            LTVERSION=$(cat configure.ac | grep -Eo "AC_INIT\(libtorrent,.*" | grep -Eo "[0-9.]+" | head -n1)
-            _excute "make -j$(nproc)"
-            _excute "make DESTDIR=/tmp/dist/libtorrent-rakshasa install"
-            fpm -f -C /tmp/dist/libtorrent-rakshasa -p /root/pool/libtorrent-rakshasa_${LTVERSION}.deb -s dir -t deb -n libtorrent-rakshasa --version ${LTVERSION} --description "libtorrent-rakshasa compiled by QuickBox Lite" > /dev/null 2>&1
-            _excute "dpkg -i /root/pool/libtorrent-rakshasa_${LTVERSION}.deb"
-            rm -rf /tmp/libtorrent
-            _excute "ldconfig"
+	# installation process
+	if [[ ${version} == feature-bind ]]; then
+		# prepare package toolchain
+		_installDepends
+		_installFpm
+		if [ ${CODENAME} == 'xenial' ]; then
+			_do "apt purge -y libssl-dev"
+			_do "apt install -y libssl-dev=1.0.*"
+		fi
+		# compiling
+		BRANCH_LT="https://github.com/rakshasa/libtorrent.git"
+		BRANCH_RT="https://github.com/rakshasa/rtorrent.git"
 
-            # rtorrent
-            cd /tmp
-            _excute "git clone -b ${RTVERSION} ${BRANCH_RT} rtorrent"
-            cd rtorrent
-            _excute "./autogen.sh"
-            _excute "./configure --prefix=/usr --with-xmlrpc-c --with-ncurses --disable-debug --enable-ipv6"
-            RTVERSION=$(cat configure.ac | grep -Eo "AC_INIT\(rtorrent,.*" | grep -Eo "[0-9.]+" | head -n1)
-            _excute "make -j$(nproc)"
-            _excute "make DESTDIR=/tmp/dist/rtorrent install"
-            fpm -f -C /tmp/dist/rtorrent -p /root/pool/rtorrent_${RTVERSION}.deb -s dir -t deb -n rtorrent --version ${RTVERSION} --description "rtorrent compiled by QuickBox Lite" > /dev/null 2>&1
-            _excute "dpkg -i /root/pool/rtorrent_${RTVERSION}.deb"
-            rm -rf /tmp/rtorrent
-            rm -rf /tmp/dist
-        else
-            APP_BASEDEPS="screen unzip"
-            _installDepends
-            # get deb packages
-            cd /tmp
-            wget -q -O ${LTORRENTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rakshasa/${LTORRENTBIN}/download
-            wget -q -O ${RTORRENTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/rtorrent/${RTORRENTBIN}/download
-            _excute "apt install -y /tmp/${LTORRENTBIN}"
-            _excute "apt install -y /tmp/${RTORRENTBIN}"
-            rm -rf {${LTORRENTBIN},${RTORRENTBIN}}
-            # disable auto upgrade
-            _excute "apt-mark hold rtorrent"
-            _excute "apt-mark hold libtorrent18"
-            _excute "apt-mark hold libtorrent19"
-            _excute "apt-mark hold libtorrent20"
-            _excute "apt-mark hold libtorrent21"
-        fi
-    _success "${APP_TITLE} Built."
+		# libtorrent-rakshasa
+		mkdir -p /root/pool
+		mkdir -p /root/dist
+		cd /tmp
+		_excute "git clone -b ${LTORRENT} ${BRANCH_LT} libtorrent"
+		cd libtorrent
+		_excute "./autogen.sh"
+		_excute "./configure --prefix=/usr --disable-debug"
+		LTVERSION=$(cat configure.ac | grep -Eo "AC_INIT\(libtorrent,.*" | grep -Eo "[0-9.]+" | head -n1)
+		_excute "make -j$(nproc)"
+		_excute "make DESTDIR=/tmp/dist/libtorrent-rakshasa install"
+		fpm -f -C /tmp/dist/libtorrent-rakshasa -p /root/pool/libtorrent-rakshasa_${LTVERSION}.deb -s dir -t deb -n libtorrent-rakshasa --version ${LTVERSION} --description "libtorrent-rakshasa compiled by QuickBox Lite" >/dev/null 2>&1
+		_excute "dpkg -i /root/pool/libtorrent-rakshasa_${LTVERSION}.deb"
+		rm -rf /tmp/libtorrent
+		_excute "ldconfig"
+
+		# rtorrent
+		cd /tmp
+		_excute "git clone -b ${RTVERSION} ${BRANCH_RT} rtorrent"
+		cd rtorrent
+		_excute "./autogen.sh"
+		_excute "./configure --prefix=/usr --with-xmlrpc-c --with-ncurses --disable-debug --enable-ipv6"
+		RTVERSION=$(cat configure.ac | grep -Eo "AC_INIT\(rtorrent,.*" | grep -Eo "[0-9.]+" | head -n1)
+		_excute "make -j$(nproc)"
+		_excute "make DESTDIR=/tmp/dist/rtorrent install"
+		fpm -f -C /tmp/dist/rtorrent -p /root/pool/rtorrent_${RTVERSION}.deb -s dir -t deb -n rtorrent --version ${RTVERSION} --description "rtorrent compiled by QuickBox Lite" >/dev/null 2>&1
+		_excute "dpkg -i /root/pool/rtorrent_${RTVERSION}.deb"
+		rm -rf /tmp/rtorrent
+		rm -rf /tmp/dist
+	else
+		APP_BASEDEPS="screen unzip"
+		_installDepends
+		# get deb packages
+		cd /tmp
+		wget -q -O ${LTORRENTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rakshasa/${LTORRENTBIN}/download
+		wget -q -O ${RTORRENTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/rtorrent/${RTORRENTBIN}/download
+		_excute "apt install -y /tmp/${LTORRENTBIN}"
+		_excute "apt install -y /tmp/${RTORRENTBIN}"
+		rm -rf {${LTORRENTBIN},${RTORRENTBIN}}
+		# disable auto upgrade
+		_excute "apt-mark hold rtorrent"
+		_excute "apt-mark hold libtorrent18"
+		_excute "apt-mark hold libtorrent19"
+		_excute "apt-mark hold libtorrent20"
+		_excute "apt-mark hold libtorrent21"
+	fi
+	_success "${APP_TITLE} Built."
 }
 
 function _configureApp() {
-    _info "Configuring ${APP_TITLE}..."
-    # get userlist
-    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-    for username in $userlist; do
-        # get used port
-        local usedport=""
-        if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
-            usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
-        fi
-        # generate available port
-        PORT=$(shuf -i ${APP_DAEMON_PORT_LOW}-${APP_DAEMON_PORT_HIGH} -n 1)
-        while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do 
-            PORT=$(shuf -i ${APP_DAEMON_PORT_LOW}-${APP_DAEMON_PORT_HIGH} -n 1); 
-        done
-        echo $PORT > /install/$username.$APP_NAME.port
+	_info "Configuring ${APP_TITLE}..."
+	# get userlist
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		# get used port
+		local usedport=""
+		if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
+			usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
+		fi
+		# generate available port
+		PORT=$(shuf -i ${APP_DAEMON_PORT_LOW}-${APP_DAEMON_PORT_HIGH} -n 1)
+		while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do
+			PORT=$(shuf -i ${APP_DAEMON_PORT_LOW}-${APP_DAEMON_PORT_HIGH} -n 1)
+		done
+		echo $PORT >/install/$username.$APP_NAME.port
 
-        cat >/home/${username}/.rtorrent.rc<<EOF
+		cat >/home/${username}/.rtorrent.rc <<EOF
 # -- START HERE --
 directory.default.set = /home/${username}/torrents/rtorrent
 encoding.add = UTF-8
@@ -380,9 +382,9 @@ execute = {sh,-c,/usr/bin/php /srv/rutorrent/php/initplugins.php ${username} &}
 
 # -- END HERE --
 EOF
-        chown ${username}.${username} -R /home/${username}/.rtorrent.rc
-        if [[ ! -f /etc/nginx/apps/${username}.scgi.conf ]]; then
-cat > /etc/nginx/apps/${username}.scgi.conf <<SCGI
+		chown ${username}.${username} -R /home/${username}/.rtorrent.rc
+		if [[ ! -f /etc/nginx/apps/${username}.scgi.conf ]]; then
+			cat >/etc/nginx/apps/${username}.scgi.conf <<SCGI
 location /${username} {
 include scgi_params;
 scgi_pass unix:/var/run/${username}/.rtorrent.sock;
@@ -390,15 +392,15 @@ auth_basic "Password Required";
 auth_basic_user_file /etc/htpasswd.d/htpasswd.${username};
 }
 SCGI
-        fi
-        mkdir -p /home/${username}/torrents/rtorrent
-        mkdir -p /home/${username}/.sessions
-        mkdir -p /home/${username}/rwatch
-        chown -R ${username}.${username} /home/${username}/{torrents,.sessions,rwatch}
-        usermod -a -G www-data ${username}
-        usermod -a -G ${username} www-data
+		fi
+		mkdir -p /home/${username}/torrents/rtorrent
+		mkdir -p /home/${username}/.sessions
+		mkdir -p /home/${username}/rwatch
+		chown -R ${username}.${username} /home/${username}/{torrents,.sessions,rwatch}
+		usermod -a -G www-data ${username}
+		usermod -a -G ${username} www-data
 
-        cat > /etc/nginx/apps/${username}.rtdlindex.conf<<RDL
+		cat >/etc/nginx/apps/${username}.rtdlindex.conf <<RDL
 location /${username}.rtorrent.downloads {
   alias /home/${username}/torrents/rtorrent;
   include /etc/nginx/snippets/fancyindex.conf;
@@ -410,8 +412,8 @@ location /${username}.rtorrent.downloads {
   }
 }
 RDL
-    done
-    cat >/etc/systemd/system/${APP_SERVICE}@.service<<EOF
+	done
+	cat >/etc/systemd/system/${APP_SERVICE}@.service <<EOF
 [Unit]
 Description=rTorrent
 After=network.target
@@ -427,57 +429,56 @@ WorkingDirectory=/home/%I/
 [Install]
 WantedBy=multi-user.target
 EOF
-    _excute "systemctl daemon-reload"
-    _excute "nginx -s reload"
-    _success "${APP_TITLE} configured."
+	_excute "systemctl daemon-reload"
+	_excute "nginx -s reload"
+	_success "${APP_TITLE} configured."
 }
 
 function _installAppLock() {
-    _info "Configuring ${APP_TITLE} lock..."
-    touch /install/${APP_LOCK}
-    _success "${APP_TITLE} lock configured."
+	_info "Configuring ${APP_TITLE} lock..."
+	touch /install/${APP_LOCK}
+	_success "${APP_TITLE} lock configured."
 }
 
 function _installAppStart() {
-    _info "Starting ${APP_TITLE}..."
-    userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-    for username in $userlist; do
-        _excute "systemctl enable ${APP_SERVICE}@${username}"
-        _excute "systemctl start ${APP_SERVICE}@${username}"
-    done
-    _success "${APP_TITLE} started."
+	_info "Starting ${APP_TITLE}..."
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		_excute "systemctl enable ${APP_SERVICE}@${username}"
+		_excute "systemctl start ${APP_SERVICE}@${username}"
+	done
+	_success "${APP_TITLE} started."
 }
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=`getopt -a -o ghl:v: -l gui,help,log:,version: -- "$@"`
+ARGS=$(getopt -a -o ghl:v: -l gui,help,log:,version: -- "$@")
 eval set -- "${ARGS}"
-while true
-do
-    case "$1" in
-    -g|--gui)
-        _menuinstall
-        break
-        ;;
-    -h|--help)
-        _usage
-        exit 1
-        ;;
-    -l|--log)
-        OUTTO="$2"
-        shift
-        ;;
-    -v|--version)
-        version="$2"
-        shift
-        ;;
-    --)
-    shift
-    break
-    ;;
-    esac
-shift
+while true; do
+	case "$1" in
+	-g | --gui)
+		_menuinstall
+		break
+		;;
+	-h | --help)
+		_usage
+		exit 1
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	-v | --version)
+		version="$2"
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
 done
 
 #################################################################################
@@ -487,7 +488,7 @@ _lockCheck
 _setLock
 _installInfo
 if [[ ! -f /install/.system.lock ]]; then
-    _installSystemUpdates
+	_installSystemUpdates
 fi
 _installApp
 _configureApp

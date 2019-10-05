@@ -3,10 +3,9 @@
 # [QuickBox Lite noVNC Installer]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# Maintainer:   Amefs
 # Current version:  v1.1.0
-# URL:
-# Original Repo:    https://github.com/QuickBox/QB
+# Author:           Mischief
 # Credits to:       QuickBox.io
 #
 #   Licensed under GNU General Public License v3.0 GPL-3 (in short)
@@ -25,7 +24,7 @@ RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
 SETNAME=$(lsb_release -rc)
 # Server IP Address
-SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
+SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
 ################################################################################
 # HELP FUNCTIONS
@@ -53,22 +52,22 @@ _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
 function _excute() {
-    ($1 >> "${OUTTO}" 2>&1;)
+	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
-    printf "${_norm}%s${_norm}\n" "$@"
+	printf "${_norm}%s${_norm}\n" "$@"
 }
 function _info() {
-    printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
 }
 function _success() {
-    printf "${_green}✓ %s${_norm}\n" "$@"
+	printf "${_green}✓ %s${_norm}\n" "$@"
 }
 function _warning() {
-    printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
 }
 function _error() {
-    printf "${_red}✗ %s${_norm}\n" "$@"
+	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
 #################################################################################
@@ -88,49 +87,49 @@ APP_WEB_PORT_HIGH=""
 APP_DAEMON_PORT_LOW=""
 APP_DAEMON_PORT_HIGH=""
 
-APP_LOCK=`echo .$APP_NAME.lock`
+APP_LOCK=$(echo .$APP_NAME.lock)
 OUTTO=/srv/dashboard/db/output.log
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
-    echo -e "\nQuickBox Lite $APP_TITLE Installer"
-    echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
-    echo -e "\nOptions:\n"
-    echo "-l, --log <logfile>       specific log file"
-    echo ""
-    echo "-h, --help                display this help and exit"
+	echo -e "\nQuickBox Lite $APP_TITLE Installer"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+	echo -e "\nOptions:\n"
+	echo "-l, --log <logfile>       specific log file"
+	echo ""
+	echo "-h, --help                display this help and exit"
 }
 ################################################################################
 # INSTALL FUNCTIONS
 ################################################################################
 function _lockCheck() {
-    if [[ -f "/install/.install.lock" ]]; then
-        prevApp=$(cat /install/.install.lock)
-        _info "$prevApp process running."
-        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
-        _error "Exiting..."
-        exit 1
-    fi
-    if [[ -f "/install/$APP_LOCK" ]]; then
-        _error "${APP_TITLE} already installed !"
-        exit 1
-    fi
+	if [[ -f "/install/.install.lock" ]]; then
+		prevApp=$(cat /install/.install.lock)
+		_info "$prevApp process running."
+		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
+		_error "Exiting..."
+		exit 1
+	fi
+	if [[ -f "/install/$APP_LOCK" ]]; then
+		_error "${APP_TITLE} already installed !"
+		exit 1
+	fi
 }
 function _setLock() {
-    echo "${APP_TITLE}" > /install/.install.lock
+	echo "${APP_TITLE}" >/install/.install.lock
 }
 function _lockCleanup() {
-    echo "$APP_TITLE Install Complete!
+	echo "$APP_TITLE Install Complete!
 
 
-Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
-    rm -f /install/.install.lock
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
+	rm -f /install/.install.lock
 }
 
 function _installInfo() {
-    _print "
+	_print "
 $APP_TITLE will now be installed.
 
 This process may take a few minutes
@@ -139,91 +138,91 @@ Please wait until the process is completed
 }
 
 function _installAddSources() {
-    _info "Adding additional keys and sources ${APP_TITLE}..."
-    if [[ $DISTRO == "Ubuntu" ]]; then
-        apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0x0AB215679C571D1C8325275B9BDB3D89CE49EC21 >/dev/null 2>&1
-        add-apt-repository ppa:mozillateam/ppa -y >/dev/null 2>&1
-    fi
-    _success "Keys and sources added."
+	_info "Adding additional keys and sources ${APP_TITLE}..."
+	if [[ $DISTRO == "Ubuntu" ]]; then
+		apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0x0AB215679C571D1C8325275B9BDB3D89CE49EC21 >/dev/null 2>&1
+		add-apt-repository ppa:mozillateam/ppa -y >/dev/null 2>&1
+	fi
+	_success "Keys and sources added."
 }
 
 function _installSystemUpdates() {
-    _info "Checking and performing updates to system... ";
-    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
-    ## auto solve lock
-    if [ "$?" -eq 2 ]; then
-        _warning "dpkg database is locked."
-        _info "fixing dpkg lock..."
-        rm -f /var/lib/dpkg/updates/0*
-        locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
-        if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
-            for l in ${locks}; do
-                rm -rf ${l}
-            done
-            _excute "dpkg --configure -a"
-            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
-        fi
-        apt-get check >/dev/null 2>&1
-        if [ "$?" -ne 0 ]; then
-            _excute "apt-get install -f"
-            apt-get check >/dev/null 2>&1
-            if [ "$?" -ne 0 ]; then
-                _error "apt-get check failed, you may have broken packages."
-                exit 1
-            fi
-        fi
-    fi
-    _success "System updated."
+	_info "Checking and performing updates to system... "
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+	## auto solve lock
+	if [ "$?" -eq 2 ]; then
+		_warning "dpkg database is locked."
+		_info "fixing dpkg lock..."
+		rm -f /var/lib/dpkg/updates/0*
+		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+			for l in ${locks}; do
+				rm -rf ${l}
+			done
+			_excute "dpkg --configure -a"
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+		fi
+		apt-get check >/dev/null 2>&1
+		if [ "$?" -ne 0 ]; then
+			_excute "apt-get install -f"
+			apt-get check >/dev/null 2>&1
+			if [ "$?" -ne 0 ]; then
+				_error "apt-get check failed, you may have broken packages."
+				exit 1
+			fi
+		fi
+	fi
+	_success "System updated."
 }
 
 function _installDepends() {
-    _info "Installing ${APP_TITLE} dependencies..."
-    local DEPLIST="${APP_BASEDEPS}"
-    for depend in $DEPLIST; do
-        _info "Installing ${depend}... "
-        export DEBIAN_FRONTEND=noninteractive
-        _excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
-    done
-    if [[ $dependError != "1" ]]; then
-        _success "${APP_TITLE} dependencies installed."
-    else
-        _error "${APP_TITLE} dependencies failed to install."
-        exit 1
-    fi
+	_info "Installing ${APP_TITLE} dependencies..."
+	local DEPLIST="${APP_BASEDEPS}"
+	for depend in $DEPLIST; do
+		_info "Installing ${depend}... "
+		export DEBIAN_FRONTEND=noninteractive
+		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+	done
+	if [[ $dependError != "1" ]]; then
+		_success "${APP_TITLE} dependencies installed."
+	else
+		_error "${APP_TITLE} dependencies failed to install."
+		exit 1
+	fi
 }
 
 function _installApp() {
-    _info "Building ${APP_TITLE}..."
-    if [[ $CODENAME == bionic ]]; then
-    _excute "apt-get -y install libappindicator-dev"
-    fi
-    cd /tmp
-    wget -q -O master.zip 'https://github.com/novnc/noVNC/archive/master.zip'
-    _excute "unzip master.zip"
-    rm -rf master.zip
-    _excute "mv noVNC-master /srv/novnc/"
-    _info "Generating self-signed certificate for noVNC security..."
-    _excute "openssl req -config /root/.openssl.cnf -newkey rsa:1024 -x509 -days 1095 -nodes -out /srv/novnc/utils/self.pem -keyout /srv/novnc/utils/self.pem"
-    chown www-data:www-data -R /srv/novnc/
-    chmod +rx /srv/novnc/utils/launch.sh
-    _success "${APP_TITLE} Built."
+	_info "Building ${APP_TITLE}..."
+	if [[ $CODENAME == bionic ]]; then
+		_excute "apt-get -y install libappindicator-dev"
+	fi
+	cd /tmp
+	wget -q -O master.zip 'https://github.com/novnc/noVNC/archive/master.zip'
+	_excute "unzip master.zip"
+	rm -rf master.zip
+	_excute "mv noVNC-master /srv/novnc/"
+	_info "Generating self-signed certificate for noVNC security..."
+	_excute "openssl req -config /root/.openssl.cnf -newkey rsa:1024 -x509 -days 1095 -nodes -out /srv/novnc/utils/self.pem -keyout /srv/novnc/utils/self.pem"
+	chown www-data:www-data -R /srv/novnc/
+	chmod +rx /srv/novnc/utils/launch.sh
+	_success "${APP_TITLE} Built."
 }
 
 function _configureApp() {
-    _info "Configuring ${APP_TITLE}..."
-    username=$(cat /root/.admin.info | cut -d: -f1)
-    passphrase=$(cat /root/.ssh/local_user)
-    passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
-    if [[ $CODENAME == xenial ]]; then
-        password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:${passphrase} -nosalt)
-    else
-        password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
-    fi
+	_info "Configuring ${APP_TITLE}..."
+	username=$(cat /root/.admin.info | cut -d: -f1)
+	passphrase=$(cat /root/.ssh/local_user)
+	passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
+	if [[ $CODENAME == xenial ]]; then
+		password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:${passphrase} -nosalt)
+	else
+		password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
+	fi
 
-    _success "${APP_TITLE} configured."
-    cat > /etc/systemd/system/tightvnc.service <<EOF
+	_success "${APP_TITLE} configured."
+	cat >/etc/systemd/system/tightvnc.service <<EOF
 [Unit]
 Description=Remote desktop service (TightVNC)
 After=syslog.target network.target
@@ -244,7 +243,7 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 
-    cat > /etc/systemd/system/novnc.service <<EOF
+	cat >/etc/systemd/system/novnc.service <<EOF
 [Unit]
 Description=novnc websockify
 After=network.target
@@ -261,13 +260,13 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 
-    cat > /etc/nginx/conf.d/novnc.conf <<EOF
+	cat >/etc/nginx/conf.d/novnc.conf <<EOF
 upstream novnc {
     server 127.0.0.1:${APP_WEB_PORT};
 }
 EOF
 
-    cat > /etc/nginx/apps/vnc.conf <<EOF
+	cat >/etc/nginx/apps/vnc.conf <<EOF
 location /websockify {
   proxy_http_version 1.1;
   proxy_pass http://novnc;
@@ -286,9 +285,9 @@ location /vnc {
 }
 EOF
 
-    # create log password with expect
-    prog=/usr/bin/vncpasswd
-    _excute "runuser -l $username -c /usr/bin/expect" <<EOF
+	# create log password with expect
+	prog=/usr/bin/vncpasswd
+	_excute "runuser -l $username -c /usr/bin/expect" <<EOF
 spawn "$prog"
 expect "Password:"
 send "$password\r"
@@ -299,59 +298,58 @@ send "n\r"
 expect dof
 exit
 EOF
-    mkdir -p /home/${username}/.vnc >/dev/null 2>&1
-    cat > /home/${username}/.vnc/xstartup <<EOF
+	mkdir -p /home/${username}/.vnc >/dev/null 2>&1
+	cat >/home/${username}/.vnc/xstartup <<EOF
 #!/bin/bash
 xrdb $HOME/.Xresources
 startxfce4 &
 EOF
-    chmod +x /home/${username}/.vnc/xstartup
-    chown ${username}:${username} -R /home/${username}/.vnc
+	chmod +x /home/${username}/.vnc/xstartup
+	chown ${username}:${username} -R /home/${username}/.vnc
 
-    _excute "nginx -s reload"
-    _excute "systemctl daemon-reload"
+	_excute "nginx -s reload"
+	_excute "systemctl daemon-reload"
 }
 
 function _installAppLock() {
-    _info "Configuring ${APP_TITLE} lock..."
-    touch /install/${APP_LOCK}
-    _success "${APP_TITLE} lock configured."
+	_info "Configuring ${APP_TITLE} lock..."
+	touch /install/${APP_LOCK}
+	_success "${APP_TITLE} lock configured."
 }
 
 function _installAppStart() {
-    _info "Starting ${APP_TITLE}..."
-    _excute "systemctl start tightvnc.service"
-    _excute "systemctl enable tightvnc.service"
-    _excute "systemctl start novnc.service"
-    _excute "systemctl enable novnc.service"
-    _excute "iptables -A INPUT -p tcp -s localhost --dport $APP_DAEMON_PORT -j ACCEPT"
-    _excute "iptables -A INPUT -p tcp --dport $APP_DAEMON_PORT -j DROP"
-    _excute "service iptables-persistent save"
-    _success "${APP_TITLE} started."
+	_info "Starting ${APP_TITLE}..."
+	_excute "systemctl start tightvnc.service"
+	_excute "systemctl enable tightvnc.service"
+	_excute "systemctl start novnc.service"
+	_excute "systemctl enable novnc.service"
+	_excute "iptables -A INPUT -p tcp -s localhost --dport $APP_DAEMON_PORT -j ACCEPT"
+	_excute "iptables -A INPUT -p tcp --dport $APP_DAEMON_PORT -j DROP"
+	_excute "service iptables-persistent save"
+	_success "${APP_TITLE} started."
 }
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=`getopt -a -o hl: -l help,log: -- "$@"`
+ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
 eval set -- "${ARGS}"
-while true
-do
-    case "$1" in
-    -h|--help)
-        _usage
-        exit 1
-        ;;
-    -l|--log)
-        OUTTO="$2"
-        shift
-        ;;
-    --)
-    shift
-    break
-    ;;
-    esac
-shift
+while true; do
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 1
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
 done
 
 #################################################################################
