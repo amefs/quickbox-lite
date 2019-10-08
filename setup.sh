@@ -109,9 +109,20 @@ function _init() {
     # install net-tools for IP detection
     echo -e "XXX\n30\nGetting network status... \nXXX"
     apt-get -qq -y install net-tools > /dev/null 2>&1
-    echo -e "XXX\n70\nGetting network status... Done.\nXXX"
+	echo -e "XXX\n50\nGetting network status... Done.\nXXX"
+	sleep 0.5
+
+    # remove Apache
+    echo -e "XXX\n50\nClean up the environment for installation... \nXXX"
+    service apache2 disable >/dev/null 2>&1
+    service apache2 stop >/dev/null 2>&1
+    APACHE_PKGS='apache2 apache2-bin apache2-data'
+    apt-get -y remove "${APACHE_PKGS}" >/dev/null 2>&1
+    apt-get -y purge "${APACHE_PKGS}" >/dev/null 2>&1
+    apt-get -y autoclean >/dev/null 2>&1
+    echo -e "XXX\n70\nClean up the environment for installation... Done.\nXXX"
     sleep 0.5
-    
+
     # setup location infomation
     echo -e "XXX\n70\nSetting up location... \nXXX"
     if [[ ! $(grep "^en_US.UTF-8 UTF-8" /etc/locale.gen >/dev/null 2>&1) && ! $(grep "^zh_CN.UTF-8 UTF-8" /etc/locale.gen >/dev/null 2>&1) ]]; then
