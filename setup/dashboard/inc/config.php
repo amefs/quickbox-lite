@@ -70,22 +70,26 @@ function formatsize($size) {
 
 //NIC flow
 $strs = @file("/proc/net/dev");
-for ($i = 2; $i < count($strs); $i++ ) {
-  preg_match_all("/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
-  $NetInputSpeed[$i] = $info[2][0]; // Receive data in bytes
-  $NetOutSpeed[$i] = $info[10][0]; // Transmit data in bytes
+// only index start from 0 will be encoded as an array
+$NetInputSpeed = [0 => NULL, 1 => NULL];
+$NetOutSpeed = [0 => NULL, 1 => NULL];
+
+for ($i = 2; $i < count($strs); $i++) {
+  preg_match_all("/(?<name>[^\s]+):[\s]{0,}(?<rx_bytes>\d+)\s+(?:\d+\s+){7}(?<tx_bytes>\d+)\s+/", $strs[$i], $info);
+  $NetInputSpeed[$i] = $info["rx_bytes"][0]; // Receive data in bytes
+  $NetOutSpeed[$i] = $info["tx_bytes"][0]; // Transmit data in bytes
 }
 
 //Real-time refresh ajax calls
 if ($_GET["act"] == "rt") {
-  $arr=array(
+  $arr = array(
     "NetOutSpeed" => $NetOutSpeed,
     "NetInputSpeed" => $NetInputSpeed,
-    "NetTimeStamp" => microtime(true)
+    "NetTimeStamp" => microtime(true),
+    "InterfaceIndex" => count($strs)
   );
-  $jarr=json_encode($arr);
-  $_GET["callback"] = htmlspecialchars($_GET["callback"]);
-  echo $_GET["callback"],"(",$jarr,")";
+  $jarr = json_encode($arr);
+  echo htmlspecialchars($_GET["callback"])."(".$jarr.")";
   exit;
 }
 

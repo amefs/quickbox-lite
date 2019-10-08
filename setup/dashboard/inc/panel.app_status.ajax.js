@@ -100,7 +100,7 @@
     name: "NETWORK",
     url: "/?act=rt&callback=?",
     id: undefined,
-    overload: function (task) {
+    override: function (task) {
       function format(length, factor, tail, fractionDigits) {
         return (length / Math.pow(2, factor)).toFixed(fractionDigits).toString() + tail;
       }
@@ -121,7 +121,7 @@
 
       $.getJSON(task.url, function (dataJSON) {
         const duration = (dataJSON.NetTimeStamp - window.NetTimeStamp);
-        for (let i = 2; i < 5; ++i) {
+        for (let i = 2; i <= dataJSON.InterfaceIndex; ++i) {
           if (window.NetOutSpeed[i] !== undefined) {
             const speed = (dataJSON.NetOutSpeed[i] - window.NetOutSpeed[i]) / duration;
             const speed_str = formatsize(speed);
@@ -209,8 +209,8 @@
           // set a delay for each task.
           setTimeout(function() {
             if (task.before) task.before(task);
-            if (task.overload) {
-              task.overload(task);
+            if (task.override) {
+              task.override(task);
             } else {
               // only displayed element will be updated
               if (task.id && $(task.id).length > 0) {
