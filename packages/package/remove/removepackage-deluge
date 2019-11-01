@@ -17,16 +17,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -76,10 +66,9 @@ function _error() {
 #################################################################################
 APP_TITLE="Deluge"
 APP_NAME="deluge"
-APP_SERVICE=""
 APP_BASEDEPS="deluge-console deluge-gtk deluge-web deluged deluge-common"
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 
 ################################################################################
@@ -164,6 +153,10 @@ function _removeApp() {
 	_info "Removing ${APP_TITLE}..."
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
+		if [[ -f /install/.${username}.flexget.lock ]]; then
+			DPORT=$(cat /install/${username}.deluged.port)
+			sed -i "s/${DPORT}/DEPORT/g" /home/${username}/.config/flexget/config.yml
+		fi
 		rm -rf /home/${username}/dwatch
 		rm -rf /home/${username}/torrents/deluge
 		rm -rf /home/${username}/.config/deluge

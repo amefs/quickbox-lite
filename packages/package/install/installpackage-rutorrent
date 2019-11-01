@@ -17,16 +17,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -76,19 +66,9 @@ function _error() {
 #################################################################################
 APP_TITLE="ruTorrent"
 APP_NAME="rutorrent"
-APP_SERVICE=""
 APP_BASEDEPS="sox libsox-fmt-mp3 geoip-database python-dev python-cryptography python-openssl python-setuptools mediainfo zip unzip"
-APP_WEB_PORT=""
-APP_DAEMON_PORT=""
-APP_HOST="127.0.0.1"
 
-# RANDOM PORT
-APP_WEB_PORT_LOW=""
-APP_WEB_PORT_HIGH=""
-APP_DAEMON_PORT_LOW=""
-APP_DAEMON_PORT_HIGH=""
-
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 
 BRANCH="https://github.com/Novik/ruTorrent.git"
@@ -162,12 +142,10 @@ function _installSystemUpdates() {
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
-		apt-get check >/dev/null 2>&1
-		if [ "$?" -ne 0 ]; then
-			_excute "apt-get install -f"
-			apt-get check >/dev/null 2>&1
-			if [ "$?" -ne 0 ]; then
-				_error "apt-get check failed, you may have broken packages."
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
 				exit 1
 			fi
 		fi
@@ -192,7 +170,7 @@ function _installDepends() {
 
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
-	cd /srv
+	cd /srv || exit 1
 	if [[ ! -d /srv/$APP_NAME/ ]]; then
 		_excute "git clone --recurse-submodules $BRANCH $APP_NAME"
 		chown -R www-data:www-data $APP_NAME
@@ -248,7 +226,7 @@ EOF
 			sed -i "s/changeWhat = \"cell-background\";/changeWhat = \"font\";/g" ${plugin_lib}ratiocolor/init.js
 		fi
 		if [[ ! -d ${plugin_lib}logoff ]]; then
-			cd ${plugin_lib}
+			cd ${plugin_lib} || { _error "Can not install ruTorrent logoff" && exit 1; }
 			_excute "wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/rutorrent-logoff/logoff-1.3.tar.gz"
 			_excute "tar xf logoff-1.3.tar.gz"
 			rm -rf logoff-1.3.tar.gz
@@ -263,44 +241,44 @@ EOF
 	rm -rf /srv/rutorrent/plugins/_cloudflare
 
 	_info "Initializing ruTorrent plugins... "
-	cd /srv/rutorrent/
+	cd /srv/rutorrent/ || { _error "Can not install ruTorrent" && exit 1; }
 	sed -i 's/useExternal = false;/useExternal = "mktorrent";/' /srv/rutorrent/plugins/create/conf.php
 	sed -i 's/pathToCreatetorrent = '\'\''/pathToCreatetorrent = '\''\/usr\/bin\/mktorrent'\''/' /srv/rutorrent/plugins/create/conf.php
 	sed -i "s/\$pathToExternals\['sox'\] = ''/\$pathToExternals\['sox'\] = '\/usr\/bin\/sox'/g" /srv/rutorrent/plugins/spectrogram/conf.php
 
 	if [[ ! -d /srv/rutorrent/plugins/theme/themes/club-QuickBox ]]; then
-		cd /srv/rutorrent/plugins/theme/themes
+		cd /srv/rutorrent/plugins/theme/themes || { _error "Can not install ruTorrent theme " && exit 1; }
 		_excute "sudo git clone https://lab.quickbox.io/QuickBox/club-QuickBox.git club-QuickBox"
 		sudo perl -pi -e "s/\$defaultTheme \= \"\"\;/\$defaultTheme \= \"club-QuickBox\"\;/g" /srv/rutorrent/plugins/theme/conf.php
 	fi
 
 	if [[ ! -d /srv/rutorrent/plugins/filemanager ]]; then
-		cd /srv/rutorrent/plugins/
+		cd /srv/rutorrent/plugins/ || { _error "Can not install ruTorrent filemanager" && exit 1; }
 		cp -R ${plugin_lib}filemanager .
 		chown -R www-data: /srv/rutorrent/plugins/filemanager
 		chmod -R +x filemanager/scripts
 	fi
 
 	if [[ ! -d /srv/rutorrent/plugins/ratiocolor ]]; then
-		cd /srv/rutorrent/plugins
+		cd /srv/rutorrent/plugins || { _error "Can not install ruTorrent ratiocolor" && exit 1; }
 		cp -R ${plugin_lib}ratiocolor .
 		sed -i "s/changeWhat = \"cell-background\";/changeWhat = \"font\";/g" /srv/rutorrent/plugins/ratiocolor/init.js
 	fi
 
 	if [[ ! -d /srv/rutorrent/plugins/mobile ]]; then
-		cd /srv/rutorrent/plugins
+		cd /srv/rutorrent/plugins || { _error "Can not install ruTorrent mobile" && exit 1; }
 		cp -R ${plugin_lib}mobile .
 		chown -R www-data: mobile
 	fi
 
 	if [[ ! -d /srv/rutorrent/plugins/logoff ]]; then
-		cd /srv/rutorrent/plugins
+		cd /srv/rutorrent/plugins || { _error "Can not install ruTorrent logoff" && exit 1; }
 		cp -R ${plugin_lib}logoff .
 		chown -R www-data: logoff
 	fi
 
 	if [[ ! -d /srv/rutorrent/plugins/stream ]]; then
-		cd /srv/rutorrent/plugins
+		cd /srv/rutorrent/plugins || { _error "Can not install ruTorrent stream" && exit 1; }
 		cp -R ${plugin_lib}stream .
 		chown -R www-data: stream
 	fi
@@ -469,6 +447,7 @@ function _installAppLock() {
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
 	_excute "nginx -s reload"
+	_excute "/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'"
 	_success "${APP_TITLE} started."
 }
 

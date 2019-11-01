@@ -17,16 +17,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -38,34 +28,34 @@ _cyan=$(tput setaf 6)
 OUTTO=/srv/dashboard/db/output.log
 
 function _excute() {
-    ($1 >> "${OUTTO}" 2>&1;)
+	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
-    printf "${_norm}%s${_norm}\n" "$@"
+	printf "${_norm}%s${_norm}\n" "$@"
 }
 function _info() {
-    printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
 }
 function _success() {
-    printf "${_green}✓ %s${_norm}\n" "$@"
+	printf "${_green}✓ %s${_norm}\n" "$@"
 }
 function _warning() {
-    printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
 }
 function _error() {
-    printf "${_red}✗ %s${_norm}\n" "$@"
+	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
 ################################################################################
 # MAIN FUNCTIONS
 ################################################################################
 function _unban() {
-    _info "Unbanning ..."
-    fail2banjails=$(fail2ban-client status | grep "Jail list" | cut -f2- | sed 's/,//g')
-    for jails in $fail2banjails; do
-        fail2ban-client set $jails unbanip $option >/dev/null 2>&1
-    done
-    _success "Banned list cleaned !"
+	_info "Unbanning ..."
+	fail2banjails=$(fail2ban-client status | grep "Jail list" | cut -f2- | sed 's/,//g')
+	for jails in $fail2banjails; do
+		fail2ban-client set $jails unbanip $option >/dev/null 2>&1
+	done
+	_success "Banned list cleaned !"
 }
 ################################################################################
 # EXCUTE

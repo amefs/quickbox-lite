@@ -15,12 +15,12 @@
 #   under the GPL along with build & install instructions.
 #
 
-ADAPT=$(cat /srv/dashboard/db/interface.txt);
+ADAPT=$(cat /srv/dashboard/db/interface.txt)
 
-sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/widgets/stat.php;
-sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/widgets/data.php;
-sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/widgets/bw_tables.php;
-sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/inc/config.php;
+sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/widgets/stat.php
+sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/widgets/data.php
+sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/widgets/bw_tables.php
+sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/inc/config.php
 
 nginx -s reload >/dev/null 2>&1
 /usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'

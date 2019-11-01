@@ -21,11 +21,7 @@
 # CORE VARIABLE
 #################################################################################
 DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
 ################################################################################
 # HELP FUNCTIONS
@@ -78,15 +74,10 @@ APP_TITLE="Transmission"
 APP_NAME="transmission"
 APP_SERVICE="transmission"
 APP_BASEDEPS="transmission-daemon transmission-cli transmission-common"
-APP_WEB_PORT=""
-APP_DAEMON_PORT=""
-APP_HOST="127.0.0.1"
 
 # RANDOM PORT
 APP_WEB_PORT_LOW="15101"
 APP_WEB_PORT_HIGH="15150"
-APP_DAEMON_PORT_LOW=""
-APP_DAEMON_PORT_HIGH=""
 
 APP_LOCK=$(echo .$APP_NAME.lock)
 OUTTO=/srv/dashboard/db/output.log
@@ -165,12 +156,10 @@ function _installSystemUpdates() {
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
-		apt-get check >/dev/null 2>&1
-		if [ "$?" -ne 0 ]; then
-			_excute "apt-get install -f"
-			apt-get check >/dev/null 2>&1
-			if [ "$?" -ne 0 ]; then
-				_error "apt-get check failed, you may have broken packages."
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
 				exit 1
 			fi
 		fi
@@ -227,7 +216,7 @@ function _configureApp() {
 	for username in $userlist; do
 		# get used port
 		local usedport=""
-		if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
+		if (find /install/ -type f | grep -q .$APP_NAME.port); then
 			usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
 		fi
 		# generate available port
@@ -235,13 +224,13 @@ function _configureApp() {
 		while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do
 			PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
 		done
-		echo $PORT >/install/$username.$APP_NAME.port
+		echo "$PORT" >/install/$username.$APP_NAME.port
 		passphrase=$(cat /root/.ssh/local_user)
 		passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
 		if [[ $CODENAME == xenial ]]; then
-			password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:${passphrase} -nosalt)
+			password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:"${passphrase}" -nosalt)
 		else
-			password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
+			password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:"${passphrase}" -nosalt)
 		fi
 
 		_info "Initializing $APP_TITLE for ${username} ... "
@@ -356,6 +345,11 @@ location /${username}.transmission.downloads {
   }
 }
 EOF
+		if [[ -f /install/.${username}.flexget.lock ]]; then
+			_excute "apt-get -y --allow-unauthenticated -f install python-pip"
+			_excute 'pip2 install transmissionrpc'
+			sed -i "s/TRPORT/${PORT}/g" /home/${username}/.config/flexget/config.yml
+		fi
 	done
 
 	cat >/etc/nginx/apps/transmission.conf <<'EOF'

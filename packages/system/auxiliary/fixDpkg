@@ -17,16 +17,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -38,49 +28,51 @@ _cyan=$(tput setaf 6)
 OUTTO=/srv/dashboard/db/output.log
 
 function _excute() {
-    ($1 >> "${OUTTO}" 2>&1;)
+	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
-    printf "${_norm}%s${_norm}\n" "$@"
+	printf "${_norm}%s${_norm}\n" "$@"
 }
 function _info() {
-    printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
 }
 function _success() {
-    printf "${_green}✓ %s${_norm}\n" "$@"
+	printf "${_green}✓ %s${_norm}\n" "$@"
 }
 function _warning() {
-    printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
 }
 function _error() {
-    printf "${_red}✗ %s${_norm}\n" "$@"
+	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
 ################################################################################
 # MAIN FUNCTIONS
 ################################################################################
 function _dpkg() {
-    rm -f /install/.install.lock
-    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-    if [ "$?" -eq 2 ]; then
-        _warning "dpkg database is locked."
-        _info "Working to resolve dpkg database..."
-        rm -f /var/lib/dpkg/updates/0*
-        locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
-        if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
-            for l in ${locks}; do
-            rm -rf ${l}
-            done
-            dpkg --configure -a
-            DEBIAN_FRONTEND=noninteractive apt-get -qq -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-        fi
-        _excute "apt-get check"
-        if [ "$?" -ne 0 ]; then
-            _error "apt-get check failed, you may have broken packages."
-            exit 1
-        fi
-        _success "Resolved locked dpkg database."
-    fi
+	if [[ -f /install/.install.lock ]]; then
+		rm -f /install/.install.lock
+		_success "Resolved installation lock"
+	fi
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+	if [ "$?" -eq 2 ]; then
+		_warning "dpkg database is locked."
+		_info "Working to resolve dpkg database..."
+		rm -f /var/lib/dpkg/updates/0*
+		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+			for l in ${locks}; do
+				rm -rf ${l}
+			done
+			dpkg --configure -a
+			DEBIAN_FRONTEND=noninteractive apt-get -qq -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+		fi
+		if ! (apt-get check >/dev/null); then
+			_error "apt-get check failed, you may have broken packages."
+			exit 1
+		fi
+		_success "Resolved locked dpkg database."
+	fi
 }
 
 ################################################################################

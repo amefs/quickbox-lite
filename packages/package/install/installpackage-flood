@@ -16,16 +16,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -78,17 +68,12 @@ APP_NAME="flood"
 APP_SERVICE="flood"
 APP_LOCK="flood_lock"
 APP_BASEDEPS="nodejs"
-APP_WEB_PORT=""
-APP_DAEMON_PORT=""
-APP_HOST="127.0.0.1"
 
 # RANDOM PORT
 APP_WEB_PORT_LOW="15051"
 APP_WEB_PORT_HIGH="15100"
-APP_DAEMON_PORT_LOW=""
-APP_DAEMON_PORT_HIGH=""
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 BRANCH="https://github.com/jfurrow/flood.git"
 
@@ -161,12 +146,10 @@ function _installSystemUpdates() {
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
-		apt-get check >/dev/null 2>&1
-		if [ "$?" -ne 0 ]; then
-			_excute "apt-get install -f"
-			apt-get check >/dev/null 2>&1
-			if [ "$?" -ne 0 ]; then
-				_error "apt-get check failed, you may have broken packages."
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
 				exit 1
 			fi
 		fi
@@ -192,7 +175,7 @@ function _installDepends() {
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	mkdir -p /tmp/quickbox
-	cd /tmp/quickbox
+	cd /tmp/quickbox || exit 1
 	if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
 		_excute "curl -sL https://deb.nodesource.com/setup_11.x -o nodesource_setup.sh"
 		_excute "sudo bash nodesource_setup.sh"
@@ -207,7 +190,7 @@ function _installApp() {
 	for username in $userlist; do
 		# get used port
 		local usedport=""
-		if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
+		if (find /install/ -type f | grep -q .$APP_NAME.port); then
 			usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
 		fi
 		# generate available port
@@ -215,11 +198,11 @@ function _installApp() {
 		while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do
 			PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
 		done
-		echo $PORT >/install/$username.$APP_NAME.port
-		cd /home/${username}
+		echo "$PORT" >/install/$username.$APP_NAME.port
+		cd /home/${username} || exit 1
 		_excute "git clone ${BRANCH} .flood"
 		chown -R ${username}: .flood
-		cd .flood
+		cd .flood || { _error "flood installation failed..." && exit 1; }
 		cat >/home/${username}/.flood/config.js <<EOF
 // This is the configuration file for Flood, a React-based frontend for the
 // rtorrent BitTorrent client.
@@ -310,28 +293,16 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o ghl:u:v: -l gui,help,log:,user:,version: -- "$@")
+ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
-	-g | --gui)
-		_menuinstall
-		break
-		;;
 	-h | --help)
 		_usage
 		exit 1
 		;;
 	-l | --log)
 		OUTTO="$2"
-		shift
-		;;
-	-u | --user)
-		username="$2"
-		shift
-		;;
-	-v | --version)
-		version="$2"
 		shift
 		;;
 	--)

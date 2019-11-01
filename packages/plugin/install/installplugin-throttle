@@ -22,29 +22,30 @@
 OUTTO=/srv/rutorrent/home/db/output.log
 
 function _installplugin-throttle() {
-  username=$(whoami);
-  rutorrent="/srv/rutorrent/";
-  echo "Accessing throttle in the plugin vault ... " >>"${OUTTO}" 2>&1;
-  PLUGINVAULT="/usr/local/bin/quickbox/rutorrent/plugins/"; cd "${rutorrent}plugins"
-  sleep 5
+	username=$(whoami)
+	rutorrent="/srv/rutorrent/"
+	echo "Accessing throttle in the plugin vault ... " >>"${OUTTO}" 2>&1
+	PLUGINVAULT="/usr/local/bin/quickbox/rutorrent/plugins/"
+	cd "${rutorrent}plugins"
+	sleep 5
 
-  echo "Installing throttle plugin ... " >>"${OUTTO}" 2>&1;
-  PLUGIN="throttle"
-    for i in $PLUGIN; do
-      cp -R "${PLUGINVAULT}$i" .
-    done
-  sleep 5
+	echo "Installing throttle plugin ... " >>"${OUTTO}" 2>&1
+	PLUGIN="throttle"
+	for i in $PLUGIN; do
+		cp -R "${PLUGINVAULT}$i" .
+	done
+	sleep 5
 
-  echo "Adjusting permissions ... " >>"${OUTTO}" 2>&1;
-  chown -R www-data: ${rutorrent}plugins/$PLUGIN
-  echo "Throttle Plugin Install Complete!" >>"${OUTTO}" 2>&1;
-  
-  sleep 5
-  echo >>"${OUTTO}" 2>&1;
-  echo >>"${OUTTO}" 2>&1;
-  echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+	echo "Adjusting permissions ... " >>"${OUTTO}" 2>&1
+	chown -R www-data: ${rutorrent}plugins/$PLUGIN
+	echo "Throttle Plugin Install Complete!" >>"${OUTTO}" 2>&1
 
-    exit
+	sleep 5
+	echo >>"${OUTTO}" 2>&1
+	echo >>"${OUTTO}" 2>&1
+	echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
+
+	exit
 }
 
 _installplugin-throttle

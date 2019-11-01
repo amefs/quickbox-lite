@@ -17,16 +17,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -78,17 +68,12 @@ APP_TITLE="Syncthing"
 APP_NAME="syncthing"
 APP_SERVICE="syncthing"
 APP_BASEDEPS="syncthing"
-APP_WEB_PORT=""
-APP_DAEMON_PORT=""
-APP_HOST="127.0.0.1"
 
 # RANDOM PORT
 APP_WEB_PORT_LOW="15401"
 APP_WEB_PORT_HIGH="15450"
-APP_DAEMON_PORT_LOW=""
-APP_DAEMON_PORT_HIGH=""
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 
 ################################################################################
@@ -228,7 +213,7 @@ EOF
 	for username in $userlist; do
 		# get used port
 		local usedport=""
-		if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
+		if (find /install/ -type f | grep -q .$APP_NAME.port); then
 			usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
 		fi
 		# generate available port
@@ -236,7 +221,7 @@ EOF
 		while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do
 			PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
 		done
-		echo $PORT >/install/$username.$APP_NAME.port
+		echo "$PORT" >/install/$username.$APP_NAME.port
 
 		# create default config
 		mkdir -p /home/${username}/.config/syncthing

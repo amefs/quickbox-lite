@@ -275,16 +275,20 @@ if(file_exists('/srv/dashboard/custom/url.override.php')){
 } else {
   $btsyncURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.btsync/";
   $dwURL = "https://" . $_SERVER['HTTP_HOST'] . "/deluge/";
+  $delugedlURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.deluge.downloads";
   $filebrowserURL = "https://" . $_SERVER['HTTP_HOST'] . "/filebrowser/";
   $flexgetURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.flexget/";
   $floodURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username/flood/";
   $netdataURL = "https://" . $_SERVER['HTTP_HOST'] . "/netdata/";
   $novncURL = "https://" . $_SERVER['HTTP_HOST'] . "/vnc/";
   $plexURL = "https://" . $_SERVER['HTTP_HOST'] . "/web/";
+  $qbittorrentURL = "https://" . $_SERVER['HTTP_HOST'] . "/qbittorrent/";
+  $qbittorrentdlURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.qbittorrent.downloads";
+  $rtorrentdlURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.rtorrent.downloads";
   $rutorrentURL = "https://" . $_SERVER['HTTP_HOST'] . "/rutorrent/";
   $syncthingURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.syncthing/";
   $transmissionURL = "https://" . $_SERVER['HTTP_HOST'] . "/transmission";
-  $qbittorrentURL = "https://" . $_SERVER['HTTP_HOST'] . "/qbittorrent/";
+  $transmissiondlURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.transmission.downloads";
   $zncURL = "https://" . $_SERVER['HTTP_HOST'] . "/znc/";
  }
  

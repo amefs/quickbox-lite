@@ -23,33 +23,34 @@ OUTTO=/srv/rutorrent/home/db/output.log
 local_setup=/etc/QuickBox/setup/
 
 function _installplugin-fileshare() {
-  username=$(whoami);
-  rutorrent="/srv/rutorrent/";
-  echo "Accessing fileshare in the plugin vault ... " >>"${OUTTO}" 2>&1;
-  PLUGINVAULT="/usr/local/bin/quickbox/rutorrent/plugins/"; cd "${rutorrent}plugins"
-  sleep 5
+	username=$(whoami)
+	rutorrent="/srv/rutorrent/"
+	echo "Accessing fileshare in the plugin vault ... " >>"${OUTTO}" 2>&1
+	PLUGINVAULT="/usr/local/bin/quickbox/rutorrent/plugins/"
+	cd "${rutorrent}plugins"
+	sleep 5
 
-  echo "Installing fileshare plugin ... " >>"${OUTTO}" 2>&1;
-  PLUGIN="fileshare"
-    for i in $PLUGIN; do
-      cp -R "${PLUGINVAULT}$i" .
-    done
-  cd /srv/rutorrent/home/fileshare/
-  rm -rf share.php
-  ln -s ../../plugins/fileshare/share.php
-  cp ${local_setup}templates/rutorrent/plugins/fileshare/conf.php.template /srv/rutorrent/plugins/fileshare/conf.php
-  sleep 5
+	echo "Installing fileshare plugin ... " >>"${OUTTO}" 2>&1
+	PLUGIN="fileshare"
+	for i in $PLUGIN; do
+		cp -R "${PLUGINVAULT}$i" .
+	done
+	cd /srv/rutorrent/home/fileshare/
+	rm -rf share.php
+	ln -s ../../plugins/fileshare/share.php
+	cp ${local_setup}templates/rutorrent/plugins/fileshare/conf.php.template /srv/rutorrent/plugins/fileshare/conf.php
+	sleep 5
 
-  echo "Adjusting permissions ... " >>"${OUTTO}" 2>&1;
-  chown -R www-data: ${rutorrent}plugins/$PLUGIN
-  echo "Fileshare Plugin Install Complete!" >>"${OUTTO}" 2>&1;
+	echo "Adjusting permissions ... " >>"${OUTTO}" 2>&1
+	chown -R www-data: ${rutorrent}plugins/$PLUGIN
+	echo "Fileshare Plugin Install Complete!" >>"${OUTTO}" 2>&1
 
-  sleep 5
-  echo >>"${OUTTO}" 2>&1;
-  echo >>"${OUTTO}" 2>&1;
-  echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+	sleep 5
+	echo >>"${OUTTO}" 2>&1
+	echo >>"${OUTTO}" 2>&1
+	echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
 
-    exit
+	exit
 }
 
 _installplugin-fileshare

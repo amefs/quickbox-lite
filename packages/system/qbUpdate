@@ -67,8 +67,9 @@ function _lockCleanup() {
 
 function _installSystemUpdates() {
 	_info "Checking and performing updates to system... "
-	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+	_excute "dpkg --configure -a"
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >>"${OUTTO}" 2>&1
 	## auto solve lock
 	if [ "$?" -eq 2 ]; then
 		_warning "dpkg database is locked."
@@ -80,15 +81,13 @@ function _installSystemUpdates() {
 				rm -rf ${l}
 			done
 			_excute "dpkg --configure -a"
-			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >>"${OUTTO}" 2>&1
 		fi
-		apt-get check >/dev/null 2>&1
-		if [ "$?" -ne 0 ]; then
-			_excute "apt-get install -f"
-			apt-get check >/dev/null 2>&1
-			if [ "$?" -ne 0 ]; then
-				_error "apt-get check failed, you may have broken packages."
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
 				exit 1
 			fi
 		fi
@@ -132,7 +131,7 @@ function _setPerm() {
 function _bashrc() {
 	_info "Updating bashrc..."
 	mv /root/.bash_qb /root/.bash_qb.bak
-	\cp -f ${local_setup_template}bash_qb.template /root/.bash_qb
+	\cp -f "${local_setup_template}"bash_qb.template /root/.bash_qb
 	_success "bashrc updated"
 }
 
@@ -147,7 +146,7 @@ function _updateskel() {
 
 function _updatedashboard() {
 	_info "Updating QuickBox dashboard..."
-	cd /srv/dashboard
+	cd /srv/dashboard || exit 1
 	_excute "rsync -aP --exclude=disk_data*.php --exclude=share.php --exclude=custom.menu.php --exclude=url.override.php --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
 	IFACE=$(cat /srv/dashboard/db/interface.txt)
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/stat.php
@@ -186,12 +185,8 @@ function _fin() {
 
 # initialization environment
 local_prefix=/etc/QuickBox/
-local_setup_script=${local_prefix}setup/scripts/
 local_setup_template=${local_prefix}setup/templates/
-local_setup_sources=${local_prefix}setup/sources/
 local_setup_dashboard=${local_prefix}setup/dashboard/
-local_packages=${local_prefix}packages/
-local_lang=${local_prefix}setup/lang/
 
 #################################################################################
 # MAIN PROCESS

@@ -17,16 +17,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -79,7 +69,7 @@ APP_NAME="plex"
 APP_SERVICE="plexmediaserver"
 APP_BASEDEPS="plexmediaserver"
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 
 ################################################################################
@@ -87,11 +77,9 @@ OUTTO=/srv/dashboard/db/output.log
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Remover"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
-	# not required by multi-user applications
-	echo "-u, --user <username>     the user for this remover"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -171,7 +159,7 @@ function _removeAppLock() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
+ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
@@ -181,10 +169,6 @@ while true; do
 		;;
 	-l | --log)
 		OUTTO="$2"
-		shift
-		;;
-	-u | --user)
-		username="$2"
 		shift
 		;;
 	--)

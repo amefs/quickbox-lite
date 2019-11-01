@@ -23,29 +23,30 @@ OUTTO=/srv/rutorrent/home/db/output.log
 PLUGIN="chunks"
 
 function _installplugin-chunks() {
-  username=$(whoami);
-  rutorrent="/srv/rutorrent/";
-  echo "Accessing $PLUGIN in the plugin vault ... " >>"${OUTTO}" 2>&1;
-  sleep 5
+	username=$(whoami)
+	rutorrent="/srv/rutorrent/"
+	echo "Accessing $PLUGIN in the plugin vault ... " >>"${OUTTO}" 2>&1
+	sleep 5
 
-  echo "Installing $PLUGIN plugin ... " >>"${OUTTO}" 2>&1;
-  PLUGINVAULT="/usr/local/bin/quickbox/rutorrent/plugins/"; cd "${rutorrent}plugins"
-  PLUGIN="$PLUGIN"
-    for i in $PLUGIN; do
-      cp -R "${PLUGINVAULT}$i" .
-    done
-  sleep5
+	echo "Installing $PLUGIN plugin ... " >>"${OUTTO}" 2>&1
+	PLUGINVAULT="/usr/local/bin/quickbox/rutorrent/plugins/"
+	cd "${rutorrent}plugins"
+	PLUGIN="$PLUGIN"
+	for i in $PLUGIN; do
+		cp -R "${PLUGINVAULT}$i" .
+	done
+	sleep5
 
-  echo "Adjusting permissions ... " >>"${OUTTO}" 2>&1;
-  chown -R www-data: ${rutorrent}plugins/$PLUGIN
-  echo "$PLUGIN Plugin Install Complete!" >>"${OUTTO}" 2>&1;
-  
-  sleep 5
-  echo >>"${OUTTO}" 2>&1;
-  echo >>"${OUTTO}" 2>&1;
-  echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+	echo "Adjusting permissions ... " >>"${OUTTO}" 2>&1
+	chown -R www-data: ${rutorrent}plugins/$PLUGIN
+	echo "$PLUGIN Plugin Install Complete!" >>"${OUTTO}" 2>&1
 
-    exit
+	sleep 5
+	echo >>"${OUTTO}" 2>&1
+	echo >>"${OUTTO}" 2>&1
+	echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
+
+	exit
 }
 
 _installplugin-chunks

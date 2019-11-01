@@ -17,16 +17,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -81,17 +71,12 @@ APP_NAME="autodlirssi"
 APP_SERVICE="irssi"
 APP_BASEDEPS="irssi screen unzip libarchive-zip-perl libnet-ssleay-perl libhtml-parser-perl
 libxml-libxml-perl libjson-perl libjson-xs-perl libxml-libxslt-perl"
-APP_WEB_PORT=""
-APP_DAEMON_PORT=""
-APP_HOST="127.0.0.1"
 
 # RANDOM PORT
 APP_WEB_PORT_LOW="15001"
 APP_WEB_PORT_HIGH="15050"
-APP_DAEMON_PORT_LOW=""
-APP_DAEMON_PORT_HIGH=""
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 
 APPSRC="http://git.io/vlcND"
@@ -162,12 +147,10 @@ function _installSystemUpdates() {
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
-		apt-get check >/dev/null 2>&1
-		if [ "$?" -ne 0 ]; then
-			_excute "apt-get install -f"
-			apt-get check >/dev/null 2>&1
-			if [ "$?" -ne 0 ]; then
-				_error "apt-get check failed, you may have broken packages."
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
 				exit 1
 			fi
 		fi
@@ -207,7 +190,7 @@ function _installApp() {
 		done
 		echo $PORT >/install/$username.$APP_NAME.port
 		_excute "mkdir -p /home/${username}/.irssi/scripts/autorun/"
-		cd "/home/${username}/.irssi/scripts/"
+		cd "/home/${username}/.irssi/scripts/" || { _error "Irssi not exist" && exit 1; }
 		curl -sL ${APPSRC} | grep -Po '(?<="browser_download_url": ")(.*-v[\d.]+.zip)' | xargs wget --quiet -O autodl-irssi.zip
 		_excute "unzip -o autodl-irssi.zip"
 		rm autodl-irssi.zip
@@ -226,7 +209,7 @@ ADLC
 	done
 
 	if [[ -f /install/.rutorrent.lock ]]; then
-		cd /srv/rutorrent/plugins/
+		cd /srv/rutorrent/plugins/ || { _error "ruTorrent not exist" && exit 1; }
 		if [[ ! -d /srv/rutorrent/plugins/autodl-irssi ]]; then
 			_excute "git clone ${PLUGINSRC} autodl-irssi"
 			_excute "chown -R www-data:www-data autodl-irssi/"
@@ -287,28 +270,16 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o ghl:u:v: -l gui,help,log:,user:,version: -- "$@")
+ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
-	-g | --gui)
-		_menuinstall
-		break
-		;;
 	-h | --help)
 		_usage
 		exit 1
 		;;
 	-l | --log)
 		OUTTO="$2"
-		shift
-		;;
-	-u | --user)
-		username="$2"
-		shift
-		;;
-	-v | --version)
-		version="$2"
 		shift
 		;;
 	--)

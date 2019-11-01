@@ -17,16 +17,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -79,7 +69,7 @@ APP_NAME="denyhosts"
 APP_SERVICE="denyhosts"
 APP_BASEDEPS="python rsyslog python-ipaddr"
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 
 ################################################################################
@@ -158,12 +148,10 @@ function _installSystemUpdates() {
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
-		apt-get check >/dev/null 2>&1
-		if [ "$?" -ne 0 ]; then
-			_excute "apt-get install -f"
-			apt-get check >/dev/null 2>&1
-			if [ "$?" -ne 0 ]; then
-				_error "apt-get check failed, you may have broken packages."
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
 				exit 1
 			fi
 		fi
@@ -190,11 +178,11 @@ function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	_excute "/etc/init.d/rsyslog restart"
 	cat /dev/null >/var/log/auth.log
-	cd /tmp
+	cd /tmp || exit 1
 	mkdir -p /tmp/denyhosts
 	wget -t2 -T5 -q -N -O denyhosts-3.1.tar.gz http://downloads.sourceforge.net/project/denyhost/denyhost-3.1/denyhosts-3.1.tar.gz
 	_excute "tar zxvf denyhosts-3.1.tar.gz -C /tmp/denyhosts --strip-components=1"
-	cd /tmp/denyhosts
+	cd /tmp/denyhosts || exit 1
 	_excute "python setup.py install --record /install/.denyhosts.install.record --install-layout=deb"
 	_success "${APP_TITLE} Built."
 }
@@ -233,8 +221,8 @@ function _installAppLock() {
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	_excute "systemctl start ${APP_NAME}.service"
-	_excute "systemctl enable ${APP_NAME}.service"
+	_excute "systemctl start ${APP_SERVICE}.service"
+	_excute "systemctl enable ${APP_SERVICE}.service"
 	_success "${APP_TITLE} started."
 }
 

@@ -21,18 +21,18 @@
 OUTTO=/srv/dashboard/db/output.log
 
 function _cleanmemcache() {
-  echo "Cleaning system memory cache ... " >>"${OUTTO}" 2>&1;
-  echo 1 > /proc/sys/vm/drop_caches
-  sleep 5
+	echo "Cleaning system memory cache ... " >>"${OUTTO}" 2>&1
+	echo 1 >/proc/sys/vm/drop_caches
+	sleep 5
 
-  echo "System memory cache cleared!" >>"${OUTTO}" 2>&1;
-  sleep 5
+	echo "System memory cache cleared!" >>"${OUTTO}" 2>&1
+	sleep 5
 
-  echo >>"${OUTTO}" 2>&1;
-  echo >>"${OUTTO}" 2>&1;
-  echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+	echo >>"${OUTTO}" 2>&1
+	echo >>"${OUTTO}" 2>&1
+	echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
 
-  exit
+	exit
 }
 
 _cleanmemcache

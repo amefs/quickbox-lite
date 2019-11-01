@@ -21,7 +21,7 @@
 locale='de_DE.UTF-8'
 language='lang_de'
 
-cat >/srv/dashboard/inc/localize.php<<LCL
+cat >/srv/dashboard/inc/localize.php <<LCL
 <?php
     \$locale = 'de_DE.UTF-8';
     \$language = 'lang_de';

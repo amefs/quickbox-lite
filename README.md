@@ -88,7 +88,7 @@ bash /etc/QuickBox/setup.sh
 **EASY! Run the following command to grab current development repos ...**
 
 ```
-mkdir /install/ && touch /install/.developer.lock \
+mkdir /install/ && touch /install/.developer.lock; \
 sudo box update quickbox
 ```
 
@@ -111,7 +111,7 @@ sudo box update quickbox
   - ruTorrent
   - flood
 - Transmission (*2.94*)
-- qBittorrent (*4.1.7*)
+- qBittorrent (*4.1.8*)
 - Deluge (*1.3.15, 2.0.3*)
 - mktorrent (with `createtorrent` command as wrapper)
 - FFmpeg

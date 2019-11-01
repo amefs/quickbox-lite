@@ -22,23 +22,23 @@
 OUTTO=/srv/rutorrent/home/db/output.log
 
 function _removeplugin-filedrop() {
-  username=$(whoami);
-  rutorrent="/srv/rutorrent/";
-  echo "Uninstalling the filedrop plugin ... " >>"${OUTTO}" 2>&1;
-  PLUGIN="filedrop"
-    for i in $PLUGIN; do
-      rm -rf "${rutorrent}plugins/$i"
-    done
-  sleep 5
+	username=$(whoami)
+	rutorrent="/srv/rutorrent/"
+	echo "Uninstalling the filedrop plugin ... " >>"${OUTTO}" 2>&1
+	PLUGIN="filedrop"
+	for i in $PLUGIN; do
+		rm -rf "${rutorrent}plugins/$i"
+	done
+	sleep 5
 
-  echo "Filedrop Plugin Uninstall Complete!" >>"${OUTTO}" 2>&1;
-  
-  sleep 5
-  echo >>"${OUTTO}" 2>&1;
-  echo >>"${OUTTO}" 2>&1;
-  echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+	echo "Filedrop Plugin Uninstall Complete!" >>"${OUTTO}" 2>&1
 
-    exit
+	sleep 5
+	echo >>"${OUTTO}" 2>&1
+	echo >>"${OUTTO}" 2>&1
+	echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
+
+	exit
 }
 
 _removeplugin-filedrop

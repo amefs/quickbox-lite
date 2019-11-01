@@ -86,7 +86,7 @@ bash /etc/QuickBox/setup.sh
 **运行如下指令以切换分支 ...**
 
 ```
-mkdir /install/ && touch /install/.developer.lock \
+mkdir /install/ && touch /install/.developer.lock; \
 sudo box update quickbox
 ```
 
@@ -109,7 +109,7 @@ sudo box update quickbox
   - ruTorrent
   - flood
 - Transmission (*2.94*)
-- qBittorrent (*4.1.7*)
+- qBittorrent (*4.1.8*)
 - Deluge (*1.3.15, 2.0.3*)
 - mktorrent (可以使用 `createtorrent` 在命令行中使用表单快速创建种子)
 - FFmpeg

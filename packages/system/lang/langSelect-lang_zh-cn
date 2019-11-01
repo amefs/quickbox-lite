@@ -21,7 +21,7 @@
 locale='zh.UTF-8'
 language='lang_zh'
 
-cat >/srv/dashboard/inc/localize.php<<LCL
+cat >/srv/dashboard/inc/localize.php <<LCL
 <?php
     \$locale = 'zh.UTF-8';
     \$language = 'lang_zh';

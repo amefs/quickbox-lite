@@ -17,16 +17,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show |grep 'inet '|grep -v 127.0.0.1 |awk '{print $2}'| cut -d/ -f1 | head -n 1);
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -37,28 +27,28 @@ _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 OUTTO=/srv/dashboard/db/output.log
 if [[ -z $1 ]]; then
-    username=$1
+	username=$1
 else
-    username=$(cat /root/.admin.info | cut -d: -f1)
+	username=$(cat /root/.admin.info | cut -d: -f1)
 fi
 
 function _excute() {
-    ($1 >> "${OUTTO}" 2>&1;)
+	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
-    printf "${_norm}%s${_norm}\n" "$@"
+	printf "${_norm}%s${_norm}\n" "$@"
 }
 function _info() {
-    printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
 }
 function _success() {
-    printf "${_green}✓ %s${_norm}\n" "$@"
+	printf "${_green}✓ %s${_norm}\n" "$@"
 }
 function _warning() {
-    printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
 }
 function _error() {
-    printf "${_red}✗ %s${_norm}\n" "$@"
+	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
 ################################################################################
@@ -66,7 +56,7 @@ function _error() {
 ################################################################################
 function _permission() {
 	_info "Adjusting directory and file permissions for ${username}..."
-	find /home/${username} -type d -name .bin -prune -o -type d -name .ssh -prune -o -type d -exec chmod 755 {} \; 
+	find /home/${username} -type d -name .bin -prune -o -type d -name .ssh -prune -o -type d -exec chmod 755 {} \;
 	chown -R ${username}:${username} /home/${username}
 	_success "Directory and file permissions for ${username} adjusted."
 }

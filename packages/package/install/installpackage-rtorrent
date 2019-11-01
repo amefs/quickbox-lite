@@ -20,12 +20,7 @@
 #################################################################################
 # CORE VARIABLE
 #################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
 ################################################################################
 # HELP FUNCTIONS
@@ -78,17 +73,12 @@ APP_TITLE="rTorrent"
 APP_NAME="rtorrent"
 APP_SERVICE="rtorrent"
 APP_BASEDEPS="git build-essential automake libcppunit-dev libtool zlib1g-dev gawk libsigc++-2.0-dev libssl-dev libncurses5-dev libncursesw5-dev libcurl4-openssl-dev libxmlrpc-c++8-dev nano screen unzip"
-APP_WEB_PORT=""
-APP_DAEMON_PORT=""
-APP_HOST="127.0.0.1"
 
 # RANDOM PORT
-APP_WEB_PORT_LOW=""
-APP_WEB_PORT_HIGH=""
 APP_DAEMON_PORT_LOW="55001"
 APP_DAEMON_PORT_HIGH="55050"
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 version=0.9.6
 
@@ -181,12 +171,10 @@ function _installSystemUpdates() {
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
-		apt-get check >/dev/null 2>&1
-		if [ "$?" -ne 0 ]; then
-			_excute "apt-get install -f"
-			apt-get check >/dev/null 2>&1
-			if [ "$?" -ne 0 ]; then
-				_error "apt-get check failed, you may have broken packages."
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
 				exit 1
 			fi
 		fi
@@ -268,10 +256,10 @@ function _installApp() {
 		mkdir -p /root/dist
 		cd /tmp
 		_excute "git clone -b ${LTORRENT} ${BRANCH_LT} libtorrent"
-		cd libtorrent
+		cd libtorrent || { _error "Can not download libtorrent-rakshasa" && exit 1; }
 		_excute "./autogen.sh"
 		_excute "./configure --prefix=/usr --disable-debug"
-		LTVERSION=$(cat configure.ac | grep -Eo "AC_INIT\(libtorrent,.*" | grep -Eo "[0-9.]+" | head -n1)
+		LTVERSION=$(grep -Eo "AC_INIT\(libtorrent,.*" configure.ac | grep -Eo "[0-9.]+" | head -n1)
 		_excute "make -j$(nproc)"
 		_excute "make DESTDIR=/tmp/dist/libtorrent-rakshasa install"
 		fpm -f -C /tmp/dist/libtorrent-rakshasa -p /root/pool/libtorrent-rakshasa_${LTVERSION}.deb -s dir -t deb -n libtorrent-rakshasa --version ${LTVERSION} --description "libtorrent-rakshasa compiled by QuickBox Lite" >/dev/null 2>&1
@@ -282,10 +270,10 @@ function _installApp() {
 		# rtorrent
 		cd /tmp
 		_excute "git clone -b ${RTVERSION} ${BRANCH_RT} rtorrent"
-		cd rtorrent
+		cd rtorrent || { _error "Can not download rTorrent" && exit 1; }
 		_excute "./autogen.sh"
 		_excute "./configure --prefix=/usr --with-xmlrpc-c --with-ncurses --disable-debug --enable-ipv6"
-		RTVERSION=$(cat configure.ac | grep -Eo "AC_INIT\(rtorrent,.*" | grep -Eo "[0-9.]+" | head -n1)
+		RTVERSION=$(grep -Eo "AC_INIT\(rtorrent,.*" configure.ac | grep -Eo "[0-9.]+" | head -n1)
 		_excute "make -j$(nproc)"
 		_excute "make DESTDIR=/tmp/dist/rtorrent install"
 		fpm -f -C /tmp/dist/rtorrent -p /root/pool/rtorrent_${RTVERSION}.deb -s dir -t deb -n rtorrent --version ${RTVERSION} --description "rtorrent compiled by QuickBox Lite" >/dev/null 2>&1
@@ -319,7 +307,7 @@ function _configureApp() {
 	for username in $userlist; do
 		# get used port
 		local usedport=""
-		if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
+		if (find /install/ -type f | grep -q .$APP_NAME.port); then
 			usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
 		fi
 		# generate available port
@@ -327,7 +315,7 @@ function _configureApp() {
 		while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do
 			PORT=$(shuf -i ${APP_DAEMON_PORT_LOW}-${APP_DAEMON_PORT_HIGH} -n 1)
 		done
-		echo $PORT >/install/$username.$APP_NAME.port
+		echo "$PORT" >/install/$username.$APP_NAME.port
 
 		cat >/home/${username}/.rtorrent.rc <<EOF
 # -- START HERE --

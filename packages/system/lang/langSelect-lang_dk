@@ -21,7 +21,7 @@
 locale='da_DK.UTF-8'
 language='lang_dk'
 
-cat >/srv/dashboard/inc/localize.php<<LCL
+cat >/srv/dashboard/inc/localize.php <<LCL
 <?php
     \$locale = 'da_DK.UTF-8';
     \$language = 'lang_dk';

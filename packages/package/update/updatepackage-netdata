@@ -16,16 +16,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -77,7 +67,7 @@ APP_TITLE="Netdata"
 APP_NAME="netdata"
 APP_SERVICE="netdata"
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 
 ################################################################################
@@ -127,7 +117,7 @@ function _updateApp() {
 	_info "Updating ${APP_TITLE}..."
 	_excute "systemctl stop ${APP_SERVICE}"
 	username=$(cat /root/.admin.info | cut -d: -f1)
-	cd /home/${username}/.config/netdata
+	cd /home/${username}/.config/netdata || { _error "Netdata not exist!" && exit 1; }
 	_excute "git pull"
 	_excute "./netdata-installer.sh --disable-telemetry --dont-wait"
 	chmod 644 /etc/netdata/netdata.conf

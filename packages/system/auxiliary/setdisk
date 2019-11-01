@@ -16,39 +16,40 @@
 #
 
 function _setdisk() {
-echo "================================================================================="
-echo "Disk Space MUST be in GB/TB - Do not attempt to add decimals in space settings,"
-echo "Example - Good: 711GB OR 2TB, Example - Bad: 711.5GB OR 2.5TB"
-echo "================================================================================="
-echo
-echo -n "Username: "
-read username
-echo "Quota size for user: (EX: 500GB): "
-read SIZE
-case $SIZE in
-  *TB)
-    QUOTASIZE=$(echo $SIZE|cut -d'T' -f1)
-    DISKSIZE=$(($QUOTASIZE * 1024 * 1024 * 1024))
-    setquota -u ${username} ${DISKSIZE} ${DISKSIZE} 0 0 -a
-  ;;
-  *GB)
-    QUOTASIZE=$(echo $SIZE|cut -d'G' -f1)
-    DISKSIZE=$(($QUOTASIZE * 1024 * 1024))
-    setquota -u ${username} ${DISKSIZE} ${DISKSIZE} 0 0 -a
-  ;;
-  *MB)
-    QUOTASIZE=$(echo $SIZE|cut -d'M' -f1)
-                DISKSIZE=$(($QUOTASIZE * 1024))
-                setquota -u ${username} ${DISKSIZE} ${DISKSIZE} 0 0 -a
-  ;;
-  *)
-    echo "================================================================================="
-    echo "Disk Space MUST be in GB/TB - Do not attempt to add deciamals in space settings,"
-    echo "Example - Good: 711GB OR 2TB, Example - Bad: 711.5GB OR 2.5TB"
-    echo "Exiting script, type bash $0 and try again"
-    echo "=================================================================================";exit 0
-  ;;
-esac
+	echo "================================================================================="
+	echo "Disk Space MUST be in GB/TB - Do not attempt to add decimals in space settings,"
+	echo "Example - Good: 711GB OR 2TB, Example - Bad: 711.5GB OR 2.5TB"
+	echo "================================================================================="
+	echo
+	echo -n "Username: "
+	read username
+	echo "Quota size for user: (EX: 500GB): "
+	read SIZE
+	case $SIZE in
+	*TB)
+		QUOTASIZE=$(echo $SIZE | cut -d'T' -f1)
+		DISKSIZE=$(($QUOTASIZE * 1024 * 1024 * 1024))
+		setquota -u ${username} ${DISKSIZE} ${DISKSIZE} 0 0 -a
+		;;
+	*GB)
+		QUOTASIZE=$(echo $SIZE | cut -d'G' -f1)
+		DISKSIZE=$(($QUOTASIZE * 1024 * 1024))
+		setquota -u ${username} ${DISKSIZE} ${DISKSIZE} 0 0 -a
+		;;
+	*MB)
+		QUOTASIZE=$(echo $SIZE | cut -d'M' -f1)
+		DISKSIZE=$(($QUOTASIZE * 1024))
+		setquota -u ${username} ${DISKSIZE} ${DISKSIZE} 0 0 -a
+		;;
+	*)
+		echo "================================================================================="
+		echo "Disk Space MUST be in GB/TB - Do not attempt to add deciamals in space settings,"
+		echo "Example - Good: 711GB OR 2TB, Example - Bad: 711.5GB OR 2.5TB"
+		echo "Exiting script, type bash $0 and try again"
+		echo "================================================================================="
+		exit 0
+		;;
+	esac
 }
 
 _setdisk

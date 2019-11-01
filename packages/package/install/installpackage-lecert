@@ -3,7 +3,7 @@
 # [QuickBox Lite Let's Encrypt Installer]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# Author:   JMSolo, Amefs
 # Current version:  v1.1.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
@@ -17,16 +17,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -76,19 +66,9 @@ function _error() {
 #################################################################################
 APP_TITLE="Let's Encrypt"
 APP_NAME="lecert"
-APP_SERVICE=""
 APP_BASEDEPS=""
-APP_WEB_PORT=""
-APP_DAEMON_PORT=""
-APP_HOST="127.0.0.1"
 
-# RANDOM PORT
-APP_WEB_PORT_LOW=""
-APP_WEB_PORT_HIGH=""
-APP_DAEMON_PORT_LOW=""
-APP_DAEMON_PORT_HIGH=""
-
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 domain=""
 
@@ -160,12 +140,10 @@ function _installSystemUpdates() {
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
-		apt-get check >/dev/null 2>&1
-		if [ "$?" -ne 0 ]; then
-			_excute "apt-get install -f"
-			apt-get check >/dev/null 2>&1
-			if [ "$?" -ne 0 ]; then
-				_error "apt-get check failed, you may have broken packages."
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
 				exit 1
 			fi
 		fi
@@ -197,7 +175,7 @@ function _installApp() {
 		rm -rf /root/acme.sh
 	fi
 	_excute "git clone https://github.com/Neilpang/acme.sh.git"
-	cd /root/acme.sh
+	cd /root/acme.sh || { _error "Can not download acme.sh ..." && exit 1; }
 	./acme.sh --install >/dev/null 2>&1
 	mkdir -p /etc/nginx/ssl/$domain/
 	_success "${APP_TITLE} Built."
@@ -315,7 +293,7 @@ server {
 }
 EOF
 
-	command="30 2 * * 1 "~/acme.sh"/acme.sh --cron --home "~/acme.sh" > /dev/null"
+	command="30 2 * * 1 '~/acme.sh/acme.sh' --cron --home '~/acme.sh' > /dev/null"
 	(
 		crontab -u root -l
 		echo "${command}"

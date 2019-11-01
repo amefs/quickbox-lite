@@ -176,16 +176,16 @@
                 <a href=""><i class="fa fa-download"></i> <span><?php echo T('DOWNLOADS'); ?></span></a>
                 <ul class="children">
                   <?php if (file_exists('/install/.rtorrent.lock')) { ?>
-                    <li><a href="/<?php echo "$username"; ?>.rtorrent.downloads" target="_blank">rTorrent</a></li>
+                    <li><a href="<?php echo "$rtorrentdlURL"; ?>" target="_blank">rTorrent</a></li>
                   <?php } ?>
                   <?php if (file_exists('/install/.deluge.lock')) { ?>
-                    <li><a href="/<?php echo "$username"; ?>.deluge.downloads" target="_blank">Deluge</a></li>
+                    <li><a href="<?php echo "$delugedlURL"; ?>" target="_blank">Deluge</a></li>
                   <?php } ?>
                   <?php if (file_exists('/install/.transmission.lock')) { ?>
-                    <li><a href="/<?php echo "$username"; ?>.transmission.downloads" target="_blank">Transmission</a></li>
+                    <li><a href="<?php echo "$transmissiondlURL"; ?>" target="_blank">Transmission</a></li>
                   <?php } ?>
                   <?php if (file_exists('/install/.qbittorrent.lock')) { ?>
-                    <li><a href="/<?php echo "$username"; ?>.qbittorrent.downloads" target="_blank">qBittorrent</a></li>
+                    <li><a href="<?php echo "$qbittorrentdlURL"; ?>" target="_blank">qBittorrent</a></li>
                   <?php } ?>
                   <?php if (file_exists('/home/'. $username .'/public_html/'. $username .'.zip')) { ?>
                     <li><a href="/~<?php echo "$username"; ?>/<?php echo "$username"; ?>.zip" target="_blank"> <span>OpenVPN Config</span></a></li>

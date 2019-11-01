@@ -20,10 +20,7 @@
 #################################################################################
 # CORE VARIABLE
 #################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
 # Server IP Address
 SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
@@ -77,9 +74,6 @@ function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "
 #################################################################################
 APP_TITLE="Deluge"
 APP_NAME="deluge"
-APP_SERVICE=""
-APP_WEB_PORT=""
-APP_DAEMON_PORT=""
 APP_HOST="127.0.0.1"
 
 # RANDOM PORT
@@ -88,7 +82,7 @@ APP_WEB_PORT_HIGH="15250"
 APP_DAEMON_PORT_LOW="10001"
 APP_DAEMON_PORT_HIGH="10050"
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 libtversion=1.1.13
 deversion=1.3.15
@@ -104,10 +98,10 @@ function _menuinstall() {
 	fi
 	deversion=$(
 		whiptail --title "App Version" --radiolist \
-		"Choose an available version" 10 36 4 \
-		"1.3.15" "stable" on \
-		"2.0.3" "latest version" off \
-		"other" "custom version" off 3>&1 1>&2 2>&3
+			"Choose an available version" 10 36 4 \
+			"1.3.15" "stable" on \
+			"2.0.3" "latest version" off \
+			"other" "custom version" off 3>&1 1>&2 2>&3
 	)
 	if [[ ${deversion} == "other" ]]; then
 		if [[ ! -f /install/.libtorrent-rasterbar9.lock && ! -f /install/.libtorrent-rasterbar.lock ]]; then
@@ -190,12 +184,10 @@ function _installSystemUpdates() {
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
-		apt-get check >/dev/null 2>&1
-		if [ "$?" -ne 0 ]; then
-			_excute "apt-get install -f"
-			apt-get check >/dev/null 2>&1
-			if [ "$?" -ne 0 ]; then
-				_error "apt-get check failed, you may have broken packages."
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
 				exit 1
 			fi
 		fi
@@ -231,10 +223,15 @@ function _installFpm() {
 
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
+	# version check
+	if ([ $CODENAME == "buster" ] && _version_gt $deversion 2.0); then
+		_warning "Deluge 2.0.x currently not available in buster, fallback to v1.3.15"
+		deversion=1.3.15
+	fi
 	# Libtorrent
 	if [[ ${libtversion} == 1.1.13 && ! -f /install/.libtorrent-rasterbar.lock ]]; then
 		_info "Installing Libtorrent..."
-		cd /tmp
+		cd /tmp || exit 1
 		if [[ ! -f /install/.libtorrent-rasterbar9.lock ]]; then
 			LIBTBIN=libtorrent-rasterbar9_1.1.13-1build1_amd64.deb
 			wget -q -O ${LIBTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${LIBTBIN}/download
@@ -245,7 +242,7 @@ function _installApp() {
 			rm -rf {${LIBTBIN},${LIBTDEVBIN}}
 		fi
 		touch /install/.libtorrent-rasterbar9.lock
-		cd /tmp
+		cd /tmp || exit 1
 		if _version_gt ${deversion} 2.0; then
 			PYLIBTBIN=python3-libtorrent_1.1.13-1build1_amd64.deb
 			wget -q -O ${PYLIBTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${PYLIBTBIN}/download
@@ -258,7 +255,7 @@ function _installApp() {
 			rm -rf ${PYLIBTBIN}
 		fi
 	elif [[ ${libtversion} != 1.1.13 && ! -f /install/.libtorrent-rasterbar.lock && ! -f /install/.libtorrent-rasterbar9.lock ]]; then
-		cd /tmp
+		cd /tmp || exit 1
 		# prepare package toolchain
 		APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev zlib1g-dev"
 		_installDepends
@@ -308,13 +305,13 @@ function _installApp() {
 		mkdir -p /root/pool
 		mkdir -p /tmp/dist
 
-		cd /tmp
+		cd /tmp || exit 1
 		_excute "git clone -b ${LTRC} ${BRANCH_LT} libtorrent"
-		cd libtorrent
+		cd libtorrent || { _error "Can not download libtorrent-rasterbar" && exit 1; }
 		_excute "git checkout ${LTCIMMIT}"
 		wget --no-check-certificate -q -O libtorrent-rasterbar-${LTRC}.patch https://raw.githubusercontent.com/amefs/QB/master/setup/sources/libtorrent-rasterbar-${LTRC}.patch
 		patch -p1 <libtorrent-rasterbar-${LTRC}.patch >/dev/null
-		LTVERSION=$(cat configure.ac | grep -Eo "AC_INIT\(\[libtorrent-rasterbar\],.*" | grep -Eo "[0-9.]+" | head -n1)
+		LTVERSION=$(grep -Eo "AC_INIT\(\[libtorrent-rasterbar\],.*" configure.ac | grep -Eo "[0-9.]+" | head -n1)
 		_excute "./autotool.sh"
 		_excute "./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++11 CPPFLAGS=-std=c++11 --prefix=/tmp/dist/libtorrent-rasterbar/usr/local"
 		_excute "make -j$(nproc)"
@@ -325,19 +322,14 @@ function _installApp() {
 		_excute "dpkg -i /root/pool/libtorrent-rasterbar_${LTVERSION}.deb"
 		echo ${libtversion} >/install/.libtorrent-rasterbar.lock
 		_excute "ldconfig"
-		cd /tmp
+		cd /tmp || exit 1
 		rm -rf {libtorrent,dist}
 		_success "Libtorrent Built."
 	fi
 
-	# version check
-	if ([ $CODENAME == "buster" ] && _version_gt $deversion 2.0); then
-		_warning "Deluge 2.0.x currently not available in buster, fallback to v1.3.15"
-		deversion=1.3.15
-	fi
 	if [[ ("${deversion}" == "1.3.15" || "${deversion}" == "2.0.3") && ! -f /install/.libtorrent-rasterbar.lock ]]; then
 		_info "Installing Deluge ${deversion}..."
-		cd /tmp
+		cd /tmp || exit 1
 		if _version_gt ${deversion} 2.0; then
 			APP_BASEDEPS="libgeoip-dev librsvg2-common geoip-database python3-dev python3-twisted python3-openssl python3-setuptools python3-xdg python3-chardet python3-pip python3-mako xdg-utils"
 			_installDepends
@@ -357,7 +349,7 @@ function _installApp() {
 			done
 		fi
 	else
-		cd /tmp
+		cd /tmp || exit 1
 		if _version_gt ${deversion} 2.0; then
 			while true; do
 				wget -q -O deluge-${deversion}.tar.xz http://download.deluge-torrent.org/source/2.0/deluge-${deversion}.tar.xz && break
@@ -371,11 +363,11 @@ function _installApp() {
 		_installDepends
 		_excute "pip2 install --upgrade twisted[tls]"
 		tar -xf deluge-${deversion}.tar.xz
-		cd deluge-${deversion}
+		cd deluge-${deversion} || exit 1
 		_excute "python2 setup.py build"
 		_excute "python2 setup.py install --record /install/.deluge.install.record --install-layout=deb"
 		_excute "python2 setup.py install_data"
-		cd ..
+		cd /tmp || exit 1
 		rm -rf {deluge-${deversion},libtorrent}
 		rm -f deluge-${deversion}.tar.xz
 	fi
@@ -403,7 +395,7 @@ function _configureApp() {
 	for username in $userlist; do
 		# get used port
 		local usedport=""
-		if [[ ! -z $(find /install/ -type f | grep .deluged.port) ]]; then
+		if (find /install/ -type f | grep -q .deluged.port); then
 			usedport=$(cat $(find /install/ -type f | grep .deluged.port))
 		fi
 		# generate daemon port
@@ -411,10 +403,10 @@ function _configureApp() {
 		while [[ "$(netstat -ln | grep ':'"$DPORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $DPORT ]]; do
 			DPORT=$(shuf -i ${APP_DAEMON_PORT_LOW}-${APP_DAEMON_PORT_HIGH} -n 1)
 		done
-		echo $PORT >/install/$username.deluged.port
+		echo "$DPORT" >/install/$username.deluged.port
 		# get used port
 		local usedport=""
-		if [[ ! -z $(find /install/ -type f | grep .deluge-web.port) ]]; then
+		if (find /install/ -type f | grep -q .deluge-web.port); then
 			usedport=$(cat $(find /install/ -type f | grep .deluge-web.port))
 		fi
 		# generate web port
@@ -422,7 +414,7 @@ function _configureApp() {
 		while [[ "$(netstat -ln | grep ':'"$DWPORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $DWPORT ]]; do
 			DWPORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
 		done
-		echo $PORT >/install/$username.deluge-web.port
+		echo "$DWPORT" >/install/$username.deluge-web.port
 		passphrase=$(cat /root/.ssh/local_user)
 		passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
 		if [[ $CODENAME == xenial ]]; then
@@ -626,6 +618,9 @@ location /${username}.deluge.downloads {
   }
 }
 EOF
+		if [[ -f /install/.${username}.flexget.lock ]]; then
+			sed -i "s/DEPORT/${DPORT}/g" /home/${username}/.config/flexget/config.yml
+		fi
 	done
 	cat >/etc/nginx/apps/deluge.conf <<'DRP'
 location /deluge {
@@ -721,7 +716,7 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o ghl: -l gui,help,log:,de,lt -- "$@")
+ARGS=$(getopt -a -o ghl: -l gui,help,log:,de:,lt: -- "$@")
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
@@ -742,7 +737,7 @@ while true; do
 		shift
 		;;
 	--lt)
-		libitversion="$2"
+		libtversion="$2"
 		shift
 		;;
 	--)

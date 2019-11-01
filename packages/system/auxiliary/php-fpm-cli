@@ -23,7 +23,7 @@
 # THE SOFTWARE.
 
 usage() {
-    cat <<USAGE
+	cat <<USAGE
 Usage: $(basename $0) [-connect CONN] -r <code>
 
 Options:
@@ -36,60 +36,68 @@ USAGE
 }
 
 main() {
-    echo "<?php $PHPCODE" > $PHPFPMCLI_FILE
-    SCRIPT_FILENAME=$PHPFPMCLI_FILE \
-    REQUEST_METHOD=GET \
-    cgi-fcgi -bind -connect "$CONN" | stripheaders
-    rm $PHPFPMCLI_FILE
+	echo "<?php $PHPCODE" >$PHPFPMCLI_FILE
+	SCRIPT_FILENAME=$PHPFPMCLI_FILE \
+		REQUEST_METHOD=GET \
+		cgi-fcgi -bind -connect "$CONN" | stripheaders
+	rm $PHPFPMCLI_FILE
 }
 
 stripheaders() {
-    sed -E '1,/^.$/ d'
+	sed -E '1,/^.$/ d'
 }
 
 if [[ -f /lib/systemd/system/php7.3-fpm.service ]]; then
-  sock=php7.3-fpm
+	sock=php7.3-fpm
 elif [[ -f /lib/systemd/system/php7.2-fpm.service ]]; then
-  sock=php7.2-fpm
+	sock=php7.2-fpm
 elif [[ -f /lib/systemd/system/php7.1-fpm.service ]]; then
-  sock=php7.1-fpm
+	sock=php7.1-fpm
 else
-  sock=php7.0-fpm
+	sock=php7.0-fpm
 fi
 
 PHPFPMCLI_FILE="/tmp/php-fpm-cli.$$.php"
 CONN="/run/php/${sock}.sock"
 PHPCODE=""
 init() {
-  until [ -z "$1" ]; do
-    case "$1" in
-      -connect|--connect) shift; CONN="$1"; shift; ;;
-      
-      -r) shift; PHPCODE="$1"; shift; ;;
+	until [ -z "$1" ]; do
+		case "$1" in
+		-connect | --connect)
+			shift
+			CONN="$1"
+			shift
+			;;
 
-      help|-h|-help|--help)
-        usage;
-        exit 0
-        ;;
+		-r)
+			shift
+			PHPCODE="$1"
+			shift
+			;;
 
-      *)
-        echo "unknown option: $1";
-        usage;
-        exit 1
-        ;;
-    esac
-  done
-  if [ -z "$PHPCODE" ]; then
-    echo "missing option: -r <code>";
-    usage;
-    exit 1
-  fi
+		help | -h | -help | --help)
+			usage
+			exit 0
+			;;
+
+		*)
+			echo "unknown option: $1"
+			usage
+			exit 1
+			;;
+		esac
+	done
+	if [ -z "$PHPCODE" ]; then
+		echo "missing option: -r <code>"
+		usage
+		exit 1
+	fi
 }
 
 if [[ -z $(which cgi-fcgi) ]]; then
-  DEPENDS='libfcgi-bin libfcgi0ldbl'
-  for i in $DEPENDS; do
-    apt-get install -y -q --install-recommends $i > /dev/null 2>&1
-  done
+	DEPENDS='libfcgi-bin libfcgi0ldbl'
+	for i in $DEPENDS; do
+		apt-get install -y -q --install-recommends $i >/dev/null 2>&1
+	done
 fi
 init "$@" && main

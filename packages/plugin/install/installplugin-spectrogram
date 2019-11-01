@@ -20,7 +20,7 @@
 #
 
 # To get most output from commands that are run, set to nothing
-MIN_OUTPUT=  #yes
+MIN_OUTPUT= #yes
 
 # To print to shell, set to nothing, otherwise output to LOGFILE
 USE_LOGFILE=yes
@@ -40,58 +40,58 @@ PLUGIN=spectrogram
 ################################################################################
 
 _print() {
-  if [[ -z "${USE_LOGFILE}" ]]; then
-    echo $1
-  else
-    echo $1 >>"${LOGFILE}" 2>&1
-  fi
+	if [[ -z "${USE_LOGFILE}" ]]; then
+		echo $1
+	else
+		echo $1 >>"${LOGFILE}" 2>&1
+	fi
 }
 
 _do() {
-  if [[ ! -z "${MIN_OUTPUT}" ]]; then
-    ($1 >/dev/null 2>&1)
-  else
-    ($1)
-  fi
+	if [[ ! -z "${MIN_OUTPUT}" ]]; then
+		($1 >/dev/null 2>&1)
+	else
+		($1)
+	fi
 }
 _sudo() {
-  _do "sudo $1"
+	_do "sudo $1"
 }
 
 _installBaseDeps() {
-  _print "Installing plugin dependencies: sox ..."
+	_print "Installing plugin dependencies: sox ..."
 
-  if [[ ! -n `which sox` ]]; then
-    _sudo "apt-get -yqq install sox"
-  else
-    _print "OK, sox found"
-  fi
+	if [[ ! -n $(which sox) ]]; then
+		_sudo "apt-get -yqq install sox"
+	else
+		_print "OK, sox found"
+	fi
 }
 
 _installplugin-spectrogram() {
-  username=$(whoami);
-  _print "Accessing $PLUGIN in the plugin vault ... "
-  cd ${rutorrent}plugins
-  sleep 5
+	username=$(whoami)
+	_print "Accessing $PLUGIN in the plugin vault ... "
+	cd ${rutorrent}plugins
+	sleep 5
 
-  _print "Installing $PLUGIN plugin ... "
-    for i in $PLUGIN; do
-      cp -R "${PLUGINVAULT}$i" .
-    done
-  sleep 5
+	_print "Installing $PLUGIN plugin ... "
+	for i in $PLUGIN; do
+		cp -R "${PLUGINVAULT}$i" .
+	done
+	sleep 5
 
-  _print "Adjusting permissions ... "
-  chown -R www-data: ${rutorrent}plugins/$PLUGIN
-  _print "$PLUGIN Plugin Install Complete!"
+	_print "Adjusting permissions ... "
+	chown -R www-data: ${rutorrent}plugins/$PLUGIN
+	_print "$PLUGIN Plugin Install Complete!"
 
-  sleep 5
+	sleep 5
 }
 
 _done() {
-  _print
-  _print
-  _print "Close this dialog box to refresh your browser"
-  exit
+	_print
+	_print
+	_print "Close this dialog box to refresh your browser"
+	exit
 }
 
 _installBaseDeps

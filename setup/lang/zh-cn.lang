@@ -3,9 +3,9 @@
 #                                                                              #
 #                          Simplified Chinese                                  #
 #                                                                              #
-#                 Last entry update   : Sept 19, 2019 (v1.0.0)                 #
+#                 Last entry update   :  Nov 01, 2019 (v1.2.0)                 #
 #                                                                              #
-#              Last translations update  : Sept 19, 2019 (v1.0.0)              #
+#              Last translations update  :  Nov 01, 2019 (v1.2.0)              #
 #                                                                              #
 ################################################################################
 
@@ -73,8 +73,8 @@ INFO_TITLE_NAME="创建管理账户"
 INFO_TEXT_NAME="请输入你的用户名"
 ERROR_TITLE_NAME="无效用户名"
 ERROR_TEXT_NAME_1="请不要使用保留用户名 !"
-ERROR_TEXT_NAME_2="用户名不可以小于3字符 !"
-ERROR_TEXT_NAME_3="用户名必须以小写英语字母开始 !"
+ERROR_TEXT_NAME_2="用户名不可以小于3字符或多余32字符 !"
+ERROR_TEXT_NAME_3="用户名必须以小写英语字母开始并且仅包含大小写字母, 数字, 连字符, 下划线"
 INFO_TITLE_PASSWD="输入密码"
 INFO_TEXT_PASSWD="请输入你的密码"
 ERROR_TITLE_PASSWD="无效密码"
@@ -82,6 +82,8 @@ ERROR_TEXT_PASSWD_1="密码必须大于8字符 !"
 ERROR_TEXT_PASSWD_2="你的密码必须包含:\n1.数字\n2.小写字母\n3.大写字母"
 INFO_TITLE_MOUNT="主挂载点"
 INFO_TEXT_MOUNT="           选择一个主挂载点\n   (挂载点     设备        空间)"
+ERROR_TITLE_MOUNT="主挂载点错误"
+ERROR_TEXT_MOUNT="请使用空格键选中一个挂载点！"
 INFO_TITLE_THEME="主题"
 INFO_TEXT_THEME="      挑选一个 QuickBox 仪表盘主题"
 CHOICE_TEXT_THEME_1="        默认亮色主题"
@@ -107,7 +109,7 @@ INFO_TITLE_APPS="其他软件"
 INFO_TEXT_APPS="请选择功能"
 CHOICE_TEXT_APPS_1="rTorrent v0.9.6"
 CHOICE_TEXT_APPS_2="Transmission v2.94"
-CHOICE_TEXT_APPS_3="qBittorrent v4.1.7"
+CHOICE_TEXT_APPS_3="qBittorrent v4.1.8"
 CHOICE_TEXT_APPS_4="Deluge v1.3.15"
 CHOICE_TEXT_APPS_5="命令行种子生成器"
 CHOICE_TEXT_APPS_6="命令行多媒体工具"
@@ -117,6 +119,8 @@ INFO_TITLE_RTGUI="rTorrent GUI"
 INFO_TEXT_RTGUI="为 rTorrent 选择一个 GUI"
 CHOICE_TEXT_RTGUI_1="  强力的 rTorrent 网页前端"
 CHOICE_TEXT_RTGUI_2="  轻量级的 rTorrent 网页前端"
+ERROR_TITLE_RTGUI="rTorrent GUI 错误"
+ERROR_TEXT_RTGUI="请使用空格键选中一个前端！"
 INFO_TITLE_DENYTRACKER="公开 Tracker"
 INFO_TEXT_DENYTRACKER="禁用公开 Tracker?"
 INFO_TITLE_BBR="BBR"

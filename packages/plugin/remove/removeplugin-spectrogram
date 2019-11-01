@@ -22,23 +22,23 @@
 OUTTO=/srv/quickbox/db/output.log
 
 function _removeplugin-spectrogram() {
-  username=$(whoami);
-  rutorrent="/srv/rutorrent/";
-  echo "Uninstalling the spectrogram plugin ... " >>"${OUTTO}" 2>&1;
-  PLUGIN="spectrogram"
-    for i in $PLUGIN; do
-      rm -rf "${rutorrent}plugins/$i"
-    done
-  sleep 5
+	username=$(whoami)
+	rutorrent="/srv/rutorrent/"
+	echo "Uninstalling the spectrogram plugin ... " >>"${OUTTO}" 2>&1
+	PLUGIN="spectrogram"
+	for i in $PLUGIN; do
+		rm -rf "${rutorrent}plugins/$i"
+	done
+	sleep 5
 
-  echo "Spectrogram Plugin Uninstall Complete!" >>"${OUTTO}" 2>&1;
+	echo "Spectrogram Plugin Uninstall Complete!" >>"${OUTTO}" 2>&1
 
-  sleep 5
-  echo >>"${OUTTO}" 2>&1;
-  echo >>"${OUTTO}" 2>&1;
-  echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1;
+	sleep 5
+	echo >>"${OUTTO}" 2>&1
+	echo >>"${OUTTO}" 2>&1
+	echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
 
-    exit
+	exit
 }
 
 _removeplugin-spectrogram

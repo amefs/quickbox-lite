@@ -65,12 +65,16 @@ function _error() {
 #################################################################################
 function _batchInstall() {
 	applist=()
-	locks=($(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2 | grep -v "Template\|lecert\|denyhosts\|fail2ban" | sort -d))
-	for i in "${locks[@]}"; do
+	locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2 | grep -v "Template\|lecert\|denyhosts\|fail2ban" | sort -d)
+	for i in ${locks[@]}; do
 		app=${i}
-		if [[ ! -f /install/.$app.lock && ! -f /install/.*.$app.lock ]]; then
-			applist+=("$i" '""')
-		fi
+		for file in /install/.*."$app".lock; do
+			if [ ! -f "/install/${file}" ]; then
+				if [ ! -f "/install/.$app.lock" ]; then
+					applist+=("$i" '""')
+				fi
+			fi
+		done
 	done
 	installlist=$(whiptail --title "Install Software" --checklist --noitem --separate-output "Make some choices:" 20 28 14 "${applist[@]}" 3>&1 1>&2 2>&3)
 	echo "Batch Installing..."
@@ -116,15 +120,15 @@ if [[ $resolver == "lang" ]]; then
 fi
 
 if [[ $resolver == "install" ]]; then
-	extraarg="${@:2}"
+	extraarg="${*:2}"
 	appname=$2
 	if [[ -z $extraarg ]]; then
 		_batchInstall
 	elif [[ $appname == "bbr" || $appname == "BBR" ]]; then
-		bash /usr/local/bin/quickbox/system/auxiliary/install-BBR.sh ${@:3}
+		bash /usr/local/bin/quickbox/system/auxiliary/install-BBR.sh ${*:3}
 	else
 		if [[ -f /usr/local/bin/quickbox/package/install/installpackage-${appname} ]]; then
-			bash /usr/local/bin/quickbox/package/install/installpackage-${appname} ${@:3}
+			bash /usr/local/bin/quickbox/package/install/installpackage-${appname} ${*:3}
 		else
 			_error "${appname} Installer not exist"
 		fi
@@ -132,13 +136,13 @@ if [[ $resolver == "install" ]]; then
 fi
 
 if [[ $resolver == "remove" ]]; then
-	extraarg="${@:2}"
+	extraarg="${*:2}"
 	appname=$2
 	if [[ -z $extraarg ]]; then
 		_error "Nothing will be removed"
 	else
 		if [[ -f /usr/local/bin/quickbox/package/remove/removepackage-${appname} ]]; then
-			bash /usr/local/bin/quickbox/package/remove/removepackage-${appname} ${@:3}
+			bash /usr/local/bin/quickbox/package/remove/removepackage-${appname} ${*:3}
 		else
 			_error "Nothing will be removed"
 		fi
@@ -146,13 +150,13 @@ if [[ $resolver == "remove" ]]; then
 fi
 
 if [[ $resolver == "update" ]]; then
-	extraarg="${@:2}"
+	extraarg="${*:2}"
 	appname=$2
 	if [[ $appname == "quickbox" ]]; then
 		bash /usr/local/bin/quickbox/system/qbUpdate
 	elif [[ ! -z $extraarg ]]; then
 		if [[ -f /usr/local/bin/quickbox/package/update/updatepackage-${appname} ]]; then
-			bash /usr/local/bin/quickbox/package/update/updatepackage-${appname} ${@:3}
+			bash /usr/local/bin/quickbox/package/update/updatepackage-${appname} ${*:3}
 		else
 			_error "Updater not exist"
 		fi
@@ -185,10 +189,10 @@ if [[ $resolver == "set" ]]; then
 		chown -R www-data: /srv/dashboard
 		;;
 	"passwd" | "password")
-		bash /usr/local/bin/quickbox/system/users/changePass -p ${@:3}
+		bash /usr/local/bin/quickbox/system/users/changePass -p ${*:3}
 		;;
 	"mount")
-		bash /usr/local/bin/quickbox/system/auxiliary/set_mount ${@:3}
+		bash /usr/local/bin/quickbox/system/auxiliary/set_mount ${*:3}
 		;;
 	esac
 fi
@@ -198,20 +202,20 @@ if [[ $resolver == "fix" ]]; then
 	case $command in
 	"dpkg" | "lock") bash /usr/local/bin/quickbox/system/auxiliary/fixDpkg ;;
 	"interface") bash /usr/local/bin/quickbox/system/auxiliary/set_interface ;;
-	"home") bash /usr/local/bin/quickbox/system/auxiliary/fixHome ${@:3} ;;
+	"home") bash /usr/local/bin/quickbox/system/auxiliary/fixHome ${*:3} ;;
 	esac
 fi
 
 if [[ $resolver =~ ("iotest"|"disktest") ]]; then
-	bash /usr/local/bin/quickbox/system/auxiliary/iotest ${@:2}
+	bash /usr/local/bin/quickbox/system/auxiliary/iotest ${*:2}
 fi
 
 if [[ $resolver == "unban" ]]; then
 	if [[ -f /install/.denyhosts.lock ]]; then
-		bash /usr/local/bin/quickbox/system/auxiliary/denyunban ${@:2}
+		bash /usr/local/bin/quickbox/system/auxiliary/denyunban ${*:2}
 	fi
 	if [[ -f /install/.fail2ban.lock ]]; then
-		bash /usr/local/bin/quickbox/system/auxiliary/failunban ${@:2}
+		bash /usr/local/bin/quickbox/system/auxiliary/failunban ${*:2}
 	fi
 fi
 

@@ -20,12 +20,7 @@
 #################################################################################
 # CORE VARIABLE
 #################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
 ################################################################################
 # HELP FUNCTIONS
@@ -78,7 +73,7 @@ APP_TITLE="rTorrent"
 APP_NAME="rtorrent"
 APP_SERVICE="rtorrent"
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 version=0.9.6
 
@@ -204,7 +199,7 @@ function _updateApp() {
 		mkdir -p /root/dist
 		cd /tmp
 		_excute "git clone -b ${LTORRENT} ${BRANCH_LT} libtorrent"
-		cd libtorrent
+		cd libtorrent || { _error "Can not download libtorrent-rakshasa" && exit 1; }
 		_excute "./autogen.sh"
 		_excute "./configure --prefix=/usr --disable-debug"
 		LTVERSION=$(cat configure.ac | grep -Eo "AC_INIT\(libtorrent,.*" | grep -Eo "[0-9.]+" | head -n1)
@@ -218,7 +213,7 @@ function _updateApp() {
 		# rtorrent
 		cd /tmp
 		_excute "git clone -b ${RTVERSION} ${BRANCH_RT} rtorrent"
-		cd rtorrent
+		cd rtorrent || { _error "Can not download rTorrent" && exit 1; }
 		_excute "./autogen.sh"
 		_excute "./configure --prefix=/usr --with-xmlrpc-c --with-ncurses --disable-debug --enable-ipv6"
 		RTVERSION=$(cat configure.ac | grep -Eo "AC_INIT\(rtorrent,.*" | grep -Eo "[0-9.]+" | head -n1)

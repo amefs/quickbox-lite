@@ -17,16 +17,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
-CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -79,7 +69,7 @@ APP_NAME="transmission"
 APP_SERVICE="transmission"
 APP_BASEDEPS="transmission-daemon transmission-cli transmission-common"
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 
 ################################################################################
@@ -153,9 +143,13 @@ function _removeApp() {
 	_info "Removing ${APP_TITLE}..."
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
+		if [[ -f /install/.${username}.flexget.lock ]]; then
+			TRPORT=$(cat /install/${username}.transmission.port)
+			sed -i "s/${TRPORT}/TRPORT/g" /home/${username}/.config/flexget/config.yml
+		fi
 		rm -rf /home/${username}/torrents/$APP_NAME/
 		rm -rf /home/${username}/trwatch/
-		rm -rf /usr/share/$APP_NAME/
+		rm -rf /usr/share/transmission/
 		rm -rf /var/lib/transmission-daemon/
 		rm -rf /srv/$APP_NAME/
 		rm -rf /home/${username}/.config/$APP_NAME/

@@ -20,12 +20,7 @@
 #################################################################################
 # CORE VARIABLE
 #################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
 ################################################################################
 # HELP FUNCTIONS
@@ -79,13 +74,10 @@ APP_TITLE="qBittorrent"
 APP_NAME="qbittorrent"
 APP_SERVICE="qbittorrent"
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-deb_version_list=[\
-'4.1.7',\
-'4.1.8']
-qbitversion=4.1.7
-libtversion=1.1.13
+deb_version_list=['4.1.7','4.1.8','4.1.9.1']
+qbitversion=4.1.8
 
 ################################################################################
 # SCRIPT FUNCTIONS
@@ -155,7 +147,7 @@ function _updateApp() {
 		_excute "apt-mark unhold qbittorrent-nox"
 		_excute "apt remove -y qbittorrent-nox"
 		if [[ ${deb_version_list[*]} =~ ${qbitversion} && ! -f /install/.libtorrent-rasterbar.lock ]]; then
-			cd /tmp
+			cd /tmp || exit 1
 			QBITBIN=qbittorrent-nox_${qbitversion}-libt1.1-1build1_amd64.deb
 			wget -q -O ${QBITBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qbittorrent/${QBITBIN}/download
 			_excute "apt install -y /tmp/${QBITBIN}"
@@ -166,10 +158,10 @@ function _updateApp() {
 		else
 			# prepare package toolchain
 			_installFpm
-			cd /tmp
+			cd /tmp || exit 1
 			_info "Building $APP_TITLE ... "
 			_excute "git clone ${BRANCH_QBIT} qBittorrent"
-			cd qBittorrent
+			cd qBittorrent || { _error "Can not download qBittorrent" && exit 1; }
 			_excute "git checkout release-${qbitversion}"
 			_excute "./configure --disable-gui --disable-debug --prefix=/tmp/dist/qbittorrent"
 			_excute "make -j$(nproc)"
@@ -177,7 +169,7 @@ function _updateApp() {
 			_excute "make install"
 			fpm -f -C /tmp/dist/qbittorrent -p /root/pool/qbittorrent_${qbitversion}.deb -s dir -t deb -n qbittorrent-nox --version ${qbitversion} --description "qBittorrent compiled by QuickBox Lite" >/dev/null 2>&1
 			_excute "dpkg -i /root/pool/qbittorrent_${qbitversion}.deb"
-			cd /tmp
+			cd /tmp || exit 1
 			rm -rf {qBittorrent,libtorrent,dist}
 			# disable auto upgrade
 			_excute "apt-mark hold qbittorrent-nox"

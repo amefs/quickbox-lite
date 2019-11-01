@@ -20,12 +20,7 @@
 #################################################################################
 # CORE VARIABLE
 #################################################################################
-DISTRO=$(lsb_release -is)
-RELEASE=$(lsb_release -rs)
 CODENAME=$(lsb_release -cs)
-SETNAME=$(lsb_release -rc)
-# Server IP Address
-SERVERIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 
 ################################################################################
 # HELP FUNCTIONS
@@ -78,23 +73,16 @@ function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "
 APP_TITLE="qBittorrent"
 APP_NAME="qbittorrent"
 APP_SERVICE="qbittorrent"
-APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev qtbase5-dev qttools5-dev-tools libqt5svg5-dev zlib1g-dev"
-APP_WEB_PORT=""
-APP_DAEMON_PORT=""
 APP_HOST="127.0.0.1"
 
 # RANDOM PORT
 APP_WEB_PORT_LOW="15151"
 APP_WEB_PORT_HIGH="15200"
-APP_DAEMON_PORT_LOW=""
-APP_DAEMON_PORT_HIGH=""
 
-APP_LOCK=$(echo .$APP_NAME.lock)
+APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-deb_version_list=[\
-'4.1.7',\
-'4.1.8']
-qbitversion=4.1.7
+deb_version_list=['4.1.7','4.1.8','4.1.9.1']
+qbitversion=4.1.8
 libtversion=1.1.13
 
 BRANCH_LT="https://github.com/arvidn/libtorrent.git"
@@ -199,12 +187,10 @@ function _installSystemUpdates() {
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
-		apt-get check >/dev/null 2>&1
-		if [ "$?" -ne 0 ]; then
-			_excute "apt-get install -f"
-			apt-get check >/dev/null 2>&1
-			if [ "$?" -ne 0 ]; then
-				_error "apt-get check failed, you may have broken packages."
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
 				exit 1
 			fi
 		fi
@@ -243,7 +229,7 @@ function _installApp() {
 	# Libtorrent
 	if [[ ${libtversion} == 1.1.13 && ! -f /install/.libtorrent-rasterbar.lock ]]; then
 		_info "Installing Libtorrent..."
-		cd /tmp
+		cd /tmp || exit 1
 		if [[ ! -f /install/.libtorrent-rasterbar9.lock ]]; then
 			LIBTBIN=libtorrent-rasterbar9_1.1.13-1build1_amd64.deb
 			wget -q -O ${LIBTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${LIBTBIN}/download
@@ -255,7 +241,7 @@ function _installApp() {
 		fi
 		touch /install/.libtorrent-rasterbar9.lock
 	elif [[ ${libtversion} != 1.1.13 && ! -f /install/.libtorrent-rasterbar.lock && ! -f /install/.libtorrent-rasterbar9.lock ]]; then
-		cd /tmp
+		cd /tmp || exit 1
 		# prepare package toolchain
 		APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev zlib1g-dev"
 		_installDepends
@@ -305,13 +291,13 @@ function _installApp() {
 		mkdir -p /root/pool
 		mkdir -p /tmp/dist
 
-		cd /tmp
+		cd /tmp || exit 1
 		_excute "git clone -b ${LTRC} ${BRANCH_LT} libtorrent"
-		cd libtorrent
+		cd libtorrent || { _error "Can not download libtorrent-rasterbar" && exit 1; }
 		_excute "git checkout ${LTCIMMIT}"
 		wget --no-check-certificate -q -O libtorrent-rasterbar-${LTRC}.patch https://raw.githubusercontent.com/amefs/QB/master/setup/sources/libtorrent-rasterbar-${LTRC}.patch
 		patch -p1 <libtorrent-rasterbar-${LTRC}.patch >/dev/null
-		LTVERSION=$(cat configure.ac | grep -Eo "AC_INIT\(\[libtorrent-rasterbar\],.*" | grep -Eo "[0-9.]+" | head -n1)
+		LTVERSION=$(grep -Eo "AC_INIT\(\[libtorrent-rasterbar\],.*" configure.ac | grep -Eo "[0-9.]+" | head -n1)
 		_excute "./autotool.sh"
 		_excute "./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++11 CPPFLAGS=-std=c++11 --prefix=/tmp/dist/libtorrent-rasterbar/usr/local"
 		_excute "make -j$(nproc)"
@@ -345,11 +331,13 @@ function _installApp() {
 		_excute "apt-mark hold qbittorrent-nox"
 	else
 		# prepare package toolchain
+		APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev qtbase5-dev qttools5-dev-tools libqt5svg5-dev zlib1g-dev"
+		_installDepends
 		_installFpm
 		cd /tmp
 		_info "Building $APP_TITLE ... "
 		_excute "git clone ${BRANCH_QBIT} qBittorrent"
-		cd qBittorrent
+		cd qBittorrent || { _error "Can not download qBittorrent" && exit 1; }
 		_excute "git checkout release-${qbitversion}"
 		_excute "./configure --disable-gui --disable-debug --prefix=/tmp/dist/qbittorrent"
 		_excute "make -j$(nproc)"
@@ -373,7 +361,7 @@ function _configureApp() {
 	for username in $userlist; do
 		# get used port
 		local usedport=""
-		if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
+		if (find /install/ -type f | grep -q .$APP_NAME.port); then
 			usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
 		fi
 		# generate available port
@@ -381,13 +369,13 @@ function _configureApp() {
 		while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do
 			PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
 		done
-		echo $PORT >/install/$username.$APP_NAME.port
+		echo "$PORT" >/install/$username.$APP_NAME.port
 		passphrase=$(cat /root/.ssh/local_user)
 		passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
 		if [[ $CODENAME == xenial ]]; then
-			password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:${passphrase} -nosalt)
+			password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:"${passphrase}" -nosalt)
 		else
-			password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
+			password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:"${passphrase}" -nosalt)
 		fi
 		ha1pass=$(echo -n "${password}" | md5sum | cut -f1 -d' ')
 
@@ -464,6 +452,9 @@ location /${username}.qbittorrent.downloads {
   }
 }
 EOF
+		if [[ -f /install/.${username}.flexget.lock ]]; then
+			sed -i "s/QBPORT/${PORT}/g" /home/${username}/.config/flexget/config.yml
+		fi
 	done
 
 	cat >/etc/nginx/apps/qbittorrent.conf <<'QBRP'
@@ -550,7 +541,7 @@ while true; do
 		shift
 		;;
 	--lt)
-		libitversion="$2"
+		libtversion="$2"
 		shift
 		;;
 	--)
