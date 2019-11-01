@@ -1,3 +1,30 @@
+## CHANGELOG v1.2.0:
+
+*Changelog update Friday, Nov 1, 2019*
+
+### General additions
+
+- add FlexGet template
+
+### Function improved
+
+- reformat all bash scripts
+- Rewrite mount point scan function
+- use HTTPS to protect download url
+- clean cache after upgrade ruTorrent
+- auto fill BT clients' authorization info and port info in FlexGet config
+
+### Function updated
+
+- install qBittorrent 4.1.8 by default
+- now support qBittorrent 4.1.9.1
+
+### Bug fixed
+
+- Apache autoremove
+
+---
+
 ## CHANGELOG v1.1.0:
 
 *Changelog update Wednesday, Oct 2, 2019*
