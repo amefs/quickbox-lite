@@ -1,42 +1,21 @@
 <?php
 
 // Network Interface
-$interface = INETFACE;
+$interface = 'INETFACE';
 $iface_list = array('INETFACE');
 $iface_title['INETFACE'] = 'External';
 $vnstat_bin = '/usr/bin/vnstat';
 $data_dir = './dumps';
 $byte_notation = null;
 
-require ('../inc/localize.php');
+require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
+require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 require ('vnstat.php');
 
 validate_input();
 
-function kbytes_to_string($kb) {
-
-  global $byte_notation;
-
-  $units = array('TB','GB','MB','KB');
-  $scale = 1024*1024*1024;
-  $ui = 0;
-
-  $custom_size = isset($byte_notation) && in_array($byte_notation, $units);
-
-  while ((($kb < $scale) && ($scale > 1)) || $custom_size) {
-    $ui++;
-    $scale = $scale / 1024;
-
-    if ($custom_size && $units[$ui] == $byte_notation) {
-      break;
-    }
-  }
-
-  return sprintf("%0.2f %s", ($kb/$scale),$units[$ui]);
-}
-
 function write_summary_s() {
-  global $summary,$day,$hour,$month;
+  global $summary, $day, $hour, $month;
 
   $trx = $summary['totalrx']*1024+$summary['totalrxk'];
   $ttx = $summary['totaltx']*1024+$summary['totaltxk'];
@@ -74,7 +53,7 @@ write_data_table_s(T('Summary'), $sum);
 }
 
 function write_summary_t() {
-  global $top;
+  global $top, $summary, $hour, $day, $month;
 
   $trx = $summary['totalrx']*1024+$summary['totalrxk'];
   $ttx = $summary['totaltx']*1024+$summary['totaltxk'];
@@ -126,9 +105,9 @@ function write_data_table_s($caption, $tab) {
   for ($i=0; $i<count($tab); $i++) {
     if ($tab[$i]['act'] == 1) {
       $t = $tab[$i]['label'];
-      $rx = kbytes_to_string($tab[$i]['rx']);
-      $tx = kbytes_to_string($tab[$i]['tx']);
-      $total = kbytes_to_string($tab[$i]['rx']+$tab[$i]['tx']);
+      $rx = formatsize($tab[$i]['rx'], 2);
+      $tx = formatsize($tab[$i]['tx'], 2);
+      $total = formatsize($tab[$i]['rx']+$tab[$i]['tx'], 2);
       $id = ($i & 1) ? 'odd' : 'even';
       print "<tr>";
       print "<td class=\"label_$id\" style=\"font-size:12px;text-align:right\"><b>$t</b></td>";
@@ -159,9 +138,9 @@ function write_data_table_t($caption, $tab) {
   for ($i=0; $i<count($tab); $i++) {
     if ($tab[$i]['act'] == 1) {
       $t = $tab[$i]['label'];
-      $rx = kbytes_to_string($tab[$i]['rx']);
-      $tx = kbytes_to_string($tab[$i]['tx']);
-      $total = kbytes_to_string($tab[$i]['rx']+$tab[$i]['tx']);
+      $rx = formatsize($tab[$i]['rx'], 2);
+      $tx = formatsize($tab[$i]['tx'], 2);
+      $total = formatsize($tab[$i]['rx']+$tab[$i]['tx'], 2);
       $id = ($i & 1) ? 'odd' : 'even';
       print "<tr>";
       print "<td class=\"label_$id\" style=\"font-size:12px;;text-align:right\"><b>$t</b></td>";
@@ -179,34 +158,33 @@ function write_data_table_t($caption, $tab) {
 get_vnstat_data();
 ?>
 
-            <div class="col-sm-12" style="padding-left:0;padding-right:0;">
-              <div class="table-responsive">
-                <?php $graph_params = "if=$iface&amp;page=$page&amp;style=$style";
-                  if ($page == 's') {
-                    write_summary_s();
-                  } else if ($page == 'h') {
-                    write_data_table_s(T('Last 24 hours'), $hour);
-                  } else if ($page == 'd') {
-                    write_data_table_s(T('Last 30 days'), $day);
-                  } else if ($page == 'm') {
-                    write_data_table_s(T('Last 12 months'), $month);
-                  }
-                ?>
-              </div>
-            </div>
-
-            <div class="col-sm-12" style="padding-left:0;padding-right:0;">
-              <div class="table-responsive">
-                <?php $graph_params = "if=$iface&amp;page=$page&amp;style=$style";
-                  if ($page == 's') {
-                    write_summary_t();
-                  } else if ($page == 'h') {
-                    write_data_table_t(T('Last 24 hours'), $hour);
-                  } else if ($page == 'd') {
-                    write_data_table_t(T('Last 30 days'), $day);
-                  } else if ($page == 'm') {
-                    write_data_table_t(T('Last 12 months'), $month);
-                  }
-                ?>
-              </div>
-            </div>
+<div class="col-sm-12" style="padding-left:0;padding-right:0;">
+  <div class="table-responsive">
+    <?php
+      if ($page == 's') {
+        write_summary_s();
+      } else if ($page == 'h') {
+        write_data_table_s(T('Last 24 hours'), $hour);
+      } else if ($page == 'd') {
+        write_data_table_s(T('Last 30 days'), $day);
+      } else if ($page == 'm') {
+        write_data_table_s(T('Last 12 months'), $month);
+      }
+    ?>
+  </div>
+</div>
+<div class="col-sm-12" style="padding-left:0;padding-right:0;">
+  <div class="table-responsive">
+    <?php
+      if ($page == 's') {
+        write_summary_t();
+      } else if ($page == 'h') {
+        write_data_table_t(T('Last 24 hours'), $hour);
+      } else if ($page == 'd') {
+        write_data_table_t(T('Last 30 days'), $day);
+      } else if ($page == 'm') {
+        write_data_table_t(T('Last 12 months'), $month);
+      }
+    ?>
+  </div>
+</div>
