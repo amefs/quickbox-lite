@@ -25,7 +25,7 @@ cat >/srv/dashboard/inc/localize.php <<LCL
 <?php
     \$locale = 'zh.UTF-8';
     \$language = 'lang_zh';
-    setlocale(LC_ALL, $locale);
+    setlocale(LC_ALL, \$locale);
     require (\$_SERVER['DOCUMENT_ROOT']."/lang/$language");
     function T(\$str)
     {

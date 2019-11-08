@@ -102,7 +102,7 @@
     id: undefined,
     override: function (task) {
       function format(length, factor, tail, fractionDigits) {
-        return (length / Math.pow(2, factor)).toFixed(fractionDigits).toString() + tail;
+        return (length / Math.pow(2, factor)).toFixed(fractionDigits).toString() + " " + tail;
       }
 
       function formatsize(length) {

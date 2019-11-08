@@ -4,15 +4,15 @@ if (isset($_SESSION))
   session_destroy();
 }
 
-include '/srv/dashboard/inc/util.php';
-include ($_SERVER['DOCUMENT_ROOT'].'/widgets/class.php');
+require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
+require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+require_once ($_SERVER['DOCUMENT_ROOT'].'/widgets/class.php');
+
 $version = "v1.2.0";
 error_reporting(E_ERROR);
-$master = file_get_contents('/srv/dashboard/db/master.txt');
-$master=preg_replace('/\s+/', '', $master);
 $username = getUser();
-
-require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+$master = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
+$master = preg_replace('/\s+/', '', $master);
 
 // Network Interface
 $interface = INETFACE;
@@ -47,26 +47,6 @@ function microtime_float() {
   $mtime = explode(' ', $mtime);
   return $mtime[1] + $mtime[0];
 }
-
-//Unit Conversion
-function formatsize($size) {
-  $danwei=array(' B ',' KB ',' MB ',' GB ',' TB ');
-  $allsize=array();
-  $i=0;
-  for($i = 0; $i <5; $i++) {
-    if(floor($size/pow(1024,$i))==0){break;}
-  }
-  for($l = $i-1; $l >=0; $l--) {
-    $allsize1[$l]=floor($size/pow(1024,$l));
-    $allsize[$l]=$allsize1[$l]-$allsize1[$l+1]*1024;
-  }
-  $len=count($allsize);
-  for($j = $len-1; $j >=0; $j--) {
-    $fsize=$fsize.$allsize[$j].$danwei[$j];
-  }
-  return $fsize;
-}
-
 
 //NIC flow
 $strs = @file("/proc/net/dev");

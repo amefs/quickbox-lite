@@ -149,8 +149,8 @@ function _selectlang() {
 	local menu_choice
 	menu_choice=$(
 		whiptail --title "Installation Language" --menu "Choose a language" --nocancel 12 72 4 \
-		"English" "        Install with English" \
-		"Chinese Simpified" "        安装为简体中文" 3>&1 1>&2 2>&3
+			"English" "        Install with English" \
+			"Chinese Simpified" "        安装为简体中文" 3>&1 1>&2 2>&3
 	)
 	case $menu_choice in
 	"English")
@@ -270,10 +270,10 @@ function _askchport() {
 	while [[ $chport == "" ]]; do
 		chport=$(
 			whiptail --title "$INFO_TITLE_SSH" --radiolist \
-			"$INFO_TEXT_SSH" 12 40 4 \
-			"22" "$CHOICE_TEXT_SSH_1" off \
-			"4747" "$CHOICE_TEXT_SSH_2" on \
-			--ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3
+				"$INFO_TEXT_SSH" 12 40 4 \
+				"22" "$CHOICE_TEXT_SSH_1" off \
+				"4747" "$CHOICE_TEXT_SSH_2" on \
+				--ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3
 		)
 	done
 }
@@ -328,7 +328,7 @@ function _askpasswd() {
 		else
 			if [[ $strength == "" ]]; then
 				whiptail --title "$ERROR_TITLE_PASSWD" --msgbox \
-				"$ERROR_TEXT_PASSWD_2" --ok-button "$BUTTON_OK" 10 72
+					"$ERROR_TEXT_PASSWD_2" --ok-button "$BUTTON_OK" 10 72
 			fi
 		fi
 		_defaultcolor
@@ -438,9 +438,9 @@ function _askmount() {
 	while [[ $device == "" ]]; do
 		device=$(
 			whiptail --title "$INFO_TITLE_MOUNT" --radiolist \
-			"$(if [[ $extralength == 1 ]]; then echo "      "; fi)$INFO_TEXT_MOUNT" 12 ${width} 4 \
-			"${LIST[@]}" \
-			--ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3
+				"$(if [[ $extralength == 1 ]]; then echo "      "; fi)$INFO_TEXT_MOUNT" 12 ${width} 4 \
+				"${LIST[@]}" \
+				--ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3
 		)
 		if [[ $device == "" ]]; then
 			whiptail --title "$ERROR_TITLE_MOUNT" --msgbox "$ERROR_TEXT_MOUNT" --ok-button "$BUTTON_OK" 8 72
@@ -480,10 +480,10 @@ function _askdashtheme() {
 	while [[ $dash_theme == "" ]]; do
 		dash_theme=$(
 			whiptail --title "$INFO_TITLE_THEME" --radiolist \
-			"$INFO_TEXT_THEME" 12 48 4 \
-			"defaulted" "$CHOICE_TEXT_THEME_1" off \
-			"smoked" "$CHOICE_TEXT_THEME_2" on \
-			3>&1 1>&2 2>&3
+				"$INFO_TEXT_THEME" 12 48 4 \
+				"defaulted" "$CHOICE_TEXT_THEME_1" off \
+				"smoked" "$CHOICE_TEXT_THEME_2" on \
+				3>&1 1>&2 2>&3
 		)
 	done
 }
@@ -493,17 +493,17 @@ function _askchsource() {
 		chsource=1
 		mirror=$(
 			whiptail --title "$INFO_TITLE_SOURCE" --radiolist \
-			"$INFO_TEXT_SOURCE_EXTRA" 15 32 8 \
-			"us" "$CHOICE_TEXT_SOURCE_EXTRA_US" on \
-			"au" "$CHOICE_TEXT_SOURCE_EXTRA_AU" off \
-			"cn" "$CHOICE_TEXT_SOURCE_EXTRA_CN" off \
-			"fr" "$CHOICE_TEXT_SOURCE_EXTRA_FR" off \
-			"de" "$CHOICE_TEXT_SOURCE_EXTRA_DE" off \
-			"jp" "$CHOICE_TEXT_SOURCE_EXTRA_JP" off \
-			"ru" "$CHOICE_TEXT_SOURCE_EXTRA_RU" off \
-			"uk" "$CHOICE_TEXT_SOURCE_EXTRA_UK" off \
-			"tuna" "$CHOICE_TEXT_SOURCE_EXTRA_TUNA" off \
-			3>&1 1>&2 2>&3
+				"$INFO_TEXT_SOURCE_EXTRA" 15 32 8 \
+				"us" "$CHOICE_TEXT_SOURCE_EXTRA_US" on \
+				"au" "$CHOICE_TEXT_SOURCE_EXTRA_AU" off \
+				"cn" "$CHOICE_TEXT_SOURCE_EXTRA_CN" off \
+				"fr" "$CHOICE_TEXT_SOURCE_EXTRA_FR" off \
+				"de" "$CHOICE_TEXT_SOURCE_EXTRA_DE" off \
+				"jp" "$CHOICE_TEXT_SOURCE_EXTRA_JP" off \
+				"ru" "$CHOICE_TEXT_SOURCE_EXTRA_RU" off \
+				"uk" "$CHOICE_TEXT_SOURCE_EXTRA_UK" off \
+				"tuna" "$CHOICE_TEXT_SOURCE_EXTRA_TUNA" off \
+				3>&1 1>&2 2>&3
 		)
 	else
 		chsource=0
@@ -594,14 +594,14 @@ function _insngx() {
 
 	ln -nsf /usr/bin/php7.2 /usr/bin/php
 	sed -i.bak -e "s/post_max_size.*/post_max_size = 64M/" \
-	-e "s/upload_max_filesize.*/upload_max_filesize = 92M/" \
-	-e "s/expose_php.*/expose_php = Off/" \
-	-e "s/128M/768M/" \
-	-e "s/;cgi.fix_pathinfo.*/cgi.fix_pathinfo=1/" \
-	-e "s/;opcache.enable.*/opcache.enable=1/" \
-	-e "s/;opcache.memory_consumption.*/opcache.memory_consumption=128/" \
-	-e "s/;opcache.max_accelerated_files.*/opcache.max_accelerated_files=4000/" \
-	-e "s/;opcache.revalidate_freq.*/opcache.revalidate_freq=240/" /etc/php/7.2/fpm/php.ini
+		-e "s/upload_max_filesize.*/upload_max_filesize = 92M/" \
+		-e "s/expose_php.*/expose_php = Off/" \
+		-e "s/128M/768M/" \
+		-e "s/;cgi.fix_pathinfo.*/cgi.fix_pathinfo=1/" \
+		-e "s/;opcache.enable.*/opcache.enable=1/" \
+		-e "s/;opcache.memory_consumption.*/opcache.memory_consumption=128/" \
+		-e "s/;opcache.max_accelerated_files.*/opcache.max_accelerated_files=4000/" \
+		-e "s/;opcache.revalidate_freq.*/opcache.revalidate_freq=240/" /etc/php/7.2/fpm/php.ini
 
 	phpenmod -v 7.2 opcache
 	phpenmod -v 7.2 xml
@@ -725,14 +725,14 @@ function _insdashboard() {
 function _askapps() {
 	app_list=$(
 		whiptail --title "$INFO_TITLE_APPS" --checklist --separate-output --separate-output "$INFO_TEXT_APPS" --ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 16 56 8 \
-		"rtorrent" "$CHOICE_TEXT_APPS_1" OFF \
-		"transmission" "$CHOICE_TEXT_APPS_2" OFF \
-		"qbittorrent" "$CHOICE_TEXT_APPS_3" OFF \
-		"deluge" "$CHOICE_TEXT_APPS_4" OFF \
-		"mktorrent" "$CHOICE_TEXT_APPS_5" OFF \
-		"ffmpeg" "$CHOICE_TEXT_APPS_6" ON \
-		"filebrowser" "$CHOICE_TEXT_APPS_7" OFF \
-		"linuxrar" "$CHOICE_TEXT_APPS_8" ON 3>&1 1>&2 2>&3
+			"rtorrent" "$CHOICE_TEXT_APPS_1" OFF \
+			"transmission" "$CHOICE_TEXT_APPS_2" OFF \
+			"qbittorrent" "$CHOICE_TEXT_APPS_3" OFF \
+			"deluge" "$CHOICE_TEXT_APPS_4" OFF \
+			"mktorrent" "$CHOICE_TEXT_APPS_5" OFF \
+			"ffmpeg" "$CHOICE_TEXT_APPS_6" ON \
+			"filebrowser" "$CHOICE_TEXT_APPS_7" OFF \
+			"linuxrar" "$CHOICE_TEXT_APPS_8" ON 3>&1 1>&2 2>&3
 	)
 	_askrtgui
 	_askdenytracker
@@ -743,10 +743,10 @@ function _askbbr() {
 	while [[ $enable_bbr == "" ]]; do
 		enable_bbr=$(
 			whiptail --title "$INFO_TITLE_BBR" --radiolist \
-			"$INFO_TEXT_BBR" 12 32 4 \
-			"0" "$CHOICE_TEXT_BBR_1" on \
-			"1" "$CHOICE_TEXT_BBR_2" off \
-			3>&1 1>&2 2>&3
+				"$INFO_TEXT_BBR" 12 32 4 \
+				"0" "$CHOICE_TEXT_BBR_1" on \
+				"1" "$CHOICE_TEXT_BBR_2" off \
+				3>&1 1>&2 2>&3
 		)
 	done
 	if [[ $enable_bbr == 1 && $CODENAME == xenial ]]; then
@@ -768,10 +768,10 @@ function _askrtgui() {
 		while [[ $rtgui == "" ]]; do
 			rtgui=$(
 				whiptail --title "$INFO_TITLE_RTGUI" --radiolist \
-				"$INFO_TEXT_RTGUI" 12 56 4 \
-				"rutorrent" "$CHOICE_TEXT_RTGUI_1" off \
-				"flood" "$CHOICE_TEXT_RTGUI_2" off \
-				--ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3
+					"$INFO_TEXT_RTGUI" 12 56 4 \
+					"rutorrent" "$CHOICE_TEXT_RTGUI_1" off \
+					"flood" "$CHOICE_TEXT_RTGUI_2" off \
+					--ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3
 			)
 			if [[ $rtgui == "" ]]; then
 				whiptail --title "$ERROR_TITLE_RTGUI" --msgbox "$ERROR_TEXT_RTGUI" --ok-button "$BUTTON_OK" 8 72
@@ -1037,17 +1037,17 @@ $(if [[ $autoreboot == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_17}\n"; fi)\
 		local menu_choice
 		menu_choice=$(
 			whiptail --title "$INFO_TITLE_EDIT" --menu "$INFO_TEXT_EDIT" 18 72 12 \
-			"hostname" "$CHOICE_TEXT_EDIT_1" \
-			"ssh port" "$CHOICE_TEXT_EDIT_2" \
-			"user name" "$CHOICE_TEXT_EDIT_3" \
-			"password" "$CHOICE_TEXT_EDIT_4" \
-			"primary root" "$CHOICE_TEXT_EDIT_5" \
-			"ftp" "$CHOICE_TEXT_EDIT_7" \
-			"dashboard theme" "$CHOICE_TEXT_EDIT_8" \
-			"source.list" "$CHOICE_TEXT_EDIT_9" \
-			"softwares" "$CHOICE_TEXT_EDIT_10" \
-			"BBR" "$CHOICE_TEXT_EDIT_12" \
-			"autoreboot" "$CHOICE_TEXT_EDIT_11" 3>&1 1>&2 2>&3
+				"hostname" "$CHOICE_TEXT_EDIT_1" \
+				"ssh port" "$CHOICE_TEXT_EDIT_2" \
+				"user name" "$CHOICE_TEXT_EDIT_3" \
+				"password" "$CHOICE_TEXT_EDIT_4" \
+				"primary root" "$CHOICE_TEXT_EDIT_5" \
+				"ftp" "$CHOICE_TEXT_EDIT_7" \
+				"dashboard theme" "$CHOICE_TEXT_EDIT_8" \
+				"source.list" "$CHOICE_TEXT_EDIT_9" \
+				"softwares" "$CHOICE_TEXT_EDIT_10" \
+				"BBR" "$CHOICE_TEXT_EDIT_12" \
+				"autoreboot" "$CHOICE_TEXT_EDIT_11" 3>&1 1>&2 2>&3
 		)
 		case $menu_choice in
 		"hostname") _askhostname ;;
