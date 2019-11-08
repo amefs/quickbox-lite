@@ -17,7 +17,7 @@
 Cmnd_Alias   SYSCMNDS = /usr/local/bin/quickbox/system/*, /usr/local/bin/quickbox/system/lang/*, /usr/local/bin/quickbox/system/theme/*, /usr/local/bin/quickbox/system/updater/*
 Cmnd_Alias   PKGCMNDS = /usr/local/bin/quickbox/package/install/*, /usr/local/bin/quickbox/package/remove/*, /usr/local/bin/quickbox/package/update/*
 Cmnd_Alias   PLUGINCMNDS = /usr/local/bin/quickbox/plugin/install/installplugin-*, /usr/local/bin/quickbox/plugin/remove/removeplugin-*
-Cmnd_Alias   GENERALCMNDS =  /bin/mount, /usr/sbin/repquota, /bin/systemctl, /root/acme.sh/acme.sh, /usr/sbin/service php7.2-fpm reload, /usr/sbin/service php7.2-fpm restart, /usr/bin/mysql, /sbin/ip route get 8.8.8.8
+Cmnd_Alias   GENERALCMNDS =  /bin/mount, /bin/systemctl, /root/acme.sh/acme.sh, /usr/sbin/service php7.2-fpm reload, /usr/sbin/service php7.2-fpm restart, /usr/bin/mysql, /sbin/ip route get 8.8.8.8
 
 www-data     ALL = (ALL) NOPASSWD: SYSCMNDS, PKGCMNDS, PLUGINCMNDS, GENERALCMNDS
 
