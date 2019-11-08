@@ -715,3 +715,16 @@ function iclamp( $val, $min = 0, $max = XMLRPC_MAX_I8 )
 		$val = $max;
 	return( ((PHP_INT_SIZE>4) || ( ($val>=PHP_INT_MIN) && ($val<=PHP_INT_MAX) )) ? intval($val) : $val );
 }
+
+//Unit Conversion, KB by default
+function formatsize($length, $decimals = 3, $startwith = 1)
+{
+	if ($length < 1e-5)
+	{
+		return '0 B';
+	}
+	$si_prefix = array( 'B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' );
+	$base = 1024;
+	$index = floor(log($length, $base));
+	return number_format($length / pow($base, $index), $decimals) . ' ' . $si_prefix[$index + 1];
+}

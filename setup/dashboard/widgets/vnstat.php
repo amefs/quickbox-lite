@@ -1,5 +1,5 @@
 <?php
-
+$hour; $day; $month; $top; $summary;
 // Valid values for other parameters you can pass to the script.
 // Input parameters will always be limited to one of the values listed here.
 // If a parameter is not provided or invalid it will revert to the default,
@@ -46,7 +46,7 @@
     function get_vnstat_data($use_label=true) {
         global $iface, $vnstat_bin, $data_dir;
         global $hour,$day,$month,$top,$summary;
-	$vnstat_data = array();
+	    $vnstat_data = array();
         if (!isset($vnstat_bin) || $vnstat_bin == '') {
 	    if (file_exists("$data_dir/vnstat_dump_$iface")) {
         	$vnstat_data = file("$data_dir/vnstat_dump_$iface");

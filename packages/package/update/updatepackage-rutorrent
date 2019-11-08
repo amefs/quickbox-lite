@@ -226,54 +226,6 @@ EOF
 		chown -R www-data: stream
 	fi
 
-	_info "Performing adjustments to ruTorrent diskspace plugin... "
-
-	cat >/srv/rutorrent/plugins/diskspace/action.php <<'EOF'
-<?php
-
-#################################################################################
-##  [Quick Box - action.php modified for quota systems use]
-#################################################################################
-# QUICKLAB REPOS
-# Author             :   QuickBox.IO
-# URL                :   https://quickbox.io
-#
-# QuickBox Copyright (C) 2017 QuickBox.io
-# Licensed under GNU General Public License v3.0 GPL-3 (in short)
-#
-#   You may copy, distribute and modify the software as long as you track
-#   changes/dates in source files. Any modifications to our software
-#   including (via compiler) GPL-licensed code must also be made available
-#   under the GPL along with build & install instructions.
-#
-#################################################################################
-
-  require_once( '../../php/util.php' );
-  require_once( '../../php/settings.php' );
-  eval( getPluginConf( 'diskspace' ) );
-  if (isset($quotaUser) && file_exists('/install/.quota.lock')) {
-      $total = shell_exec("/usr/bin/sudo /usr/sbin/repquota -u /home | /bin/grep ^".$quotaUser." | /usr/bin/awk '{printf $4*1024}'");
-      $free = shell_exec("/usr/bin/sudo /usr/sbin/repquota -u /home | /bin/grep ^".$quotaUser." | /usr/bin/awk '{printf ($4-$3)*1024}'");
-      cachedEcho('{ "total": '.$total.', "free": '.$free.' }',"application/json");
-  } else {
-      	if( is_null($partitionDirectory) )
-        {
-            // If we run locally && we the download directory seems to exists
-            if ( isLocalMode() && rTorrentSettings::get()->linkExist && file_exists(rTorrentSettings::get()->directory) ) 
-            {
-                $partitionDirectory = rTorrentSettings::get()->directory; // Then we can show the disk space of the download directory
-            } 
-            else 
-            {
-                $partitionDirectory = &$topDirectory; // Else, we show $topDirectory by default as fallback
-            }
-        }
-	    cachedEcho('{ "total": '.disk_total_space($partitionDirectory).', "free": '.disk_free_space($partitionDirectory).' }',"application/json");
-  }
-
-?>
-EOF
-
 	_info "Setting up configs for ruTorrent... "
 
 	cat >/srv/rutorrent/conf/config.php <<EOF

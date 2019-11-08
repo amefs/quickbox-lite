@@ -148,6 +148,13 @@ function _updatedashboard() {
 	_info "Updating QuickBox dashboard..."
 	cd /srv/dashboard || exit 1
 	_excute "rsync -aP --exclude=disk_data*.php --exclude=share.php --exclude=custom.menu.php --exclude=url.override.php --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
+
+	if $(grep -Fxq "disk_total_space(\$location)" /srv/dashboard/widgets/disk_data.php); then
+		\cp ${local_setup_dashboard}widgets/disk_datah.php /srv/dashboard/widgets/disk_data.php
+	else
+		\cp ${local_setup_dashboard}widgets/disk_data.php /srv/dashboard/widgets/disk_data.php
+	fi
+
 	IFACE=$(cat /srv/dashboard/db/interface.txt)
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/stat.php
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/data.php
