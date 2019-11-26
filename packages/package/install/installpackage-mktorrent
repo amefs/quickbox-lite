@@ -286,28 +286,28 @@ function _menucreate() {
 "02" "Create a private torrent and specify an announce" off \
 "03" "Create a public torrent for public trackers" off 3>&1 1>&2 2>&3)
         case $trackerop in
-            01) private=1 ; ANNOUNCE="-a \"\"" ;;
+            01) private=1 ; ANNOUNCE="\"\"" ;;
             02) private=1 ; _input_announce ;;
-            03) private=0 ; ANNOUNCE="-a udp://tracker.coppersurfer.tk:6969/announce \
-            -a udp://tracker.opentrackr.org:1337/announce \
-            -a udp://tracker.open-internet.nl:6969/announce \
-            -a udp://tracker.leechers-paradise.org:6969/announce \
-            -a udp://tracker.internetwarriors.net:1337/announce \
-            -a udp://9.rarbg.to:2710/announce \
-            -a udp://9.rarbg.me:2710/announce \
-            -a http://tracker3.itzmx.com:6961/announce \
-            -a http://tracker1.itzmx.com:8080/announce \
-            -a udp://tracker.openbittorrent.com:80/announce \
-            -a udp://exodus.desync.com:6969/announce \
-            -a udp://tracker2.itzmx.com:6961/announce \
-            -a udp://tracker.torrent.eu.org:451/announce \
-            -a udp://tracker.tiny-vps.com:6969/announce \
-            -a udp://retracker.lanta-net.ru:2710/announce \
-            -a udp://open.demonii.si:1337/announce \
-            -a udp://denis.stalker.upeer.me:6969/announce \
-            -a udp://bt.xxx-tracker.com:2710/announce \
-            -a udp://tracker.cyberia.is:6969/announce \
-            -a udp://open.stealth.si:80/announce ";;
+            03) private=0 ; ANNOUNCE="udp://tracker.coppersurfer.tk:6969/announce \
+-a udp://tracker.opentrackr.org:1337/announce \
+-a udp://tracker.open-internet.nl:6969/announce \
+-a udp://tracker.leechers-paradise.org:6969/announce \
+-a udp://tracker.internetwarriors.net:1337/announce \
+-a udp://9.rarbg.to:2710/announce \
+-a udp://9.rarbg.me:2710/announce \
+-a http://tracker3.itzmx.com:6961/announce \
+-a http://tracker1.itzmx.com:8080/announce \
+-a udp://tracker.openbittorrent.com:80/announce \
+-a udp://exodus.desync.com:6969/announce \
+-a udp://tracker2.itzmx.com:6961/announce \
+-a udp://tracker.torrent.eu.org:451/announce \
+-a udp://tracker.tiny-vps.com:6969/announce \
+-a udp://retracker.lanta-net.ru:2710/announce \
+-a udp://open.demonii.si:1337/announce \
+-a udp://denis.stalker.upeer.me:6969/announce \
+-a udp://bt.xxx-tracker.com:2710/announce \
+-a udp://tracker.cyberia.is:6969/announce \
+-a udp://open.stealth.si:80/announce ";;
         esac
         # piece size
         piecesize=$(dialog --title "Piece Length" --radiolist \
@@ -329,12 +329,12 @@ function _menucreate() {
 function _createtorrent() {
 if [[ ${quitrun} != 1 ]]; then
     if [[ ${private} == 1 ]]; then
-        mktorrent -v -p -l ${piecesize} -a "${ANNOUNCE}" -o "${outputpath}" "$filepath"
+        mktorrent -v -p -l ${piecesize} -a ${ANNOUNCE} -o "${outputpath}" "$filepath"
     else
-        mktorrent -v -l ${piecesize} -a "${ANNOUNCE}" -o "${outputpath}" "$filepath"
+        mktorrent -v -l ${piecesize} -a ${ANNOUNCE} -o "${outputpath}" "$filepath"
     fi
 else
-    mktorrent -v -l ${piecesize} -a "${ANNOUNCE}" -o "${outputpath}" "$filepath"
+    mktorrent -v -l ${piecesize} -a ${ANNOUNCE} -o "${outputpath}" "$filepath"
 fi
 }
 #################################################################################
