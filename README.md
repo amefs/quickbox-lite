@@ -111,7 +111,7 @@ sudo box update quickbox
   - ruTorrent
   - flood
 - Transmission (*2.94*)
-- qBittorrent (*4.1.8*)
+- qBittorrent (*4.2.1*)
 - Deluge (*1.3.15, 2.0.3*)
 - mktorrent (with `createtorrent` command as wrapper)
 - FFmpeg
@@ -123,7 +123,7 @@ sudo box update quickbox
 
 - Autodl-irssi
 - BTSync
-- FlexGet
+- FlexGet(both 2.x and 3.x)
 - Netdata
 - noVNC
 - Plex

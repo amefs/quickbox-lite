@@ -76,8 +76,11 @@ APP_SERVICE="qbittorrent"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-deb_version_list=['4.1.7','4.1.8','4.1.9.1']
-qbitversion=4.1.8
+deb_version_list=['4.1.7','4.1.8','4.1.9.1','4.2.0','4.2.1']
+qbitversion=4.2.1
+BRANCH_QBIT="https://github.com/qbittorrent/qBittorrent.git"
+BRANCH_LIBQBPASS="https://github.com/KozakaiAya/libqbpasswd.git"
+FORCE=0
 
 ################################################################################
 # SCRIPT FUNCTIONS
@@ -137,7 +140,7 @@ Please wait until the process is completed
 function _updateApp() {
 	# get current version
 	cur_version=$(dpkg -s qbittorrent-nox | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
-	if (_version_gt ${qbitversion} ${cur_version}); then
+	if (_version_gt ${qbitversion} ${cur_version}) ||  [[ $FORCE == 1 ]] ; then
 		_info "Updating ${APP_TITLE}..."
 		_info "Removing old ${APP_TITLE}..."
 		userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
@@ -148,6 +151,15 @@ function _updateApp() {
 		_excute "apt remove -y qbittorrent-nox"
 		if [[ ${deb_version_list[*]} =~ ${qbitversion} && ! -f /install/.libtorrent-rasterbar.lock ]]; then
 			cd /tmp || exit 1
+			if (_version_gt ${qbitversion} 4.1.9.1); then
+				if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
+					cd /tmp
+					QTBIN=qt512base_5.12.6-1basyskom1_amd64.deb
+					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
+					_excute "apt install -y /tmp/${QTBIN}"
+					rm -rf ${QTBIN}
+				fi
+			fi
 			QBITBIN=qbittorrent-nox_${qbitversion}-libt1.1-1build1_amd64.deb
 			wget -q -O ${QBITBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qbittorrent/${QBITBIN}/download
 			_excute "apt install -y /tmp/${QBITBIN}"
@@ -157,7 +169,35 @@ function _updateApp() {
 			_excute "apt-mark hold qbittorrent-nox"
 		else
 			# prepare package toolchain
+			APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev qtbase5-dev qttools5-dev-tools libqt5svg5-dev zlib1g-dev"
+			_installDepends
 			_installFpm
+			if (_version_gt ${qbitversion} 4.1.9.1); then
+				if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
+					cd /tmp
+					QTBIN=qt512base_5.12.6-1basyskom1_amd64.deb
+					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
+					_excute "apt install -y /tmp/${QTBIN}"
+					rm -rf ${QTBIN}
+					QTBIN=qt512xmlpatterns_5.12.6-1basyskom1_amd64.deb
+					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
+					_excute "apt install -y /tmp/${QTBIN}"
+					rm -rf ${QTBIN}
+					QTBIN=qt512declarative_5.12.6-1basyskom1_amd64.deb
+					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
+					_excute "apt install -y /tmp/${QTBIN}"
+					rm -rf ${QTBIN}
+					QTBIN=qt512svg_5.12.6-1basyskom1_amd64.deb
+					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
+					_excute "apt install -y /tmp/${QTBIN}"
+					rm -rf ${QTBIN}
+					QTBIN=qt512tools_5.12.6-1basyskom1_amd64.deb
+					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
+					_excute "apt install -y /tmp/${QTBIN}"
+					rm -rf ${QTBIN}
+					source /opt/qt512/bin/qt512-env.sh
+				fi
+			fi
 			cd /tmp || exit 1
 			_info "Building $APP_TITLE ... "
 			_excute "git clone ${BRANCH_QBIT} qBittorrent"
@@ -174,6 +214,11 @@ function _updateApp() {
 			# disable auto upgrade
 			_excute "apt-mark hold qbittorrent-nox"
 		fi
+		if (_version_gt ${qbitversion} 4.1.9.1) && (_version_gt 4.2.0 ${cur_version}); then
+			_reconfigureAppv2
+		elif (_version_gt 4.2.0 ${qbitversion}) && (_version_gt ${cur_version} 4.1.9.1); then
+			_reconfigureAppv1
+		fi
 		userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 		for username in $userlist; do
 			_excute "systemctl start ${APP_SERVICE}@${username}"
@@ -184,16 +229,78 @@ function _updateApp() {
 	fi
 }
 
+function _reconfigureAppv1() {
+	_info "Configuring ${APP_TITLE}..."
+	# get userlist
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		passphrase=$(cat /root/.ssh/local_user)
+		passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
+		if [[ $CODENAME == xenial ]]; then
+			password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:"${passphrase}" -nosalt)
+		else
+			password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:"${passphrase}" -nosalt)
+		fi
+
+		ha1pass=$(echo -n "${password}" | md5sum | cut -f1 -d' ')
+		sed -i "s/Password_PBKDF2.*/Password_ha1=@ByteArray(${ha1pass})/g" /home/${username}/.config/qBittorrent/qBittorrent.conf
+	done
+	_success "${APP_TITLE} configured."
+}
+
+function _reconfigureAppv2() {
+	_info "Configuring ${APP_TITLE}..."
+	# get libqbpasswd
+	## See https://github.com/KozakaiAya/libqbpasswd
+	cd /tmp
+	_info "Building libqbpasswd ... "
+	_excute "apt-get install -yqq build-essential"
+	_excute "git clone ${BRANCH_LIBQBPASS} libqbpasswd"
+	cd libqbpasswd
+	_excute "make"
+	_excute "cp -f qb_password_gen /usr/local/bin/quickbox/system/auxiliary/qb_password_gen"
+	cd /tmp
+	rm -rf /tmp/libqbpasswd
+	
+	# get userlist
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		passphrase=$(cat /root/.ssh/local_user)
+		passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
+		if [[ $CODENAME == xenial ]]; then
+			password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:"${passphrase}" -nosalt)
+		else
+			password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:"${passphrase}" -nosalt)
+		fi
+
+		pbkdf2pass=$(/usr/local/bin/quickbox/system/auxiliary/qb_password_gen ${password})
+		sed -i "s/Password_ha1.*/Password_PBKDF2=\'@ByteArray(${pbkdf2pass})\'/g" /home/${username}/.config/qBittorrent/qBittorrent.conf
+	done
+	_success "${APP_TITLE} configured."
+}
+
+function _flexget() {
+	username=$(cat /root/.admin.info | cut -d: -f1)
+	if [[ -f "/install/.${username}.flexget.lock" ]]; then
+		if (su ${username} -c 'pip2 freeze --disable-pip-version-check | grep -q "FlexGet"'); then
+			bash /usr/local/bin/quickbox/package/update/updatepackage-flexget -l $OUTTO
+		fi
+	fi
+}
+
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o hl: -l help,log:,qb: -- "$@")
+ARGS=$(getopt -a -o hl: -l help,force,log:,qb: -- "$@")
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
 	-h | --help)
 		_usage
 		exit 1
+		;;
+	--force)
+		FORCE=1
 		;;
 	-l | --log)
 		OUTTO="$2"
@@ -219,3 +326,7 @@ _setLock
 _updateInfo
 _updateApp
 _lockCleanup
+
+if (_version_gt ${qbitversion} 4.1.9.1); then
+	_flexget
+fi

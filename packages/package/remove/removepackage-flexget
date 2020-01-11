@@ -69,7 +69,7 @@ APP_NAME="flexget"
 APP_SERVICE="flexget"
 
 OUTTO=/srv/dashboard/db/output.log
-username=$(cat .admin.info | cut -d: -f1)
+username=$(cat /root/.admin.info | cut -d: -f1)
 
 ################################################################################
 # SCRIPT FUNCTIONS
@@ -141,6 +141,7 @@ function _removeApp() {
 	rm -rf /home/${username}/.config/flexget/
 	rm -f /etc/nginx/apps/${username}.flexget.conf
 	su ${username} -c 'python2 -m pip uninstall flexget -y' >>"${OUTTO}" 2>&1
+	su ${username} -c 'python3 -m pip uninstall flexget -y' >>"${OUTTO}" 2>&1
 	rm -f /install/${username}.${APP_NAME}.port
 	_success "${APP_TITLE} removed."
 }

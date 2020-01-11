@@ -66,13 +66,13 @@ function _error() {
 	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
+function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 #################################################################################
 # APP VARIABLE
 #################################################################################
 APP_TITLE="FlexGet"
 APP_NAME="flexget"
 APP_SERVICE="flexget"
-APP_BASEDEPS="python-pip"
 APP_HOST="127.0.0.1"
 
 # RANDOM PORT
@@ -181,20 +181,85 @@ function _installDepends() {
 
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
+
 	# Install for single user
-	_excute 'pip2 install --upgrade pyopenssl'
-	_excute 'pip2 install --upgrade cryptography'
-	_excute 'pip2 install --upgrade pip'
-	su ${username} -c 'pip2 install --user flexget' >>"${OUTTO}" 2>&1
-	if [[ -f /install/.transmission.lock ]]; then
-		_excute 'pip2 install transmissionrpc'
+	qbit_version=0
+	de_version=0
+	if (dpkg-query -W -f='${Status}' qbittorrent-nox 2>/dev/null | grep -c "ok installed"); then
+		qbit_version=$(dpkg -s qbittorrent-nox | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+	fi
+	if (dpkg-query -W -f='${Status}' deluged 2>/dev/null | grep -c "ok installed"); then
+		de_version=$(dpkg -s deluged | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+	fi
+	if (_version_gt ${de_version} 2.0) || (_version_gt ${qbit_version} 4.1.9.1); then
+		# install flexget via pip3
+		if [[ "$CODENAME" == "xenial" ]]; then
+			apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 F23C5A6CF475977595C89F51BA6932366A755776 >/dev/null 2>&1
+			LC_ALL=en_US.UTF-8 add-apt-repository ppa:deadsnakes/ppa -y >/dev/null 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+			APP_BASEDEPS="python3.6"
+			_installDepends
+			_excute "update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.5 1"
+			_excute "update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 2"
+			cd /tmp
+			wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py
+			_excute "python3 get-pip.py --force-reinstall"
+		elif [[ "$CODENAME" == "stretch" ]]; then
+			APP_BASEDEPS="build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev wget libsqlite3-dev"
+			_installDepends
+			_info "Compiling Python 3.7 ..."
+			cd /tmp
+			wget -q -O Python-3.7.6.tar.xz https://www.python.org/ftp/python/3.7.6/Python-3.7.6.tar.xz
+			tar -xf Python-3.7.6.tar.xz
+			cd Python-3.7.6
+			_excute "./configure"
+			_excute "make -j$(nproc)"
+			_excute "make altinstall"
+			_excute "update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.5 1"
+			_excute "update-alternatives --install /usr/bin/python3 python3 /usr/local/bin/python3.7 2"
+			rm -rf {Python-3.7.6.tar.xz,Python-3.7.6}
+			if [[ ! -f /usr/local/lib/python3.7/site-packages/lsb_release.py ]]; then
+				ln -s /usr/lib/python3/dist-packages/lsb_release.py /usr/local/lib/python3.7/site-packages/lsb_release.py
+			fi
+			_success "Python 3.7 installed"
+		else
+			APP_BASEDEPS="python3-pip python3-setuptools"
+			_installDepends
+		fi
+		wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py
+		_excute 'python3 get-pip.py --force-reinstall'
+		_excute 'pip3 install --upgrade pip'
+		_excute 'pip3 install --upgrade setuptools'
+		_excute 'pip3 install --upgrade pyopenssl'
+		_excute 'pip3 install --upgrade cryptography'
+		#su ${username} -c 'pip3 install --user flexget' >>"${OUTTO}" 2>&1
+		#temporarily lock the version
+		su ${username} -c 'pip3 install --user flexget==3.0.31' >>"${OUTTO}" 2>&1
+		if [[ -f /install/.transmission.lock ]]; then
+			_excute 'pip3 install transmissionrpc'
+		fi
+	else
+		APP_BASEDEPS="python-pip python-setuptools"
+		_installDepends
+		_excute 'pip2 install --upgrade pip'
+		_excute 'pip2 install --upgrade setuptools'
+		_excute 'pip2 install --upgrade pyopenssl'
+		_excute 'pip2 install --upgrade cryptography'
+		su ${username} -c 'pip2 install --user flexget' >>"${OUTTO}" 2>&1
+		if [[ -f /install/.transmission.lock ]]; then
+			_excute 'pip2 install transmissionrpc'
+		fi
 	fi
 	_success "${APP_TITLE} Built."
 }
 
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
-	pypath=$(su ${username} -c 'python2 -m site --user-site')
+	if (_version_gt ${de_version} 2.0) || (_version_gt ${qbit_version} 4.1.9.1); then
+		pypath=$(su ${username} -c 'python3 -m site --user-site')
+	else
+		pypath=$(su ${username} -c 'python2 -m site --user-site')
+	fi
 	binpath=/home/${username}/.local/bin
 	passphrase=$(cat /root/.ssh/local_user)
 	passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
@@ -240,7 +305,11 @@ diff -Nur '--exclude=.git' '--exclude=.vs' flexget/webserver.py flexget-patched/
 EOF
 	sed -i "s/username='replace'/username='${username}'/g" /tmp/flexget-user-passwd.patch
 	patch -p1 -d ${pypath}/flexget/ </tmp/flexget-user-passwd.patch >>"${OUTTO}" 2>&1
-	su ${username} -c "python2 -m compileall ${pypath}/flexget/webserver.py" >>"${OUTTO}" 2>&1
+	if (_version_gt ${de_version} 2.0) || (_version_gt ${qbit_version} 4.1.9.1); then
+		su ${username} -c "python3 -m compileall ${pypath}/flexget/webserver.py" >>"${OUTTO}" 2>&1
+	else
+		su ${username} -c "python2 -m compileall ${pypath}/flexget/webserver.py" >>"${OUTTO}" 2>&1
+	fi
 	rm -rf /tmp/flexget-user-passwd.patch
 	sed -i "s/\\\'flexget\\\'/\\\'\\\'/g" ${pypath}/flexget/ui/v1/app/scripts/app.js
 
@@ -453,7 +522,6 @@ _lockCheck
 _setLock
 _installInfo
 _installSystemUpdates
-_installDepends
 _installApp
 _configureApp
 _installAppLock

@@ -109,7 +109,7 @@ sudo box update quickbox
   - ruTorrent
   - flood
 - Transmission (*2.94*)
-- qBittorrent (*4.1.8*)
+- qBittorrent (*4.2.1*)
 - Deluge (*1.3.15, 2.0.3*)
 - mktorrent (可以使用 `createtorrent` 在命令行中使用表单快速创建种子)
 - FFmpeg
@@ -121,7 +121,7 @@ sudo box update quickbox
 
 - Autodl-irssi
 - BTSync
-- FlexGet
+- FlexGet(2.x 和 3.x 版本)
 - Netdata
 - noVNC
 - Plex
