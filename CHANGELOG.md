@@ -1,3 +1,30 @@
+## CHANGELOG v1.3.0:
+
+*Changelog update Sunday, Jan 12, 2020*
+
+### General additions
+
+- add FlexGet upgrade
+- support qBittorrent downgrade
+
+### Function improved
+
+- Improve size format display
+
+### Function updated
+
+- install qBittorrent 4.2.1 by default
+- now support qBittorrent 4.2.1 and FlexGet 3
+- Remove useless lib code
+- Remove quota
+
+### Bug fixed
+
+- Fix localize.php generator
+- mktorrent Wrapper
+
+---
+
 ## CHANGELOG v1.2.0:
 
 *Changelog update Friday, Nov 1, 2019*
