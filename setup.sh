@@ -340,7 +340,9 @@ function _skel() {
 	mkdir -p /etc/skel
 	cp -rf ${local_setup_template}skel /etc
 	cd /tmp || exit 1
-	wget -t2 -T5 -q -N -O GeoLiteCity.dat.gz https://sourceforge.net/projects/seedbox-software-for-linux/files/all-platform/GeoLiteCity.dat.gz/download
+	while true; do
+		wget -q -O GeoLiteCity.dat.gz https://sourceforge.net/projects/seedbox-software-for-linux/files/all-platform/GeoLiteCity.dat.gz/download && break
+	done
 	gunzip GeoLiteCity.dat.gz >/dev/null 2>&1
 	mkdir -p /usr/share/GeoIP
 	rm -rf GeoLiteCity.dat.gz

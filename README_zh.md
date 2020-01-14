@@ -75,7 +75,6 @@ bash /etc/QuickBox/setup.sh
 ```
 mkdir /install/ && touch /install/.developer.lock; \
 apt-get -yqq update; apt-get -yqq upgrade; apt-get -yqq install git lsb-release dos2unix; \
-mkdir /install/ && touch /install/.developer.lock \
 git clone --branch "development" https://github.com/amefs/quickbox-lite.git /etc/QuickBox; \
 dos2unix /etc/QuickBox/setup.sh; \
 bash /etc/QuickBox/setup.sh
