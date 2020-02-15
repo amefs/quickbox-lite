@@ -25,4 +25,15 @@ location / {
         fastcgi_param SCRIPT_FILENAME /srv/dashboard$fastcgi_script_name;
 
     }
+
+    location ^~ /db/ {
+      auth_basic "password Required";
+      auth_basic_user_file /etc/htpasswd;
+    }
+    location ^~ /db/master.txt {
+        return 404;
+    }
+    location ^~ /db/interface.txt {
+        return 404;
+    }
 }
