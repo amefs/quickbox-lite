@@ -216,7 +216,7 @@
               if (task.id && $(task.id).length > 0) {
                 $.ajax({
                   url: task.url,
-                  cache: true,
+                  cache: false,
                   success: function(result) {
                     $(task.id).html(result);
                   }
