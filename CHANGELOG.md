@@ -1,3 +1,23 @@
+## CHANGELOG v1.3.1:
+
+*Changelog update Sunday, Feb 16, 2020*
+
+### General additions
+
+### Function improved
+
+- Disable caching log display
+- Enhance security, and it needs to **execute updating script twice** to apply changes
+- Add more status into logfile for debugging
+
+### Function updated
+
+### Bug fixed
+
+- Fix configuration for qBittorrent 4.2.x
+
+---
+
 ## CHANGELOG v1.3.0:
 
 *Changelog update Sunday, Jan 12, 2020*

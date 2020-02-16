@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.0
+# Current version:  v1.3.1
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -32,19 +32,25 @@ function _excute() {
 }
 function _print() {
 	printf "${_norm}%s${_norm}\n" "$@"
+	printf "%s\n" "$@" >>"${OUTTO}"
 }
 function _info() {
 	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
 }
 function _success() {
 	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
 }
 function _warning() {
 	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
 }
 function _error() {
 	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
 }
+
 function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 #################################################################################
 # SCRIPT FUNCTIONS
@@ -147,6 +153,9 @@ function _updateskel() {
 
 function _updatedashboard() {
 	_info "Updating QuickBox dashboard..."
+	if (! grep -c 'location ^~ /db/master.txt' < /etc/nginx/apps/dashboard.conf > /dev/null); then
+		\cp -f ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
+	fi
 	cd /srv/dashboard || exit 1
 	_excute "rsync -aP --exclude=disk_data*.php --exclude=share.php --exclude=custom.menu.php --exclude=url.override.php --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
 
@@ -165,10 +174,6 @@ function _updatedashboard() {
 		_excute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"
 	elif [[ -f /srv/rutorrent/home/db/.defaulted.lock ]]; then
 		_excute "bash /usr/local/bin/quickbox/system/theme/themeSelect-defaulted"
-	fi
-	qbox_version=$(grep -Eo "version =.*" < '/srv/dashboard/inc/config.php' | grep -Eo "[0-9.]+")
-	if (! _version_gt ${qbox_version} 1.3.0); then
-		\cp -f ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
 	fi
 	chown -R www-data:www-data /srv/dashboard
 	_success "QuickBox dashboard updated"
