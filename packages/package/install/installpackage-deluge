@@ -624,6 +624,11 @@ location /${username}.deluge.downloads {
 }
 EOF
 		if [[ -f /install/.${username}.flexget.lock ]]; then
+			if _version_gt ${deversion} 2.0; then
+				_excute 'pip3 install deluge-client'
+			else
+				_excute 'pip2 install deluge-client'
+			fi
 			sed -i "s/DEPORT/${DPORT}/g" /home/${username}/.config/flexget/config.yml
 		fi
 	done

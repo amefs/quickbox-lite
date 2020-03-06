@@ -188,7 +188,7 @@ function _installDepends() {
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	cd /tmp || exit 1
-	curl -fsSL https://filebrowser.xyz/get.sh | bash >/dev/null 2>&1
+	/usr/local/bin/quickbox/system/auxiliary/getfb.sh >/dev/null 2>&1
 	_success "${APP_TITLE} Built."
 }
 

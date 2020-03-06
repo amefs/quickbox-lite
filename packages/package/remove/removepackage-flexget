@@ -147,6 +147,14 @@ function _removeApp() {
 	rm -f /etc/nginx/apps/${username}.flexget.conf
 	su ${username} -c 'python2 -m pip uninstall flexget -y' >>"${OUTTO}" 2>&1
 	su ${username} -c 'python3 -m pip uninstall flexget -y' >>"${OUTTO}" 2>&1
+	if [[ -f /install/.transmission.lock ]]; then
+		_excute 'python2 -m pip uninstall transmissionrpc -y'
+		_excute 'python3 -m pip uninstall transmissionrpc -y'
+	fi
+	if [[ -f /install/.deluge.lock ]]; then
+		_excute 'python2 -m pip uninstall deluge-client -y'
+		_excute 'python3 -m pip uninstall deluge-client -y'
+	fi
 	rm -f /install/${username}.${APP_NAME}.port
 	_success "${APP_TITLE} removed."
 }

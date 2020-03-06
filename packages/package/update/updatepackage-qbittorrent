@@ -81,7 +81,7 @@ APP_SERVICE="qbittorrent"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-deb_version_list=['4.1.7','4.1.8','4.1.9.1','4.2.0','4.2.1']
+deb_version_list=['4.1.7','4.1.8','4.1.9','4.1.9.1','4.2.0','4.2.1']
 qbitversion=4.2.1
 BRANCH_QBIT="https://github.com/qbittorrent/qBittorrent.git"
 BRANCH_LIBQBPASS="https://github.com/KozakaiAya/libqbpasswd.git"
@@ -264,7 +264,7 @@ function _reconfigureAppv1() {
 		fi
 
 		ha1pass=$(echo -n "${password}" | md5sum | cut -f1 -d' ')
-		sed -i "s/Password_PBKDF2.*/Password_ha1=@ByteArray(${ha1pass})/g" /home/${username}/.config/qBittorrent/qBittorrent.conf
+		sed -i "s|Password_PBKDF2.*|Password_ha1=@ByteArray(${ha1pass})|g" /home/${username}/.config/qBittorrent/qBittorrent.conf
 	done
 	_success "${APP_TITLE} configured."
 }
@@ -295,7 +295,7 @@ function _reconfigureAppv2() {
 		fi
 
 		pbkdf2pass=$(/usr/local/bin/quickbox/system/auxiliary/qb_password_gen ${password})
-		sed -i "s/Password_ha1.*/Password_PBKDF2=\"@ByteArray(${pbkdf2pass})\"/g" /home/${username}/.config/qBittorrent/qBittorrent.conf
+		sed -i "s|Password_ha1.*|Password_PBKDF2=\"@ByteArray(${pbkdf2pass})\"|g" /home/${username}/.config/qBittorrent/qBittorrent.conf
 	done
 	_success "${APP_TITLE} configured."
 }

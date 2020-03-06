@@ -151,6 +151,8 @@ function _removeApp() {
 		if [[ -f /install/.${username}.flexget.lock ]]; then
 			TRPORT=$(cat /install/${username}.transmission.port)
 			sed -i "s/${TRPORT}/TRPORT/g" /home/${username}/.config/flexget/config.yml
+			_excute 'python2 -m pip uninstall transmissionrpc -y'
+			_excute 'python3 -m pip uninstall transmissionrpc -y'
 		fi
 		rm -rf /home/${username}/torrents/$APP_NAME/
 		rm -rf /home/${username}/trwatch/

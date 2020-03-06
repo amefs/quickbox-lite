@@ -126,7 +126,7 @@ function _updateApp() {
 		_excute "systemctl stop ${APP_SERVICE}@${username}"
 	done
 	cd /tmp
-	curl -fsSL https://filebrowser.xyz/get.sh | bash >/dev/null 2>&1
+	/usr/local/bin/quickbox/system/auxiliary/getfb.sh >/dev/null 2>&1
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
 		_excute "systemctl start ${APP_SERVICE}@${username}"

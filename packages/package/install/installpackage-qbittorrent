@@ -86,7 +86,8 @@ APP_WEB_PORT_HIGH="15200"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-deb_version_list=['4.1.7','4.1.8','4.1.9.1','4.2.0','4.2.1']
+qbit_version_list=['4.1.7','4.1.8','4.1.9','4.1.9.1','4.2.0','4.2.1']
+libt_version_list=['1.1.13','1.1.14']
 qbitversion=4.2.1
 libtversion=1.1.13
 
@@ -233,21 +234,21 @@ function _installFpm() {
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	# Libtorrent
-	if [[ ${libtversion} == 1.1.13 && ! -f /install/.libtorrent-rasterbar.lock ]]; then
+	if [[ ${libt_version_list[*]} =~ ${libtversion} && ! -f /install/.libtorrent-rasterbar.lock ]]; then
 		_info "Installing Libtorrent..."
 		cd /tmp || exit 1
 		if [[ ! -f /install/.libtorrent-rasterbar9.lock ]]; then
-			LIBTBIN=libtorrent-rasterbar9_1.1.13-1build1_amd64.deb
+			LIBTBIN=libtorrent-rasterbar9_${libtversion}-1build1_amd64.deb
 			wget -q -O ${LIBTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${LIBTBIN}/download
 			_excute "apt install -y /tmp/${LIBTBIN}"
-			LIBTDEVBIN=libtorrent-rasterbar-dev_1.1.13-1build1_amd64.deb
+			LIBTDEVBIN=libtorrent-rasterbar-dev_${libtversion}-1build1_amd64.deb
 			wget -q -O ${LIBTDEVBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${LIBTDEVBIN}/download
 			_excute "apt install -y /tmp/${LIBTDEVBIN}"
 			rm -rf {${LIBTBIN},${LIBTDEVBIN}}
 			_excute "ldconfig"
 		fi
 		touch /install/.libtorrent-rasterbar9.lock
-	elif [[ ${libtversion} != 1.1.13 && ! -f /install/.libtorrent-rasterbar.lock && ! -f /install/.libtorrent-rasterbar9.lock ]]; then
+	elif [[ ! ${libt_version_list[*]} =~ ${libtversion} && ! -f /install/.libtorrent-rasterbar.lock && ! -f /install/.libtorrent-rasterbar9.lock ]]; then
 		cd /tmp || exit 1
 		# prepare package toolchain
 		APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev zlib1g-dev"
@@ -322,7 +323,7 @@ function _installApp() {
 	fi
 
 	# qBittorrent
-	if [[ ${deb_version_list[*]} =~ ${qbitversion} && ! -f /install/.libtorrent-rasterbar.lock ]]; then
+	if [[ ${qbit_version_list[*]} =~ ${qbitversion} && ! -f /install/.libtorrent-rasterbar.lock ]]; then
 		cd /tmp
 		if [[ ! -f /install/.deluge.lock ]]; then
 			LIBTBIN=libtorrent-rasterbar9_${libtversion}-1build1_amd64.deb

@@ -161,6 +161,8 @@ function _removeApp() {
 		if [[ -f /install/.${username}.flexget.lock ]]; then
 			DPORT=$(cat /install/${username}.deluged.port)
 			sed -i "s/${DPORT}/DEPORT/g" /home/${username}/.config/flexget/config.yml
+			_excute 'python2 -m pip uninstall deluge-client -y'
+			_excute 'python3 -m pip uninstall deluge-client -y'
 		fi
 		rm -rf /home/${username}/dwatch
 		rm -rf /home/${username}/torrents/deluge
