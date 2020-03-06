@@ -11,7 +11,7 @@ assignees: ''
 A clear and concise description of what the bug is.
 
 **To Reproduce**
-Steps to reproduce the behavior:
+Steps to reproduce the behavior (or command):
 
 1. Go to '...'
 2. Click on '....'
@@ -34,6 +34,7 @@ Add any other context about the problem here.
  - OS: [e.g. iOS]
  - Browser [e.g. chrome, safari]
  - Version [e.g. 22]
+ - Executed Command (if exist) [e.g. `box update quickbox`]
 
 **Smartphone (please complete the following information):**
 
