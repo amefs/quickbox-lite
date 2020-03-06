@@ -1,5 +1,5 @@
 ---
-name: 报错
+name: 报告 Bug
 about: 创建一个报告以帮助修复问题
 title: ''
 labels: ''
