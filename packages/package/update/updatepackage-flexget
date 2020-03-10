@@ -216,7 +216,8 @@ function _updateApp() {
 	cd /tmp
 	wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py
 	_excute 'python3 get-pip.py --force-reinstall'
-	_excute 'pip3 install --upgrade setuptools'
+	# Lock setuptools version for flexget installation
+	_excute 'pip3 install setuptools==45.3.0'
 	_excute 'pip3 install --upgrade pyopenssl'
 	_excute 'pip3 install --upgrade cryptography'
 	#su ${username} -c 'pip3 install --user flexget' >>"${OUTTO}" 2>&1
