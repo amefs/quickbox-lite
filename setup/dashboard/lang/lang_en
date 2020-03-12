@@ -188,6 +188,7 @@ $L['datefmt_top'] = '%d %B %Y';
 $L['FREE'] = 'Free';
 $L['USED'] = 'Used';
 $L['SIZE'] = 'Size';
+$L['MOUNT_POINT'] = 'Mount Point';
 $L['DISK_SPACE'] = 'Disk Space';
 $L['PERCENTAGE_TXT_1'] = 'You have used';
 $L['PERCENTAGE_TXT_2'] = 'of your total disk space';

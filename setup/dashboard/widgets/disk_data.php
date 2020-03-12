@@ -13,7 +13,7 @@ function processExists($processName, $username) {
   return $exists;
 }
 
-$location = ".";
+
 $rtorrents = shell_exec("ls /home/".$username."/.sessions/*.torrent|wc -l");
 $dtorrents = shell_exec("ls /home/".$username."/.config/deluge/state/*.torrent|wc -l");
 $transtorrents = shell_exec("ls /home/".$username."/.config/transmission/torrents/*.torrent|wc -l");
@@ -23,19 +23,26 @@ $web_path = substr($php_self, 0, strrpos($php_self, '/')+1);
 $time = microtime(); $time = explode(" ", $time);
 $time = $time[1] + $time[0]; $start = $time;
 
-$dftotal = @disk_total_space($location) / 1024;
-$dffree = @disk_free_space($location) / 1024;
-$dfused = $dftotal - $dffree;
-$perused = number_format(($dftotal > 1e-5) ? $dfused / $dftotal * 100 : 0, 1);
+$disk_info = array_filter(explode("\n",`df -h| grep -E "^(/dev/)"`));
+foreach ($disk_info as $parts) {
+  $parts_tmp = array_values(array_filter(explode(' ',$parts)));
+  if(strstr($parts_tmp[1],"M"))
+    continue;
+  $perused=(int)substr($parts_tmp['4'],0,2);
 ?>
 
-<p class="nomargin"><?php echo T('FREE'); ?>: <span style="font-weight: 700; position: absolute; left: 100px;"><?php echo formatsize($dffree, 0); ?></span></p>
-<p class="nomargin"><?php echo T('USED'); ?>: <span style="font-weight: 700; position: absolute; left: 100px;"><?php echo formatsize($dfused, 0); ?></span></p>
-<p class="nomargin"><?php echo T('SIZE'); ?>: <span style="font-weight: 700; position: absolute; left: 100px;"><?php echo formatsize($dftotal, 0); ?></span></p>
 <div class="row">
   <div class="col-sm-8">
+    <h4><?php echo T('MOUNT_POINT'); ?></h4>
+    <p style="color:#eb4549; font-weight:normal; font-size:14px"><?php echo $parts_tmp['5']; ?></p>
     <!--h4 class="panel-title text-success">Disk Space</h4-->
-    <h3><?php echo T('DISK_SPACE'); ?></h3>
+    <h4><?php echo T('DISK_SPACE'); ?></h4>
+    <p class="nomargin" style="font-size:14px">
+    <?php echo T('FREE'); ?>: <?php echo $parts_tmp['3']; ?> 丨 
+    <?php echo T('USED'); ?>: <?php echo $parts_tmp['2']; ?> 丨 
+    <?php echo T('SIZE'); ?>: <?php echo $parts_tmp['1']; ?>
+    </p>
+    <br>
     <div class="progress">
       <?php
         if ($perused < 70) { $diskcolor="progress-bar-success"; }
@@ -58,6 +65,10 @@ $perused = number_format(($dftotal > 1e-5) ? $dfused / $dftotal * 100 : 0, 1);
   </div>
 </div>
 <hr />
+<?php
+}
+?>
+
 <?php if (processExists("rtorrent",$username) && file_exists('/install/.rtorrent.lock')) { ?>
 <h4><?php echo T('RTORRENTS_TITLE'); ?></h4>
 <p class="nomargin"><?php echo T('TORRENTS_LOADED_1'); ?> <b><?php echo "$rtorrents"; ?></b> <?php echo T('TORRENTS_LOADED_2'); ?></p>

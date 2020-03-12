@@ -230,16 +230,16 @@ EOF
 
 		# create default config
 		mkdir -p /home/${username}/.config/syncthing
-		chown -R efs.efs /home/${username}/.config/syncthing
+		chown -R ${username}.${username} /home/${username}/.config/syncthing
 		_excute "/usr/bin/syncthing -generate=/home/${username}/.config/syncthing"
 
 		# set a port for WebUI
 		sed -i "s/127\.0\.0\.1:8384/127\.0\.0\.1:${PORT}/g" /home/${username}/.config/syncthing/config.xml
-		if (! grep -q insecureSkipHostcheck "/home/efs/.config/syncthing/config.xml"); then
+		if (! grep -q insecureSkipHostcheck "/home/${username}/.config/syncthing/config.xml"); then
 			sed -i "s/<\/gui>/    <insecureSkipHostcheck>true<\/insecureSkipHostcheck>\n    <\/gui>/g" /home/${username}/.config/syncthing/config.xml
 		fi
 		chmod -R 755 /home/${username}/.config/$APP_NAME
-		chown -R efs.efs /home/${username}/.config/$APP_NAME
+		chown -R ${username}.${username} /home/${username}/.config/$APP_NAME
 
 		cat >/etc/nginx/apps/${username}.$APP_NAME.conf <<EOF
 location /${username}.syncthing/ {

@@ -189,6 +189,7 @@ $L['datefmt_top'] = '%d %B %Y';
 $L['FREE'] = 'Frei';
 $L['USED'] = 'Belegt';
 $L['SIZE'] = 'Größe';
+$L['MOUNT_POINT'] = 'Einhängepunkt';
 $L['DISK_SPACE'] = 'Speicherplatz';
 $L['PERCENTAGE_TXT_1'] = 'Du hast schon';
 $L['PERCENTAGE_TXT_2'] = 'deines gesamten Speicherplatzes belegt';

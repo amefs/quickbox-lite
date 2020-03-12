@@ -71,6 +71,7 @@ function _error() {
 	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
+function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 #################################################################################
 # CORE VARIABLE
 #################################################################################
@@ -195,8 +196,17 @@ EOF
 	if [[ -f /install/.qbittorrent.lock ]]; then
 		_excute "systemctl stop qbittorrent@${username}"
 		sleep 3
-		ha1pass=$(echo -n "${password}" | md5sum | cut -f1 -d' ')
-		sed -i "s/.*Password_ha1.*/WebUI\\\Password_ha1=@ByteArray(${ha1pass})/" /home/${username}/.config/qBittorrent/qBittorrent.conf
+		qbit_version=0
+		if (dpkg-query -W -f='${Status}' qbittorrent-nox 2>/dev/null | grep -c "ok installed" >/dev/null); then
+			qbit_version=$(dpkg -s qbittorrent-nox | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+		fi
+		if (_version_gt ${qbit_version} 4.1.9.1); then
+			pbkdf2pass=$(/usr/local/bin/quickbox/system/auxiliary/qb_password_gen ${password})
+			sed -i "s|Password_ha1.*|Password_PBKDF2=\"@ByteArray(${pbkdf2pass})\"|g" /home/${username}/.config/qBittorrent/qBittorrent.conf
+		else
+			ha1pass=$(echo -n "${password}" | md5sum | cut -f1 -d' ')
+			sed -i "s/.*Password_ha1.*/WebUI\\\Password_ha1=@ByteArray(${ha1pass})/" /home/${username}/.config/qBittorrent/qBittorrent.conf
+		fi
 		_excute "systemctl start qbittorrent@${username}"
 		_success "qBittorrent password updated"
 	fi

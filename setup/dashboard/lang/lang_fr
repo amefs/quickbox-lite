@@ -190,6 +190,7 @@ $L['datefmt_top'] = '%d %B %Y';
 $L['FREE'] = 'Libre';
 $L['USED'] = 'Utilisé';
 $L['SIZE'] = 'Taille';
+$L['MOUNT_POINT'] = 'Mount Point';
 $L['DISK_SPACE'] = 'Espace Disque';
 $L['RTORRENTS_TITLE'] = 'Torrents dans rTorrent: ';
 $L['DTORRENTS_TITLE'] = 'Torrents dans Deluge: ';

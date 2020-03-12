@@ -188,6 +188,7 @@ $L['datefmt_top'] = '%d %B %Y';
 $L['FREE'] = '空余';
 $L['USED'] = '使用';
 $L['SIZE'] = '大小';
+$L['MOUNT_POINT'] = '挂载点';
 $L['DISK_SPACE'] = '磁盘空间';
 $L['PERCENTAGE_TXT_1'] = '已使用';
 $L['PERCENTAGE_TXT_2'] = '的磁盘空间';

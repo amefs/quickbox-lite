@@ -699,13 +699,13 @@ function _insdashboard() {
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/inc/config.php
 	echo "${username}" >/srv/dashboard/db/master.txt
 	# fix Disk Widget
-	if [[ $device == "/home" ]]; then
-		rm -f /srv/dashboard/widgets/disk_data.php
-		cp ${local_setup_dashboard}widgets/disk_datah.php /srv/dashboard/widgets/disk_data.php
-	else
-		rm -f /srv/dashboard/widgets/disk_data.php
-		cp ${local_setup_dashboard}widgets/disk_data.php /srv/dashboard/widgets/disk_data.php
-	fi
+	# if [[ $device == "/home" ]]; then
+	# 	rm -f /srv/dashboard/widgets/disk_data.php
+	# 	cp ${local_setup_dashboard}widgets/disk_datah.php /srv/dashboard/widgets/disk_data.php
+	# else
+	# 	rm -f /srv/dashboard/widgets/disk_data.php
+	# 	cp ${local_setup_dashboard}widgets/disk_data.php /srv/dashboard/widgets/disk_data.php
+	# fi
 	chown -R www-data: /srv/dashboard
 	cp ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
 	sed -i "s/\/etc\/htpasswd/\/etc\/htpasswd.d\/htpasswd.${username}/g" /etc/nginx/apps/dashboard.conf

@@ -192,6 +192,7 @@ $L['datefmt_top'] = '%d %B %Y';
 $L['FREE'] = 'Ledig';
 $L['USED'] = 'Brugt';
 $L['SIZE'] = 'Størrelse';
+$L['MOUNT_POINT'] = 'Mount Point';
 $L['DISK_SPACE'] = 'Disk Plads';
 $L['PERCENTAGE_TXT_1'] = 'Du har brugt';
 $L['PERCENTAGE_TXT_2'] = 'af din totale disk plads';
