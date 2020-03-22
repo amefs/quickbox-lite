@@ -167,6 +167,8 @@ $L['Last 12 months'] = 'Seneste 12 måneder';
 // traffic table columns
 $L['In'] = 'Ind';
 $L['Out'] = 'Ud';
+$L['In_AVG'] = 'Average In';
+$L['Out_AVG'] = 'Average Out';
 $L['Total'] = 'Total';
 
 // summary rows

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.1
+# Current version:  v1.3.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -625,7 +625,11 @@ location /${username}.deluge.downloads {
 EOF
 		if [[ -f /install/.${username}.flexget.lock ]]; then
 			if _version_gt ${deversion} 2.0; then
-				_excute 'pip3 install deluge-client'
+			if [[ "$CODENAME" == "stretch" ]]; then
+				_excute '/usr/local/bin/python3.7 -m pip install deluge-client'
+			else
+				_excute 'python3 -m pip install deluge-client'
+			fi
 			else
 				_excute 'pip2 install deluge-client'
 			fi

@@ -163,6 +163,8 @@ $L['Last 12 months'] = 'Last 12 months';
 // traffic table columns
 $L['In'] = 'In';
 $L['Out'] = 'Out';
+$L['In_AVG'] = 'Average In';
+$L['Out_AVG'] = 'Average Out';
 $L['Total'] = 'Total';
 
 // summary rows

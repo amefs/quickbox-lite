@@ -19,6 +19,9 @@ function write_summary_s() {
 
   $trx = $summary['totalrx']*1024+$summary['totalrxk'];
   $ttx = $summary['totaltx']*1024+$summary['totaltxk'];
+  $ttime = strtotime("now")-$summary['created'];
+  $trx_avg = round($trx  / $ttime) * 8;
+  $ttx_avg = round($ttx  / $ttime) * 8;
 
   //
   // let's build array for write_data_table
@@ -31,21 +34,29 @@ function write_summary_s() {
     $sum[0]['label'] = T('This hour');
     $sum[0]['rx'] = $hour[0]['rx'];
     $sum[0]['tx'] = $hour[0]['tx'];
+    $sum[0]['rx_avg'] = $hour[0]['rx_avg'];
+    $sum[0]['tx_avg'] = $hour[0]['tx_avg']; 
 
     $sum[1]['act'] = 1;
     $sum[1]['label'] = T('This day');
     $sum[1]['rx'] = $day[0]['rx'];
     $sum[1]['tx'] = $day[0]['tx'];
+    $sum[1]['rx_avg'] = $day[0]['rx_avg'];
+    $sum[1]['tx_avg'] = $day[0]['tx_avg']; 
 
     $sum[2]['act'] = 1;
     $sum[2]['label'] = T('This month');
     $sum[2]['rx'] = $month[0]['rx'];
     $sum[2]['tx'] = $month[0]['tx'];
+    $sum[2]['rx_avg'] = $month[0]['rx_avg'];
+    $sum[2]['tx_avg'] = $month[0]['tx_avg']; 
 
     $sum[3]['act'] = 1;
     $sum[3]['label'] = T('All time');
     $sum[3]['rx'] = $trx;
     $sum[3]['tx'] = $ttx;
+    $sum[3]['rx_avg'] = $trx_avg;
+    $sum[3]['tx_avg'] = $ttx_avg;
   }
 
 write_data_table_s(T('Summary'), $sum);
@@ -57,7 +68,9 @@ function write_summary_t() {
 
   $trx = $summary['totalrx']*1024+$summary['totalrxk'];
   $ttx = $summary['totaltx']*1024+$summary['totaltxk'];
-
+  $ttime = strtotime("now")-$summary['created'];
+  $trx_avg = round($trx  / $ttime) * 8;
+  $ttx_avg = round($ttx  / $ttime) * 8;
   //
   // let's build array for write_data_table
   //
@@ -69,21 +82,29 @@ function write_summary_t() {
     $sum[0]['label'] = T('This hour');
     $sum[0]['rx'] = $hour[0]['rx'];
     $sum[0]['tx'] = $hour[0]['tx'];
+    $sum[0]['rx_avg'] = $hour[0]['rx_avg'];
+    $sum[0]['tx_avg'] = $hour[0]['tx_avg']; 
 
     $sum[1]['act'] = 1;
     $sum[1]['label'] = T('This day');
     $sum[1]['rx'] = $day[0]['rx'];
     $sum[1]['tx'] = $day[0]['tx'];
+    $sum[1]['rx_avg'] = $day[0]['rx_avg'];
+    $sum[1]['tx_avg'] = $day[0]['tx_avg']; 
 
     $sum[2]['act'] = 1;
     $sum[2]['label'] = T('This month');
     $sum[2]['rx'] = $month[0]['rx'];
     $sum[2]['tx'] = $month[0]['tx'];
+    $sum[2]['rx_avg'] = $month[0]['rx_avg'];
+    $sum[2]['tx_avg'] = $month[0]['tx_avg']; 
 
     $sum[3]['act'] = 1;
     $sum[3]['label'] = T('All time');
     $sum[3]['rx'] = $trx;
     $sum[3]['tx'] = $ttx;
+    $sum[3]['rx_avg'] = $trx_avg;
+    $sum[3]['tx_avg'] = $ttx_avg;
   }
 
 write_data_table_t(T('Top 10 days'), $top);
@@ -94,10 +115,12 @@ function write_data_table_s($caption, $tab) {
   print "<table class=\"table table-hover table-default nomargin\" width=\"100%\" cellspacing=\"0\">";
   print "<thead>";
   print "<tr>";
-  print "<th class=\"text-right\" style=\"width:25%;\">$caption</th>";
-  print "<th class=\"text-right\" style=\"width:24.5%;\">".T('Out')."</th>";
-  print "<th class=\"text-left\" style=\"width:24.5%;\">".T('In')."</th>";
-  print "<th class=\"text-left\" style=\"width:24.5%;\">".T('Total')."</th>";
+  print "<th class=\"text-right\" style=\"width:20%;\">$caption</th>";
+  print "<th class=\"text-right\" style=\"width:15%;\">".T('Out')."</th>";
+  print "<th class=\"text-left\" style=\"width:15%;\">".T('In')."</th>";
+  print "<th class=\"text-right\" style=\"width:15%;\">".T('Out_AVG')."</th>";
+  print "<th class=\"text-left\" style=\"width:15%;\">".T('In_AVG')."</th>";
+  print "<th class=\"text-left\" style=\"width:18%;\">".T('Total')."</th>";
   print "</tr>";
   print "</thead>";
   print "<tbody>\n";
@@ -107,12 +130,16 @@ function write_data_table_s($caption, $tab) {
       $t = $tab[$i]['label'];
       $rx = formatsize($tab[$i]['rx'], 2);
       $tx = formatsize($tab[$i]['tx'], 2);
+      $rx_avg = formatspeed($tab[$i]['rx_avg'], 2);
+      $tx_avg = formatspeed($tab[$i]['tx_avg'], 2);
       $total = formatsize($tab[$i]['rx']+$tab[$i]['tx'], 2);
       $id = ($i & 1) ? 'odd' : 'even';
       print "<tr>";
       print "<td class=\"label_$id\" style=\"font-size:12px;text-align:right\"><b>$t</b></td>";
       print "<td class=\"numeric_$id text-success\" style=\"font-size:12px;text-align:right\">$tx</td>";
       print "<td class=\"numeric_$id text-primary\" style=\"font-size:12px;text-align:left\">$rx</td>";
+      print "<td class=\"numeric_$id text-success\" style=\"font-size:12px;text-align:right\">$tx_avg</td>";
+      print "<td class=\"numeric_$id text-primary\" style=\"font-size:12px;text-align:left\">$rx_avg</td>";
       print "<td class=\"numeric_$id\" style=\"font-size:12px;text-align:left\">$total</td>";
       print "</tr>\n";
     }
@@ -126,10 +153,12 @@ function write_data_table_t($caption, $tab) {
   print "<table class=\"table table-hover table-default nomargin\" width=\"100%\" cellspacing=\"0\">";
   print "<thead>";
   print "<tr>";
-  print "<th class=\"text-right\" style=\"width:25%;\">$caption</th>";
-  print "<th class=\"text-right\" style=\"width:24.5%;\">".T('Out')."</th>";
-  print "<th class=\"text-left\" style=\"width:24.5%;\">".T('In')."</th>";
-  print "<th class=\"text-left\" style=\"width:24.5%;\">".T('Total')."</th>";
+  print "<th class=\"text-right\" style=\"width:20%;\">$caption</th>";
+  print "<th class=\"text-right\" style=\"width:15%;\">".T('Out')."</th>";
+  print "<th class=\"text-left\" style=\"width:15%;\">".T('In')."</th>";
+  print "<th class=\"text-right\" style=\"width:15%;\">".T('Out_AVG')."</th>";
+  print "<th class=\"text-left\" style=\"width:15%;\">".T('In_AVG')."</th>";
+  print "<th class=\"text-left\" style=\"width:18%;\">".T('Total')."</th>";
   print "</tr>";
   print "</thead>";
 
@@ -140,12 +169,16 @@ function write_data_table_t($caption, $tab) {
       $t = $tab[$i]['label'];
       $rx = formatsize($tab[$i]['rx'], 2);
       $tx = formatsize($tab[$i]['tx'], 2);
+      $rx_avg = formatspeed($tab[$i]['rx_avg'], 2);
+      $tx_avg = formatspeed($tab[$i]['tx_avg'], 2);
       $total = formatsize($tab[$i]['rx']+$tab[$i]['tx'], 2);
       $id = ($i & 1) ? 'odd' : 'even';
       print "<tr>";
       print "<td class=\"label_$id\" style=\"font-size:12px;;text-align:right\"><b>$t</b></td>";
       print "<td class=\"numeric_$id text-success\" style=\"font-size:12px;text-align:right\">$tx</td>";
       print "<td class=\"numeric_$id text-primary\" style=\"font-size:12px;text-align:left\">$rx</td>";
+      print "<td class=\"numeric_$id text-success\" style=\"font-size:12px;text-align:right\">$tx_avg</td>";
+      print "<td class=\"numeric_$id text-primary\" style=\"font-size:12px;text-align:left\">$rx_avg</td>";
       print "<td class=\"numeric_$id\" style=\"font-size:12px;text-align:left\">$total</td>";
       print "</tr>\n";
     }

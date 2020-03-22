@@ -728,3 +728,15 @@ function formatsize($length, $decimals = 3, $startwith = 1)
 	$index = floor(log($length, $base));
 	return number_format($length / pow($base, $index), $decimals) . ' ' . $si_prefix[$index + 1];
 }
+
+function formatspeed($length, $decimals = 3, $startwith = 1)
+{
+	if ($length < 1e-5)
+	{
+		return '0 B';
+	}
+	$si_prefix = array( 'bps', 'Kbps', 'Mbps', 'Gbps', 'Tbps', 'Pbps', 'Ebps', 'Zbps', 'Ybps' );
+	$base = 1024;
+	$index = floor(log($length, $base));
+	return number_format($length / pow($base, $index), $decimals) . ' ' . $si_prefix[$index + 1];
+}

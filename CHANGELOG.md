@@ -1,3 +1,32 @@
+## CHANGELOG v1.3.2:
+
+*Changelog update Sunday, Mar 22, 2020*
+
+### General additions
+
+* Now support libtorrent-rasterbar 1.1.14
+* Add average traffic status in dashboard
+
+### Function improved
+
+- Add packages for noVNC installation for capability
+
+### Function updated
+
+* Now use filebrowser 2.0.16 instead of 2.1
+* Use setuptools 45.3.0 for FlexGet installation
+* Removed primary mount point selection in setup
+* Add multi-mount point support in disk monitor widget on dashboard
+
+### Bug fixed
+
+- Fix configuration for qBittorrent 4.2.x
+- Fix change password for qBittorrent
+- Fix username error in Syncthing installation script
+- Fix conflict when fail2ban against python3.7 on Stretch
+
+---
+
 ## CHANGELOG v1.3.1:
 
 *Changelog update Sunday, Feb 16, 2020*

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.3.1
+# Current version:  v1.3.2
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -76,7 +76,7 @@ function _error() {
 #################################################################################
 APP_TITLE="noVNC"
 APP_NAME="novnc"
-APP_BASEDEPS="expect xfce4 xfce4-goodies tightvncserver fonts-noto iptables-persistent firefox-esr"
+APP_BASEDEPS="expect xfce4 xfce4-goodies xfonts-base dbus-x11 xinit xserver-xorg xserver-xorg-legacy x11-xserver-utils tightvncserver fonts-noto iptables-persistent firefox-esr"
 APP_WEB_PORT="6080"
 APP_DAEMON_PORT="5901"
 
@@ -316,7 +316,7 @@ function _installAppStart() {
 	_excute "systemctl enable novnc.service"
 	_excute "iptables -A INPUT -p tcp -s localhost --dport $APP_DAEMON_PORT -j ACCEPT"
 	_excute "iptables -A INPUT -p tcp --dport $APP_DAEMON_PORT -j DROP"
-	_excute "service iptables-persistent save"
+	_excute "iptables-save > /etc/iptables/rules.v4"
 	_success "${APP_TITLE} started."
 }
 

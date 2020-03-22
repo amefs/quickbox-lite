@@ -89,6 +89,9 @@ $hour; $day; $month; $top; $summary;
                     $day[$d[1]]['label'] = '';
                     $day[$d[1]]['img_label'] = '';
                 }
+                $diff_time=strtotime("now")-strtotime(strftime("%d %B %Y",strtotime("now")));
+                $day[$d[1]]['rx_avg']    = round($day[$d[1]]['rx'] / $diff_time) * 8;
+                $day[$d[1]]['tx_avg']    = round($day[$d[1]]['tx'] / $diff_time) * 8;
             } else if ($d[0] == 'm') {
                 $month[$d[1]]['time'] = $d[2];
                 $month[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
@@ -101,6 +104,9 @@ $hour; $day; $month; $top; $summary;
                     $month[$d[1]]['label'] = '';
                     $month[$d[1]]['img_label'] = '';
                 }
+                $diff_time=strtotime("now")-strtotime(strftime("1 %B %Y",strtotime("now")));
+                $month[$d[1]]['rx_avg']    = round($month[$d[1]]['rx'] / $diff_time) * 8;
+                $month[$d[1]]['tx_avg']    = round($month[$d[1]]['tx'] / $diff_time) * 8;
             } else if ($d[0] == 'h') {
                 $hour[$d[1]]['time'] = $d[2];
                 $hour[$d[1]]['rx']   = $d[3];
@@ -115,6 +121,9 @@ $hour; $day; $month; $top; $summary;
                     $hour[$d[1]]['label'] = '';
                     $hour[$d[1]]['img_label'] = '';
                 }
+                $diff_time=$d[2]-strtotime(strftime("%d %B %Y %H:00:00",$d[2]));
+                $hour[$d[1]]['rx_avg']    = round($hour[$d[1]]['rx'] / $diff_time) * 8;
+                $hour[$d[1]]['tx_avg']    = round($hour[$d[1]]['tx'] / $diff_time) * 8;
             } else if ($d[0] == 't') {
                 $top[$d[1]]['time'] = $d[2];
                 $top[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
@@ -124,6 +133,8 @@ $hour; $day; $month; $top; $summary;
                     $top[$d[1]]['label'] = strftime(T('datefmt_top'), $d[2]);
                     $top[$d[1]]['img_label'] = '';
                 }
+                $top[$d[1]]['rx_avg']    = round($top[$d[1]]['rx'] / 86400) * 8;
+                $top[$d[1]]['tx_avg']    = round($top[$d[1]]['tx'] / 86400) * 8;
             } else {
                 $summary[$d[0]] = isset($d[1]) ? $d[1] : '';
             }

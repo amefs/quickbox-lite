@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.1
+# Current version:  v1.3.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -89,11 +89,11 @@ function _init() {
 		DEBIAN_FRONTEND=noninteractive apt-get -qq -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 		echo -e "XXX\n10\nPreparing scripts... \nXXX"
 		if [[ $DISTRO == Ubuntu && $CODENAME == xenial ]]; then
-			apt-get -y install git curl dos2unix python-minimal apt-transport-https software-properties-common dnsutils unzip >/dev/null 2>&1
+			apt-get -y install git curl wget dos2unix python-minimal apt-transport-https software-properties-common dnsutils unzip >/dev/null 2>&1
 		elif [[ $DISTRO == Ubuntu && $CODENAME == bionic ]]; then
-			apt-get -y install git curl dos2unix python apt-transport-https software-properties-common dnsutils unzip >/dev/null 2>&1
+			apt-get -y install git curl wget dos2unix python apt-transport-https software-properties-common dnsutils unzip >/dev/null 2>&1
 		elif [[ $DISTRO == Debian ]]; then
-			apt-get -y install git curl dos2unix python apt-transport-https software-properties-common gnupg2 ca-certificates dnsutils unzip >/dev/null 2>&1
+			apt-get -y install git curl wget dos2unix python apt-transport-https software-properties-common gnupg2 ca-certificates dnsutils unzip >/dev/null 2>&1
 		fi
 		echo -e "XXX\n20\nPreparing scripts... \nXXX"
 		dos2unix $(find ${local_prefix} -type f) >/dev/null 2>&1
@@ -420,37 +420,6 @@ EOF
 	chmod 755 /home/${username}
 }
 
-function _askmount() {
-	# get all disk mount
-	local LIST=()
-	local extralength=0
-	# create list for mountpoint (only for / and /home)
-	if [[ -n $(findmnt -n -o SOURCE /home) ]]; then
-		LIST+=("/home" "  $(findmnt -n -o SOURCE /home)    $(lsblk -l "$(findmnt -n -o SOURCE /home)" | grep -v 'SIZE' | tr -s ' ' | cut -d " " -f 4,4)" off)
-		if [ "$(echo -n "$(findmnt -n -o SOURCE /)" | wc -m)" -gt "10" ]; then extralength=1; fi
-	fi
-	LIST+=("/" "  $(findmnt -n -o SOURCE /)    $(lsblk -l "$(findmnt -n -o SOURCE /)" | grep -v 'SIZE' | tr -s ' ' | cut -d " " -f 4,4)" off)
-	if [ "$(echo -n "$(findmnt -n -o SOURCE /)" | wc -m)" -gt "10" ]; then extralength=1; fi
-	device=""
-	if [[ $extralength == 1 ]]; then
-		local width=56
-	else
-		local width=40
-	fi
-	while [[ $device == "" ]]; do
-		device=$(
-			whiptail --title "$INFO_TITLE_MOUNT" --radiolist \
-				"$(if [[ $extralength == 1 ]]; then echo "      "; fi)$INFO_TEXT_MOUNT" 12 ${width} 4 \
-				"${LIST[@]}" \
-				--ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3
-		)
-		if [[ $device == "" ]]; then
-			whiptail --title "$ERROR_TITLE_MOUNT" --msgbox "$ERROR_TEXT_MOUNT" --ok-button "$BUTTON_OK" 8 72
-		fi
-	done
-	device=$(echo "$device" | tr -d "[:space:]")
-}
-
 function _askvsftpd() {
 	ip=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 	if (whiptail --title "$INFO_TITLE_FTP" --yesno "$INFO_TEXT_FTP" --yes-button "$BUTTON_YES" --no-button "$BUTTON_NO" 8 72); then
@@ -698,14 +667,6 @@ function _insdashboard() {
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/bw_tables.php
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/inc/config.php
 	echo "${username}" >/srv/dashboard/db/master.txt
-	# fix Disk Widget
-	# if [[ $device == "/home" ]]; then
-	# 	rm -f /srv/dashboard/widgets/disk_data.php
-	# 	cp ${local_setup_dashboard}widgets/disk_datah.php /srv/dashboard/widgets/disk_data.php
-	# else
-	# 	rm -f /srv/dashboard/widgets/disk_data.php
-	# 	cp ${local_setup_dashboard}widgets/disk_data.php /srv/dashboard/widgets/disk_data.php
-	# fi
 	chown -R www-data: /srv/dashboard
 	cp ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
 	sed -i "s/\/etc\/htpasswd/\/etc\/htpasswd.d\/htpasswd.${username}/g" /etc/nginx/apps/dashboard.conf
@@ -1017,7 +978,6 @@ $(if [[ $hostname != "" ]]; then echo -e "${INFO_TEXT_SUMMARY_3}$hostname\n"; fi
 ${INFO_TEXT_SUMMARY_4} $ip:$chport\n\
 ${INFO_TEXT_SUMMARY_5} $username\n\
 ${INFO_TEXT_SUMMARY_6} $password\n\
-\"$device\" ${INFO_TEXT_SUMMARY_7}\n\
 $(if [[ $ftp == 1 ]]; then echo -e "${INFO_TEXT_SUMMARY_11} $ftp_ip:5757\n"; fi)\
 \n${INFO_TEXT_SUMMARY_12} $dash_theme ${INFO_TEXT_SUMMARY_13}\n\
 $(if [[ $chsource == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_14}\n"; fi)\
@@ -1043,7 +1003,6 @@ $(if [[ $autoreboot == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_17}\n"; fi)\
 				"ssh port" "$CHOICE_TEXT_EDIT_2" \
 				"user name" "$CHOICE_TEXT_EDIT_3" \
 				"password" "$CHOICE_TEXT_EDIT_4" \
-				"primary root" "$CHOICE_TEXT_EDIT_5" \
 				"ftp" "$CHOICE_TEXT_EDIT_7" \
 				"dashboard theme" "$CHOICE_TEXT_EDIT_8" \
 				"source.list" "$CHOICE_TEXT_EDIT_9" \
@@ -1056,7 +1015,6 @@ $(if [[ $autoreboot == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_17}\n"; fi)\
 		"ssh port") _askchport ;;
 		"user name") _askusrname ;;
 		"password") _askpasswd ;;
-		"primary root") _askmount ;;
 		"ftp") _askvsftpd ;;
 		"dashboard theme") _askdashtheme ;;
 		"source.list") _askchsource ;;
@@ -1086,7 +1044,6 @@ _askhostname
 _askchport
 _askusrname
 _askpasswd
-_askmount
 _askvsftpd
 _askdashtheme
 _askchsource

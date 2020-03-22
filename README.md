@@ -26,7 +26,7 @@ For more information, please check our [wiki](https://github.com/amefs/quickbox-
 
 ## Script status
 
-![Version](https://img.shields.io/badge/version-1.3.1-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.3.2-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
 
 ---
 

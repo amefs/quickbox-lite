@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.1
+# Current version:  v1.3.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -247,6 +247,13 @@ function _installApp() {
 		if [[ -f /install/.deluge.lock ]]; then
 			_excute 'pip3 install deluge-client'
 		fi
+		binpath=/home/${username}/.local/bin
+		if [[ "$CODENAME" == "stretch" ]]; then
+			sed -i "s/\/usr\/bin\/python3/\/usr\/local\/bin\/python3.7/g" $binpath/flexget
+			sed -i "s/\/usr\/bin\/python3/\/usr\/local\/bin\/python3.7/g" $binpath/flexget-headless
+			_excute "update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.5 2"
+			_excute "update-alternatives --install /usr/bin/python3 python3 /usr/local/bin/python3.7 1"
+		fi
 	else
 		APP_BASEDEPS="python-pip python-setuptools"
 		_installDepends
@@ -268,7 +275,11 @@ function _installApp() {
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
 	if (_version_gt ${de_version} 2.0) || (_version_gt ${qbit_version} 4.1.9.1); then
-		pypath=$(su ${username} -c 'python3 -m site --user-site')
+		if [[ "$CODENAME" == "stretch" ]]; then
+			pypath=$(su ${username} -c '/usr/local/bin/python3.7 -m site --user-site')
+		else
+			pypath=$(su ${username} -c 'python3 -m site --user-site')
+		fi
 	else
 		pypath=$(su ${username} -c 'python2 -m site --user-site')
 	fi

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.1
+# Current version:  v1.3.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -96,6 +96,7 @@ function _usage() {
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
 	echo "--qb <version>            the qbittorrent version you want to install"
+	echo "--force					force downgrade qBittorrent"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }

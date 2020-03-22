@@ -57,7 +57,7 @@ foreach ($disk_info as $parts) {
   </div>
   <div class="col-sm-4 text-right">
     <?php
-      if ($perused < 70) { $diskcolor="disk-good"; }
+      if ($perused <= 70) { $diskcolor="disk-good"; }
       if ($perused > 70) { $diskcolor="disk-warning"; }
       if ($perused > 90) { $diskcolor="disk-danger"; }
     ?>

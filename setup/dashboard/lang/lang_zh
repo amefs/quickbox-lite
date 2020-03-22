@@ -161,8 +161,10 @@ $L['Last 30 days'] = '过去30天';
 $L['Last 12 months'] = '过去12个月';
 
 // traffic table columns
-$L['In'] = 'In';
-$L['Out'] = 'Out';
+$L['In'] = '下载量';
+$L['Out'] = '上传量';
+$L['In_AVG'] = '平均下行';
+$L['Out_AVG'] = '平均上行';
 $L['Total'] = '合计';
 
 // summary rows
