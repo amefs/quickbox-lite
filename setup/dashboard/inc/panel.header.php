@@ -31,7 +31,7 @@
   <script src="lib/modernizr/modernizr.js"></script>
   <script src="lib/jquery/jquery.js"></script>
   
-<script type="text/javascript" src="inc/panel.app_status.ajax.js"></script>
+  <!--script type="text/javascript" src="inc/panel.app_status.ajax.js"></script-->
 
 <script type="text/javascript">
   window.NetOutSpeed = <?php echo json_encode($NetOutSpeed) ?>;
