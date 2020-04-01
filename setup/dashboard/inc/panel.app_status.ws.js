@@ -194,8 +194,7 @@
       task_mapping[item.url] = item;
     });
     const socket = io(location.origin, { path: "/ws/socket.io" });
-    socket.on('message', message_text => {
-      const message = JSON.parse(message_text);
+    socket.on("message", message => {
       if (message.success) {
         const task = task_mapping[message.pathName];
         if (task.override) {

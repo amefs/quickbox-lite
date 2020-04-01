@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "isolatedModules": false,
+        "sourceMap": true,
+        "jsx": "react",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "declaration": false,
+        "noImplicitAny": false,
+        "noImplicitUseStrict": false,
+        "removeComments": true,
+        "noLib": false,
+        "preserveConstEnums": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "types": [
+            "node"
+        ]
+    },
+    "include": [
+        "server.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
