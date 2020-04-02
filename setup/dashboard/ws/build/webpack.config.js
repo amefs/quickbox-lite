@@ -20,6 +20,7 @@ module.exports = {
         path: path.resolve(__dirname, ".."),
         devtoolModuleFilenameTemplate: "[absolute-resource-path]",
     },
+    devtool: this.mode === "development" ? "source-map" : false,
     module: {
         rules: [
             {

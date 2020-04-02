@@ -1,22 +1,22 @@
 {
     "command-example": ["systemctl:start:nginx", "installapckage::deluge", "box:clean:log"],
     "systemctl": {
-        "template": "systemctl $opration $target",
-        "operations": ["enable", "start", "stop" , "disable", "restart"],
-        "targets": ["deluge-web", "deluged", "denyhosts", "fail2ban", "filebrowser", "flexget", "flood", "irssi", "netdata", "plexmediaserver", "qbittorrent", "resilio-sync", "rtorrent", "shellinabox", "syncthing", "tightvnc", "transmission"]
+        "template": "systemctl $operation$ $target$",
+        "operations": ["enable", "start", "stop" , "disable", "restart", "status"],
+        "targets": ["deluge-web@$username$", "deluged@$username$", "denyhosts", "fail2ban", "filebrowser@$username$", "flexget@$username$", "flood@$username$", "irssi@$username$", "netdata", "plexmediaserver", "qbittorrent@$username$", "resilio-sync@$username$", "rtorrent@$username$", "shellinabox", "syncthing@$username$", "tightvnc", "transmission@$username$"]
     },
     "installpackage": {
-        "template": "bash /usr/local/bin/quickbox/package/install/installpackage-$target",
+        "template": "bash /usr/local/bin/quickbox/package/install/installpackage-$target$",
         "operations": [],
         "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go", "znc"]
     },
     "removepackage": {
-        "template": "/usr/local/bin/quickbox/package/remove/removepackage-$target",
+        "template": "/usr/local/bin/quickbox/package/remove/removepackage-$target$",
         "operations": [],
         "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go", "znc"]
     },
     "box": {
-        "template": "bash /usr/local/bin/quickbox/system/box $operation $target",
+        "template": "bash /usr/local/bin/quickbox/system/box $operation$ $target$",
         "operations": ["clean", "update", "lang"],
         "targets": ["mem", "log",
             "quickbox",
