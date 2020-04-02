@@ -1,13 +1,30 @@
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
 import axios from "axios";
 import * as express from "express";
 import * as https from "https";
 import * as http from "http";
 import * as socketio from "socket.io";
 import { exec } from "child_process";
+import { WatchedConfig } from "./watchedConfig";
+
+interface CommandType {
+    [key: string]: {
+        template: string;
+        operations: string[];
+        targets: string[];
+    };
+};
 
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
+
+let configPath = join(__dirname, "commands.json");
+if (!existsSync(configPath)) {
+    configPath = join(__dirname, "..", "commands.json");
+}
+const config = new WatchedConfig<CommandType>(configPath);
 
 const EVENT_CONNECTION = "connection";
 const EVENT_DISCONNECT = "disconnect";
@@ -66,7 +83,37 @@ const execHandler = async (payload: string, client: SocketIO.Socket) => {
         stdout: "",
         stderr: "",
     };
-    exec(payload, (error, stdout, stderr) => {
+    const [command, operation, target] = payload.split(":");
+    const commandConfig = config.Value[command];
+    if (command === undefined || operation === undefined || target === undefined || commandConfig === undefined) {
+        ret.success = false;
+        ret.message = "Invalid command";
+        client.emit(EVENT_EXEC, ret);
+        return;
+    }
+    let commandValid = true;
+    let template = commandConfig.template;
+    if (operation) {
+        if (commandConfig.operations.includes(operation)) {
+            template = template.replace("$operation", operation);
+        } else {
+            commandValid = false;
+        }
+    }
+    if (target) {
+        if (commandConfig.targets.includes(target)) {
+            template = template.replace("$target", target);
+        } else {
+            commandValid = false;
+        }
+    }
+    if (commandValid === false || template.includes("$operation") || template.includes("$target")) {
+        ret.success = false;
+        ret.message = "Invalid arguements";
+        client.emit(EVENT_EXEC, ret);
+        return;
+    }
+    exec(template, (error, stdout, stderr) => {
         ret.stdout = stdout;
         ret.stderr = stderr;
         if (error) {
@@ -79,8 +126,8 @@ const execHandler = async (payload: string, client: SocketIO.Socket) => {
 
 io.on(EVENT_CONNECTION, client => {
     console.log(client.id, "connect");
-    client.on(EVENT_MESSAGE, message => { messageHandler(message, client); });
-    client.on(EVENT_EXEC, message => { execHandler(message, client); });
+    client.on(EVENT_MESSAGE, payload => { messageHandler(payload, client); });
+    client.on(EVENT_EXEC, payload => { execHandler(payload, client); });
     client.on(EVENT_DISCONNECT, () => { console.log(client.id, "disconnect"); });
 });
 

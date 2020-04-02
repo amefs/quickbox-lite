@@ -1,0 +1,26 @@
+{
+    "command-example": ["systemctl:start:nginx", "installapckage::deluge", "box:clean:log"],
+    "systemctl": {
+        "template": "systemctl $opration $target",
+        "operations": ["enable", "start", "stop" , "disable", "restart"],
+        "targets": ["deluge-web", "deluged", "denyhosts", "fail2ban", "filebrowser", "flexget", "flood", "irssi", "netdata", "plexmediaserver", "qbittorrent", "resilio-sync", "rtorrent", "shellinabox", "syncthing", "tightvnc", "transmission"]
+    },
+    "installpackage": {
+        "template": "bash /usr/local/bin/quickbox/package/install/installpackage-$target",
+        "operations": [],
+        "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go", "znc"]
+    },
+    "removepackage": {
+        "template": "/usr/local/bin/quickbox/package/remove/removepackage-$target",
+        "operations": [],
+        "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go", "znc"]
+    },
+    "box": {
+        "template": "bash /usr/local/bin/quickbox/system/box $operation $target",
+        "operations": ["clean", "update", "lang"],
+        "targets": ["mem", "log",
+            "quickbox",
+            "lang_de", "lang_dk", "lang_en", "lang_fr", "lang_es", "lang_zh"
+        ]
+    }
+}

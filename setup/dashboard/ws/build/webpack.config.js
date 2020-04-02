@@ -10,8 +10,11 @@ Licensed under GPL-3.0 (https://github.com/amefs/quickbox-lite/blob/master/LICEN
 module.exports = {
     mode: "production",
     target: "node",
+    node: {
+        __dirname: false,
+    },
     externals: [nodeExternals()],
-    entry: path.join(__dirname, "..", "server"),
+    entry: path.join(__dirname, "..", "src", "server"),
     output: {
         filename: "dist/server.js",
         path: path.resolve(__dirname, ".."),
