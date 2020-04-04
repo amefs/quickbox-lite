@@ -190,11 +190,11 @@
   function start_status_update() {
     const task_mapping = {};
     const status_list = [].concat(service_status_list, system_status_list);
-    status_list.forEach(item => {
+    status_list.forEach(function(item) {
       task_mapping[item.url] = item;
     });
     const socket = io(location.origin, { path: "/ws/socket.io" });
-    socket.on("message", message => {
+    socket.on("message", function(message) {
       if (message.success) {
         const task = task_mapping[message.pathName];
         if (task.override) {

@@ -8,6 +8,7 @@ if ($query_string != "") {
 
 location / {
     alias /srv/dashboard/ ;
+    proxy_max_temp_file_size 0;
     try_files $uri $uri/ /index.php?q=$uri&$args;
     index index.php;
     allow all;
