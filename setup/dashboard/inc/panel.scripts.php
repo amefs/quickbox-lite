@@ -383,6 +383,7 @@
 <script src="lib/visibility/visibility.core.js"></script>
 <script src="lib/visibility/visibility.timers.js"></script>
 <script src="lib/socket.io/socket.io.js"></script>
+<script src="lib/lazysizes/lazysizes.min.js" async></script>
 <script src="js/quick.js"></script>
 <script src="js/lobipanel.js"></script>
 <script src="inc/panel.app_status.ws.js"></script>
