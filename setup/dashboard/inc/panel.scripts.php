@@ -345,9 +345,9 @@
         <a href="?updatetestingQuickBox=true" class="btn btn-primary" data-toggle="modal" data-target="#sysResponse" data-dismiss="modal" aria-label="Close">TESTING</a>
         <a href="?updateQuickBox=true" class="btn btn-success" data-toggle="modal" data-target="#sysResponse" data-dismiss="modal" aria-label="Close">STABLE</a>
       </div>
-    </div><!-- modal-content ->
-  </div><!-- modal-dialog ->
-</div><!-- modal -->
+    </div><!- modal-content ->
+  </div><!- modal-dialog ->
+</div><!- modal -->
 
 <!-- COMMIT COMPARISON MODAL >
 <div class="modal bounceIn animated" id="commitComparison" tabindex="-1" role="dialog" aria-labelledby="CommitComparison" aria-hidden="true">
@@ -369,12 +369,12 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
       </div>
-    </div><!-- modal-content ->
-  </div><!-- modal-dialog ->
-</div><!-- modal -->
+    </div><!- modal-content ->
+  </div><!- modal-dialog ->
+</div><!- modal -->
 
 <!--script src="js/script.js"></script-->
-<script src="lib/jquery-ui/jquery-ui.js"></script>
+<script src="lib/jquery-ui/jquery-ui.min.js"></script>
 <script src="lib/jquery.ui.touch-punch.min.js"></script>
 <script src="lib/bootstrap/js/bootstrap.js"></script>
 <script src="lib/jquery-toggles/toggles.js"></script>
