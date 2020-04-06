@@ -171,7 +171,10 @@
     name: "SSH OUTPUT",
     url: "/db/output.log",
     id: "#sshoutput",
-    time: 5000,
+    time: 2500,
+    before: function(task) {
+      return $('#sysResponse').is(":visible");
+    },
     after: function () {
       const element = $("#sysPre");
       element.scrollTop(element.prop("scrollHeight"));
@@ -226,7 +229,12 @@
           const task = task_list[i];
           // set a delay for each task.
           setTimeout(function() {
-            if (task.before) task.before(task);
+            if (task.before) {
+              // skip if before task failed
+              if (task.before(task) === false) {
+                return;
+              }
+            }
             // only displayed element or override will be updated
             if ((task.id && $(task.id).length > 0) || task.override) {
               socket.send(task.url);
