@@ -5,7 +5,7 @@ import Constant from "../constant";
 
 
 const afetch = axios.create({
-    baseURL: "http://localhost",
+    baseURL: "http://127.0.0.1",
     timeout: 5000,
     httpsAgent: new https.Agent({
         rejectUnauthorized: false,
