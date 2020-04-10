@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.2
+# Current version:  v1.3.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -81,6 +81,7 @@ APP_SERVICE="rtorrent"
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 version=0.9.6
+cf=0
 
 ################################################################################
 # SCRIPT FUNCTIONS
@@ -91,6 +92,9 @@ function _usage() {
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
 	echo "-v, --version <version>   the application version you want to update"
+	echo "--with-cf                 use cloudflare instead of sourceforge"
+	echo "--with-sf                 use sourceforge"
+	echo "--with-osdn               use osdn(jp) instead of sourceforge"	
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -135,6 +139,83 @@ $APP_TITLE will now be updated.
 This process may take a few minutes
 Please wait until the process is completed
 "
+}
+
+function _cf() {
+	DOMAIN="deb.ezapi.net"
+	SUBFOLDER=""
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _sf() {
+	DOMAIN="sourceforge.net"
+	SUBFOLDER="projects/seedbox-software-for-linux/files/"
+	ARCH="amd64"
+	SUFFIX="/download"
+}
+
+function _osdn() {
+	DOMAIN="osdn.dl.osdn.net"
+	SUBFOLDER="storage/g/s/se/seedbox-software-for-linux/"
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _download() {
+	# init download url
+	PACKAGE=$1
+	DEB=$2
+	case "$cdn" in
+	"cf")
+		_cf
+		wget -t3 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_sf
+			wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"sf")
+		_sf
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"osdn")
+		_osdn
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	*)
+		_sf
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	esac
 }
 
 function _updateApp() {
@@ -232,8 +313,13 @@ function _updateApp() {
 		_info "Installing ${APP_TITLE} ${version}..."
 		# get deb packages
 		cd /tmp
-		wget -q -O ${LTORRENTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rakshasa/${LTORRENTBIN}/download
-		wget -q -O ${RTORRENTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/rtorrent/${RTORRENTBIN}/download
+		PACKAGE="libtorrent-rakshasa"
+		DEB=${LTORRENTBIN}
+		cd /tmp
+		_download ${PACKAGE} ${DEB}
+		PACKAGE="rtorrent"
+		DEB=${RTORRENTBIN}
+		_download ${PACKAGE} ${DEB}
 		_excute "apt install -y /tmp/${LTORRENTBIN}"
 		_excute "apt install -y /tmp/${RTORRENTBIN}"
 		rm -rf {${LTORRENTBIN},${RTORRENTBIN}}
@@ -254,7 +340,11 @@ function _updateApp() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o hl:v: -l help,log:,version: -- "$@")
+if ! ARGS=$(getopt -a -o hl:v: -l help,with-cf,with-sf,with-osdn,log:,version: -- "$@")
+then
+    _usage
+    exit 1
+fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
@@ -269,6 +359,15 @@ while true; do
 	-v | --version)
 		version="$2"
 		shift
+		;;
+	--with-cf)
+		cdn="cf"
+		;;
+	--with-sf)
+		cdn="sf"
+		;;
+	--with-osdn)
+		cdn="osdn"
 		;;
 	--)
 		shift

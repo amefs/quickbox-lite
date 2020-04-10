@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.2
+# Current version:  v1.3.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -52,6 +52,25 @@ roottext=,magenta
 emptyscale=magenta
 disabledentry=magenta,
 '
+}
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
 }
 
 function _init() {
@@ -260,8 +279,10 @@ function _askhostname() {
 
 function _chhostname() {
 	if [[ $hostname != "" ]]; then
-		echo "$hostname" >/etc/hostname
-		echo "127.0.0.1 $hostname" >/etc/hosts
+		old_hostname=$(cat /etc/hostname)
+		echo "${hostname}" >/etc/hostname
+		sed -i "s/127.0.1.1\s*${old_hostname}/127.0.1.1	${hostname}/g" /etc/hosts >>"${OUTTO}" 2>&1
+		sed -i "/127.0.0.1\s*localhost/a 127.0.0.1	${hostname}" /etc/hosts >>"${OUTTO}" 2>&1
 	fi
 }
 
@@ -271,10 +292,18 @@ function _askchport() {
 		chport=$(
 			whiptail --title "$INFO_TITLE_SSH" --radiolist \
 				"$INFO_TEXT_SSH" 12 40 4 \
-				"22" "$CHOICE_TEXT_SSH_1" off \
+				"default" "$CHOICE_TEXT_SSH_1" off \
 				"4747" "$CHOICE_TEXT_SSH_2" on \
+				"other" "$CHOICE_TEXT_SSH_3" off \
 				--ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3
 		)
+		if [[ $chport == "other" ]]; then
+			port=$(whiptail --title "$INFO_TITLE_SSH" --inputbox "$INPUT_TEXT_SSH" 10 72 --ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3)
+			chport=$(echo "$port" | grep -P '^()([1-9]|[1-5]?[0-9]{2,4}|6[1-4][0-9]{3}|65[1-4][0-9]{2}|655[1-2][0-9]|6553[1-5])$')
+			if [[ $chport == "" ]]; then 
+				whiptail --title "$ERROR_TITLE_SSH" --msgbox "$ERROR_TEXT_SSH" --ok-button "$BUTTON_OK" 10 72 
+			fi
+		fi
 	done
 }
 
@@ -297,7 +326,7 @@ function _askusrname() {
 		# ensure vaild username
 		valid=$(echo "$username" | grep -P '^[a-z][-a-z0-9_]*')
 		_errorcolor
-		if [[ "$username" =~ ${reserved_names[*]} ]]; then
+		if [[ ${reserved_names[*]} =~ "$username" ]]; then
 			whiptail --title "$ERROR_TITLE_NAME" --msgbox "$ERROR_TEXT_NAME_1" --ok-button "$BUTTON_OK" 8 72
 			valid=false
 		elif [[ $count -lt 3 || $count -gt 32 ]]; then
@@ -335,14 +364,79 @@ function _askpasswd() {
 	done
 }
 
+function _cf() {
+	DOMAIN="deb.ezapi.net"
+	SUBFOLDER=""
+	SUFFIX=""
+}
+
+function _sf() {
+	DOMAIN="sourceforge.net"
+	SUBFOLDER="projects/seedbox-software-for-linux/files/"
+	SUFFIX="/download"
+}
+
+function _osdn() {
+	DOMAIN="osdn.dl.osdn.net"
+	SUBFOLDER="storage/g/s/se/seedbox-software-for-linux/"
+	SUFFIX=""
+}
+
 function _skel() {
 	echo -e "XXX\n17\n$INFO_TEXT_PROGRESS_3_1\nXXX"
 	mkdir -p /etc/skel
 	cp -rf ${local_setup_template}skel /etc
-	cd /tmp || exit 1
-	while true; do
-		wget -q -O GeoLiteCity.dat.gz https://sourceforge.net/projects/seedbox-software-for-linux/files/all-platform/GeoLiteCity.dat.gz/download && break
-	done
+	# init download url
+	case "$cdn" in
+	"--with-cf")
+		_cf
+		wget -t3 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_sf
+			wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			fi
+		fi
+		;;
+	"--with-sf")
+		_sf
+		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			fi
+		fi
+		;;
+	"--with-osdn")
+		_osdn
+		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
+				wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			fi
+		fi
+		;;
+	*)
+		_sf
+		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			fi
+		fi
+		;;
+	esac
 	gunzip GeoLiteCity.dat.gz >/dev/null 2>&1
 	mkdir -p /usr/share/GeoIP
 	rm -rf GeoLiteCity.dat.gz
@@ -541,7 +635,7 @@ DPHP
 
 function _dependency() {
 	_addPHP
-	DEPLIST="sudo bc curl wget nginx-extras subversion ssl-cert php7.2-memcached memcached php7.2 php7.2-cli php7.2-curl php7.2-dev php7.2-fpm php7.2-gd php7.2-geoip php7.2-json php7.2-mbstring php7.2-opcache php7.2-xml php7.2-xmlrpc php7.2-zip libfcgi0ldbl mcrypt libmcrypt-dev nano python-dev unzip htop iotop vnstat vnstati automake make openssl net-tools debconf-utils ntp rsync"
+	DEPLIST="sudo bc build-essential curl wget nginx-extras subversion ssl-cert php7.2-memcached memcached php7.2 php7.2-cli php7.2-curl php7.2-dev php7.2-fpm php7.2-gd php7.2-geoip php7.2-json php7.2-mbstring php7.2-opcache php7.2-xml php7.2-xmlrpc php7.2-zip libfcgi0ldbl mcrypt libmcrypt-dev nano python-dev unzip htop iotop vnstat vnstati automake make openssl net-tools debconf-utils ntp rsync"
 	for depend in $DEPLIST; do
 		echo -e "XXX\n12\n$INFO_TEXT_PROGRESS_Extra_2${depend}\nXXX"
 		DEBIAN_FRONTEND=noninteractive apt-get -y install "${depend}" --allow-unauthenticated >>"${OUTTO}" 2>&1 || { local dependError=1; }
@@ -609,6 +703,17 @@ function _insngx() {
 	systemctl restart php7.2-fpm
 }
 
+function _insnodejs() {
+	# install Nodejs for background service
+	cd /tmp || exit 1
+	curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh
+	sudo bash nodesource_setup.sh >>"${OUTTO}" 2>&1
+	apt-get install -y nodejs >>"${OUTTO}" 2>&1
+	if [[ -f /tmp/nodesource_setup.sh ]]; then
+		rm nodesource_setup.sh
+	fi
+}
+
 function _webconsole() {
 	# setup webconsole for dashboard
 	PUBLICIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
@@ -654,7 +759,9 @@ WEBC
 function _insdashboard() {
 	echo -e "XXX\n27\n$INFO_TEXT_PROGRESS_7_1\nXXX"
 	_insngx
-	echo -e "XXX\n29\n$INFO_TEXT_PROGRESS_7_2\nXXX"
+	echo -e "XXX\n28\n$INFO_TEXT_PROGRESS_7_2\nXXX"
+	_insnodejs
+	echo -e "XXX\n29\n$INFO_TEXT_PROGRESS_7_3\nXXX"
 	_webconsole
 	cd && mkdir -p /srv/dashboard
 	\cp -fR ${local_setup_dashboard}. /srv/dashboard
@@ -681,8 +788,14 @@ function _insdashboard() {
 		touch /install/.lang_zh.lock
 		;;
 	esac
-
 	touch /install/.dashboard.lock
+	cd /srv/dashboard/ws || exit 1
+	npm install --production >>"${OUTTO}" 2>&1
+	\cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service
+	systemctl daemon-reload >/dev/null 2>&1
+	systemctl enable quickbox-ws.service >/dev/null 2>&1
+	systemctl start quickbox-ws.service >/dev/null 2>&1
+	touch /install/.quickbox-ws.lock
 }
 
 function _askapps() {
@@ -746,7 +859,7 @@ function _askrtgui() {
 function _insapps() {
 	if [[ "$app_list" =~ "rtorrent" ]]; then
 		echo -e "XXX\n30\n$INFO_TEXT_INSTALLAPP_1\nXXX"
-		bash ${local_setup_script}rtorrent.sh "${OUTTO}" "${rtgui}" >/dev/null 2>&1
+		bash ${local_setup_script}rtorrent.sh "${OUTTO}" "${rtgui}" "$cdn" >/dev/null 2>&1
 		echo -e "XXX\n36\n$INFO_TEXT_INSTALLAPP_1$INFO_TEXT_DONE\nXXX"
 	else
 		echo -e "XXX\n36\n$INFO_TEXT_INSTALLAPP_1$INFO_TEXT_SKIP\nXXX"
@@ -754,7 +867,7 @@ function _insapps() {
 	sleep 1
 	if [[ "$app_list" =~ "transmission" ]]; then
 		echo -e "XXX\n36\n$INFO_TEXT_INSTALLAPP_2\nXXX"
-		bash ${local_setup_script}transmission.sh "${OUTTO}" >/dev/null 2>&1
+		bash ${local_setup_script}transmission.sh "${OUTTO}" "$cdn" >/dev/null 2>&1
 		echo -e "XXX\n43\n$INFO_TEXT_INSTALLAPP_2$INFO_TEXT_DONE\nXXX"
 	else
 		echo -e "XXX\n43\n$INFO_TEXT_INSTALLAPP_2$INFO_TEXT_SKIP\nXXX"
@@ -762,7 +875,7 @@ function _insapps() {
 	sleep 1
 	if [[ "$app_list" =~ "qbittorrent" ]]; then
 		echo -e "XXX\n43\n$INFO_TEXT_INSTALLAPP_3\nXXX"
-		bash ${local_setup_script}qbittorrent.sh "${OUTTO}" >/dev/null 2>&1
+		bash ${local_setup_script}qbittorrent.sh "${OUTTO}" "$cdn" >/dev/null 2>&1
 		echo -e "XXX\n49\n$INFO_TEXT_INSTALLAPP_3$INFO_TEXT_DONE\nXXX"
 	else
 		echo -e "XXX\n49\n$INFO_TEXT_INSTALLAPP_3$INFO_TEXT_SKIP\nXXX"
@@ -770,7 +883,7 @@ function _insapps() {
 	sleep 1
 	if [[ "$app_list" =~ "deluge" ]]; then
 		echo -e "XXX\n49\n$INFO_TEXT_INSTALLAPP_4\nXXX"
-		bash ${local_setup_script}deluge.sh "${OUTTO}" >/dev/null 2>&1
+		bash ${local_setup_script}deluge.sh "${OUTTO}" "$cdn" >/dev/null 2>&1
 		echo -e "XXX\n56\n$INFO_TEXT_INSTALLAPP_4$INFO_TEXT_DONE\nXXX"
 	else
 		echo -e "XXX\n56\n$INFO_TEXT_INSTALLAPP_4$INFO_TEXT_SKIP\nXXX"
@@ -868,11 +981,11 @@ function _startinstall() {
 
 		# change ssh port
 		echo -e "XXX\n03\n$INFO_TEXT_PROGRESS_2\nXXX"
-		if [[ $chport == "4747" ]]; then
+		if [[ $chport == "default" ]]; then
+			echo -e "XXX\n06\n$INFO_TEXT_PROGRESS_2$INFO_TEXT_SKIP\nXXX"
+		else
 			_changeport
 			echo -e "XXX\n06\n$INFO_TEXT_PROGRESS_2$INFO_TEXT_DONE\nXXX"
-		else
-			echo -e "XXX\n06\n$INFO_TEXT_PROGRESS_2$INFO_TEXT_SKIP\nXXX"
 		fi
 		sleep 1
 
@@ -972,10 +1085,11 @@ function _startinstall() {
 function _summary() {
 	# Summary list
 	ip=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
+	sshport=$(grep -e '#*Port 22' < /etc/ssh/sshd_config | grep -Eo "[0-9]+" )
 	if (whiptail --title "$INFO_TITLE_SUMMARY" --yesno "${INFO_TEXT_SUMMARY_1}\n\n\
 ${INFO_TEXT_SUMMARY_2} $(echo "$OUTTO" | cut -d " " -f 1)\n\
 $(if [[ $hostname != "" ]]; then echo -e "${INFO_TEXT_SUMMARY_3}$hostname\n"; fi)\
-${INFO_TEXT_SUMMARY_4} $ip:$chport\n\
+${INFO_TEXT_SUMMARY_4} $ip:$sshport\n\
 ${INFO_TEXT_SUMMARY_5} $username\n\
 ${INFO_TEXT_SUMMARY_6} $password\n\
 $(if [[ $ftp == 1 ]]; then echo -e "${INFO_TEXT_SUMMARY_11} $ftp_ip:5757\n"; fi)\
@@ -1029,29 +1143,230 @@ $(if [[ $autoreboot == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_17}\n"; fi)\
 	fi
 }
 
+#################################################################################
+# USAGE
+#################################################################################
+function _usage() {
+	echo -e "\nQuickBox Lite Setup Script
+\nUsage: bash $(basename "$0") -u username -p password [OPTS]
+\nOptions:
+  NOTE: * is required anyway
+
+  -H, --hostname <hostname>        setup hostname, make no change by default
+  -P, --port <1-65535>             setup ssh service port, use 4747 by default
+  -u, --username <username*>       username is required here
+  -p, --password <password*>       your password is required here
+  -r, --reboot                     reboot after installation finished (default no)
+  -s, --source <us|au|cn|fr|de|jp|ru|uk|tuna>  
+                                   choose apt source (default unchange)
+  -t, --theme <defaulted|smoked>   choose a theme for your dashboard (default smoked)
+  --lang <en|zh>                   choose a TUI language (default english)
+  --with-log,no-log                install with log to file or not (default yes)
+  --with-ftp,--no-ftp              install ftp or not (default yes)
+  --ftp-ip <ip address>            manually setup ftp ip
+  --with-bbr,--no-bbr              install bbr or not (default no)
+  --with-cf                        use cloudflare instead of sourceforge
+  --with-sf                        use sourceforge
+  --with-osdn                      use osdn(jp) instead of sourceforge
+  --with-APPNAME                   install an application
+
+    Available applications:
+    rtorrent | rutorrent | flood | transmission | qbittorrent
+    deluge | mktorrent | ffmpeg | filebrowser | linuxrar
+
+  -h, --help                       display this help and exit"
+}
+
+#################################################################################
+# FLAGS INIT
+#################################################################################
+uilang="en"
+OUTTO="/root/quickbox.$PPID.log"
+ftp=1
+ftp_ip=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
+onekey=0
+chport=4747
+chsource=0
+enable_bbr=0
+autoreboot=0
+dash_theme="smoked"
+app_list=""
+rtgui="rutorrent"
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+if ! ARGS=$(getopt -a -o hrH:p:P:s:t:u: -l help,ftp-ip:,lang:,reboot,with-log,no-log,with-ftp,no-ftp,with-bbr,no-bbr,with-cf,with-sf,with-osdn,with-rtorrent,with-rutorrent,with-flood,with-transmission,with-qbittorrent,with-deluge,with-mktorrent,with-ffmpeg,with-filebrowser,with-linuxrar,hostname:,port:,username:,password:,source:,theme: -- "$@")
+then
+	_usage
+    exit 1
+fi
+eval set -- "${ARGS}"
+while true; do
+	case "$1" in
+	-H | --hostname)
+		onekey=1
+		hostname="$2"
+		shift
+		;;
+	-h | --help)
+		_usage
+		exit 1
+		;;
+	-P | --port)
+		onekey=1
+		chport=$(echo "$2" | grep -P '^()([1-9]|[1-5]?[0-9]{2,4}|6[1-4][0-9]{3}|65[1-4][0-9]{2}|655[1-2][0-9]|6553[1-5])$')
+		if [[ -z $chport ]]; then
+			_usage
+			exit 1
+		fi
+		shift
+		;;
+	-u | --user)
+		onekey=1
+		username="$2"
+		count=0
+		reserved_names=['adm','admin','audio','backup','bin','cdrom','crontab','daemon','dialout','dip','disk','fax','floppy','fuse','games','gnats','irc','kmem','landscape','libuuid','list','lp','mail','man','messagebus','mlocate','netdev','news','nobody','nogroup','operator','plugdev','proxy','root','sasl','shadow','src','ssh','sshd','staff','sudo','sync','sys','syslog','tape','tty','users','utmp','uucp','video','voice','whoopsie','www-data']
+		count=$(echo -n "$username" | wc -c)
+		if [[ ${reserved_names[*]} =~ "$username" ]]; then
+			_error "Do not use reversed user name !"
+			exit 1
+		elif [[ $count -lt 3 || $count -gt 32 ]]; then
+			_error "User name cannot less than 3 or more than 32 characters !"
+			exit 1
+		elif ! [[ "$username" =~ ^[a-z][-a-z0-9_]*$ ]]; then
+			_error "Your username must start from a lower case letter and the username"
+			_error "must contain only lowercase letters, numbers, hyphens, and underscores."
+			exit 1
+		fi
+		shift
+		;;
+	-p | --password)
+		onekey=1
+		password="$2"
+		count=$(echo -n "$password" | wc -c)
+		strength=$(echo "$password" | grep -P '(?=^.{8,32}$)(?=^[^\s]*$)(?=.*\d)(?=.*[A-Z])(?=.*[a-z])')
+		if [[ $count -lt 8 ]]; then
+			_error "Your password cannot less than 8 characters !"
+			exit 1
+		else
+			if [[ $strength == "" ]]; then
+				_error "Your password must consist:"
+				_error "1.digital numbers"
+				_error "2.at least one lower case letter"
+				_error "3.one upper case letter"
+				exit 1
+			fi
+		fi
+		shift
+		;;
+	--lang) 
+		if [[ $2 =~ "en"|"zh" ]]; then
+			uilang=$2
+		else
+			uilang="en"
+		fi
+		;;
+	--with-log) OUTTO="/root/quickbox.$PPID.log" ;;
+	--no-log) OUTTO="/dev/null 2>&1" ;;
+	--with-ftp) ftp=1 ;;
+	--no-ftp) ftp=0 ;;
+	--ftp-ip)
+		ftp_ip="$2"
+		if [[ $ftp_ip == "" ]]; then ftp_ip=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1); fi
+		shift
+		;;
+	-r | --reboot) autoreboot=1 ;;
+	-t | --theme)
+		if [[ "$2" =~ "defaulted"|"smoked" ]]; then
+			dash_theme="$2"
+		else
+			_error "$2 theme not available"
+			exit 1
+		fi
+		shift
+		;;	
+	-s | --source)
+		if [[ "$2" =~ "us"|"au"|"cn"|"fr"|"de"|"jp"|"ru"|"uk"|"tuna" ]]; then
+			chsource=1
+			mirror="$2"
+		else
+			_error "$2 source not available"
+			exit 1
+		fi
+		shift
+		;;
+	--with-bbr) enable_bbr=1 ;;
+	--no-bbr) enable_bbr=0 ;;
+	--with-cf) cdn="--with-cf" ;;
+	--with-sf) cdn="--with-sf" ;;
+	--with-osdn) cdn="--with-osdn" ;;
+	--with-rtorrent) app_list+=" rtorrent" ;;
+	--with-rutorrent) rtgui="rutorrent" ;;
+	--with-flood) rtgui="flood" ;;
+	--with-transmission) app_list+=" transmission" ;;
+	--with-qbittorrent) app_list+=" qbittorrent" ;;
+	--with-deluge) app_list+=" deluge" ;;
+	--with-mktorrent) app_list+=" mktorrent" ;;
+	--with-ffmpeg) app_list+=" ffmpeg" ;;
+	--with-filebrowser) app_list+=" filebrowser" ;;
+	--with-linuxrar) app_list+=" linuxrar" ;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
 # Init
 _init
-_selectlang
-_checkroot
-_checkdistro
-_checkkernel
-_checkovz
-_welcome
+if [[ $onekey == 1 ]]; then
+	if [[ -n $username && -n $password ]]; then
+		_checkroot
+		_checkdistro
+		_checkkernel
+		_checkovz
+		if [[ $uilang == "zh" ]]; then
+			source ${local_lang}zh-cn.lang
+			echo 'LANGUAGE="zh_CN.UTF-8"' >>/etc/default/locale
+			echo 'LC_ALL="zh_CN.UTF-8"' >>/etc/default/locale
+		else
+			source ${local_lang}en.lang
+		fi
+		DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales >/dev/null 2>&1
+		_startinstall
+	else
+		_error "Onekey install need Username and Password!"
+		exit 1
+	fi
+elif [[ $onekey == 0 ]]; then
+	_selectlang
+	_checkroot
+	_checkdistro
+	_checkkernel
+	_checkovz
+	_welcome
 
-# Install guide
-_logcheck
-_askhostname
-_askchport
-_askusrname
-_askpasswd
-_askvsftpd
-_askdashtheme
-_askchsource
-_askapps
-_askbbr
-_askautoreboot
+	# Install guide
+	_logcheck
+	_askhostname
+	_askchport
+	_askusrname
+	_askpasswd
+	_askvsftpd
+	_askdashtheme
+	_askchsource
+	_askapps
+	_askbbr
+	_askautoreboot
 
-# Conclusion
-_summary
+	# Conclusion
+	_summary
 
-# Excute installation
+	# Excute installation
+fi
+

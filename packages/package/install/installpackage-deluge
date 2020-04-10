@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.2
+# Current version:  v1.3.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -132,6 +132,9 @@ function _usage() {
 	echo "-l, --log <logfile>       specific log file"
 	echo "--lt <version>            the libtorrent version you want to install"
 	echo "--de <version>            the deluge version you want to install"
+	echo "--with-cf                 use cloudflare instead of sourceforge"
+	echo "--with-sf                 use sourceforge"
+	echo "--with-osdn               use osdn(jp) instead of sourceforge"	
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -226,6 +229,83 @@ function _installFpm() {
 	fi
 }
 
+function _cf() {
+	DOMAIN="deb.ezapi.net"
+	SUBFOLDER=""
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _sf() {
+	DOMAIN="sourceforge.net"
+	SUBFOLDER="projects/seedbox-software-for-linux/files/"
+	ARCH="amd64"
+	SUFFIX="/download"
+}
+
+function _osdn() {
+	DOMAIN="osdn.dl.osdn.net"
+	SUBFOLDER="storage/g/s/se/seedbox-software-for-linux/"
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _download() {
+	# init download url
+	PACKAGE=$1
+	DEB=$2
+	case "$cdn" in
+	"cf")
+		_cf
+		wget -t3 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_sf
+			wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"sf")
+		_sf
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"osdn")
+		_osdn
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	*)
+		_sf
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	esac
+}
+
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	# version check
@@ -233,16 +313,20 @@ function _installApp() {
 		_warning "Deluge 2.0.x currently not available in buster, fallback to v1.3.15"
 		deversion=1.3.15
 	fi
+
 	# Libtorrent
 	if [[ ${libtversion} == 1.1.13 && ! -f /install/.libtorrent-rasterbar.lock ]]; then
 		_info "Installing Libtorrent..."
+		PACKAGE="libtorrent-rasterbar"
 		cd /tmp || exit 1
 		if [[ ! -f /install/.libtorrent-rasterbar9.lock ]]; then
 			LIBTBIN=libtorrent-rasterbar9_1.1.13-1build1_amd64.deb
-			wget -q -O ${LIBTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${LIBTBIN}/download
+			DEB=${LIBTBIN}
+			_download ${PACKAGE} ${DEB}
 			_excute "apt install -y /tmp/${LIBTBIN}"
 			LIBTDEVBIN=libtorrent-rasterbar-dev_1.1.13-1build1_amd64.deb
-			wget -q -O ${LIBTDEVBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${LIBTBIN}/download
+			DEB=${LIBTDEVBIN}
+			_download ${PACKAGE} ${DEB}
 			_excute "apt install -y /tmp/${LIBTDEVBIN}"
 			rm -rf {${LIBTBIN},${LIBTDEVBIN}}
 		fi
@@ -250,12 +334,14 @@ function _installApp() {
 		cd /tmp || exit 1
 		if _version_gt ${deversion} 2.0; then
 			PYLIBTBIN=python3-libtorrent_1.1.13-1build1_amd64.deb
-			wget -q -O ${PYLIBTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${PYLIBTBIN}/download
+			DEB=${PYLIBTBIN}
+			_download ${PACKAGE} ${DEB}
 			_excute "apt install -y /tmp/${PYLIBTBIN}"
 			rm -rf ${PYLIBTBIN}
 		else
 			PYLIBTBIN=python-libtorrent_1.1.13-1build1_amd64.deb
-			wget -q -O ${PYLIBTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/libtorrent-rasterbar/${PYLIBTBIN}/download
+			DEB=${PYLIBTBIN}
+			_download ${PACKAGE} ${DEB}
 			_excute "apt install -y /tmp/${PYLIBTBIN}"
 			rm -rf ${PYLIBTBIN}
 		fi
@@ -334,23 +420,24 @@ function _installApp() {
 
 	if [[ ("${deversion}" == "1.3.15" || "${deversion}" == "2.0.3") && ! -f /install/.libtorrent-rasterbar.lock ]]; then
 		_info "Installing Deluge ${deversion}..."
+		PACKAGE="deluge"
 		cd /tmp || exit 1
 		if _version_gt ${deversion} 2.0; then
 			APP_BASEDEPS="libgeoip-dev librsvg2-common geoip-database python3-dev python3-twisted python3-openssl python3-setuptools python3-xdg python3-chardet python3-pip python3-mako xdg-utils"
 			_installDepends
 			_excute "pip3 install --upgrade twisted[tls]"
 			DEBASE="deluge-common_2.0.3-1build1_all.deb deluge-console_2.0.3-1build1_all.deb deluge-gtk_2.0.3-1build1_all.deb deluge-web_2.0.3-1build1_all.deb deluged_2.0.3-1build1_all.deb"
-			for deapp in $DEBASE; do
-				wget -q -O ${deapp} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/deluge/${deapp}/download
-				_excute "apt-get -y --allow-unauthenticated -f install /tmp/${deapp}"
-				rm -rf /tmp/${deapp}
+			for DEB in $DEBASE; do
+				_download ${PACKAGE} ${DEB}
+				_excute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
+				rm -rf /tmp/${DEB}
 			done
 		else
 			DEBASE="deluge-common_1.3.15-1build1_all.deb deluge-console_1.3.15-1build1_all.deb deluge-gtk_1.3.15-1build1_all.deb deluge-web_1.3.15-1build1_all.deb deluged_1.3.15-1build1_all.deb"
-			for deapp in $DEBASE; do
-				wget -q -O ${deapp} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/deluge/${deapp}/download
-				_excute "apt-get -y --allow-unauthenticated -f install /tmp/${deapp}"
-				rm -rf /tmp/${deapp}
+			for DEB in $DEBASE; do
+				_download ${PACKAGE} ${DEB}
+				_excute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
+				rm -rf /tmp/${DEB}
 			done
 		fi
 	else
@@ -739,7 +826,11 @@ function _flexget() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o ghl: -l gui,help,log:,de:,lt: -- "$@")
+if ! ARGS=$(getopt -a -o ghl: -l gui,help,with-cf,with-sf,with-osdn,log:,de:,lt: -- "$@")
+then
+    _usage
+    exit 1
+fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
@@ -762,6 +853,15 @@ while true; do
 	--lt)
 		libtversion="$2"
 		shift
+		;;
+	--with-cf)
+		cdn="cf"
+		;;
+	--with-sf)
+		cdn="sf"
+		;;
+	--with-osdn)
+		cdn="osdn"
 		;;
 	--)
 		shift

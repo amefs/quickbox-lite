@@ -132,7 +132,7 @@
                   <div class="panel-heading">
                     <h4 class="panel-title text-success"><?php echo T('RECENT_UPDATES'); ?>
 
-                        <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $version ?>...master" target="blank" title="<?php echo T('CURRENT_VERSIONS_CHANGELOG'); ?>" data-placement="top" class="label label-primary tooltips" style="font-size:10px; padding-top:0; padding-bottom:0px; top: -2px; position: relative;" target='_blank'>QuickBox :: <span style="color: #fff;text-shadow: 0px 0px 6px #fff;"><?php echo "$version"; ?></span></a>
+                        <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $version ?>...master" target="blank" title="<?php echo T('CURRENT_VERSIONS_CHANGELOG'); ?>" data-placement="top" class="label label-primary tooltips" style="font-size:10px; padding-top:0; padding-bottom:0px; top: -2px; position: relative;" target="_blank" rel="noopener">QuickBox :: <span style="color: #fff;text-shadow: 0px 0px 6px #fff;"><?php echo "$version"; ?></span></a>
 
                     </h4>
                   </div>

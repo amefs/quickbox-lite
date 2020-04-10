@@ -1,0 +1,28 @@
+function _updatedashboard() {
+	_info "Updating QuickBox dashboard..."
+	# Update dashboard config
+	cd /srv/dashboard || exit 1
+	_excute "rsync -aP --exclude=share.php --exclude=custom.menu.php --exclude=url.override.php --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
+
+	IFACE=$(cat /srv/dashboard/db/interface.txt)
+	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/stat.php
+	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/data.php
+	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/bw_tables.php
+	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/inc/config.php
+	if [[ -f /srv/dashboard/db/.smoked.lock ]]; then
+		_excute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"
+	elif [[ -f /srv/dashboard/db/.defaulted.lock ]]; then
+		_excute "bash /usr/local/bin/quickbox/system/theme/themeSelect-defaulted"
+	else
+		_excute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"
+	fi
+	chown -R www-data:www-data /srv/dashboard
+	_success "QuickBox dashboard updated"
+}
+
+function _updatelanguage() {
+	_info "Updating QuickBox language..."
+	dashlang=$(find /install -type f | grep -e "lang.*.lock" | cut -d "." -f 2)
+	bash /usr/local/bin/quickbox/system/box lang $dashlang
+	_success "QuickBox language updated"
+}

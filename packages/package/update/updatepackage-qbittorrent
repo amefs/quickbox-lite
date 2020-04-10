@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.2
+# Current version:  v1.3.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -81,8 +81,8 @@ APP_SERVICE="qbittorrent"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-deb_version_list=['4.1.7','4.1.8','4.1.9','4.1.9.1','4.2.0','4.2.1']
-qbitversion=4.2.1
+deb_version_list=['4.1.7','4.1.8','4.1.9','4.1.9.1','4.1.9.2','4.2.0','4.2.1','4.2.2','4.2.3']
+qbitversion=4.2.3
 BRANCH_QBIT="https://github.com/qbittorrent/qBittorrent.git"
 BRANCH_LIBQBPASS="https://github.com/KozakaiAya/libqbpasswd.git"
 FORCE=0
@@ -96,7 +96,10 @@ function _usage() {
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
 	echo "--qb <version>            the qbittorrent version you want to install"
-	echo "--force					force downgrade qBittorrent"
+	echo "--force                   force downgrade qBittorrent"
+	echo "--with-cf                 use cloudflare instead of sourceforge"
+	echo "--with-sf                 use sourceforge"
+	echo "--with-osdn               use osdn(jp) instead of sourceforge"	
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -143,6 +146,83 @@ Please wait until the process is completed
 "
 }
 
+function _cf() {
+	DOMAIN="deb.ezapi.net"
+	SUBFOLDER=""
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _sf() {
+	DOMAIN="sourceforge.net"
+	SUBFOLDER="projects/seedbox-software-for-linux/files/"
+	ARCH="amd64"
+	SUFFIX="/download"
+}
+
+function _osdn() {
+	DOMAIN="osdn.dl.osdn.net"
+	SUBFOLDER="storage/g/s/se/seedbox-software-for-linux/"
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _download() {
+	# init download url
+	PACKAGE=$1
+	DEB=$2
+	case "$cdn" in
+	"cf")
+		_cf
+		wget -t3 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_sf
+			wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"sf")
+		_sf
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"osdn")
+		_osdn
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	*)
+		_sf
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	esac
+}
+
 function _updateApp() {
 	# get current version
 	cur_version=$(dpkg -s qbittorrent-nox 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
@@ -159,15 +239,19 @@ function _updateApp() {
 			cd /tmp || exit 1
 			if (_version_gt ${qbitversion} 4.1.9.1); then
 				if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
+					PACKAGE="qt5"
 					cd /tmp
 					QTBIN=qt512base_5.12.6-1basyskom1_amd64.deb
-					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
+					DEB=${QTBIN}
+					_download ${PACKAGE} ${DEB}
 					_excute "apt install -y /tmp/${QTBIN}"
 					rm -rf ${QTBIN}
 				fi
 			fi
+			PACKAGE="qbittorrent"
 			QBITBIN=qbittorrent-nox_${qbitversion}-libt1.1-1build1_amd64.deb
-			wget -q -O ${QBITBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qbittorrent/${QBITBIN}/download
+			DEB=${QBITBIN}
+			_download ${PACKAGE} ${DEB}
 			_excute "apt install -y /tmp/${QBITBIN}"
 			rm -rf ${QBITBIN}
 
@@ -192,27 +276,14 @@ LIST
 			_installFpm
 			if (_version_gt ${qbitversion} 4.1.9.1); then
 				if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
+					PACKAGE="qt5"
 					cd /tmp
-					QTBIN=qt512base_5.12.6-1basyskom1_amd64.deb
-					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
-					_excute "apt install -y /tmp/${QTBIN}"
-					rm -rf ${QTBIN}
-					QTBIN=qt512xmlpatterns_5.12.6-1basyskom1_amd64.deb
-					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
-					_excute "apt install -y /tmp/${QTBIN}"
-					rm -rf ${QTBIN}
-					QTBIN=qt512declarative_5.12.6-1basyskom1_amd64.deb
-					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
-					_excute "apt install -y /tmp/${QTBIN}"
-					rm -rf ${QTBIN}
-					QTBIN=qt512svg_5.12.6-1basyskom1_amd64.deb
-					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
-					_excute "apt install -y /tmp/${QTBIN}"
-					rm -rf ${QTBIN}
-					QTBIN=qt512tools_5.12.6-1basyskom1_amd64.deb
-					wget -q -O ${QTBIN} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/qt5/${QTBIN}/download
-					_excute "apt install -y /tmp/${QTBIN}"
-					rm -rf ${QTBIN}
+					DEBASE="qt512base_5.12.6-1basyskom1_amd64.deb qt512xmlpatterns_5.12.6-1basyskom1_amd64.deb qt512declarative_5.12.6-1basyskom1_amd64.deb qt512svg_5.12.6-1basyskom1_amd64.deb qt512tools_5.12.6-1basyskom1_amd64.deb"
+					for DEB in $DEBASE; do
+						_download ${PACKAGE} ${DEB}
+						_excute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
+						rm -rf /tmp/${DEB}
+					done
 					source /opt/qt512/bin/qt512-env.sh
 					if [[ ! -f /usr/bin/lrelease-qt5 ]]; then
 						ln -s /usr/lib/x86_64-linux-gnu/qt5/bin/lrelease /usr/bin/lrelease-qt5
@@ -304,7 +375,8 @@ function _reconfigureAppv2() {
 function _flexget() {
 	username=$(cat /root/.admin.info | cut -d: -f1)
 	if [[ -f "/install/.${username}.flexget.lock" ]]; then
-		if (su ${username} -c 'pip2 freeze --disable-pip-version-check | grep -q "FlexGet"'); then
+		fgversion=$(su ${username} -c '~/.local/bin/flexget -V | head -1 | cut -d. -f1')
+		if [[ ${fgversion} == '2' ]]; then
 			bash /usr/local/bin/quickbox/package/update/updatepackage-flexget -l $OUTTO
 		fi
 	fi
@@ -313,7 +385,11 @@ function _flexget() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o hl: -l help,force,log:,qb: -- "$@")
+if ! ARGS=$(getopt -a -o hl: -l help,force,with-cf,with-sf,with-osdn,log:,qb: -- "$@")
+then
+    _usage
+    exit 1
+fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
@@ -331,6 +407,15 @@ while true; do
 	--qb)
 		qbitversion="$2"
 		shift
+		;;
+	--with-cf)
+		cdn="cf"
+		;;
+	--with-sf)
+		cdn="sf"
+		;;
+	--with-osdn)
+		cdn="osdn"
 		;;
 	--)
 		shift

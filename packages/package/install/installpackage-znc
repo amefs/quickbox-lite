@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.3.2
+# Current version:  v1.3.3
 # Author:           Mischief, JMSolo
 # Credits to:       QuickBox.io
 #
@@ -277,7 +277,11 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
+if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
+then
+    _usage
+    exit 1
+fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in

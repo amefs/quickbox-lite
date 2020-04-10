@@ -26,7 +26,9 @@ For more information, please check our [wiki](https://github.com/amefs/quickbox-
 
 ## Script status
 
-![Version](https://img.shields.io/badge/version-1.3.2-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.3.3-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+
+When upgrade from 1.3.2 to 1.3.3, very recommend to use SSH with `box update quickbox`. You also need to run the command twice to finish the service upgrade. If you are using WebUI to finish the upgrade, please also upgrade twice.
 
 ---
 
@@ -61,6 +63,8 @@ Server Support:
 
 **You must be logged in as root to run this installation.**
 
+#### **TUI install**
+
 **Run the following command to grab our latest stable release ...**
 
 ```
@@ -71,7 +75,7 @@ bash /etc/QuickBox/setup.sh
 
 ```
 
-### Want to run in development mode?
+**Want to run in development mode?**
 
 **Run the following command to grab current development repos ...**
 
@@ -82,6 +86,63 @@ git clone --branch "development" https://github.com/amefs/quickbox-lite.git /etc
 dos2unix /etc/QuickBox/setup.sh; \
 bash /etc/QuickBox/setup.sh
 ```
+
+#### **One-key Install mode**
+
+One-key install is available since version **1.3.3**:
+
+```bash
+bash <(wget -qO- https://$URL -o /dev/null) COMMAND
+```
+
+**Want to run in development mode?:**
+
+```bash
+bash <(wget -qO- https://$URL -o /dev/null) --dev COMMAND
+```
+
+Now, it has following arguments:
+
+```
+QuickBox Lite Setup Script
+
+Usage: bash setup.sh -u username -p password [OPTS]
+
+Options:
+  NOTE: * is required anyway
+
+  -H, --hostname <hostname>        setup hostname, make no change by default
+  -P, --port <1-65535>             setup ssh service port, use 4747 by default
+  -u, --username <username*>       username is required here
+  -p, --password <password*>       your password is required here
+  -r, --reboot                     reboot after installation finished (default no)
+  -s, --source <us|au|cn|fr|de|jp|ru|uk|tuna>  
+                                   choose apt source (default unchange)
+  -t, --theme <defaulted|smoked>   choose a theme for your dashboard (default smoked)
+  --lang <en|zh>                   choose a TUI language (default english)
+  --with-log,no-log                install with log to file or not (default yes)
+  --with-ftp,--no-ftp              install ftp or not (default yes)
+  --ftp-ip <ip address>            manually setup ftp ip
+  --with-bbr,--no-bbr              install bbr or not (default no)
+  --with-cf                        use cloudflare instead of sourceforge
+  --with-sf                        use sourceforge
+  --with-osdn                      use osdn(jp) instead of sourceforge
+  --with-APPNAME                   install an application
+
+    Available applications:
+    rtorrent | rutorrent | flood | transmission | qbittorrent
+    deluge | mktorrent | ffmpeg | filebrowser | linuxrar
+
+  -h, --help                       display this help and exit
+```
+
+The username and the password is required anyway, or the TUI install method will start. The other arguments are the same function as in TUI. Here is a example:
+
+```bash
+bash <(wget -qO- https://$URL -o /dev/null) -u demouser -p demo123456 --with-ffmpeg -P 1234 --with-bbr --with-deluge --with-mktorrent --with-linuxrar --with-cf --hostname vmserver --reboot
+```
+
+It means: The username being set to demouser, password is demo123456, use 1234 as ssh port, install BBR, deluge, mktorrent, linuxrar. The mirror for deb package in Cloudflare will be used for installation. Change the hostname to vmserver. The server will be automaticly restart after installation.
 
 ### Already have QuickBox installed and want to switch over to development?
 
@@ -111,7 +172,7 @@ sudo box update quickbox
   - ruTorrent
   - flood
 - Transmission (*2.94*)
-- qBittorrent (*4.2.1*)
+- qBittorrent (*4.2.3*)
 - Deluge (*1.3.15, 2.0.3*)
 - mktorrent (with `createtorrent` command as wrapper)
 - FFmpeg

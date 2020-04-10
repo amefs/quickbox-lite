@@ -26,7 +26,9 @@
 
 ## 当前版本
 
-![Version](https://img.shields.io/badge/version-1.3.2-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.3.3-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+
+在执行 1.3.2 -> 1.3.3 的升级时，建议使用 SSH 运行  `box update quickbox` 进行升级操作，且需要执行两次以完成后台服务升级。若使用 WebUI 也需要执行两次。
 
 ---
 
@@ -58,6 +60,8 @@
 
 **你需要首先以 root 身份登录**
 
+#### **TUI安装模式**
+
 **运行以下指令来抓取最新的代码 ...**
 
 ```
@@ -65,10 +69,9 @@ apt-get -yqq update; apt-get -yqq upgrade; apt-get -yqq install git lsb-release 
 git clone https://github.com/amefs/quickbox-lite.git /etc/QuickBox; \
 dos2unix /etc/QuickBox/setup.sh; \
 bash /etc/QuickBox/setup.sh
-
 ```
 
-### 如何直接安装开发者模式?
+**如何直接安装开发者模式?**
 
 **在抓取源码时使用如下指令 ...**
 
@@ -79,6 +82,63 @@ git clone --branch "development" https://github.com/amefs/quickbox-lite.git /etc
 dos2unix /etc/QuickBox/setup.sh; \
 bash /etc/QuickBox/setup.sh
 ```
+
+#### **使用一键安装模式**
+
+从 **1.3.3** 版本开始，可以使用一键安装:
+
+```bash
+bash <(wget -qO- https://$URL -o /dev/null) COMMAND
+```
+
+**如何直接安装开发者模式?**
+
+```bash
+bash <(wget -qO- https://$URL -o /dev/null) --dev COMMAND
+```
+
+目前可以使用以下参数:
+
+```
+QuickBox Lite Setup Script
+
+Usage: bash setup.sh -u username -p password [OPTS]
+
+Options:
+  NOTE: * is required anyway
+
+  -H, --hostname <hostname>        setup hostname, make no change by default
+  -P, --port <1-65535>             setup ssh service port, use 4747 by default
+  -u, --username <username*>       username is required here
+  -p, --password <password*>       your password is required here
+  -r, --reboot                     reboot after installation finished (default no)
+  -s, --source <us|au|cn|fr|de|jp|ru|uk|tuna>  
+                                   choose apt source (default unchange)
+  -t, --theme <defaulted|smoked>   choose a theme for your dashboard (default smoked)
+  --lang <en|zh>                   choose a TUI language (default english)
+  --with-log,no-log                install with log to file or not (default yes)
+  --with-ftp,--no-ftp              install ftp or not (default yes)
+  --ftp-ip <ip address>            manually setup ftp ip
+  --with-bbr,--no-bbr              install bbr or not (default no)
+  --with-cf                        use cloudflare instead of sourceforge
+  --with-sf                        use sourceforge
+  --with-osdn                      use osdn(jp) instead of sourceforge
+  --with-APPNAME                   install an application
+
+    Available applications:
+    rtorrent | rutorrent | flood | transmission | qbittorrent
+    deluge | mktorrent | ffmpeg | filebrowser | linuxrar
+
+  -h, --help                       display this help and exit
+```
+
+用户名和密码是必须填写的参数，否则仍然会启动 TUI 安装界面。其他可选参数的功能与 TUI 安装界面相同。下面是一个使用示例：
+
+```bash
+bash <(wget -qO- https://https://$URL -o /dev/null) -u demouser -p demo123456 --with-ffmpeg -P 1234 --with-bbr --with-deluge --with-mktorrent --with-linuxrar --with-cf --hostname vmserver --reboot
+```
+
+这段代码的意思是: 用户名为 demouser，密码为 demo123456，ssh 端口修改为1234，安装 BBR，deluge，mktorrent，linuxrar，使用 Cloudflare 的预编译包镜像源，hostname 修改为 vmserver，安装完成后自动重启。
 
 ### 已经安装 QuickBox 希望切换到开发者模式?
 
@@ -108,7 +168,7 @@ sudo box update quickbox
   - ruTorrent
   - flood
 - Transmission (*2.94*)
-- qBittorrent (*4.2.1*)
+- qBittorrent (*4.2.3*)
 - Deluge (*1.3.15, 2.0.3*)
 - mktorrent (可以使用 `createtorrent` 在命令行中使用表单快速创建种子)
 - FFmpeg

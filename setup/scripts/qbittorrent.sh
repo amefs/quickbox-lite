@@ -18,4 +18,5 @@
 #
 #################################################################################
 logpath=$1
-bash /usr/local/bin/quickbox/package/install/installpackage-qbittorrent -l $logpath
+extra_arg=$2
+bash /usr/local/bin/quickbox/package/install/installpackage-qbittorrent -l $logpath $extra_arg

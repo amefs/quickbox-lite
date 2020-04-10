@@ -8,14 +8,17 @@ if ($query_string != "") {
 
 location / {
     alias /srv/dashboard/ ;
+    proxy_max_temp_file_size 0;
     try_files $uri $uri/ /index.php?q=$uri&$args;
     index index.php;
     allow all;
 
     location ~ \.php$ {
-
-		auth_basic "password Required";
-		auth_basic_user_file /etc/htpasswd;
+        satisfy any;
+        allow 127.0.0.1;
+        deny all;
+        auth_basic "password Required";
+        auth_basic_user_file /etc/htpasswd;
 
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
 
@@ -27,13 +30,24 @@ location / {
     }
 
     location ^~ /db/ {
-      auth_basic "password Required";
-      auth_basic_user_file /etc/htpasswd;
+        satisfy any;
+        allow 127.0.0.1;
+        deny all;
+        auth_basic "password Required";
+        auth_basic_user_file /etc/htpasswd;
     }
     location ^~ /db/master.txt {
         return 404;
     }
     location ^~ /db/interface.txt {
         return 404;
+    }
+
+    location /ws {
+        proxy_pass http://127.0.0.1:8575;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        include snippets/proxy.conf;
+        rewrite ^/ws/(.*) /$1 break;
     }
 }

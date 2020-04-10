@@ -1,0 +1,48 @@
+function _updateRepo() {
+	_info "Updating QuickBox local repository..."
+	BRANCH="https://github.com/amefs/quickbox-lite.git"
+	if [[ ! -f /install/.developer.lock ]]; then
+		# update to dev branch
+		if [[ -d /etc/QuickBox ]]; then
+			cd /etc/QuickBox
+			_excute "git checkout master"
+			_excute "git reset --hard origin/master"
+			_excute "git pull"
+		else
+			_excute "git clone --recursive ${BRANCH} /etc/QuickBox"
+		fi
+	else
+		if [[ -d /etc/QuickBox ]]; then
+			cd /etc/QuickBox
+			_excute "git checkout development"
+			_excute "git reset --hard origin/development"
+			_excute "git pull"
+		else
+			_excute "git clone --recursive --branch development ${BRANCH} /etc/QuickBox"
+		fi
+	fi
+	dos2unix $(find ${local_prefix} -type f) >/dev/null 2>&1
+	_success "QuickBox local repository updated"
+}
+
+function _setPerm() {
+	_info "Adjust file permission..."
+	chmod +x $(find /usr/local/bin/quickbox/ -type f) >/dev/null 2>&1
+	_success "file permission updated"
+}
+
+function _bashrc() {
+	_info "Updating bashrc..."
+	mv /root/.bash_qb /root/.bash_qb.bak
+	\cp -f "${local_setup_template}"bash_qb.template /root/.bash_qb
+	_success "bashrc updated"
+}
+
+function _updateskel() {
+	_info "Updating skel..."
+	if [[ ! -d /etc/skel ]]; then
+		mkdir /etc/skel
+	fi
+	_excute "rsync -aP ${local_setup_template}skel/. /etc/skel/"
+	_success "skel updated"
+}

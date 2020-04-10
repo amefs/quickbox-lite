@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.2
+# Current version:  v1.3.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -195,7 +195,11 @@ function _main() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o hk:l: -l help,kernel:,log: -- "$@")
+if ! ARGS=$(getopt -a -o hk:l: -l help,kernel:,log: -- "$@")
+then
+    _usage
+    exit 1
+fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in

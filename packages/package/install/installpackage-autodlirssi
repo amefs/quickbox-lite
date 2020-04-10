@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.2
+# Current version:  v1.3.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -196,7 +196,7 @@ function _installApp() {
 		echo $PORT >/install/$username.$APP_NAME.port
 		_excute "mkdir -p /home/${username}/.irssi/scripts/autorun/"
 		cd "/home/${username}/.irssi/scripts/" || { _error "Irssi not exist" && exit 1; }
-		curl -sL ${APPSRC} | grep -Po '(?<="browser_download_url": ")(.*-v[\d.]+.zip)' | xargs wget --quiet -O autodl-irssi.zip
+		curl -sL ${APPSRC} | sed "s|,|\n|g" | grep browser_download_url  | grep -oP "https.*zip" | xargs wget --quiet -O autodl-irssi.zip
 		_excute "unzip -o autodl-irssi.zip"
 		rm autodl-irssi.zip
 		cp autodl-irssi.pl autorun/
@@ -275,7 +275,11 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
+if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
+then
+    _usage
+    exit 1
+fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in

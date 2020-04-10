@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.2
+# Current version:  v1.3.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -96,6 +96,9 @@ function _usage() {
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
 	echo "-p, --ppa                 use ppa source"
+	echo "--with-cf                 use cloudflare instead of sourceforge"
+	echo "--with-sf                 use sourceforge"
+	echo "--with-osdn               use osdn(jp) instead of sourceforge"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -187,23 +190,98 @@ function _installDepends() {
 	fi
 }
 
+function _cf() {
+	DOMAIN="deb.ezapi.net"
+	SUBFOLDER=""
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _sf() {
+	DOMAIN="sourceforge.net"
+	SUBFOLDER="projects/seedbox-software-for-linux/files/"
+	ARCH="amd64"
+	SUFFIX="/download"
+}
+
+function _osdn() {
+	DOMAIN="osdn.dl.osdn.net"
+	SUBFOLDER="storage/g/s/se/seedbox-software-for-linux/"
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _download() {
+	# init download url
+	PACKAGE=$1
+	DEB=$2
+	case "$cdn" in
+	"cf")
+		_cf
+		wget -t3 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_sf
+			wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"sf")
+		_sf
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"osdn")
+		_osdn
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	*)
+		_sf
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_osdn
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	esac
+}
+
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
+
 	if [[ ${ppa} == 1 ]]; then
 		_installDepends
 	else
 		# get deb packages
+		PACKAGE="transmission"
 		cd /tmp
-		TRCOMM=transmission-common_2.94-1mod1_all.deb
-		TRSCLI=transmission-cli_2.94-1mod1_amd64.deb
-		TRSDAEMON=transmission-daemon_2.94-1mod1_amd64.deb
-		wget -q -O ${TRCOMM} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRCOMM}/download
-		wget -q -O ${TRSCLI} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRSCLI}/download
-		wget -q -O ${TRSDAEMON} https://sourceforge.net/projects/seedbox-software-for-linux/files/${CODENAME}/binary-amd64/transmission/${TRSDAEMON}/download
-		_excute "apt install -y /tmp/${TRCOMM}"
-		_excute "apt install -y /tmp/${TRSCLI}"
-		_excute "apt install -y /tmp/${TRSDAEMON}"
-		rm -rf {${TRCOMM},${TRSCLI},${TRSDAEMON}}
+		DEBASE="transmission-common_2.94-1mod1_all.deb transmission-cli_2.94-1mod1_amd64.deb transmission-daemon_2.94-1mod1_amd64.deb"
+		for DEB in $DEBASE; do
+			_download ${PACKAGE} ${DEB}
+			_excute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
+			rm -rf /tmp/${DEB}
+		done
 	fi
 	_success "${APP_TITLE} Built."
 }
@@ -409,7 +487,11 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-ARGS=$(getopt -a -o hl:p -l help,log:,ppa -- "$@")
+if ! ARGS=$(getopt -a -o hl:p -l help,ppa,with-cf,with-sf,with-osdn,log: -- "$@")
+then
+	_usage
+    exit 1
+fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
@@ -423,6 +505,15 @@ while true; do
 		;;
 	-p | --ppa)
 		ppa=1
+		;;
+	--with-cf)
+		cdn="cf"
+		;;
+	--with-sf)
+		cdn="sf"
+		;;
+	--with-osdn)
+		cdn="osdn"
 		;;
 	--)
 		shift

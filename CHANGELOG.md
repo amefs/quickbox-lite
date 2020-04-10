@@ -1,3 +1,28 @@
+## CHANGELOG v1.3.3:
+
+*Changelog update Friday, Apr 10, 2020*
+
+### General additions
+
+* Now support qBittorrent 4.2.2 and 4.2.3
+* Add One-key install mode
+* Add quickbox background service
+* linuxrar upgrade to 5.9.0
+
+### Function improved
+
+- Add Cloudflare and OSDN mirror for deb package
+- Improve help information for box command
+- Remove low efficiency css animation
+
+### Function updated
+
+* update box upgrade command
+
+### Bug fixed
+
+---
+
 ## CHANGELOG v1.3.2:
 
 *Changelog update Sunday, Mar 22, 2020*

@@ -19,6 +19,7 @@
 #################################################################################
 logpath=$1
 gui=$2
-bash /usr/local/bin/quickbox/package/install/installpackage-rtorrent -l $logpath
+extra_arg=$3
+bash /usr/local/bin/quickbox/package/install/installpackage-rtorrent -l $logpath $extra_arg
 sleep 5
 bash /usr/local/bin/quickbox/package/install/installpackage-$gui -l $logpath

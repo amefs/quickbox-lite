@@ -374,6 +374,12 @@ function getPluginConf($plugin)
 
 function getLogin()
 {
+	if ($_SERVER['REMOTE_ADDR'] === '127.0.0.1')
+	{
+		$master = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
+		$master = preg_replace('/\s+/', '', $master);
+		return $master;
+	}
 	return( (isset($_SERVER['REMOTE_USER']) && !empty($_SERVER['REMOTE_USER'])) ? strtolower($_SERVER['REMOTE_USER']) : '' );
 }
 
