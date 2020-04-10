@@ -88,13 +88,13 @@ bash /etc/QuickBox/setup.sh
 从 **1.3.3** 版本开始，可以使用一键安装:
 
 ```bash
-bash <(wget -qO- https://$URL -o /dev/null) COMMAND
+bash <(wget -qO- https://git.io/JvhIz -o /dev/null) COMMAND
 ```
 
 **如何直接安装开发者模式?**
 
 ```bash
-bash <(wget -qO- https://$URL -o /dev/null) --dev COMMAND
+bash <(wget -qO- https://git.io/JvhIz -o /dev/null) --dev COMMAND
 ```
 
 目前可以使用以下参数:
@@ -135,7 +135,7 @@ Options:
 用户名和密码是必须填写的参数，否则仍然会启动 TUI 安装界面。其他可选参数的功能与 TUI 安装界面相同。下面是一个使用示例：
 
 ```bash
-bash <(wget -qO- https://https://$URL -o /dev/null) -u demouser -p demo123456 --with-ffmpeg -P 1234 --with-bbr --with-deluge --with-mktorrent --with-linuxrar --with-cf --hostname vmserver --reboot
+bash <(wget -qO- https://git.io/JvhIz -o /dev/null) -u demouser -p demo123456 --with-ffmpeg -P 1234 --with-bbr --with-deluge --with-mktorrent --with-linuxrar --with-cf --hostname vmserver --reboot
 ```
 
 这段代码的意思是: 用户名为 demouser，密码为 demo123456，ssh 端口修改为1234，安装 BBR，deluge，mktorrent，linuxrar，使用 Cloudflare 的预编译包镜像源，hostname 修改为 vmserver，安装完成后自动重启。
