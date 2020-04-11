@@ -92,13 +92,13 @@ bash /etc/QuickBox/setup.sh
 One-key install is available since version **1.3.3**:
 
 ```bash
-bash <(wget -qO- https://git.io/JvhIz -o /dev/null) COMMAND
+bash <(wget -qO- https://git.io/qbox-lite -o /dev/null) COMMAND
 ```
 
 **Want to run in development mode?:**
 
 ```bash
-bash <(wget -qO- https://git.io/JvhIz -o /dev/null) --dev COMMAND
+bash <(wget -qO- https://git.io/qbox-lite -o /dev/null) --dev COMMAND
 ```
 
 Now, it has following arguments:
@@ -139,7 +139,7 @@ Options:
 The username and the password is required anyway, or the TUI install method will start. The other arguments are the same function as in TUI. Here is a example:
 
 ```bash
-bash <(wget -qO- https://git.io/JvhIz -o /dev/null) -u demouser -p demo123456 --with-ffmpeg -P 1234 --with-bbr --with-deluge --with-mktorrent --with-linuxrar --with-cf --hostname vmserver --reboot
+bash <(wget -qO- https://git.io/qbox-lite -o /dev/null) -u demouser -p demo123456 --with-ffmpeg -P 1234 --with-bbr --with-deluge --with-mktorrent --with-linuxrar --with-cf --hostname vmserver --reboot
 ```
 
 It means: The username being set to demouser, password is demo123456, use 1234 as ssh port, install BBR, deluge, mktorrent, linuxrar. The mirror for deb package in Cloudflare will be used for installation. Change the hostname to vmserver. The server will be automaticly restart after installation.
