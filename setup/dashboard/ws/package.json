@@ -1,7 +1,7 @@
 {
   "name": "quickbox-ws",
   "version": "1.0.0",
-  "description": "",
+  "description": "QuickBox Status Update WebSocket Interface",
   "main": "server.js",
   "scripts": {
     "build": "npx webpack --config build/webpack.config.js",
