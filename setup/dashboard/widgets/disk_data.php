@@ -28,7 +28,7 @@ foreach ($disk_info as $parts) {
   $parts_tmp = array_values(array_filter(explode(' ',$parts)));
   if(strstr($parts_tmp[1],"M"))
     continue;
-  $perused=(int)substr($parts_tmp['4'],0,2);
+  $perused=(int)substr($parts_tmp['4'],0,-1);
 ?>
 
 <div class="row">
@@ -45,7 +45,7 @@ foreach ($disk_info as $parts) {
     <br>
     <div class="progress">
       <?php
-        if ($perused < 70) { $diskcolor="progress-bar-success"; }
+        if ($perused <= 70) { $diskcolor="progress-bar-success"; }
         if ($perused > 70) { $diskcolor="progress-bar-warning"; }
         if ($perused > 90) { $diskcolor="progress-bar-danger"; }
       ?>
