@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.3
+# Current version:  v1.3.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -318,7 +318,7 @@ function _askusrname() {
 	local count=0
 	local valid=false
 	# https://github.com/Azure/azure-devops-utils
-	local reserved_names=['adm','admin','audio','backup','bin','cdrom','crontab','daemon','dialout','dip','disk','fax','floppy','fuse','games','gnats','irc','kmem','landscape','libuuid','list','lp','mail','man','messagebus','mlocate','netdev','news','nobody','nogroup','operator','plugdev','proxy','root','sasl','shadow','src','ssh','sshd','staff','sudo','sync','sys','syslog','tape','tty','users','utmp','uucp','video','voice','whoopsie','www-data']
+	local reserved_names=('adm' 'admin' 'audio' 'backup' 'bin' 'cdrom' 'crontab' 'daemon' 'dialout' 'dip' 'disk' 'fax' 'floppy' 'fuse' 'games' 'gnats' 'irc' 'kmem' 'landscape' 'libuuid' 'list' 'lp' 'mail' 'man' 'messagebus' 'mlocate' 'netdev' 'news' 'nobody' 'nogroup' 'operator' 'plugdev' 'proxy' 'root' 'sasl' 'shadow' 'src' 'ssh' 'sshd' 'staff' 'sudo' 'sync' 'sys' 'syslog' 'tape' 'tty' 'users' 'utmp' 'uucp' 'video' 'voice' 'whoopsie' 'www-data')
 	while [[ $valid == false ]]; do
 		username=$(whiptail --title "$INFO_TITLE_NAME" --inputbox "$INFO_TEXT_NAME" --ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 8 72 3>&1 1>&2 2>&3)
 		# check username length
@@ -326,7 +326,7 @@ function _askusrname() {
 		# ensure vaild username
 		valid=$(echo "$username" | grep -P '^[a-z][-a-z0-9_]*')
 		_errorcolor
-		if [[ ${reserved_names[*]} =~ "$username" ]]; then
+		if $(echo "${reserved_names[@]}" | grep -wq "$username"); then
 			whiptail --title "$ERROR_TITLE_NAME" --msgbox "$ERROR_TEXT_NAME_1" --ok-button "$BUTTON_OK" 8 72
 			valid=false
 		elif [[ $count -lt 3 || $count -gt 32 ]]; then
@@ -390,6 +390,7 @@ function _skel() {
 	case "$cdn" in
 	"--with-cf")
 		_cf
+		echo "cf" > /install/.cdn.lock
 		wget -t3 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
 		if [ $? -ne 0 ]; then
 			_sf
@@ -402,6 +403,7 @@ function _skel() {
 		;;
 	"--with-sf")
 		_sf
+		echo "cf" > /install/.cdn.lock
 		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
 		if [ $? -ne 0 ]; then
 			_cf
@@ -414,6 +416,7 @@ function _skel() {
 		;;
 	"--with-osdn")
 		_osdn
+		echo "osdn" > /install/.cdn.lock
 		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
 		if [ $? -ne 0 ]; then
 			_cf
@@ -426,6 +429,7 @@ function _skel() {
 		;;
 	*)
 		_sf
+		echo "sf" > /install/.cdn.lock
 		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
 		if [ $? -ne 0 ]; then
 			_cf
@@ -572,6 +576,22 @@ function _askchsource() {
 		)
 	else
 		chsource=0
+	fi
+}
+
+function _askcdn() {
+	if (whiptail --title "$INFO_TITLE_CDN" --yesno "$INFO_TEXT_CDN" --yes-button "$BUTTON_YES" --no-button "$BUTTON_NO" 8 72); then
+		cdn="--with-"
+		cdn+=$(
+			whiptail --title "$INFO_TITLE_CDN" --radiolist \
+				"$INFO_TEXT_CDN_EXTRA" 12 42 4 \
+				"cf" "$CHOICE_TEXT_CDN_EXTRA_CF" off \
+				"sf" "$CHOICE_TEXT_CDN_EXTRA_SF" on \
+				"osdn" "$CHOICE_TEXT_CDN_EXTRA_OSDN" off \
+				3>&1 1>&2 2>&3
+		)
+	else
+		cdn="--with-cf"
 	fi
 }
 
@@ -1226,9 +1246,9 @@ while true; do
 		onekey=1
 		username="$2"
 		count=0
-		reserved_names=['adm','admin','audio','backup','bin','cdrom','crontab','daemon','dialout','dip','disk','fax','floppy','fuse','games','gnats','irc','kmem','landscape','libuuid','list','lp','mail','man','messagebus','mlocate','netdev','news','nobody','nogroup','operator','plugdev','proxy','root','sasl','shadow','src','ssh','sshd','staff','sudo','sync','sys','syslog','tape','tty','users','utmp','uucp','video','voice','whoopsie','www-data']
+		reserved_names=('adm' 'admin' 'audio' 'backup' 'bin' 'cdrom' 'crontab' 'daemon' 'dialout' 'dip' 'disk' 'fax' 'floppy' 'fuse' 'games' 'gnats' 'irc' 'kmem' 'landscape' 'libuuid' 'list' 'lp' 'mail' 'man' 'messagebus' 'mlocate' 'netdev' 'news' 'nobody' 'nogroup' 'operator' 'plugdev' 'proxy' 'root' 'sasl' 'shadow' 'src' 'ssh' 'sshd' 'staff' 'sudo' 'sync' 'sys' 'syslog' 'tape' 'tty' 'users' 'utmp' 'uucp' 'video' 'voice' 'whoopsie' 'www-data')
 		count=$(echo -n "$username" | wc -c)
-		if [[ ${reserved_names[*]} =~ "$username" ]]; then
+		if $(echo "${reserved_names[@]}" | grep -wq "$username"); then
 			_error "Do not use reversed user name !"
 			exit 1
 		elif [[ $count -lt 3 || $count -gt 32 ]]; then
@@ -1360,6 +1380,7 @@ elif [[ $onekey == 0 ]]; then
 	_askvsftpd
 	_askdashtheme
 	_askchsource
+	_askcdn
 	_askapps
 	_askbbr
 	_askautoreboot

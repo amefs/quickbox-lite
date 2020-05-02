@@ -119,6 +119,7 @@ $L['DELUGE'] = 'Deluge 是一款轻量级的免费软件, 跨平台的BitTorrent
 $L['DENYHOSTS'] = 'DenyHosts 是针对 SSH 服务器的一个基于日志的入侵预防安全工具, 它使用Python编写.';
 $L['FAIL2BAN'] = 'Fail2Ban 是一种入侵防御软件框架, 可以保护计算机和服务器免受暴力攻击的威胁.';
 $L['FILEBROWSER'] = 'File Browser 提供了一个指定目录中的文件管理界面, 可以用于上传, 删除，预览, 重命名以及编辑. 它允许你创建多个用户, 每个用户可以拥有自己的目录.';
+$L['FILEBROWSEREE'] = 'File Browser Enhanced 是一个基于 Docker 的增强版 File Browser, 由<a href="https://hub.docker.com/r/80x86/filebrowser/" target="_blank">荒野无灯</a>开发.';
 $L['FLEXGET'] = 'FlexGet 是一款适用于所有媒体的多功能自动化工具. 它支持 torrents, nzbs, podcasts, comics, TV, movies, RSS, HTML, CSV, 等形式.';
 $L['FLOOD'] = 'Flood 是 rtorrent 的另一个 Web 界面. 它使用 Node.js 服务与 rTorrent API 交互, 存储数据, 并且提供 Web UI.';
 $L['LECERT'] = 'Let’s Encrypt 是一个免费, 自动化的和开放的证书颁发机构 (CA), 由 ISRG (<a href="https://letsencrypt.org/" target="_blank">Internet Security Research Group</a>) 运营.';

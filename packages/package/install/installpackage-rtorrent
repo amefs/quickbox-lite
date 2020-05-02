@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.3
+# Current version:  v1.3.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -86,6 +86,7 @@ APP_DAEMON_PORT_HIGH="55050"
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 version=0.9.6
+cdn=$(cat /install/.cdn.lock)
 
 ################################################################################
 # SCRIPT FUNCTIONS

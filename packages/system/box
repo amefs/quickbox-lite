@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.3
+# Current version:  v1.3.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -65,7 +65,7 @@ function _error() {
 #################################################################################
 function _batchInstall() {
 	applist=()
-	locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2 | grep -v "Template\|lecert\|denyhosts\|fail2ban" | sort -d)
+	locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template\|lecert\|denyhosts\|fail2ban" | sort -d)
 	for i in ${locks[@]}; do
 		app=${i}
 		for file in /install/.*."$app".lock; do
@@ -95,7 +95,7 @@ function _help() {
 	echo "lang <de|dk|en|es|fr|zh>          change dashboard language"
 	echo "clean <mem|log>                   clean memory or installation log"
 	echo "fix <dpkg|interface|home>         fix your setting"
-	echo "set <interface|passwd|mount>      change interface setting/password"
+	echo "set <interface|passwd|cdn>        change interface setting/password"
 	echo "iotest                            run IO test"
 	echo "troubleshoot                      generate log for troubleshoot"
 	echo "unban <IP adress>                 remove a IP/all IP from banned list"
@@ -141,7 +141,7 @@ if [[ $resolver == "install" ]]; then
 		if [[ -f /usr/local/bin/quickbox/package/install/installpackage-${appname} ]]; then
 			bash /usr/local/bin/quickbox/package/install/installpackage-${appname} ${*:3}
 		else
-			locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2 | grep -v "Template" | sort -d)
+			locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
 			_error "${appname} Installer not exist"
 			echo -e "\nQuickBox Lite Cli Tools"
 			echo -e "\nUsage: \n$(basename "$0") install PACKAGE"
@@ -162,7 +162,7 @@ if [[ $resolver == "remove" ]]; then
 		if [[ -f /usr/local/bin/quickbox/package/remove/removepackage-${appname} ]]; then
 			bash /usr/local/bin/quickbox/package/remove/removepackage-${appname} ${*:3}
 		else
-			locks=$(find /usr/local/bin/quickbox/package/remove -type f -printf "%f\n" | cut -d "-" -f 2 | grep -v "Template" | sort -d)
+			locks=$(find /usr/local/bin/quickbox/package/remove -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
 			_error "${appname} Remover not exist"
 			echo -e "\nQuickBox Lite Cli Tools"
 			echo -e "\nUsage: \n$(basename "$0") remove PACKAGE"
@@ -183,7 +183,7 @@ if [[ $resolver == "update" ]]; then
 		if [[ -f /usr/local/bin/quickbox/package/update/updatepackage-${appname} ]]; then
 			bash /usr/local/bin/quickbox/package/update/updatepackage-${appname} ${*:3}
 		else
-			locks=$(find /usr/local/bin/quickbox/package/update -type f -printf "%f\n" | cut -d "-" -f 2 | grep -v "Template" | sort -d)
+			locks=$(find /usr/local/bin/quickbox/package/update -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
 			_error "${appname} Updater not exist"
 			echo -e "\nQuickBox Lite Cli Tools"
 			echo -e "\nUsage: \n$(basename "$0") update PACKAGE"
@@ -193,7 +193,7 @@ if [[ $resolver == "update" ]]; then
 			done
 		fi
 	else
-		locks=$(find /usr/local/bin/quickbox/package/update -type f -printf "%f\n" | cut -d "-" -f 2 | grep -v "Template" | sort -d)
+		locks=$(find /usr/local/bin/quickbox/package/update -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
 		_error "Nothing to be updated"
 		echo -e "\nQuickBox Lite Cli Tools"
 		echo -e "\nUsage: \n$(basename "$0") update PACKAGE"
@@ -238,6 +238,14 @@ if [[ $resolver == "set" ]]; then
 		;;
 	"passwd" | "password")
 		bash /usr/local/bin/quickbox/system/users/changePass -p ${*:3}
+		;;
+	"cdn")
+		case "$3" in
+			"cf") echo "cf" > /install/.cdn.lock ;;
+			"sf") echo "sf" > /install/.cdn.lock ;;
+			"osdn") echo "osdn" > /install/.cdn.lock ;;
+			*) echo "cf" > /install/.cdn.lock ;;
+		esac
 		;;
 	*)
 		_error "Nothing to be set"

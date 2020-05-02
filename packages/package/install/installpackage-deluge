@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.3
+# Current version:  v1.3.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -91,6 +91,7 @@ APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 libtversion=1.1.13
 deversion=1.3.15
+cdn=$(cat /install/.cdn.lock)
 
 BRANCH_LT="https://github.com/arvidn/libtorrent.git"
 ################################################################################
@@ -114,7 +115,7 @@ function _menuinstall() {
 				libtversion=$(whiptail --title "Libtorrent" --inputbox "Enter a Custom Libtorrent version\ne.g. 1.1.13" 10 64 3>&1 1>&2 2>&3)
 			fi
 		elif [[ -f /install/.libtorrent-rasterbar9.lock ]]; then
-			libtversion=1.1.13
+			libtversion=$(dpkg -s libtorrent-rasterbar9 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
 		elif [[ -f /install/.libtorrent-rasterbar.lock ]]; then
 			libtversion=$(cat /install/.libtorrent-rasterbar.lock)
 		else
@@ -308,6 +309,19 @@ function _download() {
 
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
+	_info "Fetching package list..."
+	cd /tmp || exit 1
+	wget -t3 -T20 -q -O packages.lst https://deb.ezapi.net/packages.lst
+	if [ $? -ne 0 ]; then
+		_sf
+		wget -t5 -T10 -q -O packages.lst https://sourceforge.net/projects/seedbox-software-for-linux/files/packages.lst/download
+		if [ $? -ne 0 ]; then
+			_osdn
+			wget -t5 -T10 -q -O packages.lst https://osdn.net/projects/seedbox-software-for-linux/storage/packages.lst
+		fi
+	fi
+	libt_version_list=$(cat packages.lst | grep -w libtorrent-rasterbar9 | grep ${CODENAME} | grep amd64 | awk '{ print $5}')
+	rm -f packages.lst
 	# version check
 	if ([ $CODENAME == "buster" ] && _version_gt $deversion 2.0); then
 		_warning "Deluge 2.0.x currently not available in buster, fallback to v1.3.15"
@@ -315,37 +329,39 @@ function _installApp() {
 	fi
 
 	# Libtorrent
-	if [[ ${libtversion} == 1.1.13 && ! -f /install/.libtorrent-rasterbar.lock ]]; then
+	if $(echo "${libt_version_list[@]}" | grep -wq "${libtversion}") && [ ! -f /install/.libtorrent-rasterbar.lock ]; then
 		_info "Installing Libtorrent..."
 		PACKAGE="libtorrent-rasterbar"
 		cd /tmp || exit 1
 		if [[ ! -f /install/.libtorrent-rasterbar9.lock ]]; then
-			LIBTBIN=libtorrent-rasterbar9_1.1.13-1build1_amd64.deb
+			LIBTBIN=libtorrent-rasterbar9_${libtversion}-1build1_amd64.deb
 			DEB=${LIBTBIN}
 			_download ${PACKAGE} ${DEB}
 			_excute "apt install -y /tmp/${LIBTBIN}"
-			LIBTDEVBIN=libtorrent-rasterbar-dev_1.1.13-1build1_amd64.deb
+			LIBTDEVBIN=libtorrent-rasterbar-dev_${libtversion}-1build1_amd64.deb
 			DEB=${LIBTDEVBIN}
 			_download ${PACKAGE} ${DEB}
 			_excute "apt install -y /tmp/${LIBTDEVBIN}"
 			rm -rf {${LIBTBIN},${LIBTDEVBIN}}
+			touch /install/.libtorrent-rasterbar9.lock
+		else
+			libtversion=$(dpkg -s libtorrent-rasterbar9 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
 		fi
-		touch /install/.libtorrent-rasterbar9.lock
 		cd /tmp || exit 1
 		if _version_gt ${deversion} 2.0; then
-			PYLIBTBIN=python3-libtorrent_1.1.13-1build1_amd64.deb
+			PYLIBTBIN=python3-libtorrent_${libtversion}-1build1_amd64.deb
 			DEB=${PYLIBTBIN}
 			_download ${PACKAGE} ${DEB}
 			_excute "apt install -y /tmp/${PYLIBTBIN}"
 			rm -rf ${PYLIBTBIN}
 		else
-			PYLIBTBIN=python-libtorrent_1.1.13-1build1_amd64.deb
+			PYLIBTBIN=python-libtorrent_${libtversion}-1build1_amd64.deb
 			DEB=${PYLIBTBIN}
 			_download ${PACKAGE} ${DEB}
 			_excute "apt install -y /tmp/${PYLIBTBIN}"
 			rm -rf ${PYLIBTBIN}
 		fi
-	elif [[ ${libtversion} != 1.1.13 && ! -f /install/.libtorrent-rasterbar.lock && ! -f /install/.libtorrent-rasterbar9.lock ]]; then
+	elif $(echo "${libt_version_list[@]}" | grep -wvq "${libtversion}") && [ ! -f /install/.libtorrent-rasterbar.lock ] && [ ! -f /install/.libtorrent-rasterbar9.lock ]; then
 		cd /tmp || exit 1
 		# prepare package toolchain
 		APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev zlib1g-dev"
@@ -481,6 +497,7 @@ function _configureApp() {
 	wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/AutoRemovePlus-0.6.1-py2.7.egg https://github.com/omaralvarez/deluge-autoremoveplus/releases/download/0.6.1/AutoRemovePlus-0.6.1-py2.7.egg
 	wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/LabelPlus-0.3.2.2-py2.7.egg https://github.com/ratanakvlun/deluge-labelplus/releases/download/v0.3.2.2/LabelPlus-0.3.2.2-py2.7.egg
 	wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/TotalTraffic-0.5-py2.7.egg https://forum.deluge-torrent.org/download/file.php?id=4247
+	wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/Stats-0.3.2-py2.7.egg https://github.com/downloads/ianmartin/Deluge-stats-plugin/Stats-0.3.2-py2.7.egg
 
 	# get userlist
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
@@ -530,18 +547,19 @@ function _configureApp() {
 		cp -f /usr/local/bin/quickbox/deluge/plugins/AutoRemovePlus-0.6.1-py2.7.egg /home/${username}/.config/deluge/plugins/
 		cp -f /usr/local/bin/quickbox/deluge/plugins/LabelPlus-0.3.2.2-py2.7.egg /home/${username}/.config/deluge/plugins/
 		cp -f /usr/local/bin/quickbox/deluge/plugins/TotalTraffic-0.5-py2.7.egg /home/${username}/.config/deluge/plugins/
+		cp -f /usr/local/bin/quickbox/deluge/plugins/Stats-0.3.2-py2.7.egg /home/${username}/.config/deluge/plugins/
 		cat >/home/${username}/.config/deluge/core.conf <<DC
   {
     "file": 1,
     "format": 1
   }{
     "info_sent": 0.0,
-    "lsd": true,
+    "lsd": false,
     "max_download_speed": -1.0,
     "send_info": false,
     "natpmp": true,
     "move_completed_path": "/home/${username}/Downloads",
-    "peer_tos": "0x08",
+    "peer_tos": "0x00",
     "enc_in_policy": 1,
     "queue_new_to_top": false,
     "ignore_limits_on_local_network": true,
@@ -552,7 +570,7 @@ function _configureApp() {
     "geoip_db_location": "/usr/share/GeoIP/GeoIP.dat",
     "upnp": false,
     "utpex": true,
-    "max_active_downloading": 3,
+    "max_active_downloading": -1,
     "max_active_seeding": -1,
     "allow_remote": true,
     "outgoing_ports": [
@@ -560,10 +578,11 @@ function _configureApp() {
       0
     ],
     "enabled_plugins": [
+      "Stats", 	
       "ltConfig",
       "TotalTraffic"
     ],
-    "max_half_open_connections": 50,
+    "max_half_open_connections": -1,
     "download_location": "/home/${username}/torrents/deluge",
     "compact_allocation": true,
     "max_upload_speed": -1.0,
@@ -575,12 +594,12 @@ function _configureApp() {
     "stop_seed_at_ratio": false,
     "stop_seed_ratio": 2.0,
     "max_download_speed_per_torrent": -1,
-    "prioritize_first_last_pieces": true,
+    "prioritize_first_last_pieces": false,
     "max_upload_speed_per_torrent": -1,
     "auto_managed": true,
     "enc_level": 2,
     "copy_torrent_file": false,
-    "max_connections_per_second": 50,
+    "max_connections_per_second": -1,
     "listen_ports": [
       6881,
       6891
@@ -588,7 +607,7 @@ function _configureApp() {
     "max_connections_per_torrent": -1,
     "del_copy_torrent_file": false,
     "move_completed": false,
-    "autoadd_enable": false,
+    "autoadd_enable": true,
     "proxies": {
       "peer": {
         "username": "",
@@ -625,15 +644,15 @@ function _configureApp() {
     "max_upload_slots_per_torrent": -1,
     "new_release_check": false,
     "enc_out_policy": 1,
-    "seed_time_ratio_limit": 7.0,
+    "seed_time_ratio_limit": -1,
     "remove_seed_at_ratio": false,
     "autoadd_location": "/home/${username}/dwatch/",
     "max_upload_slots_global": -1,
-    "seed_time_limit": 180,
+    "seed_time_limit": -1,
     "cache_size": 512,
-    "share_ratio_limit": 2.0,
+    "share_ratio_limit": -1.0,
     "random_port": true,
-    "listen_interface": "${SERVERIP}"
+    "listen_interface": ""
   }
 DC
 
@@ -643,7 +662,11 @@ DC
   "format": 1
 }{
   "port": ${DWPORT},
-  "enabled_plugins": [],
+  "enabled_plugins": [
+    "Stats", 
+    "ltConfig", 
+    "TotalTraffic"
+  ],
   "pwd_sha1": "${DWP}",
   "theme": "gray",
   "show_sidebar": true,
@@ -654,7 +677,7 @@ DC
   "base": "/",
   "interface": "${APP_HOST}",
   "pwd_salt": "${DWSALT}",
-  "show_session_speed": false,
+  "show_session_speed": true,
   "first_login": false,
   "cert": "ssl/daemon.cert",
   "session_timeout": 3600,
@@ -721,6 +744,7 @@ EOF
 				_excute 'pip2 install deluge-client'
 			fi
 			sed -i "s/DEPORT/${DPORT}/g" /home/${username}/.config/flexget/config.yml
+			_excute "systemctl restart flexget@${username}"
 		fi
 	done
 	cat >/etc/nginx/apps/deluge.conf <<'DRP'

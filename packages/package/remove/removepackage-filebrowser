@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.3
+# Current version:  v1.3.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -151,7 +151,9 @@ function _removeApp() {
 		rm -f /etc/nginx/conf.d/${username}.filebrowser.conf
 		rm -f /install/${username}.${APP_NAME}.port >/dev/null 2>&1
 	done
-	rm -f /usr/local/bin/filebrowser >/dev/null 2>&1
+	if [ ! -f /install/.filebrowser-ee.lock ]; then
+		rm -f /usr/local/bin/filebrowser >/dev/null 2>&1
+	fi
 	rm -f /etc/nginx/apps/filebrowser.conf >/dev/null 2>&1
 	_success "${APP_TITLE} removed."
 }

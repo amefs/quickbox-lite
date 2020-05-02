@@ -8,7 +8,7 @@ require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/widgets/class.php');
 
-$version = "v1.3.3";
+$version = "vv1.3.4";
 error_reporting(E_ERROR);
 $username = getUser();
 $master = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
@@ -257,6 +257,7 @@ if(file_exists('/srv/dashboard/custom/url.override.php')){
   $dwURL = "https://" . $_SERVER['HTTP_HOST'] . "/deluge/";
   $delugedlURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.deluge.downloads";
   $filebrowserURL = "https://" . $_SERVER['HTTP_HOST'] . "/filebrowser/";
+  $filebrowsereeURL = "https://" . $_SERVER['HTTP_HOST'] . "/filebrowser-ee/";
   $flexgetURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.flexget/";
   $floodURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username/flood/";
   $netdataURL = "https://" . $_SERVER['HTTP_HOST'] . "/netdata/";
@@ -297,6 +298,8 @@ case 0:
     $cbodyf2b .= $fail2ban; 
   $filebrowser = isEnabled("filebrowser", $username);
     $cbodyfb .= $filebrowser;
+  $filebrowseree = isEnabled("filebrowser-ee", $username);
+    $cbodyfbe .= $filebrowseree;
   $flexget = isEnabled("flexget", $username);
     $cbodyfg .= $flexget;
   $flood = isEnabled("flood", $username);
@@ -343,6 +346,9 @@ case 66:
       shell_exec("sudo systemctl enable $process");
       shell_exec("sudo systemctl start $process");
     } elseif ($process == "filebrowser"){
+      shell_exec("sudo systemctl enable $process@$username");
+      shell_exec("sudo systemctl start $process@$username");
+    } elseif ($process == "filebrowser-ee"){
       shell_exec("sudo systemctl enable $process@$username");
       shell_exec("sudo systemctl start $process@$username");
     } elseif ($process == "flexget"){
@@ -406,6 +412,9 @@ case 77:
     } elseif ($process == "filebrowser"){
       shell_exec("sudo systemctl stop $process@$username");
       shell_exec("sudo systemctl disable $process@$username");
+    } elseif ($process == "filebrowser-ee"){
+      shell_exec("sudo systemctl stop $process@$username");
+      shell_exec("sudo systemctl disable $process@$username");
     } elseif ($process == "flexget"){
       shell_exec("sudo systemctl stop $process@$username");
       shell_exec("sudo systemctl disable $process@$username");
@@ -465,6 +474,9 @@ case 88:
       shell_exec("sudo systemctl enable $process");
       shell_exec("sudo systemctl restart $process");
     } elseif ($process == "filebrowser"){
+      shell_exec("sudo systemctl enable $process@$username");
+      shell_exec("sudo systemctl restart $process@$username");
+    } elseif ($process == "filebrowser-ee"){
       shell_exec("sudo systemctl enable $process@$username");
       shell_exec("sudo systemctl restart $process@$username");
     } elseif ($process == "flexget"){

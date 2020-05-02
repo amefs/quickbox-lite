@@ -30,6 +30,11 @@
     id: "#appstat_filebrowser",
     time: 5000
   }, {
+    name: "FILEBROWSEREE",
+    url: "/widgets/app_status/app_status_filebrowser-ee.php",
+    id: "#appstat_filebrowser-ee",
+    time: 5000
+  }, {
     name: "FLEXGET",
     url: "/widgets/app_status/app_status_flexget.php",
     id: "#appstat_flexget",

@@ -105,7 +105,14 @@
                     </tr>
                     <?php } ?>
 
-                    
+                    <?php if (file_exists("/install/.filebrowser-ee.lock")) { ?>
+                    <tr>
+                      <td><span id="appstat_filebrowser-ee"></span> File Browser Enhanced </td>
+                      <td class="text-center"><a href="javascript:;" onclick="location.href='?id=88&servicestart=filebrowser-ee'" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+                      <td class="text-center"><?php echo "$cbodyfbe"; ?></td>
+                    </tr>
+                    <?php } ?>
+
                     <?php if (file_exists("/install/.$username.flexget.lock")) { ?>
                     <tr>
                       <td><span id="appstat_flexget"></span> FlexGet </td>

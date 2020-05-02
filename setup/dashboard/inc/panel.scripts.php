@@ -72,6 +72,24 @@
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
 </div><!-- modal -->
+<!-- FILEBROWSEREE UNINSTALL MODAL -->
+<div class="modal bounceIn animated" id="filebrowsereeRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="filebrowsereeRemovalConfirm" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="filebrowsereeRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> File Browser?</h4>
+      </div>
+      <div class="modal-body">
+        <?php echo T('UNINSTALL_FILEBROWSEREE_TXT'); ?>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
+        <a href="?removepackage-filebrowser-ee=true" id="filebrowsereeRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+      </div>
+    </div><!-- modal-content -->
+  </div><!-- modal-dialog -->
+</div><!-- modal -->
 <!-- FLEXGET UNINSTALL MODAL -->
 <div class="modal bounceIn animated" id="flexgetRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="flexgetRemovalConfirm" aria-hidden="true">
   <div class="modal-dialog">

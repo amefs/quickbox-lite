@@ -1,3 +1,28 @@
+## CHANGELOG v1.3.4:
+
+*Changelog update Saturday, May 02, 2020*
+
+### General additions
+
+* add File Browser Enhanced
+
+### Function improved
+
+- add CDN selection in TUI install method
+- Remember CDN selection
+- Fetching package information of pre-compiled deb package, so all packages will be able to use once upload to host
+
+### Function updated
+
+* add setting template for BT client
+
+### Bug fixed
+
+* fix disk widget problem
+* fix username check
+
+---
+
 ## CHANGELOG v1.3.3:
 
 *Changelog update Friday, Apr 10, 2020*

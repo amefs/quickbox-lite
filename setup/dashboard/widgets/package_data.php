@@ -5,6 +5,7 @@ $mpackages = array(
         'btsync',
         'deluge',
         'filebrowser',
+        'filebrowser-ee',
 	'flood',
         'netdata',
         'novnc',

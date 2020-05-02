@@ -81,6 +81,15 @@
                       <?php } ?>
                     </tr>
                     <tr>
+                      <td>FBE</td>
+                      <td><?php echo T('FILEBROWSEREE'); ?></td>
+                      <?php if (file_exists("/install/.filebrowser-ee.lock")) { ?>
+                        <td style="vertical-align: middle; text-align: center"><a href="javascript:void()" data-toggle="modal" data-target="#filebrowsereeRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></a></td>
+                      <?php } else { ?>
+                        <td style="vertical-align: middle; text-align: center"><a href="?installpackage-filebrowser-ee=true" data-toggle="modal" data-target="#sysResponse" id="filebrowsereeInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></a></td>
+                      <?php } ?>
+                    </tr>
+                    <tr>
                       <td>FlexGet</td>
                       <td><?php echo T('FLEXGET'); ?></td>
                       <?php if (file_exists("/install/.$username.flexget.lock")) { ?>

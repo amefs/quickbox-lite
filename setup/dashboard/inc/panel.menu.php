@@ -152,6 +152,9 @@
               <?php if (processExists("filebrowser",$username) && file_exists('/install/.filebrowser.lock')) { ?>
                 <li><a href="<?php echo "$filebrowserURL"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/filebrowser.png" class="brand-ico lazyload"> <span>File Browser</span></a></li>
               <?php } ?>
+              <?php if (processExists("filebrowser-ee",$username) && file_exists('/install/.filebrowser-ee.lock')) { ?>
+                <li><a href="<?php echo "$filebrowsereeURL"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/filebrowser.png" class="brand-ico lazyload"> <span>File Browser Enhanced</span></a></li>
+              <?php } ?>
               <?php if (processExists("flexget",$username) && file_exists("/install/.$username.flexget.lock")) { ?>
                 <li><a href="<?php echo "$flexgetURL"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/flexget.png" class="brand-ico lazyload"> <span>FlexGet</span></a></li>
               <?php } ?>
