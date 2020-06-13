@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -41,7 +41,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -147,7 +147,7 @@ function _installSystemUpdates() {
 			for l in ${locks}; do
 				rm -rf ${l}
 			done
-			_excute "dpkg --configure -a"
+			_execute "dpkg --configure -a"
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
@@ -167,7 +167,7 @@ function _installDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Installing ${depend}... "
-		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
 	if [[ $dependError != "1" ]]; then
 		_success "${APP_TITLE} dependencies installed."
@@ -182,15 +182,15 @@ function _installApp() {
 	mkdir -p /tmp/quickbox
 	cd /tmp/quickbox || exit 1
 	if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
-		_excute "curl -sL https://deb.nodesource.com/setup_11.x -o nodesource_setup.sh"
-		_excute "sudo bash nodesource_setup.sh"
-		_excute "apt-get install -y --force-reinstall true nodejs"
+		_execute "curl -sL https://deb.nodesource.com/setup_11.x -o nodesource_setup.sh"
+		_execute "sudo bash nodesource_setup.sh"
+		_execute "apt-get install -y --force-reinstall true nodejs"
 	fi
 
 	if [[ ! $(which node-gyp) ]]; then
-		_excute "npm i -g node-gyp"
+		_execute "npm i -g node-gyp"
 	fi
-	_excute "npm install -g npm-check-updates"
+	_execute "npm install -g npm-check-updates"
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
 		# get used port
@@ -205,7 +205,7 @@ function _installApp() {
 		done
 		echo "$PORT" >/install/$username.$APP_NAME.port
 		cd /home/${username} || exit 1
-		_excute "git clone ${BRANCH} .flood"
+		_execute "git clone ${BRANCH} .flood"
 		chown -R ${username}: .flood
 		cd .flood || { _error "flood installation failed..." && exit 1; }
 		cat >/home/${username}/.flood/config.js <<EOF
@@ -273,8 +273,8 @@ ExecStart=/usr/bin/npm start --production /home/%I/.flood
 [Install]
 WantedBy=multi-user.target
 EOF
-	_excute "systemctl daemon-reload"
-	_excute "nginx -s reload"
+	_execute "systemctl daemon-reload"
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."
 }
 
@@ -288,10 +288,10 @@ function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
-		_excute "systemctl enable ${APP_SERVICE}@${username}"
-		_excute "systemctl start ${APP_SERVICE}@${username}"
+		_execute "systemctl enable ${APP_SERVICE}@${username}"
+		_execute "systemctl start ${APP_SERVICE}@${username}"
 	done
-	_excute "nginx -s reload"
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} started."
 }
 

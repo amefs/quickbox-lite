@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -42,7 +42,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -124,31 +124,31 @@ function _removeService() {
 	_info "Removing ${APP_TITLE} service..."
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
-		_excute "systemctl disable ${APP_SERVICE}@${username}"
-		_excute "systemctl stop ${APP_SERVICE}@${username}"
+		_execute "systemctl disable ${APP_SERVICE}@${username}"
+		_execute "systemctl stop ${APP_SERVICE}@${username}"
 	done
 	rm -rf /etc/systemd/system/${APP_SERVICE}@.service >/dev/null 2>&1
-	_excute "systemctl daemon-reload"
+	_execute "systemctl daemon-reload"
 	_success "${APP_TITLE} service removed."
 }
 
 function _removeDepends() {
 	_info "Removing ${APP_TITLE} dependencies..."
 	# enable uninstall
-	_excute "apt-mark unhold rtorrent"
-	_excute "apt-mark unhold libtorrent18"
-	_excute "apt-mark unhold libtorrent19"
-	_excute "apt-mark unhold libtorrent20"
-	_excute "apt-mark unhold libtorrent21"
+	_execute "apt-mark unhold rtorrent"
+	_execute "apt-mark unhold libtorrent18"
+	_execute "apt-mark unhold libtorrent19"
+	_execute "apt-mark unhold libtorrent20"
+	_execute "apt-mark unhold libtorrent21"
 	# uninstall
-	_excute "apt-get -y purge rtorrent"
-	_excute "apt-get -y purge libtorrent18"
-	_excute "apt-get -y purge libtorrent19"
-	_excute "apt-get -y purge libtorrent20"
-	_excute "apt-get -y purge libtorrent21"
-	_excute "apt-get -y purge libtorrent-rakshasa"
-	_excute "apt-get -y autoremove"
-	_excute "apt-get -y autoclean"
+	_execute "apt-get -y purge rtorrent"
+	_execute "apt-get -y purge libtorrent18"
+	_execute "apt-get -y purge libtorrent19"
+	_execute "apt-get -y purge libtorrent20"
+	_execute "apt-get -y purge libtorrent21"
+	_execute "apt-get -y purge libtorrent-rakshasa"
+	_execute "apt-get -y autoremove"
+	_execute "apt-get -y autoclean"
 	_success "${APP_TITLE} dependencies removed."
 }
 
@@ -164,7 +164,7 @@ function _removeApp() {
 		rm -rf /etc/nginx/conf.d/${username}.trdlindex.conf
 		rm -f /install/${username}.${APP_NAME}.port
 	done
-	_excute "nginx -s reload"
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} removed."
 }
 

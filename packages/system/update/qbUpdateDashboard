@@ -1,8 +1,32 @@
+function _execute() {
+	($1 >>"${OUTTO}" 2>&1)
+}
+function _print() {
+	printf "${_norm}%s${_norm}\n" "$@"
+	printf "%s\n" "$@" >>"${OUTTO}"
+}
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
+
 function _updatedashboard() {
 	_info "Updating QuickBox dashboard..."
 	# Update dashboard config
 	cd /srv/dashboard || exit 1
-	_excute "rsync -aP --exclude=share.php --exclude=custom.menu.php --exclude=url.override.php --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
+	_execute "rsync -aP --exclude=share.php --exclude=custom.menu.php --exclude=url.override.php --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
 
 	IFACE=$(cat /srv/dashboard/db/interface.txt)
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/stat.php
@@ -10,11 +34,11 @@ function _updatedashboard() {
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/bw_tables.php
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/inc/config.php
 	if [[ -f /srv/dashboard/db/.smoked.lock ]]; then
-		_excute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"
+		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"
 	elif [[ -f /srv/dashboard/db/.defaulted.lock ]]; then
-		_excute "bash /usr/local/bin/quickbox/system/theme/themeSelect-defaulted"
+		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-defaulted"
 	else
-		_excute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"
+		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"
 	fi
 	chown -R www-data:www-data /srv/dashboard
 	_success "QuickBox dashboard updated"

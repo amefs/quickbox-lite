@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # Author:           Mischief, JMSolo
 # Credits to:       QuickBox.io
 #
@@ -41,7 +41,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -145,7 +145,7 @@ function _installSystemUpdates() {
 			for l in ${locks}; do
 				rm -rf ${l}
 			done
-			_excute "dpkg --configure -a"
+			_execute "dpkg --configure -a"
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
@@ -165,7 +165,7 @@ function _installDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Installing ${depend}... "
-		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
 	if [[ $dependError != "1" ]]; then
 		_success "${APP_TITLE} dependencies installed."
@@ -180,8 +180,8 @@ function _installFpm() {
 	exit=$?
 	if [[ ! $exit == '0' ]]; then
 		_info "Installing fpm package management..."
-		_excute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
-		_excute "gem install --no-ri --no-rdoc fpm"
+		_execute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
+		_execute "gem install --no-ri --no-rdoc fpm"
 		_success "fpm installed."
 	fi
 }
@@ -190,21 +190,21 @@ function _installApp() {
 	_installFpm
 	_info "Building ${APP_TITLE}..."
 
-	_excute "useradd znc -m -s /bin/bash"
-	_excute "passwd znc -l"
+	_execute "useradd znc -m -s /bin/bash"
+	_execute "passwd znc -l"
 	mkdir -p /tmp/znc-latest
 	cd /tmp
-	_excute "wget -q http://znc.in/releases/znc-latest.tar.gz"
-	_excute "tar -zxvf znc-latest.tar.gz -C /tmp/znc-latest --strip-components=1"
+	_execute "wget -q http://znc.in/releases/znc-latest.tar.gz"
+	_execute "tar -zxvf znc-latest.tar.gz -C /tmp/znc-latest --strip-components=1"
 	cd /tmp/znc-latest || { _error "Can not download ZNC" && exit 1; }
-	_excute "./configure --prefix=/tmp/dist/znc/usr/local"
+	_execute "./configure --prefix=/tmp/dist/znc/usr/local"
 	ZNCVERSION=$(grep -Eo "AC_INIT\(\[znc\],.*" configure.ac | grep -Eo "[0-9.]+" | head -n1)
-	_excute "make -j$(nproc)"
+	_execute "make -j$(nproc)"
 	mkdir -p /tmp/dist/znc/usr/local
 	mkdir -p /root/pool
-	_excute "make install"
+	_execute "make install"
 	fpm -f -C /tmp/dist/znc -p /root/pool/znc_${ZNCVERSION}.deb -s dir -t deb -n znc --version ${ZNCVERSION} --description "znc compiled by QuickBox Lite" >/dev/null 2>&1
-	_excute "dpkg -i /root/pool/znc_${ZNCVERSION}.deb"
+	_execute "dpkg -i /root/pool/znc_${ZNCVERSION}.deb"
 	cd /tmp
 	rm -rf /tmp/{znc-latest,znc-latest.tar.gz} >/dev/null 2>&1
 
@@ -233,13 +233,13 @@ RestartSec=150
 [Install]
 WantedBy=multi-user.target
 EOF
-	_excute "systemctl daemon-reload"
+	_execute "systemctl daemon-reload"
 
 	_print "Please answer the following questions to finish znc Configuration:"
 	sleep 2
 	sudo -H -u $APP_NAME $APP_NAME --makeconf
-	_excute "killall -u $APP_NAME $APP_NAME"
-	_excute "service $APP_NAME stop"
+	_execute "killall -u $APP_NAME $APP_NAME"
+	_execute "service $APP_NAME stop"
 
 	sed -i '/Version = .*/a TrustedProxy = 127.0.0.1' /home/znc/.znc/configs/znc.conf
 	sed -i '/<Listener l>/a 	URIPrefix = /znc/' /home/znc/.znc/configs/znc.conf
@@ -256,7 +256,7 @@ location /znc/ {
 }
 EOF
 	sudo chown www-data: /etc/nginx/apps/$APP_NAME.conf
-	_excute "nginx -s reload"
+	_execute "nginx -s reload"
 
 	_success "${APP_TITLE} configured."
 }
@@ -269,8 +269,8 @@ function _installAppLock() {
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	_excute "systemctl enable $APP_NAME"
-	_excute "service $APP_NAME start"
+	_execute "systemctl enable $APP_NAME"
+	_execute "service $APP_NAME start"
 	_success "${APP_TITLE} started."
 }
 

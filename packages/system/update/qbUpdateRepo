@@ -1,3 +1,27 @@
+function _execute() {
+	($1 >>"${OUTTO}" 2>&1)
+}
+function _print() {
+	printf "${_norm}%s${_norm}\n" "$@"
+	printf "%s\n" "$@" >>"${OUTTO}"
+}
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
+
 function _updateRepo() {
 	_info "Updating QuickBox local repository..."
 	BRANCH="https://github.com/amefs/quickbox-lite.git"
@@ -5,20 +29,20 @@ function _updateRepo() {
 		# update to dev branch
 		if [[ -d /etc/QuickBox ]]; then
 			cd /etc/QuickBox
-			_excute "git checkout master"
-			_excute "git reset --hard origin/master"
-			_excute "git pull"
+			_execute "git checkout master"
+			_execute "git reset --hard origin/master"
+			_execute "git pull"
 		else
-			_excute "git clone --recursive ${BRANCH} /etc/QuickBox"
+			_execute "git clone --recursive ${BRANCH} /etc/QuickBox"
 		fi
 	else
 		if [[ -d /etc/QuickBox ]]; then
 			cd /etc/QuickBox
-			_excute "git checkout development"
-			_excute "git reset --hard origin/development"
-			_excute "git pull"
+			_execute "git checkout development"
+			_execute "git reset --hard origin/development"
+			_execute "git pull"
 		else
-			_excute "git clone --recursive --branch development ${BRANCH} /etc/QuickBox"
+			_execute "git clone --recursive --branch development ${BRANCH} /etc/QuickBox"
 		fi
 	fi
 	dos2unix $(find ${local_prefix} -type f) >/dev/null 2>&1
@@ -46,6 +70,6 @@ function _updateskel() {
 	if [[ ! -d /etc/skel ]]; then
 		mkdir /etc/skel
 	fi
-	_excute "rsync -aP ${local_setup_template}skel/. /etc/skel/"
+	_execute "rsync -aP ${local_setup_template}skel/. /etc/skel/"
 	_success "skel updated"
 }

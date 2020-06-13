@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# [QuickBox Lite X2Go Remover]
+# [QuickBox Lite pyenv Installer]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
@@ -17,6 +17,12 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+CODENAME=$(lsb_release -cs)
+DISTRO=$(lsb_release -is)
+
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -69,28 +75,26 @@ function _error() {
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="X2Go"
-APP_NAME="x2go"
-APP_SERVICE="x2go"
-APP_BASEDEPS="x2goserver x2goserver-xsession pulseaudio"
+APP_TITLE="pyenv"
+APP_NAME="pyenv"
+APP_BASEDEPS="build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python-openssl git"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-username=""
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
-	echo -e "\nQuickBox Lite $APP_TITLE Remover"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+	echo -e "\nQuickBox Lite $APP_TITLE Installer"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
 ################################################################################
-# REMOVE FUNCTIONS
+# INSTALL FUNCTIONS
 ################################################################################
 function _lockCheck() {
 	if [[ -f "/install/.install.lock" ]]; then
@@ -100,8 +104,8 @@ function _lockCheck() {
 		_error "Exiting..."
 		exit 1
 	fi
-	if [[ ! -f "/install/$APP_LOCK" ]]; then
-		_error "${APP_TITLE} haven't installed ..."
+	if [[ -f "/install/$APP_LOCK" ]]; then
+		_error "${APP_TITLE} already installed !"
 		exit 1
 	fi
 }
@@ -109,53 +113,93 @@ function _setLock() {
 	echo "${APP_TITLE}" >/install/.install.lock
 }
 function _lockCleanup() {
+	echo "$APP_TITLE Install Complete!
+
+
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
 	rm -f /install/.install.lock
 }
 
-function _removeInfo() {
+function _installInfo() {
 	_print "
-$APP_TITLE will now be removed.
+$APP_TITLE will now be installed.
 
 This process may take a few minutes
 Please wait until the process is completed
 "
 }
 
-function _removeService() {
-	_info "Removing ${APP_TITLE} service..."
-	_execute "systemctl disable $APP_SERVICE"
-	_execute "systemctl stop $APP_SERVICE"
-	_success "${APP_TITLE} service removed."
+function _installAddSources() {
+	_info "Adding additional keys and sources ${APP_TITLE}..."
+	_success "Keys and sources added."
 }
 
-function _removeDepends() {
-	_info "Removing ${APP_TITLE} dependencies..."
+function _installSystemUpdates() {
+	_info "Checking and performing updates to system... "
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+	## auto solve lock
+	if [ "$?" -eq 2 ]; then
+		_warning "dpkg database is locked."
+		_info "fixing dpkg lock..."
+		rm -f /var/lib/dpkg/updates/0*
+		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+			for l in ${locks}; do
+				rm -rf ${l}
+			done
+			_execute "dpkg --configure -a"
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+		fi
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
+				exit 1
+			fi
+		fi
+	fi
+	_success "System updated."
+}
+
+function _installDepends() {
+	_info "Installing ${APP_TITLE} dependencies..."
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
-		_info "Removing ${depend}... "
-		_execute "apt-get -y purge ${depend}"
-		_execute "apt-get -y autoremove"
-		_execute "apt-get -y autoclean"
+		_info "Installing ${depend}... "
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
-	_success "${APP_TITLE} dependencies removed."
+	if [[ $dependError != "1" ]]; then
+		_success "${APP_TITLE} dependencies installed."
+	else
+		_error "${APP_TITLE} dependencies failed to install."
+		exit 1
+	fi
 }
 
-function _removeApp() {
-	_info "Removing ${APP_TITLE}..."
-	rm -rf /etc/apt/sources.list.d/x2go*
+function _installApp() {
+	_info "Building ${APP_TITLE}..."
+    PYENV_ROOT=/opt/pyenv bash <(wget -qO- https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer -o /dev/null) >>"${OUTTO}" 2>&1
+	# Add Env
+	if [[ ! -f "/root/.bash_pyenv" ]]; then 
+		cat > /root/.bash_pyenv <<EOF
+# pyenv
+export PYENV_ROOT="/opt/pyenv"
+export PATH="/opt/pyenv/bin:\$PATH"
+eval "\$(pyenv init -)"
+eval "\$(pyenv virtualenv-init -)"
+EOF
+    source /root/.bash_pyenv
+	fi
 
-	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-	for username in $userlist; do
-		rm -rf /home/$username/.x2go/
-	done
-
-	_success "${APP_TITLE} removed."
+	_success "${APP_TITLE} Built."
 }
 
-function _removeAppLock() {
-	_info "Removing ${APP_TITLE} lock..."
-	rm -f /install/${APP_LOCK}
-	_success "${APP_TITLE} lock removed."
+function _installAppLock() {
+	_info "Configuring ${APP_TITLE} lock..."
+	touch /install/${APP_LOCK}
+	_success "${APP_TITLE} lock configured."
 }
 
 #################################################################################
@@ -190,9 +234,9 @@ done
 #################################################################################
 _lockCheck
 _setLock
-_removeInfo
-_removeService
-_removeDepends
-_removeApp
-_removeAppLock
+_installInfo
+_installSystemUpdates
+_installDepends
+_installApp
+_installAppLock
 _lockCleanup

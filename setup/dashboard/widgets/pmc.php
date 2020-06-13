@@ -36,6 +36,15 @@
                       <?php } ?>
                     </tr>
                     <tr>
+                      <td>ART</td>
+                      <td><?php echo T('ART'); ?></td>
+                      <?php if (file_exists("/install/.$username.autoremovetorrents.lock")) { ?>
+                        <td style="vertical-align: middle; text-align: center"><a href="javascript:void()" data-toggle="modal" data-target="#artRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></a></td>
+                      <?php } else { ?>
+                        <td style="vertical-align: middle; text-align: center"><button data-toggle="tooltip" title="<?php echo T('BOX_TOOLTIP_ART'); ?>" data-placement="top" class="btn btn-xs btn-danger disabled tooltips"><?php echo T('BOX'); ?></button></td>
+                      <?php } ?>
+                    </tr>
+                    <tr>
                       <td>BTSync</td>
                       <td><?php echo T('BTSYNC'); ?></td>
                       <?php if (file_exists("/install/.btsync.lock")) { ?>

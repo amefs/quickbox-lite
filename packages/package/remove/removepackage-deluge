@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -42,7 +42,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -124,14 +124,14 @@ function _removeService() {
 	_info "Removing ${APP_TITLE} service..."
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
-		_excute "systemctl disable deluge-web@${username}"
-		_excute "systemctl stop deluge-web@${username}"
-		_excute "systemctl disable deluged@${username}"
-		_excute "systemctl stop deluged@${username}"
+		_execute "systemctl disable deluge-web@${username}"
+		_execute "systemctl stop deluge-web@${username}"
+		_execute "systemctl disable deluged@${username}"
+		_execute "systemctl stop deluged@${username}"
 	done
 	rm -rf /etc/systemd/system/deluge-web@.service >/dev/null 2>&1
 	rm -rf /etc/systemd/system/deluged@.service >/dev/null 2>&1
-	_excute "systemctl daemon-reload"
+	_execute "systemctl daemon-reload"
 	_success "${APP_TITLE} service removed."
 }
 
@@ -140,14 +140,14 @@ function _removeDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Removing ${depend}... "
-		_excute "apt-get -y purge ${depend}"
-		_excute "apt-get -y autoremove"
-		_excute "apt-get -y autoclean"
+		_execute "apt-get -y purge ${depend}"
+		_execute "apt-get -y autoremove"
+		_execute "apt-get -y autoclean"
 	done
 	if [[ ! -f /install/.qbittorrent.lock ]]; then
-		_excute "apt-get -y purge libtorrent-rasterbar*"
-		_excute "apt-get -y autoremove"
-		_excute "apt-get -y autoclean"
+		_execute "apt-get -y purge libtorrent-rasterbar*"
+		_execute "apt-get -y autoremove"
+		_execute "apt-get -y autoclean"
 		rm -f /install/.libtorrent-rasterbar.lock
 		rm -f /install/.libtorrent-rasterbar9.lock
 	fi
@@ -159,10 +159,19 @@ function _removeApp() {
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
 		if [[ -f /install/.${username}.flexget.lock ]]; then
+			if [[ ! -f /install/.pyenv.lock ]]; then
+				_execute 'python2 -m pip uninstall deluge-client -y'
+				_execute 'python3 -m pip uninstall deluge-client -y'
+			else
+				sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip uninstall deluge-client -y" >>"${OUTTO}" 2>&1
+			fi
 			DPORT=$(cat /install/${username}.deluged.port)
 			sed -i "s/${DPORT}/DEPORT/g" /home/${username}/.config/flexget/config.yml
-			_excute 'python2 -m pip uninstall deluge-client -y'
-			_excute 'python3 -m pip uninstall deluge-client -y'
+		fi
+		if [[ -f /install/.${username}.autoremovetorrents.lock ]]; then
+			sudo -u ${username} -H bash -c "/home/${username}/.local/autoremovetorrents/bin/pip uninstall deluge-client -y" >>"${OUTTO}" 2>&1
+			DPORT=$(cat /install/${username}.deluged.port)
+			sed -i "s/${DPORT}/DEPORT/g" /home/${username}/.config/autoremovetorrents/config.yml
 		fi
 		rm -rf /home/${username}/dwatch
 		rm -rf /home/${username}/torrents/deluge

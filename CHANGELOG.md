@@ -1,3 +1,30 @@
+## CHANGELOG v1.3.5:
+
+*Changelog update Saturday, Jun 13, 2020*
+
+### General additions
+
+* add autoremove-torrents (According to [feature request](https://github.com/amefs/quickbox-lite/issues/27))
+* add pyenv
+
+### Function improved
+
+- now use pyenv instead of system wide python to install FlexGet
+- add notice in FlexGet install output
+
+### Function updated
+
+* update FlexGet reversed proxy URL
+* FlexGet now use the Latest version by default
+
+### Bug fixed
+
+* fix typo
+
+---
+
+## 
+
 ## CHANGELOG v1.3.4:
 
 *Changelog update Saturday, May 02, 2020*

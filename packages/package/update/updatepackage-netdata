@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -41,7 +41,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -120,13 +120,13 @@ Please wait until the process is completed
 
 function _updateApp() {
 	_info "Updating ${APP_TITLE}..."
-	_excute "systemctl stop ${APP_SERVICE}"
+	_execute "systemctl stop ${APP_SERVICE}"
 	username=$(cat /root/.admin.info | cut -d: -f1)
 	cd /home/${username}/.config/netdata || { _error "Netdata not exist!" && exit 1; }
-	_excute "git pull"
-	_excute "./netdata-installer.sh --disable-telemetry --dont-wait"
+	_execute "git pull"
+	_execute "./netdata-installer.sh --disable-telemetry --dont-wait"
 	chmod 644 /etc/netdata/netdata.conf
-	_excute "systemctl start ${APP_SERVICE}"
+	_execute "systemctl start ${APP_SERVICE}"
 	_success "${APP_TITLE} is now update to date."
 }
 

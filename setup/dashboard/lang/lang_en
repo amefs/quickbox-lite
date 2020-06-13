@@ -114,6 +114,7 @@ $L['AVAILABILITY'] = 'Availability';
 
 // packages
 $L['AUTODL'] = 'AutoDL-iRSSi is a plugin for irssi that monitors IRC announce channels and downloads torrent files based on user-defined filters.';
+$L['ART'] = 'Auto Remove Torrents can help you to remove your torrents. Now you don\'t need to worry about your disk space - according to your strategies, the program will check each torrent if it satisfies the remove condition; If so, delete it automatically.';
 $L['BTSYNC'] = 'BitTorrent Sync by BitTorrent, Inc is a proprietary peer-to-peer file synchronization tool.';
 $L['DELUGE'] = 'Deluge is a lightweight, Free Software, cross-platform BitTorrent client.';
 $L['DENYHOSTS'] = 'DenyHosts is a log-based intrusion-prevention security tool for SSH servers written in Python.';
@@ -139,6 +140,7 @@ $L['CLI'] = 'Web Console Only';
 $L['INSTALL'] = 'Install';
 $L['INSTALLED'] = 'Installed';
 $L['BOX'] = 'BOX Only';
+$L['BOX_TOOLTIP_ART'] = 'Access this feature from ssh by typing: box install art';
 $L['BOX_TOOLTIP_DENYHOSTS'] = 'Access this feature from ssh by typing: box install denyhosts';
 $L['BOX_TOOLTIP_FAIL2BAN'] = 'Access this feature from ssh by typing: box install fail2ban';
 $L['BOX_TOOLTIP_LECERT'] = 'Get new HTTPS certificate by typing: box install lecert';

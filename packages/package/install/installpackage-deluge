@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -49,7 +49,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -189,7 +189,7 @@ function _installSystemUpdates() {
 			for l in ${locks}; do
 				rm -rf ${l}
 			done
-			_excute "dpkg --configure -a"
+			_execute "dpkg --configure -a"
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
@@ -209,7 +209,7 @@ function _installDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Installing ${depend}... "
-		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
 	if [[ $dependError != "1" ]]; then
 		_success "${APP_TITLE} dependencies installed."
@@ -224,8 +224,8 @@ function _installFpm() {
 	exit=$?
 	if [[ ! $exit == '0' ]]; then
 		_info "Installing fpm package management..."
-		_excute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
-		_excute "gem install --no-ri --no-rdoc fpm"
+		_execute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
+		_execute "gem install --no-ri --no-rdoc fpm"
 		_success "fpm installed."
 	fi
 }
@@ -337,11 +337,11 @@ function _installApp() {
 			LIBTBIN=libtorrent-rasterbar9_${libtversion}-1build1_amd64.deb
 			DEB=${LIBTBIN}
 			_download ${PACKAGE} ${DEB}
-			_excute "apt install -y /tmp/${LIBTBIN}"
+			_execute "apt install -y /tmp/${LIBTBIN}"
 			LIBTDEVBIN=libtorrent-rasterbar-dev_${libtversion}-1build1_amd64.deb
 			DEB=${LIBTDEVBIN}
 			_download ${PACKAGE} ${DEB}
-			_excute "apt install -y /tmp/${LIBTDEVBIN}"
+			_execute "apt install -y /tmp/${LIBTDEVBIN}"
 			rm -rf {${LIBTBIN},${LIBTDEVBIN}}
 			touch /install/.libtorrent-rasterbar9.lock
 		else
@@ -352,13 +352,13 @@ function _installApp() {
 			PYLIBTBIN=python3-libtorrent_${libtversion}-1build1_amd64.deb
 			DEB=${PYLIBTBIN}
 			_download ${PACKAGE} ${DEB}
-			_excute "apt install -y /tmp/${PYLIBTBIN}"
+			_execute "apt install -y /tmp/${PYLIBTBIN}"
 			rm -rf ${PYLIBTBIN}
 		else
 			PYLIBTBIN=python-libtorrent_${libtversion}-1build1_amd64.deb
 			DEB=${PYLIBTBIN}
 			_download ${PACKAGE} ${DEB}
-			_excute "apt install -y /tmp/${PYLIBTBIN}"
+			_execute "apt install -y /tmp/${PYLIBTBIN}"
 			rm -rf ${PYLIBTBIN}
 		fi
 	elif $(echo "${libt_version_list[@]}" | grep -wvq "${libtversion}") && [ ! -f /install/.libtorrent-rasterbar.lock ] && [ ! -f /install/.libtorrent-rasterbar9.lock ]; then
@@ -368,8 +368,8 @@ function _installApp() {
 		_installDepends
 		_installFpm
 		if [ ${CODENAME} == 'xenial' ]; then
-			_excute "apt purge -y libssl-dev"
-			_excute "apt install -y libssl-dev=1.0.*"
+			_execute "apt purge -y libssl-dev"
+			_execute "apt install -y libssl-dev=1.0.*"
 		fi
 		_info "Build libtorrent for $APP_TITLE ... "
 		if _version_gt ${libtversion} 1.1.0; then
@@ -413,22 +413,22 @@ function _installApp() {
 		mkdir -p /tmp/dist
 
 		cd /tmp || exit 1
-		_excute "git clone -b ${LTRC} ${BRANCH_LT} libtorrent"
+		_execute "git clone -b ${LTRC} ${BRANCH_LT} libtorrent"
 		cd libtorrent || { _error "Can not download libtorrent-rasterbar" && exit 1; }
-		_excute "git checkout ${LTCIMMIT}"
+		_execute "git checkout ${LTCIMMIT}"
 		wget --no-check-certificate -q -O libtorrent-rasterbar-${LTRC}.patch https://raw.githubusercontent.com/amefs/QB/master/setup/sources/libtorrent-rasterbar-${LTRC}.patch
 		patch -p1 <libtorrent-rasterbar-${LTRC}.patch >/dev/null
 		LTVERSION=$(grep -Eo "AC_INIT\(\[libtorrent-rasterbar\],.*" configure.ac | grep -Eo "[0-9.]+" | head -n1)
-		_excute "./autotool.sh"
-		_excute "./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++11 CPPFLAGS=-std=c++11 --prefix=/tmp/dist/libtorrent-rasterbar/usr/local"
-		_excute "make -j$(nproc)"
+		_execute "./autotool.sh"
+		_execute "./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++11 CPPFLAGS=-std=c++11 --prefix=/tmp/dist/libtorrent-rasterbar/usr/local"
+		_execute "make -j$(nproc)"
 		mkdir -p /tmp/dist/libtorrent-rasterbar/usr/local
-		_excute "make install"
+		_execute "make install"
 		mv /tmp/dist/libtorrent-rasterbar/usr/local/lib/python2.7/site-packages /tmp/dist/libtorrent-rasterbar/usr/local/lib/python2.7/dist-packages
 		fpm -f -C /tmp/dist/libtorrent-rasterbar -p /root/pool/libtorrent-rasterbar_${LTVERSION}.deb -s dir -t deb -n libtorrent-rasterbar --version ${LTVERSION} --description "libtorrent-rasterbar compiled by QuickBox Lite" >/dev/null 2>&1
-		_excute "dpkg -i /root/pool/libtorrent-rasterbar_${LTVERSION}.deb"
+		_execute "dpkg -i /root/pool/libtorrent-rasterbar_${LTVERSION}.deb"
 		echo ${libtversion} >/install/.libtorrent-rasterbar.lock
-		_excute "ldconfig"
+		_execute "ldconfig"
 		cd /tmp || exit 1
 		rm -rf {libtorrent,dist}
 		_success "Libtorrent Built."
@@ -441,18 +441,18 @@ function _installApp() {
 		if _version_gt ${deversion} 2.0; then
 			APP_BASEDEPS="libgeoip-dev librsvg2-common geoip-database python3-dev python3-twisted python3-openssl python3-setuptools python3-xdg python3-chardet python3-pip python3-mako xdg-utils"
 			_installDepends
-			_excute "pip3 install --upgrade twisted[tls]"
+			_execute "pip3 install --upgrade twisted[tls]"
 			DEBASE="deluge-common_2.0.3-1build1_all.deb deluge-console_2.0.3-1build1_all.deb deluge-gtk_2.0.3-1build1_all.deb deluge-web_2.0.3-1build1_all.deb deluged_2.0.3-1build1_all.deb"
 			for DEB in $DEBASE; do
 				_download ${PACKAGE} ${DEB}
-				_excute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
+				_execute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
 				rm -rf /tmp/${DEB}
 			done
 		else
 			DEBASE="deluge-common_1.3.15-1build1_all.deb deluge-console_1.3.15-1build1_all.deb deluge-gtk_1.3.15-1build1_all.deb deluge-web_1.3.15-1build1_all.deb deluged_1.3.15-1build1_all.deb"
 			for DEB in $DEBASE; do
 				_download ${PACKAGE} ${DEB}
-				_excute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
+				_execute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
 				rm -rf /tmp/${DEB}
 			done
 		fi
@@ -469,12 +469,12 @@ function _installApp() {
 		fi
 		APP_BASEDEPS="build-essential intltool libtool libssl-dev libgeoip-dev librsvg2-common  geoip-database python-dev python-twisted python-openssl python-setuptools python-xdg python-chardet python-notify python-pip python-pygame python-glade2 xdg-utils python-mako"
 		_installDepends
-		_excute "pip2 install --upgrade twisted[tls]"
+		_execute "pip2 install --upgrade twisted[tls]"
 		tar -xf deluge-${deversion}.tar.xz
 		cd deluge-${deversion} || exit 1
-		_excute "python2 setup.py build"
-		_excute "python2 setup.py install --record /install/.deluge.install.record --install-layout=deb"
-		_excute "python2 setup.py install_data"
+		_execute "python2 setup.py build"
+		_execute "python2 setup.py install --record /install/.deluge.install.record --install-layout=deb"
+		_execute "python2 setup.py install_data"
 		cd /tmp || exit 1
 		rm -rf {deluge-${deversion},libtorrent}
 		rm -f deluge-${deversion}.tar.xz
@@ -734,17 +734,25 @@ location /${username}.deluge.downloads {
 }
 EOF
 		if [[ -f /install/.${username}.flexget.lock ]]; then
-			if _version_gt ${deversion} 2.0; then
-			if [[ "$CODENAME" == "stretch" ]]; then
-				_excute '/usr/local/bin/python3.7 -m pip install deluge-client'
+			if [[ ! -f /install/.pyenv.lock ]]; then
+				if _version_gt ${deversion} 2.0; then
+					if [[ "$CODENAME" == "stretch" ]]; then
+						_execute '/usr/local/bin/python3.7 -m pip install deluge-client'
+					else
+						_execute 'python3 -m pip install deluge-client'
+					fi
+				else
+					_execute 'pip2 install deluge-client'
+				fi
 			else
-				_excute 'python3 -m pip install deluge-client'
-			fi
-			else
-				_excute 'pip2 install deluge-client'
+				sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install deluge-client" >>"${OUTTO}" 2>&1
 			fi
 			sed -i "s/DEPORT/${DPORT}/g" /home/${username}/.config/flexget/config.yml
-			_excute "systemctl restart flexget@${username}"
+			_execute "systemctl restart flexget@${username}"
+		fi
+		if [[ -f /install/.${username}.autoremovetorrents.lock ]]; then
+			sudo -u ${username} -H bash -c "/home/${username}/.local/autoremovetorrents/bin/pip install deluge-client" >>"${OUTTO}" 2>&1
+			sed -i "s/DEPORT/${DPORT}/g" /home/${username}/.config/autoremovetorrents/config.yml
 		fi
 	done
 	cat >/etc/nginx/apps/deluge.conf <<'DRP'
@@ -815,8 +823,8 @@ Restart=on-failure
 WantedBy=multi-user.target
 DWS
 	fi
-	_excute "systemctl daemon-reload"
-	_excute "nginx -s reload"
+	_execute "systemctl daemon-reload"
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."
 }
 
@@ -830,10 +838,10 @@ function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
-		_excute "systemctl enable deluged@${username}"
-		_excute "systemctl start deluged@${username}"
-		_excute "systemctl enable deluge-web@${username}"
-		_excute "systemctl start deluge-web@${username}"
+		_execute "systemctl enable deluged@${username}"
+		_execute "systemctl start deluged@${username}"
+		_execute "systemctl enable deluge-web@${username}"
+		_execute "systemctl start deluge-web@${username}"
 	done
 	_success "${APP_TITLE} started."
 }

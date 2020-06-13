@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -48,7 +48,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -161,7 +161,7 @@ function _installSystemUpdates() {
 			for l in ${locks}; do
 				rm -rf ${l}
 			done
-			_excute "dpkg --configure -a"
+			_execute "dpkg --configure -a"
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
@@ -181,7 +181,7 @@ function _installDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Installing ${depend}... "
-		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
 	if [[ $dependError != "1" ]]; then
 		_success "${APP_TITLE} dependencies installed."
@@ -280,7 +280,7 @@ function _installApp() {
 		DEBASE="transmission-common_2.94-1mod1_all.deb transmission-cli_2.94-1mod1_amd64.deb transmission-daemon_2.94-1mod1_amd64.deb"
 		for DEB in $DEBASE; do
 			_download ${PACKAGE} ${DEB}
-			_excute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
+			_execute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
 			rm -rf /tmp/${DEB}
 		done
 	fi
@@ -289,8 +289,8 @@ function _installApp() {
 
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
-	_excute "systemctl disable transmission-daemon"
-	_excute "systemctl stop transmission-daemon"
+	_execute "systemctl disable transmission-daemon"
+	_execute "systemctl stop transmission-daemon"
 	sleep 2
 	# install enhancement WebUI
 	echo 1 | bash -c "$(wget -qO- https://github.com/ronggang/transmission-web-control/raw/master/release/install-tr-control.sh)" >>"${OUTTO}" 2>&1
@@ -431,10 +431,17 @@ location /${username}.transmission.downloads {
 }
 EOF
 		if [[ -f /install/.${username}.flexget.lock ]]; then
-			_excute "apt-get -y --allow-unauthenticated -f install python-pip"
-			_excute 'pip2 install transmissionrpc'
+			if [[ ! -f /install/.pyenv.lock ]]; then
+				_execute "apt-get -y --allow-unauthenticated -f install python-pip"
+				_execute 'pip2 install transmissionrpc'
+			else
+				sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install transmissionrpc" >>"${OUTTO}" 2>&1
+			fi
 			sed -i "s/TRPORT/${PORT}/g" /home/${username}/.config/flexget/config.yml
-			_excute "systemctl restart flexget@${username}"
+			_execute "systemctl restart flexget@${username}"
+		fi
+		if [[ -f /install/.${username}.autoremovetorrents.lock ]]; then
+			sed -i "s/TRPORT/${PORT}/g" /home/${username}/.config/autoremovetorrents/config.yml
 		fi
 	done
 
@@ -466,8 +473,8 @@ ExecReload=/bin/kill -s HUP $MAINPID
 [Install]
 WantedBy=multi-user.target
 TSD
-	_excute "systemctl daemon-reload"
-	_excute "nginx -s reload"
+	_execute "systemctl daemon-reload"
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."
 }
 
@@ -481,8 +488,8 @@ function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
-		_excute "systemctl enable ${APP_SERVICE}@${username}"
-		_excute "systemctl start ${APP_SERVICE}@${username}"
+		_execute "systemctl enable ${APP_SERVICE}@${username}"
+		_execute "systemctl start ${APP_SERVICE}@${username}"
 	done
 	_success "${APP_TITLE} started."
 }

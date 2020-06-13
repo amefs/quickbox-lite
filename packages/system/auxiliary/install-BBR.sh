@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -52,7 +52,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -160,12 +160,12 @@ function _main() {
 			wget -qO "/tmp/$KernelHeaderFile2" "$ReleaseURL/$KernelHeaderFile2"
 			if [[ ! -z $KernelModuleFile ]]; then
 				wget -qO "/tmp/$KernelModuleFile" "$ReleaseURL/$KernelModuleFile"
-				_excute "dpkg -i /tmp/$KernelModuleFile"
+				_execute "dpkg -i /tmp/$KernelModuleFile"
 			fi
 			_info "Install New Kernel $KernelVer"
-			_excute "dpkg -i /tmp/$KernelFile"
-			_excute "dpkg -i /tmp/$KernelHeaderFile1"
-			_excute "dpkg -i /tmp/$KernelHeaderFile2"
+			_execute "dpkg -i /tmp/$KernelFile"
+			_execute "dpkg -i /tmp/$KernelHeaderFile1"
+			_execute "dpkg -i /tmp/$KernelHeaderFile2"
 			Newest="$(echo "$KernelFile" | awk -F '_' '{print $1}')"
 			KernelList="$(dpkg -l | grep 'linux-image' | awk '{print $2}')"
 			[ -z "$(echo $KernelList | grep -o "$Newest")" ] && echo "Install error." && exit 1
@@ -187,7 +187,7 @@ function _main() {
 		_warning "The system requires a reboot!"
 		_success "${APP_TITLE} installation finished."
 	else
-		_excute "sysctl -p"
+		_execute "sysctl -p"
 		_success "${APP_TITLE} started."
 	fi
 }

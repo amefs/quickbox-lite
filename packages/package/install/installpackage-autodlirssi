@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -42,7 +42,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -148,7 +148,7 @@ function _installSystemUpdates() {
 			for l in ${locks}; do
 				rm -rf ${l}
 			done
-			_excute "dpkg --configure -a"
+			_execute "dpkg --configure -a"
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
@@ -168,7 +168,7 @@ function _installDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Installing ${depend}... "
-		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
 	if [[ $dependError != "1" ]]; then
 		_success "${APP_TITLE} dependencies installed."
@@ -194,13 +194,13 @@ function _installApp() {
 			PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
 		done
 		echo $PORT >/install/$username.$APP_NAME.port
-		_excute "mkdir -p /home/${username}/.irssi/scripts/autorun/"
+		_execute "mkdir -p /home/${username}/.irssi/scripts/autorun/"
 		cd "/home/${username}/.irssi/scripts/" || { _error "Irssi not exist" && exit 1; }
 		curl -sL ${APPSRC} | sed "s|,|\n|g" | grep browser_download_url  | grep -oP "https.*zip" | xargs wget --quiet -O autodl-irssi.zip
-		_excute "unzip -o autodl-irssi.zip"
+		_execute "unzip -o autodl-irssi.zip"
 		rm autodl-irssi.zip
 		cp autodl-irssi.pl autorun/
-		_excute "mkdir -p /home/${username}/.autodl"
+		_execute "mkdir -p /home/${username}/.autodl"
 		touch "/home/${username}/.autodl/autodl.cfg"
 
 		cat >"/home/${username}/.autodl/autodl.cfg" <<ADLC
@@ -216,8 +216,8 @@ ADLC
 	if [[ -f /install/.rutorrent.lock ]]; then
 		cd /srv/rutorrent/plugins/ || { _error "ruTorrent not exist" && exit 1; }
 		if [[ ! -d /srv/rutorrent/plugins/autodl-irssi ]]; then
-			_excute "git clone ${PLUGINSRC} autodl-irssi"
-			_excute "chown -R www-data:www-data autodl-irssi/"
+			_execute "git clone ${PLUGINSRC} autodl-irssi"
+			_execute "chown -R www-data:www-data autodl-irssi/"
 		fi
 
 		userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
@@ -253,7 +253,7 @@ WorkingDirectory=/home/%I/
 [Install]
 WantedBy=multi-user.target
 EOF
-	_excute "systemctl daemon-reload"
+	_execute "systemctl daemon-reload"
 	_success "${APP_TITLE} configured."
 }
 
@@ -266,8 +266,8 @@ function _installAppLock() {
 function _installAppStart() {
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
-		_excute "systemctl enable irssi@${username}"
-		_excute "systemctl start irssi@${username}"
+		_execute "systemctl enable irssi@${username}"
+		_execute "systemctl start irssi@${username}"
 	done
 	_success "${APP_TITLE} started."
 }

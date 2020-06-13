@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -47,7 +47,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -176,7 +176,7 @@ function _installSystemUpdates() {
 			for l in ${locks}; do
 				rm -rf ${l}
 			done
-			_excute "dpkg --configure -a"
+			_execute "dpkg --configure -a"
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
@@ -196,7 +196,7 @@ function _installDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Installing ${depend}... "
-		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
 	if [[ $dependError != "1" ]]; then
 		_success "${APP_TITLE} dependencies installed."
@@ -211,8 +211,8 @@ function _installFpm() {
 	exit=$?
 	if [[ ! $exit == '0' ]]; then
 		_info "Installing fpm package management..."
-		_excute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
-		_excute "gem install --no-ri --no-rdoc fpm"
+		_execute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
+		_execute "gem install --no-ri --no-rdoc fpm"
 		_success "fpm installed."
 	fi
 }
@@ -342,29 +342,29 @@ function _installApp() {
 		mkdir -p /root/pool
 		mkdir -p /root/dist
 		cd /tmp
-		_excute "git clone -b ${LTORRENT} ${BRANCH_LT} libtorrent"
+		_execute "git clone -b ${LTORRENT} ${BRANCH_LT} libtorrent"
 		cd libtorrent || { _error "Can not download libtorrent-rakshasa" && exit 1; }
-		_excute "./autogen.sh"
-		_excute "./configure --prefix=/usr --disable-debug"
+		_execute "./autogen.sh"
+		_execute "./configure --prefix=/usr --disable-debug"
 		LTVERSION=$(grep -Eo "AC_INIT\(libtorrent,.*" configure.ac | grep -Eo "[0-9.]+" | head -n1)
-		_excute "make -j$(nproc)"
-		_excute "make DESTDIR=/tmp/dist/libtorrent-rakshasa install"
+		_execute "make -j$(nproc)"
+		_execute "make DESTDIR=/tmp/dist/libtorrent-rakshasa install"
 		fpm -f -C /tmp/dist/libtorrent-rakshasa -p /root/pool/libtorrent-rakshasa_${LTVERSION}.deb -s dir -t deb -n libtorrent-rakshasa --version ${LTVERSION} --description "libtorrent-rakshasa compiled by QuickBox Lite" >/dev/null 2>&1
-		_excute "dpkg -i /root/pool/libtorrent-rakshasa_${LTVERSION}.deb"
+		_execute "dpkg -i /root/pool/libtorrent-rakshasa_${LTVERSION}.deb"
 		rm -rf /tmp/libtorrent
-		_excute "ldconfig"
+		_execute "ldconfig"
 
 		# rtorrent
 		cd /tmp
-		_excute "git clone -b ${RTVERSION} ${BRANCH_RT} rtorrent"
+		_execute "git clone -b ${RTVERSION} ${BRANCH_RT} rtorrent"
 		cd rtorrent || { _error "Can not download rTorrent" && exit 1; }
-		_excute "./autogen.sh"
-		_excute "./configure --prefix=/usr --with-xmlrpc-c --with-ncurses --disable-debug --enable-ipv6"
+		_execute "./autogen.sh"
+		_execute "./configure --prefix=/usr --with-xmlrpc-c --with-ncurses --disable-debug --enable-ipv6"
 		RTVERSION=$(grep -Eo "AC_INIT\(rtorrent,.*" configure.ac | grep -Eo "[0-9.]+" | head -n1)
-		_excute "make -j$(nproc)"
-		_excute "make DESTDIR=/tmp/dist/rtorrent install"
+		_execute "make -j$(nproc)"
+		_execute "make DESTDIR=/tmp/dist/rtorrent install"
 		fpm -f -C /tmp/dist/rtorrent -p /root/pool/rtorrent_${RTVERSION}.deb -s dir -t deb -n rtorrent --version ${RTVERSION} --description "rtorrent compiled by QuickBox Lite" >/dev/null 2>&1
-		_excute "dpkg -i /root/pool/rtorrent_${RTVERSION}.deb"
+		_execute "dpkg -i /root/pool/rtorrent_${RTVERSION}.deb"
 		rm -rf /tmp/rtorrent
 		rm -rf /tmp/dist
 	else
@@ -378,15 +378,15 @@ function _installApp() {
 		PACKAGE="rtorrent"
 		DEB=${RTORRENTBIN}
 		_download ${PACKAGE} ${DEB}
-		_excute "apt install -y /tmp/${LTORRENTBIN}"
-		_excute "apt install -y /tmp/${RTORRENTBIN}"
+		_execute "apt install -y /tmp/${LTORRENTBIN}"
+		_execute "apt install -y /tmp/${RTORRENTBIN}"
 		rm -rf {${LTORRENTBIN},${RTORRENTBIN}}
 		# disable auto upgrade
-		_excute "apt-mark hold rtorrent"
-		_excute "apt-mark hold libtorrent18"
-		_excute "apt-mark hold libtorrent19"
-		_excute "apt-mark hold libtorrent20"
-		_excute "apt-mark hold libtorrent21"
+		_execute "apt-mark hold rtorrent"
+		_execute "apt-mark hold libtorrent18"
+		_execute "apt-mark hold libtorrent19"
+		_execute "apt-mark hold libtorrent20"
+		_execute "apt-mark hold libtorrent21"
 	fi
 	_success "${APP_TITLE} Built."
 }
@@ -508,8 +508,8 @@ WorkingDirectory=/home/%I/
 [Install]
 WantedBy=multi-user.target
 EOF
-	_excute "systemctl daemon-reload"
-	_excute "nginx -s reload"
+	_execute "systemctl daemon-reload"
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."
 }
 
@@ -523,8 +523,8 @@ function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
-		_excute "systemctl enable ${APP_SERVICE}@${username}"
-		_excute "systemctl start ${APP_SERVICE}@${username}"
+		_execute "systemctl enable ${APP_SERVICE}@${username}"
+		_execute "systemctl start ${APP_SERVICE}@${username}"
 	done
 	_success "${APP_TITLE} started."
 }

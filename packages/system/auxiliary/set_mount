@@ -26,7 +26,7 @@ _cyan=$(tput setaf 6)
 OUTTO=/srv/dashboard/db/output.log
 device=$1
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {

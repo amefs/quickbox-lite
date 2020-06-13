@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -47,7 +47,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -192,7 +192,7 @@ function _installSystemUpdates() {
 			for l in ${locks}; do
 				rm -rf ${l}
 			done
-			_excute "dpkg --configure -a"
+			_execute "dpkg --configure -a"
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
@@ -212,7 +212,7 @@ function _installDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Installing ${depend}... "
-		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
 	if [[ $dependError != "1" ]]; then
 		_success "${APP_TITLE} dependencies installed."
@@ -227,8 +227,8 @@ function _installFpm() {
 	exit=$?
 	if [[ ! $exit == '0' ]]; then
 		_info "Installing fpm package management..."
-		_excute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
-		_excute "gem install --no-ri --no-rdoc fpm"
+		_execute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
+		_execute "gem install --no-ri --no-rdoc fpm"
 		_success "fpm installed."
 	fi
 }
@@ -335,13 +335,13 @@ function _installApp() {
 			LIBTBIN=libtorrent-rasterbar9_${libtversion}-1build1_amd64.deb
 			DEB=${LIBTBIN}
 			_download ${PACKAGE} ${DEB}
-			_excute "apt install -y /tmp/${LIBTBIN}"
+			_execute "apt install -y /tmp/${LIBTBIN}"
 			LIBTDEVBIN=libtorrent-rasterbar-dev_${libtversion}-1build1_amd64.deb
 			DEB=${LIBTDEVBIN}
 			_download ${PACKAGE} ${DEB}
-			_excute "apt install -y /tmp/${LIBTDEVBIN}"
+			_execute "apt install -y /tmp/${LIBTDEVBIN}"
 			rm -rf {${LIBTBIN},${LIBTDEVBIN}}
-			_excute "ldconfig"
+			_execute "ldconfig"
 			touch /install/.libtorrent-rasterbar9.lock
 		fi
 	elif $(echo "${libt_version_list[@]}" | grep -wvq "${libtversion}") && [ ! -f /install/.libtorrent-rasterbar.lock ] && [ ! -f /install/.libtorrent-rasterbar9.lock ]; then
@@ -351,8 +351,8 @@ function _installApp() {
 		_installDepends
 		_installFpm
 		if [ ${CODENAME} == 'xenial' ]; then
-			_excute "apt purge -y libssl-dev"
-			_excute "apt install -y libssl-dev=1.0.*"
+			_execute "apt purge -y libssl-dev"
+			_execute "apt install -y libssl-dev=1.0.*"
 		fi
 		_info "Build libtorrent for $APP_TITLE ... "
 		if _version_gt ${libtversion} 1.1.0; then
@@ -397,22 +397,22 @@ function _installApp() {
 		mkdir -p /tmp/dist
 
 		cd /tmp || exit 1
-		_excute "git clone -b ${LTRC} ${BRANCH_LT} libtorrent"
+		_execute "git clone -b ${LTRC} ${BRANCH_LT} libtorrent"
 		cd libtorrent || { _error "Can not download libtorrent-rasterbar" && exit 1; }
-		_excute "git checkout ${LTCIMMIT}"
+		_execute "git checkout ${LTCIMMIT}"
 		wget --no-check-certificate -q -O libtorrent-rasterbar-${LTRC}.patch https://raw.githubusercontent.com/amefs/QB/master/setup/sources/libtorrent-rasterbar-${LTRC}.patch
 		patch -p1 <libtorrent-rasterbar-${LTRC}.patch >/dev/null
 		LTVERSION=$(grep -Eo "AC_INIT\(\[libtorrent-rasterbar\],.*" configure.ac | grep -Eo "[0-9.]+" | head -n1)
-		_excute "./autotool.sh"
-		_excute "./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++11 CPPFLAGS=-std=c++11 --prefix=/tmp/dist/libtorrent-rasterbar/usr/local"
-		_excute "make -j$(nproc)"
+		_execute "./autotool.sh"
+		_execute "./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++11 CPPFLAGS=-std=c++11 --prefix=/tmp/dist/libtorrent-rasterbar/usr/local"
+		_execute "make -j$(nproc)"
 		mkdir -p /tmp/dist/libtorrent-rasterbar/usr/local
-		_excute "make install"
+		_execute "make install"
 		mv /tmp/dist/libtorrent-rasterbar/usr/local/lib/python2.7/site-packages /tmp/dist/libtorrent-rasterbar/usr/local/lib/python2.7/dist-packages
 		fpm -f -C /tmp/dist/libtorrent-rasterbar -p /root/pool/libtorrent-rasterbar_${LTVERSION}.deb -s dir -t deb -n libtorrent-rasterbar --version ${LTVERSION} --description "libtorrent-rasterbar compiled by QuickBox Lite" >/dev/null 2>&1
-		_excute "dpkg -i /root/pool/libtorrent-rasterbar_${LTVERSION}.deb"
+		_execute "dpkg -i /root/pool/libtorrent-rasterbar_${LTVERSION}.deb"
 		echo ${libtversion} >/install/.libtorrent-rasterbar.lock
-		_excute "ldconfig"
+		_execute "ldconfig"
 		cd /tmp
 		rm -rf {libtorrent,dist}
 		_success "Libtorrent Built."
@@ -428,7 +428,7 @@ function _installApp() {
 				QTBIN=qt512base_5.12.6-1basyskom1_amd64.deb
 				DEB=${QTBIN}
 				_download ${PACKAGE} ${DEB}
-				_excute "apt install -y /tmp/${QTBIN}"
+				_execute "apt install -y /tmp/${QTBIN}"
 				rm -rf ${QTBIN}
 			fi
 		fi
@@ -436,11 +436,11 @@ function _installApp() {
 		QBITBIN=qbittorrent-nox_${qbitversion}-libt1.1-1build1_amd64.deb
 		DEB=${QBITBIN}
 		_download ${PACKAGE} ${DEB}
-		_excute "apt install -y /tmp/${QBITBIN}"
+		_execute "apt install -y /tmp/${QBITBIN}"
 		rm -rf ${QBITBIN}
 
 		# disable auto upgrade
-		_excute "apt-mark hold qbittorrent-nox"
+		_execute "apt-mark hold qbittorrent-nox"
 	else
 		# prepare package toolchain
 		APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev qtbase5-dev qttools5-dev-tools libqt5svg5-dev zlib1g-dev"
@@ -465,7 +465,7 @@ LIST
 				DEBASE="qt512base_5.12.6-1basyskom1_amd64.deb qt512xmlpatterns_5.12.6-1basyskom1_amd64.deb qt512declarative_5.12.6-1basyskom1_amd64.deb qt512svg_5.12.6-1basyskom1_amd64.deb qt512tools_5.12.6-1basyskom1_amd64.deb"
 				for DEB in $DEBASE; do
 					_download ${PACKAGE} ${DEB}
-					_excute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
+					_execute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
 					rm -rf /tmp/${DEB}
 				done
 				source /opt/qt512/bin/qt512-env.sh
@@ -476,20 +476,20 @@ LIST
 		fi
 		cd /tmp
 		_info "Building $APP_TITLE ... "
-		_excute "git clone ${BRANCH_QBIT} qBittorrent"
+		_execute "git clone ${BRANCH_QBIT} qBittorrent"
 		cd qBittorrent || { _error "Can not download qBittorrent" && exit 1; }
-		_excute "git checkout release-${qbitversion}"
-		_excute "./configure --disable-gui --disable-debug --prefix=/tmp/dist/qbittorrent"
-		_excute "make -j$(nproc)"
+		_execute "git checkout release-${qbitversion}"
+		_execute "./configure --disable-gui --disable-debug --prefix=/tmp/dist/qbittorrent"
+		_execute "make -j$(nproc)"
 		mkdir -p /tmp/dist/qbittorrent
 		mkdir -p /root/pool/
-		_excute "make install"
+		_execute "make install"
 		fpm -f -C /tmp/dist/qbittorrent -p /root/pool/qbittorrent_${qbitversion}.deb -s dir -t deb -n qbittorrent-nox --version ${qbitversion} --description "qBittorrent compiled by QuickBox Lite" >/dev/null 2>&1
-		_excute "dpkg -i /root/pool/qbittorrent_${qbitversion}.deb"
+		_execute "dpkg -i /root/pool/qbittorrent_${qbitversion}.deb"
 		cd /tmp
 		rm -rf {qBittorrent,libtorrent,dist}
 		# disable auto upgrade
-		_excute "apt-mark hold qbittorrent-nox"
+		_execute "apt-mark hold qbittorrent-nox"
 	fi
 	_success "${APP_TITLE} Built."
 }
@@ -525,11 +525,11 @@ function _configureApp() {
 			## See https://github.com/KozakaiAya/libqbpasswd
 			cd /tmp
 			_info "Building libqbpasswd ... "
-			_excute "apt-get install -yqq build-essential"
-			_excute "git clone ${BRANCH_LIBQBPASS} libqbpasswd"
+			_execute "apt-get install -yqq build-essential"
+			_execute "git clone ${BRANCH_LIBQBPASS} libqbpasswd"
 			cd libqbpasswd
-			_excute "make"
-			_excute "cp -f qb_password_gen /usr/local/bin/quickbox/system/auxiliary/qb_password_gen"
+			_execute "make"
+			_execute "cp -f qb_password_gen /usr/local/bin/quickbox/system/auxiliary/qb_password_gen"
 			cd /tmp
 			rm -rf /tmp/libqbpasswd
 			pbkdf2pass=$(/usr/local/bin/quickbox/system/auxiliary/qb_password_gen ${password})
@@ -676,6 +676,9 @@ EOF
 		if [[ -f /install/.${username}.flexget.lock ]]; then
 			sed -i "s/QBPORT/${PORT}/g" /home/${username}/.config/flexget/config.yml
 		fi
+		if [[ -f /install/.${username}.autoremovetorrents.lock ]]; then
+			sed -i "s/QBPORT/${PORT}/g" /home/${username}/.config/autoremovetorrents/config.yml
+		fi
 	done
 
 	cat >/etc/nginx/apps/qbittorrent.conf <<'QBRP'
@@ -715,8 +718,8 @@ TimeoutSec=300
 [Install]
 WantedBy=multi-user.target
 QBS
-	_excute "systemctl daemon-reload"
-	_excute "nginx -s reload"
+	_execute "systemctl daemon-reload"
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."
 }
 
@@ -730,8 +733,8 @@ function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
-		_excute "systemctl enable ${APP_SERVICE}@${username}"
-		_excute "systemctl start ${APP_SERVICE}@${username}"
+		_execute "systemctl enable ${APP_SERVICE}@${username}"
+		_execute "systemctl start ${APP_SERVICE}@${username}"
 		sleep 5
 		if (_version_gt ${qbitversion} 4.1.9.1); then
 			curl -i --data 'json={"scan_dirs":{"'"/home/${username}/qbwatch"'":1}}' http://localhost:$(cat /install/${username}.$APP_NAME.port)/api/v2/app/setPreferences >>"${OUTTO}" 2>&1

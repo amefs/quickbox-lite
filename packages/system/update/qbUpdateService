@@ -1,3 +1,27 @@
+function _execute() {
+	($1 >>"${OUTTO}" 2>&1)
+}
+function _print() {
+	printf "${_norm}%s${_norm}\n" "$@"
+	printf "%s\n" "$@" >>"${OUTTO}"
+}
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
+
 function _updateservice() {
 	# Update nginx service
 	if (! grep -c 'location /ws' < /etc/nginx/apps/dashboard.conf > /dev/null); then
@@ -9,9 +33,9 @@ function _updateservice() {
 		if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
 			_info "Installing Node.js..."
 			cd /tmp || exit 1
-			_excute "curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh"
-			_excute "sudo bash nodesource_setup.sh"
-			_excute "apt-get install -y nodejs"
+			_execute "curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh"
+			_execute "sudo bash nodesource_setup.sh"
+			_execute "apt-get install -y nodejs"
 			if [[ -f /tmp/nodesource_setup.sh ]]; then
 				rm nodesource_setup.sh
 			fi
@@ -19,21 +43,30 @@ function _updateservice() {
 		# install service
 		_info "Installing Dashboard service..."
 		cd ${local_setup_dashboard}ws ||exit 1
-		_excute "npm install --production"
+		_execute "npm install --production"
 		\cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service
-		_excute "systemctl daemon-reload"
-		_excute "systemctl enable quickbox-ws.service"
+		_execute "systemctl daemon-reload"
+		_execute "systemctl enable quickbox-ws.service"
 		touch /install/.quickbox-ws.lock
 		_success "QuickBox service updated"
 	else
 		_info "Reconfig Dashboard service..."
 		cd ${local_setup_dashboard}ws ||exit 1
-		_excute "npm install --production"
+		_execute "npm install --production"
 		_success "Dashboard service updated"
+	fi
+	# Update flexget nginx reverse proxy
+	username=$(cat /root/.admin.info | cut -d: -f1)
+	if [[ -f /etc/nginx/apps/${username}.flexget.conf ]]; then
+		if (! grep -c 'location /flexget' < /etc/nginx/apps/${username}.flexget.conf > /dev/null); then
+			_info "Reconfig FlexGet reverse proxy..."
+			sed -i "s/location \/${username}.flexget\//location \/flexget\//g" /etc/nginx/apps/${username}.flexget.conf
+			_success "FlexGet reverse proxy updated..."
+		fi
 	fi
 }
 
 function _startservice() {
 	# always reload to ensure service up to date
-	_excute "systemctl restart quickbox-ws.service"
+	_execute "systemctl restart quickbox-ws.service"
 }

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -41,7 +41,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -120,8 +120,8 @@ Please wait until the process is completed
 
 function _removeService() {
 	_info "Removing ${APP_TITLE} service..."
-	_excute "systemctl disable $APP_SERVICE"
-	_excute "systemctl stop $APP_SERVICE"
+	_execute "systemctl disable $APP_SERVICE"
+	_execute "systemctl stop $APP_SERVICE"
 	_success "${APP_TITLE} service removed."
 }
 
@@ -130,9 +130,9 @@ function _removeDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Removing ${depend}... "
-		_excute "apt-get -y purge ${depend}"
-		_excute "apt-get -y autoremove"
-		_excute "apt-get -y autoclean"
+		_execute "apt-get -y purge ${depend}"
+		_execute "apt-get -y autoremove"
+		_execute "apt-get -y autoclean"
 	done
 	_success "${APP_TITLE} dependencies removed."
 }
@@ -140,15 +140,15 @@ function _removeDepends() {
 function _removeApp() {
 	_info "Removing ${APP_TITLE}..."
 	username=$(cat /root/.admin.info | cut -d: -f1)
-	_excute "source /usr/libexec/netdata/netdata-uninstaller.sh --yes --force"
-	_excute "apt-get autoremove -y"
-	_excute "apt-get autoclean -y"
+	_execute "source /usr/libexec/netdata/netdata-uninstaller.sh --yes --force"
+	_execute "apt-get autoremove -y"
+	_execute "apt-get autoclean -y"
 	userdel netdata >/dev/null 2>&1
 	groupdel netdata >/dev/null 2>&1
 	rm -rf /home/${username}/.config/netdata
 	rm -rf /etc/netdata
 	rm -f /etc/nginx/apps/netdata.conf
-	_excute "nginx -s reload"
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} removed."
 }
 

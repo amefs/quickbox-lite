@@ -116,6 +116,7 @@ $L['AVAILABILITY'] = 'Tilgængelighed';
 
 // packages
 $L['AUTODL'] = 'AutoDL-iRSSi er et plugin til irssi, der overvåger IRC annoncerer kanaler og downloader torrent-filer baseret på brugerdefinerede filtre.';
+$L['ART'] = 'Auto Remove Torrents can help you to remove your torrents. Now you don\'t need to worry about your disk space - according to your strategies, the program will check each torrent if it satisfies the remove condition; If so, delete it automatically.';
 $L['BTSYNC'] = 'BitTorrent Sync by BitTorrent, Inc er et proprietært peer-to-peer-fil synkronisering værktøj.';
 $L['DELUGE'] = 'Deluge en gratis letvægts cross-platform BitTorrent klient.';
 $L['DENYHOSTS'] = 'DenyHosts is a log-based intrusion-prevention security tool for SSH servers written in Python.';
@@ -143,6 +144,7 @@ $L['INSTALLED'] = 'Installeret';
 $L['OVPN_TOOLTIP_I'] = 'Adgang til denne feature fås via webkonsollen ved at skrive: quickVPN';
 $L['OVPN_TOOLTIP_U'] = 'Adgang til denne feature fås via webkonsollen ved at skrive: quickVPN';
 $L['BOX'] = 'Kun BOX';
+$L['BOX_TOOLTIP_ART'] = 'Adgang til denne feature fås via ssh ved at skrive: box install art';
 $L['BOX_TOOLTIP_DENYHOSTS'] = 'Adgang til denne feature fås via ssh ved at skrive:  box install denyhosts';
 $L['BOX_TOOLTIP_FAIL2BAN'] = 'Adgang til denne feature fås via ssh ved at skrive:  box install fail2ban';
 $L['BOX_TOOLTIP_LECERT'] = 'Adgang til denne feature fås via ssh ved at skrive:  box install lecert';

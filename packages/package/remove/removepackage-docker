@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -42,7 +42,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -129,9 +129,9 @@ function _removeDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Removing ${depend}... "
-		_excute "apt-get -y purge ${depend}"
-		_excute "apt-get -y autoremove"
-		_excute "apt-get -y autoclean"
+		_execute "apt-get -y purge ${depend}"
+		_execute "apt-get -y autoremove"
+		_execute "apt-get -y autoclean"
 	done
 	_success "${APP_TITLE} dependencies removed."
 }

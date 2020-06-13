@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   JMSolo, Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -42,7 +42,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -141,7 +141,7 @@ function _installSystemUpdates() {
 			for l in ${locks}; do
 				rm -rf ${l}
 			done
-			_excute "dpkg --configure -a"
+			_execute "dpkg --configure -a"
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
@@ -161,7 +161,7 @@ function _installDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Installing ${depend}... "
-		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
 	if [[ $dependError != "1" ]]; then
 		_success "${APP_TITLE} dependencies installed."
@@ -179,7 +179,7 @@ function _installApp() {
 	if [[ -d /root/acme.sh ]]; then
 		rm -rf /root/acme.sh
 	fi
-	_excute "git clone https://github.com/Neilpang/acme.sh.git"
+	_execute "git clone https://github.com/Neilpang/acme.sh.git"
 	cd /root/acme.sh || { _error "Can not download acme.sh ..." && exit 1; }
 	./acme.sh --install >/dev/null 2>&1
 	mkdir -p /etc/nginx/ssl/$domain/
@@ -239,7 +239,7 @@ server {
     }
 }
 NGC
-	_excute "nginx -s reload"
+	_execute "nginx -s reload"
 
 	# make acme redirect
 	cat >"/etc/nginx/snippets/letsencrypt-webroot.conf" <<EOF

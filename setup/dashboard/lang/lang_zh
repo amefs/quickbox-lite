@@ -114,6 +114,7 @@ $L['AVAILABILITY'] = '状态';
 
 // packages
 $L['AUTODL'] = 'AutoDL-iRSSi 是一个 irssi 插件, 用于监视 IRC 发布频道并且可以根据用户定义的过滤器下载.';
+$L['ART'] = 'Auto Remove Torrents 可以帮助你全自动的删除 torrents, 无需担心磁盘空间问题';
 $L['BTSYNC'] = 'BitTorrent 公司的 BitTorrent Sync 是一个专有的对等文件同步工具.';
 $L['DELUGE'] = 'Deluge 是一款轻量级的免费软件, 跨平台的BitTorrent客户端.';
 $L['DENYHOSTS'] = 'DenyHosts 是针对 SSH 服务器的一个基于日志的入侵预防安全工具, 它使用Python编写.';
@@ -139,6 +140,7 @@ $L['CLI'] = '仅限Web控制台';
 $L['INSTALL'] = '安装';
 $L['INSTALLED'] = '已安装';
 $L['BOX'] = '仅限BOX';
+$L['BOX_TOOLTIP_ART'] = '从 Web 控制台输入: box install art 安装此功能';
 $L['BOX_TOOLTIP_DENYHOSTS'] = '从 Web 控制台输入: box install denyhosts 安装此功能';
 $L['BOX_TOOLTIP_FAIL2BAN'] = '从 Web 控制台输入: box install fail2ban 启用此功能';
 $L['BOX_TOOLTIP_LECERT'] = '从 Web 控制台输入: box install lecert 自动签发 HTTPS 证书';

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -42,7 +42,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -143,7 +143,7 @@ function _installSystemUpdates() {
 			for l in ${locks}; do
 				rm -rf ${l}
 			done
-			_excute "dpkg --configure -a"
+			_execute "dpkg --configure -a"
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
@@ -163,7 +163,7 @@ function _installDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Installing ${depend}... "
-		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
 	if [[ $dependError != "1" ]]; then
 		_success "${APP_TITLE} dependencies installed."
@@ -177,7 +177,7 @@ function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	cd /srv || exit 1
 	if [[ ! -d /srv/$APP_NAME/ ]]; then
-		_excute "git clone --recurse-submodules $BRANCH $APP_NAME"
+		_execute "git clone --recurse-submodules $BRANCH $APP_NAME"
 		chown -R www-data:www-data $APP_NAME
 		rm -rf /srv/$APP_NAME/conf/config.php
 	fi
@@ -189,18 +189,18 @@ function _configureApp() {
 	_info "Setting up plugins... "
 	plugin_lib="/usr/local/bin/quickbox/rutorrent/plugins/"
 	if [[ ! -d ${plugin_lib} ]]; then
-		_excute "sudo svn co https://github.com/Novik/ruTorrent/trunk/plugins ${plugin_lib}"
+		_execute "sudo svn co https://github.com/Novik/ruTorrent/trunk/plugins ${plugin_lib}"
 		if [[ ! -d ${plugin_lib}fileupload ]]; then
-			_excute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileupload ${plugin_lib}fileupload"
+			_execute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileupload ${plugin_lib}fileupload"
 		fi
 		if [[ ! -d ${plugin_lib}fileshare ]]; then
-			_excute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileshare ${plugin_lib}fileshare"
+			_execute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileshare ${plugin_lib}fileshare"
 		fi
 		if [[ ! -d ${plugin_lib}pausewebui ]]; then
-			_excute "sudo svn co https://github.com/Gyran/rutorrent-pausewebui/trunk/ ${plugin_lib}pausewebui"
+			_execute "sudo svn co https://github.com/Gyran/rutorrent-pausewebui/trunk/ ${plugin_lib}pausewebui"
 		fi
 		if [[ ! -d ${plugin_lib}filemanager ]]; then
-			_excute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/filemanager ${plugin_lib}filemanager"
+			_execute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/filemanager ${plugin_lib}filemanager"
 			cat >${plugin_lib}filemanager/conf.php <<EOF
 <?php
 
@@ -227,20 +227,20 @@ EOF
 		fi
 
 		if [[ ! -d ${plugin_lib}ratiocolor ]]; then
-			_excute "sudo svn co https://github.com/Gyran/rutorrent-ratiocolor.git/trunk ${plugin_lib}ratiocolor"
+			_execute "sudo svn co https://github.com/Gyran/rutorrent-ratiocolor.git/trunk ${plugin_lib}ratiocolor"
 			sed -i "s/changeWhat = \"cell-background\";/changeWhat = \"font\";/g" ${plugin_lib}ratiocolor/init.js
 		fi
 		if [[ ! -d ${plugin_lib}logoff ]]; then
 			cd ${plugin_lib} || { _error "Can not install ruTorrent logoff" && exit 1; }
-			_excute "wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/rutorrent-logoff/logoff-1.3.tar.gz"
-			_excute "tar xf logoff-1.3.tar.gz"
+			_execute "wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/rutorrent-logoff/logoff-1.3.tar.gz"
+			_execute "tar xf logoff-1.3.tar.gz"
 			rm -rf logoff-1.3.tar.gz
 		fi
 		if [[ ! -d ${plugin_lib}mobile ]]; then
-			_excute "sudo git clone https://github.com/xombiemp/rutorrentMobile.git ${plugin_lib}mobile"
+			_execute "sudo git clone https://github.com/xombiemp/rutorrentMobile.git ${plugin_lib}mobile"
 		fi
 		if [[ ! -d ${plugin_lib}stream ]]; then
-			_excute "sudo svn co https://github.com/hashknot/rutorrent-stream/trunk/stream ${plugin_lib}stream"
+			_execute "sudo svn co https://github.com/hashknot/rutorrent-stream/trunk/stream ${plugin_lib}stream"
 		fi
 	fi
 	rm -rf /srv/rutorrent/plugins/_cloudflare
@@ -253,7 +253,7 @@ EOF
 
 	if [[ ! -d /srv/rutorrent/plugins/theme/themes/club-QuickBox ]]; then
 		cd /srv/rutorrent/plugins/theme/themes || { _error "Can not install ruTorrent theme " && exit 1; }
-		_excute "sudo git clone https://lab.quickbox.io/QuickBox/club-QuickBox.git club-QuickBox"
+		_execute "sudo git clone https://lab.quickbox.io/QuickBox/club-QuickBox.git club-QuickBox"
 		sudo perl -pi -e "s/\$defaultTheme \= \"\"\;/\$defaultTheme \= \"club-QuickBox\"\;/g" /srv/rutorrent/plugins/theme/conf.php
 	fi
 
@@ -403,8 +403,8 @@ function _installAppLock() {
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	_excute "nginx -s reload"
-	_excute "/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'"
+	_execute "nginx -s reload"
+	_execute "/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'"
 	_success "${APP_TITLE} started."
 }
 

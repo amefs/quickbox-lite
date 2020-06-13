@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# [QuickBox Lite FlexGet Installer]
+# [QuickBox Lite autoremove-torrents Installer]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
@@ -75,29 +75,22 @@ function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="FlexGet"
-APP_NAME="flexget"
-APP_SERVICE="flexget"
+APP_TITLE="autoremove-torrents"
+APP_NAME="autoremovetorrents"
 APP_HOST="127.0.0.1"
-
-# RANDOM PORT
-APP_WEB_PORT_LOW="15351"
-APP_WEB_PORT_HIGH="15400"
 
 OUTTO=/srv/dashboard/db/output.log
 username=$(cat /root/.admin.info | cut -d: -f1)
-old=0
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username] [old]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
 	echo "-u, --user <username>     the user for this installer"
-	echo "--old                     install FlexGet 3.0.31"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -126,9 +119,9 @@ function _setLock() {
 }
 function _lockCleanup() {
 	if [[ -f /install/.lang_zh.lock ]]; then
-		_info "定时任务用法参见: https://github.com/amefs/quickbox-lite/wiki/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98#%E4%B8%BA%E4%BB%80%E4%B9%88%E6%89%BE%E4%B8%8D%E5%88%B0-flexget-%E5%8F%AF%E6%89%A7%E8%A1%8C%E6%96%87%E4%BB%B6"
+		_info "定时任务用法参见: https://github.com/amefs/quickbox-lite/wiki/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8-autoremove-torrents"
 	else
-		_info "See cronjob example here: https://github.com/amefs/quickbox-lite/wiki/FAQ#where-is-the-flexget-execute-file"
+		_info "See cronjob example here: https://github.com/amefs/quickbox-lite/wiki/FAQ#how-to-use-autoremove-torrents"
 	fi
 	echo "$APP_TITLE Install Complete!
 
@@ -234,36 +227,25 @@ function _installApp() {
 
 	# Install for single user
 	_installPy 3.7.7
-	_initPyVenv 3.7.7 /home/${username}/.local/flexget3 ${username}
-	cd /home/${username}/.local/flexget3
+	_initPyVenv 3.7.7 /home/${username}/.local/autoremovetorrents ${username}
+	cd /home/${username}/.local/autoremovetorrents
 	_info "Installing requirements... "
 	sudo -u ${username} -H bash -c "wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py" >>"${OUTTO}" 2>&1
-	sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/python get-pip.py --force-reinstall" >>"${OUTTO}" 2>&1
-	sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade pip" >>"${OUTTO}" 2>&1
-	# Lock setuptools version for flexget installation
-	#_execute 'pip3 install setuptools==45.3.0'
-	sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade pyopenssl" >>"${OUTTO}" 2>&1
-	sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade cryptography" >>"${OUTTO}" 2>&1
+	sudo -u ${username} -H bash -c "/home/${username}/.local/autoremovetorrents/bin/python get-pip.py --force-reinstall" >>"${OUTTO}" 2>&1
+	sudo -u ${username} -H bash -c "/home/${username}/.local/autoremovetorrents/bin/pip install --upgrade pip" >>"${OUTTO}" 2>&1
 	_info "Installing ${APP_TITLE}... "
-	if [[ ${old} == 1 ]]; then
-		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade flexget==3.0.31" >>"${OUTTO}" 2>&1
-	else
-		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade flexget" >>"${OUTTO}" 2>&1
-	fi
-	if [[ -f /install/.transmission.lock ]]; then
-		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install transmissionrpc" >>"${OUTTO}" 2>&1
-	fi
+	sudo -u ${username} -H bash -c "/home/${username}/.local/autoremovetorrents/bin/pip install --upgrade autoremove-torrents" >>"${OUTTO}" 2>&1
 	if [[ -f /install/.deluge.lock ]]; then
-		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install deluge-client" >>"${OUTTO}" 2>&1
+		sudo -u ${username} -H bash -c "/home/${username}/.local/autoremovetorrents/bin/pip install deluge-client" >>"${OUTTO}" 2>&1
 	fi
 	_success "${APP_TITLE} Built."
 }
 
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
-	pypath=/home/${username}/.local/flexget3
-	pybin=/home/${username}/.local/flexget3/bin
-	pylib=/home/${username}/.local/flexget3/lib
+	pypath=/home/${username}/.local/autoremovetorrents
+	pybin=/home/${username}/.local/autoremovetorrents/bin
+	pylib=/home/${username}/.local/autoremovetorrents/lib
 	passphrase=$(cat /root/.ssh/local_user)
 	passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
 	if [[ $CODENAME == xenial ]]; then
@@ -272,67 +254,12 @@ function _configureApp() {
 		password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
 	fi
 
-	# patch flexget auth
-	mkdir -p /tmp/
-	cat >/tmp/flexget-user-passwd.patch <<'EOF'
-diff -Nur '--exclude=.git' '--exclude=.vs' flexget/webserver.py flexget-patched/webserver.py
---- flexget/webserver.py	2019-07-02 18:07:23.109855300 +0200
-+++ flexget-patched/webserver.py	2019-07-02 20:44:50.134619000 +0200
-@@ -232,7 +232,7 @@
- 
- 
- @with_session
--def get_user(username='flexget', session=None):
-+def get_user(username='replace', session=None):
-     user = session.query(User).filter(User.name == username).first()
-     if not user:
-         user = User()
-@@ -242,8 +242,9 @@
- 
- 
- @with_session
--def change_password(username='flexget', password='', session=None):
-+def change_password(username='replace', password='', session=None):
-     check = zxcvbn.zxcvbn(password, user_inputs=[username])
-+    check['score'] = 4
-     if check['score'] < 3:
-         warning = check['feedback']['warning']
-         suggestions = ' '.join(check['feedback']['suggestions'])
-@@ -260,7 +261,7 @@
- 
- 
- @with_session
--def generate_token(username='flexget', session=None):
-+def generate_token(username='replace', session=None):
-     user = get_user(username=username, session=session)
-     user.token = generate_key()
-     session.commit()
-EOF
-	sed -i "s/username='replace'/username='${username}'/g" /tmp/flexget-user-passwd.patch
-	patch -p1 -d ${pylib}/python3.7/site-packages/flexget/ </tmp/flexget-user-passwd.patch >>"${OUTTO}" 2>&1
-	sudo -u ${username} -H bash -c "${pybin}/python -m compileall ${pylib}/python3.7/site-packages/flexget/webserver.py" >>"${OUTTO}" 2>&1
-	rm -rf /tmp/flexget-user-passwd.patch
-
-	# remove hard encode username
-	if [[ ${old} == 1 ]]; then
-		sed -i "s/\\\'flexget\\\'/\\\'\\\'/g" ${pylib}/python3.7/site-packages/flexget/ui/v1/app/scripts/app.js
-	else
-		jspath=$(grep -rnw "${pylib}/python3.7/site-packages/flexget/ui/v2/dist/assets/" -e '"flexget"' | cut -d: -f1)
-		sed -i "s/initialValues:{username:\"flexget\"/initialValues:{username:\"\"/g" ${jspath}
-	fi
-
 	# get used port
 	local usedport=""
 	if (find /install/ -type f | grep -q .$APP_NAME.port); then
 		usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
 	fi
 	# generate available port
-	PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
-	while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do
-		PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
-	done
-	echo "$PORT" >/install/$username.$APP_NAME.port
-
 	if [[ -f /install/.qbittorrent.lock ]]; then
 		qbport=$(cat /install/${username}.qbittorrent.port)
 	else
@@ -349,142 +276,82 @@ EOF
 		trport="TRPORT"
 	fi
 
-	mkdir -p /home/${username}/.config/flexget/
-	cat >/home/${username}/.config/flexget/config.yml <<EOF
-web_server:
-  bind: ${APP_HOST}
-  port: ${PORT}
-  web_ui: yes
-  base_url: /flexget
-EOF
-	if [[ ${old} == 1 ]]; then
-		cat >>/home/${username}/.config/flexget/config.yml <<EOF
-  run_v2: yes
-EOF
-	fi
-	cat >>/home/${username}/.config/flexget/config.yml <<EOF
-tasks:
-  example:
-    priority: 2
-    rss: http://example.com/rss/rss.xml
+	mkdir -p /home/${username}/.config/autoremovetorrents/
+	mkdir -p /home/${username}/.config/autoremovetorrents/logs
+	cat >/home/${username}/.config/autoremovetorrents/config.yml <<EOF
+# For more usages, check the offical site: https://autoremove-torrents.readthedocs.io
 
-# Here are some guides
-#
-# https://ymgblog.com/2018/04/30/396/
-# https://npchk.info/linux-flexget-rss/
-# https://linkthis.me/2018/02/15/the-note-of-using-flexget/
-#
-# https://github.com/Aniverse/WiKi/blob/master/Flexget.md
-# https://github.com/Aniverse/WiKi/blob/master/How.to.use.RSS.md#flexget-rss
-#
-# For more usages, check the offical site: https://flexget.com
+# client templates
+# deluge:
+#   client: deluge
+#   host: 127.0.0.1:$deport
+#   username: ${username}
+#   password: ${password}
+# qbittorrent:
+#   client: qbittorrent
+#   host: http://127.0.0.1:$qbport
+#   username: ${username}
+#   password: ${password}
+# transmission:
+#   client: transmission
+#   host: http://127.0.0.1:$trport
+#   username: ${username}
+#   password: ${password}
 
-# templates:
-#   freespace:
-#     free_space:
-#       path: /home/${username}
-#       space: 10240
-#   qb:
-#     qbittorrent:
-#       path: /home/${username}/torrents/qbittorrent/
-#       host: localhost
-#       port: ${qbport}
-#       username: ${username}
-#       password: ${password}
-#   tr:
-#     transmission:
-#       path: /home/${username}/torrents/transmission/
-#       host: localhost
-#       port: ${trport}
-#       username: ${username}
-#       password: ${password}
-#   de:
-#     deluge:
-#       path: /home/${username}/torrents/deluge/
-#       host: localhost
-#       port: ${deport}
-#       username: ${username}
-#       password: ${password}
-#   size:
-#     content_size:
-#       min: 6000
-#       max: 666666
-#       strict: no
-# tasks:
-#   Web-HDSky:
-#     rss: https://hdsky.me/torrentrss.php
-#     # In order to accept entries that have different urls but share the same title
-#     seen:
-#       fields:
-#         - url
-#     regexp:
-#       accept:
-#         - HDSWEB
-#     template: de
-#     content_size:
-#       min: 3000
-#       max: 500000
-#       strict: no
-#     deluge:
-#       label: WEB-DL
-#       # Limit upload speed to 100 MiB/s in case of being auto-banned
-#       max_up_speed: 102400
-#       move_completed_path: /mnt/HDSky/HDSWEB
-#   ADC-AnimeBD-JPN:
-#     rss: http://asiandvdclub.org/rss.xml
-#     if:
-#       - "'Anime' and 'AVC' in title": accept
-#       - "'subs only' in title": reject
-#       - "'Custom' in description": reject
-#     # RSS on ADC requires cookies for authentication
-#     headers:
-#       Cookie: "uid=12345; pass=abcdefg"
-#     # manipulate download page's URLs into proper download URLs
-#     urlrewrite:
-#       sitename:
-#         regexp: 'http://asiandvdclub.org/details.php\?id=(?P<id>\d+)'
-#         format: 'http://asiandvdclub.org/download.php?id=\g<id>'
-#     qbittorrent:
-#       label: ADC
-#       maxdownspeed: 30000
-#       # DO NOT USE qBittorrent 3.3.11 if you would like to limit speed by flexget !!!
-#       # It seems this function only works for qBittorent 4.1.0 and later
-# schedules:
-#   - tasks: [Web-HDSky]
-#     interval:
-#       minutes: 20
+# Example1:
+#   client: deluge
+#   host: 127.0.0.1:$deport                                     # without "http://" or "https://"
+#   username: ${username}
+#   password: ${password}
+#   strategies:
+#     delete_by_seedsize:
+#       trackers:
+#         - tracker.hdsky.me                                     # without "http://" or "https://"
+#       seed_size:
+#         limit: 3000                                            # size in GiB
+#         action: remove-old-seeds
+#     delete_by_seedtime:
+#       categories:
+#         - hdsky
+#       seeding_time: 259200                                     # time in Second
+#   delete_data: true
+
+Example2:
+  client: qbittorrent
+  host: http://127.0.0.1:$qbport
+  username: ${username}
+  password: ${password}
+  strategies:
+    delete_by_restspace:
+      free_space:
+        min: 100                                               # size in GiB
+        path: /home/${username}/torrents/qbittorrent/          # This Path MUST EXIST
+        action: remove-old-seeds
+    delete_by_peernumber:
+      status:
+        - Downloading
+      remove: connected_leecher < 2 or seeder > 1
+    delete_by_speed:
+      status:
+        - Downloading
+      remove: download_speed > 20480 and upload_speed < 20480  # KiB per Second
+  delete_data: true
+
+Example3:
+  client: transmission
+  host: http://127.0.0.1:$trport
+  username: ${username}
+  password: ${password}
+  strategies:
+    delete_by_crosscheck:
+      status:
+        - Checking
+      remove: progress > 1                                     # Percentage(%)
+  delete_data: false
 EOF
 
-	chown ${username}.${username} -R /home/${username}/.config/flexget/
-	sudo -u ${username} -H bash -c "${pybin}/flexget -c /home/${username}/.config/flexget/config.yml web passwd ${password}"
+	chown ${username}.${username} -R /home/${username}/.config/autoremovetorrents/
 
-	cat >/etc/nginx/apps/flexget.conf <<EOF
-location /flexget/ {
-    include /etc/nginx/snippets/proxy.conf;
-    proxy_pass http://127.0.0.1:${PORT}/flexget/;
-}
-EOF
-
-	cat >/etc/systemd/system/flexget@${username}.service <<EOF
-[Unit]
-Description=Flexget Daemon
-After=network.target
-
-[Service]
-Type=simple
-User=${username}
-Group=${username}
-UMask=000
-WorkingDirectory=/home/${username}/.config/flexget/
-ExecStart=${pybin}/flexget -c /home/${username}/.config/flexget/config.yml daemon start
-ExecStop=${pybin}/flexget -c /home/${username}/.config/flexget/config.yml daemon stop
-ExecReload=${pybin}/flexget -c /home/${username}/.config/flexget/config.yml daemon reload
-
-[Install]
-WantedBy=multi-user.target
-EOF
-	_execute "systemctl daemon-reload"
-	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."
 }
 
@@ -494,17 +361,10 @@ function _installAppLock() {
 	_success "${APP_TITLE} lock configured."
 }
 
-function _installAppStart() {
-	_info "Starting ${APP_TITLE}..."
-	_execute "systemctl enable ${APP_SERVICE}@${username}"
-	_execute "systemctl start ${APP_SERVICE}@${username}"
-	_success "${APP_TITLE} started."
-}
-
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl:u: -l help,old,log:,user: -- "$@")
+if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
 then
     _usage
     exit 1
@@ -524,9 +384,6 @@ while true; do
 		username="$2"
 		shift
 		;;
-	--old)
-		old=1
-		;;
 	--)
 		shift
 		break
@@ -545,5 +402,4 @@ _installSystemUpdates
 _installApp
 _configureApp
 _installAppLock
-_installAppStart
 _lockCleanup

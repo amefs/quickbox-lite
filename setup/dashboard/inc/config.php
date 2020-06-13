@@ -8,7 +8,7 @@ require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/widgets/class.php');
 
-$version = "v1.3.4";
+$version = "v1.3.5";
 error_reporting(E_ERROR);
 $username = getUser();
 $master = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
@@ -258,7 +258,7 @@ if(file_exists('/srv/dashboard/custom/url.override.php')){
   $delugedlURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.deluge.downloads";
   $filebrowserURL = "https://" . $_SERVER['HTTP_HOST'] . "/filebrowser/";
   $filebrowsereeURL = "https://" . $_SERVER['HTTP_HOST'] . "/filebrowser-ee/";
-  $flexgetURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.flexget/";
+  $flexgetURL = "https://" . $_SERVER['HTTP_HOST'] . "/flexget/";
   $floodURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username/flood/";
   $netdataURL = "https://" . $_SERVER['HTTP_HOST'] . "/netdata/";
   $novncURL = "https://" . $_SERVER['HTTP_HOST'] . "/vnc/";

@@ -16,7 +16,7 @@
 
 # If not running interactively, don't do anything
 [ -z "$PS1" ] && return
-QUICKBOX_VERSION=v1.3.4
+QUICKBOX_VERSION=v1.3.5
 
 export TERM=xterm;TERM=xterm
 EDITOR=nano; export EDITOR=nano
@@ -1018,4 +1018,8 @@ export NVM_DIR="/root/.nvm"
 #-------------------------------------------------------------
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases # --> Read ~/.bash_aliases, if present.
+fi
+
+if [ -f ~/.bash_pyenv ]; then
+    . ~/.bash_pyenv # --> Read ~/.bash_pyenv, if present.
 fi

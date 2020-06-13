@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.5
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -47,7 +47,7 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-function _excute() {
+function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
 function _print() {
@@ -153,7 +153,7 @@ function _installSystemUpdates() {
 			for l in ${locks}; do
 				rm -rf ${l}
 			done
-			_excute "dpkg --configure -a"
+			_execute "dpkg --configure -a"
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
 		fi
@@ -174,7 +174,7 @@ function _installDepends() {
 	for depend in $DEPLIST; do
 		_info "Installing ${depend}... "
 		export DEBIAN_FRONTEND=noninteractive
-		_excute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
 	if [[ $dependError != "1" ]]; then
 		_success "${APP_TITLE} dependencies installed."
@@ -187,15 +187,15 @@ function _installDepends() {
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	if [[ $CODENAME == bionic ]]; then
-		_excute "apt-get -y install libappindicator-dev"
+		_execute "apt-get -y install libappindicator-dev"
 	fi
 	cd /tmp
 	wget -q -O master.zip 'https://github.com/novnc/noVNC/archive/master.zip'
-	_excute "unzip master.zip"
+	_execute "unzip master.zip"
 	rm -rf master.zip
-	_excute "mv noVNC-master /srv/novnc/"
+	_execute "mv noVNC-master /srv/novnc/"
 	_info "Generating self-signed certificate for noVNC security..."
-	_excute "openssl req -config /root/.openssl.cnf -newkey rsa:1024 -x509 -days 1095 -nodes -out /srv/novnc/utils/self.pem -keyout /srv/novnc/utils/self.pem"
+	_execute "openssl req -config /root/.openssl.cnf -newkey rsa:1024 -x509 -days 1095 -nodes -out /srv/novnc/utils/self.pem -keyout /srv/novnc/utils/self.pem"
 	chown www-data:www-data -R /srv/novnc/
 	chmod +rx /srv/novnc/utils/launch.sh
 	_success "${APP_TITLE} Built."
@@ -278,7 +278,7 @@ EOF
 
 	# create log password with expect
 	prog=/usr/bin/vncpasswd
-	_excute "runuser -l $username -c /usr/bin/expect" <<EOF
+	_execute "runuser -l $username -c /usr/bin/expect" <<EOF
 spawn "$prog"
 expect "Password:"
 send "$password\r"
@@ -298,8 +298,8 @@ EOF
 	chmod +x /home/${username}/.vnc/xstartup
 	chown ${username}:${username} -R /home/${username}/.vnc
 
-	_excute "nginx -s reload"
-	_excute "systemctl daemon-reload"
+	_execute "nginx -s reload"
+	_execute "systemctl daemon-reload"
 }
 
 function _installAppLock() {
@@ -310,13 +310,13 @@ function _installAppLock() {
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	_excute "systemctl start tightvnc.service"
-	_excute "systemctl enable tightvnc.service"
-	_excute "systemctl start novnc.service"
-	_excute "systemctl enable novnc.service"
-	_excute "iptables -A INPUT -p tcp -s localhost --dport $APP_DAEMON_PORT -j ACCEPT"
-	_excute "iptables -A INPUT -p tcp --dport $APP_DAEMON_PORT -j DROP"
-	_excute "iptables-save > /etc/iptables/rules.v4"
+	_execute "systemctl start tightvnc.service"
+	_execute "systemctl enable tightvnc.service"
+	_execute "systemctl start novnc.service"
+	_execute "systemctl enable novnc.service"
+	_execute "iptables -A INPUT -p tcp -s localhost --dport $APP_DAEMON_PORT -j ACCEPT"
+	_execute "iptables -A INPUT -p tcp --dport $APP_DAEMON_PORT -j DROP"
+	_execute "iptables-save > /etc/iptables/rules.v4"
 	_success "${APP_TITLE} started."
 }
 
