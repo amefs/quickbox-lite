@@ -301,7 +301,7 @@ EOF
 	sed -i "s/initialValues:{username:\"flexget\"/initialValues:{username:\"\"/g" ${jspath}
 
 	PORT=$(cat /install/$username.flexget.port)
-	cat >/etc/nginx/apps/flexget.conf <<EOF
+	cat >/etc/nginx/apps/${username}.flexget.conf <<EOF
 location /flexget/ {
     include /etc/nginx/snippets/proxy.conf;
     proxy_pass http://127.0.0.1:${PORT}/flexget/;

@@ -458,7 +458,7 @@ EOF
 	chown ${username}.${username} -R /home/${username}/.config/flexget/
 	sudo -u ${username} -H bash -c "${pybin}/flexget -c /home/${username}/.config/flexget/config.yml web passwd ${password}"
 
-	cat >/etc/nginx/apps/flexget.conf <<EOF
+	cat >/etc/nginx/apps/${username}.flexget.conf <<EOF
 location /flexget/ {
     include /etc/nginx/snippets/proxy.conf;
     proxy_pass http://127.0.0.1:${PORT}/flexget/;
