@@ -2,7 +2,8 @@
     function showAlert(message) {
         bootbox.alert({
             message: message,
-            backdrop: true
+            backdrop: true,
+            size: 'large'
         });
     }
 
@@ -10,9 +11,15 @@
     socket.on("exec", function(response) {
         if (response.success === false) {
             let message = response.message || "";
-            let stdout = response.stdout || "";
-            stdout = stdout.replace(/\r?\n/g, "<br/>");
-            message = `${message}<br/><code>${response.cmd}</code><br/>${stdout}`;
+            const stdout = response.stdout || "";
+            const stderr = response.stderr || "";
+            message = `${message}<code>${response.cmd}</code>`;
+            if (stdout) {
+                message += `<hr><code>${stdout}</code>`;
+            }
+            if (stderr) {
+                message += `<hr><code>${stderr}</code>`;
+            }
             showAlert(message);
         } else {
             // page should refresh manually
