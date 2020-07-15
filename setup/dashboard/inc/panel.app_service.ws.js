@@ -11,12 +11,8 @@
         if (response.success === false) {
             let message = response.message || "";
             let stdout = response.stdout || "";
-            stdout = stdout.replace(/\r?\n/g, "<br/>")
-            if (message !== "") {
-                message = `${message}<br/>${stdout}`;
-            } else {
-                message = stdout;
-            }
+            stdout = stdout.replace(/\r?\n/g, "<br/>");
+            message = `${message}<br/><code>${response.cmd}</code><br/>${stdout}`;
             showAlert(message);
         } else {
             // page should refresh manually
