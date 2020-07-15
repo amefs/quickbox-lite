@@ -31,7 +31,7 @@
             <?php if (file_exists("/install/.autodlirssi.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#autodlirssiRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="autodlirssiInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="autodlirssi" id="autodlirssiInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -49,7 +49,7 @@
             <?php if (file_exists("/install/.btsync.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#btsyncRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="btsyncInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="btsync" id="btsyncInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -58,7 +58,7 @@
             <?php if (file_exists("/install/.deluge.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#delugeRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="delugeInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="deluge" id="delugeInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -85,7 +85,7 @@
             <?php if (file_exists("/install/.filebrowser.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#filebrowserRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="filebrowserInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="filebrowser" id="filebrowserInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -94,7 +94,7 @@
             <?php if (file_exists("/install/.filebrowser-ee.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#filebrowsereeRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="filebrowsereeInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="filebrowser-ee" id="filebrowsereeInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -103,7 +103,7 @@
             <?php if (file_exists("/install/.$username.flexget.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#flexgetRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="flexgetInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="flexget" id="flexgetInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -112,7 +112,7 @@
             <?php if (file_exists("/install/.flood.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#floodRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="floodInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="flood" id="floodInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -130,7 +130,7 @@
             <?php if (file_exists("/install/.netdata.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#netdataRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="netdataInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="netdata" id="netdataInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -139,7 +139,7 @@
             <?php if (file_exists("/install/.novnc.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#novncRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="novncInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="novnc" id="novncInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -148,7 +148,7 @@
             <?php if (file_exists("/install/.plex.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#plexRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="plexInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="plex" id="plexInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -157,7 +157,7 @@
             <?php if (file_exists("/install/.rtorrent.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#rtorrentRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="rtorrentInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="rtorrent" id="rtorrentInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -166,7 +166,7 @@
             <?php if (file_exists("/install/.rutorrent.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#rutorrentRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="rutorrentInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="rutorrent" id="rutorrentInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
@@ -175,7 +175,7 @@
           <?php if (file_exists("/install/.syncthing.lock")) { ?>
             <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#syncthingRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
           <?php } else { ?>
-            <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="syncthingInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+            <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="syncthing" id="syncthingInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
           <?php } ?>
           </tr>
           <tr>
@@ -184,7 +184,7 @@
           <?php if (file_exists("/install/.transmission.lock")) { ?>
             <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#transmissionRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
           <?php } else { ?>
-            <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="transmissionInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+            <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="transmission" id="transmissionInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
           <?php } ?>
           </tr>
           <tr>
@@ -193,7 +193,7 @@
           <?php if (file_exists("/install/.qbittorrent.lock")) { ?>
             <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#qbittorrentRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
           <?php } else { ?>
-            <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="qbittorrentInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+            <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="qbittorrent" id="qbittorrentInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
           <?php } ?>
           </tr>
           <tr>
@@ -202,7 +202,7 @@
             <?php if (file_exists("/install/.x2go.lock")) { ?>
               <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#x2goRemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
             <?php } else { ?>
-              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" id="x2goInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+              <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-service="x2go" id="x2goInstall" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
             <?php } ?>
           </tr>
           <tr>
