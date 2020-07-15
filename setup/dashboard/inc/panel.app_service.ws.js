@@ -48,28 +48,18 @@
         }
         return true;
     }
-    function packageInstallHandler(event) {
-        if (!checkParameters({event})) {
-            return;
+    function packageHandler(template) {
+        return function(event) {
+            if (!checkParameters({event})) {
+                return;
+            }
+            const target = event.target;
+            if (!target) {
+                return;
+            }
+            const package = target.dataset["package"];
+            exec(`${template}::${package}`);
         }
-        const target = event.target;
-        if (!target) {
-            return;
-        }
-        const service = target.dataset["service"];
-        const command = `installpackage::${service}`;
-        exec(command);
-    }
-    function packageRemoveHandler(event) {
-        if (!checkParameters({event})) {
-            return;
-        }
-        const target = event.target;
-        if (!target) {
-            return;
-        }
-        const service = target.dataset["service"];
-        exec(`removepackage::${service}`);
     }
     function serviceUpdateHandler(event) {
         if (!checkParameters({event})) {
@@ -93,7 +83,20 @@
             exec(`systemctl:${operation}:${service}`);
         }
     }
-    window.packageInstallHandler = packageInstallHandler;
-    window.packageRemoveHandler = packageRemoveHandler;
+    function boxHandler(event) {
+        if (!checkParameters({event})) {
+            return;
+        }
+        let target = event.target;
+        if (!target) {
+            return;
+        }
+        const operation = target.dataset["operation"];
+        const target = target.dataset["target"];
+        exec(`box:${operation}:${target}`);
+    }
+    window.packageInstallHandler = packageHandler("installpackage");
+    window.packageRemoveHandler = packageHandler("removepackage");
     window.serviceUpdateHandler = serviceUpdateHandler;
+    window.boxHandler = boxHandler;
 })(window.jQuery);

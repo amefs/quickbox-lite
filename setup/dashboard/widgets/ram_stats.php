@@ -267,6 +267,6 @@ $memCachedPercent = number_format($sysInfo['memCachedPercent'], 3); //cache memo
 <h3><?php echo T('TOTAL_RAM'); ?></h3>
 <h4 class="nomargin"><?php echo $memTotal;?>
   <?php if ($username == "$master") { ?>
-      <a href="?clean_mem=true" id="cleanmem" data-toggle="modal" data-target="#sysResponse" style="margin: 0 auto"> <button class="btn btn-xs btn-default pull-right"><?php echo T('CLEAR_CACHE'); ?></button></a>
+    <button onclick="boxHandler(event)" data-target="mem" data-operation="clean" data-toggle="modal" data-target="#sysResponse" class="btn btn-xs btn-default pull-right"><?php echo T('CLEAR_CACHE'); ?></button>
   <?php } ?>
 </h4>

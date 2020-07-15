@@ -285,241 +285,49 @@ $location = "/home";
 
 /* check for services */
 switch (intval($_GET['id'])) {
-case 0:
-  $rtorrent = isEnabled("rtorrent", $username);
+  case 0: {
+    $rtorrent = isEnabled("rtorrent", $username);
     $cbodyr .= $rtorrent;
-  $irssi = isEnabled("irssi", $username);
+    $irssi = isEnabled("irssi", $username);
     $cbodyi .= $irssi;
-  $deluged = isEnabled("deluged", $username);
+    $deluged = isEnabled("deluged", $username);
     $cbodyd .= $deluged;
-  $delugedweb = isEnabled("deluge-web", $username);
+    $delugedweb = isEnabled("deluge-web", $username);
     $cbodydw .= $delugedweb;
-  $denyhosts = isEnabled("denyhosts", root);
+    $denyhosts = isEnabled("denyhosts", root);
     $cbodydh .= $denyhosts;
-  $fail2ban = isEnabled("fail2ban", root);
+    $fail2ban = isEnabled("fail2ban", root);
     $cbodyf2b .= $fail2ban; 
-  $filebrowser = isEnabled("filebrowser", $username);
+    $filebrowser = isEnabled("filebrowser", $username);
     $cbodyfb .= $filebrowser;
-  $filebrowseree = isEnabled("filebrowser-ee", $username);
+    $filebrowseree = isEnabled("filebrowser-ee", $username);
     $cbodyfbe .= $filebrowseree;
-  $flexget = isEnabled("flexget", $username);
+    $flexget = isEnabled("flexget", $username);
     $cbodyfg .= $flexget;
-  $flood = isEnabled("flood", $username);
+    $flood = isEnabled("flood", $username);
     $cbodyfl .= $flood;
-  $shellinabox = isEnabled("shellinabox",shellinabox);
+    $shellinabox = isEnabled("shellinabox",shellinabox);
     $wcbodyb .= $shellinabox;
-  $btsync = isEnabled("resilio-sync",$username);
+    $btsync = isEnabled("resilio-sync",$username);
     $cbodyb .= $btsync;
-  $netdata = isEnabled("netdata",netdata);
+    $netdata = isEnabled("netdata",netdata);
     $cbodynd .= $netdata;
-  $novnc = isEnabled("tightvnc",$username);
+    $novnc = isEnabled("tightvnc",$username);
     $cbodyvnc .= $novnc;
-  $plex = isEnabled("plexmediaserver",plex);
+    $plex = isEnabled("plexmediaserver",plex);
     $cbodyp .= $plex;
-  $syncthing = isEnabled("syncthing", $username);
+    $syncthing = isEnabled("syncthing", $username);
     $cbodyst .= $syncthing;
-  $transmission = isEnabled("transmission", $username);
+    $transmission = isEnabled("transmission", $username);
     $cbodytr .= $transmission;
-  $qbittorrent = isEnabled("qbittorrent", $username);
+    $qbittorrent = isEnabled("qbittorrent", $username);
     $cbodyqb .= $qbittorrent;
-  $x2go = isEnabled("x2go", $username);
+    $x2go = isEnabled("x2go", $username);
     $cbodyx .= $x2go;
-  $znc = isEnabled("znc", $username);
+    $znc = isEnabled("znc", $username);
     $cbodyz .= $znc;
-
-break;
-
-/* enable & start services */
-case 66:
-  $process = $_GET['serviceenable'];
-    if ($process == "resilio-sync"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } elseif ($process == "irssi"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } elseif ($process == "shellinabox"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl start $process");
-    } elseif ($process == "denyhosts"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl start $process");
-    } elseif ($process == "fail2ban"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl start $process");
-    } elseif ($process == "filebrowser"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } elseif ($process == "filebrowser-ee"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } elseif ($process == "flexget"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } elseif ($process == "flood"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } elseif ($process == "netdata"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl start $process");
-    } elseif ($process == "tightvnc"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl start $process");
-    } elseif ($process == "plexmediaserver"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl start $process");
-    } elseif ($process == "deluged"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } elseif ($process == "deluge-web"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } elseif ($process == "rtorrent"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } elseif ($process == "transmission"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } elseif ($process == "qbittorrent"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } elseif ($process == "syncthing"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    } else {
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl start $process@$username");
-    }
-  header('Location: https://' . $_SERVER['HTTP_HOST'] . '/');
-break;
-
-/* disable & stop services */
-case 77:
-  $process = $_GET['servicedisable'];
-    if ($process == "resilio-sync"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    } elseif ($process == "irssi"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl stable $process@$username");
-    } elseif ($process == "shellinabox"){
-      shell_exec("sudo systemctl stop $process");
-      shell_exec("sudo systemctl disable $process");
-    } elseif ($process == "denyhosts"){
-      shell_exec("sudo systemctl stop $process");
-      shell_exec("sudo systemctl disable $process");
-    } elseif ($process == "fail2ban"){
-      shell_exec("sudo systemctl stop $process");
-      shell_exec("sudo systemctl disable $process");
-    } elseif ($process == "filebrowser"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    } elseif ($process == "filebrowser-ee"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    } elseif ($process == "flexget"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    } elseif ($process == "flood"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    } elseif ($process == "netdata"){
-      shell_exec("sudo systemctl stop $process");
-      shell_exec("sudo systemctl disable $process");
-    } elseif ($process == "tightvnc"){
-      shell_exec("sudo systemctl stop $process");
-      shell_exec("sudo systemctl disable $process");
-    } elseif ($process == "plexmediaserver"){
-      shell_exec("sudo systemctl stop $process");
-      shell_exec("sudo systemctl disable $process");
-    } elseif ($process == "deluged"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    } elseif ($process == "deluge-web"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    } elseif ($process == "rtorrent"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    } elseif ($process == "transmission"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    } elseif ($process == "qbittorrent"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    } elseif ($process == "syncthing"){
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    }  else {
-      shell_exec("sudo systemctl stop $process@$username");
-      shell_exec("sudo systemctl disable $process@$username");
-    }
-  header('Location: https://' . $_SERVER['HTTP_HOST'] . '/');
-break;
-
-/* restart services */
-case 88:
-  $process = $_GET['servicestart'];
-    if ($process == "resilio-sync"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } elseif ($process == "irssi"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } elseif ($process == "shellinabox"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl restart $process");
-    } elseif ($process == "denyhosts"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl restart $process");
-    } elseif ($process == "fail2ban"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl restart $process");
-    } elseif ($process == "filebrowser"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } elseif ($process == "filebrowser-ee"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } elseif ($process == "flexget"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } elseif ($process == "flood"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } elseif ($process == "netdata"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl restart $process");
-    } elseif ($process == "tightvnc"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl restart $process");
-    } elseif ($process == "plexmediaserver"){
-      shell_exec("sudo systemctl enable $process");
-      shell_exec("sudo systemctl restart $process");
-    } elseif ($process == "deluged"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } elseif ($process == "deluge-web"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } elseif ($process == "rtorrent"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } elseif ($process == "transmission"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } elseif ($process == "qbittorrent"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } elseif ($process == "syncthing"){
-      shell_exec("sudo systemctl enable $process@$username");
-      shell_exec("sudo systemctl restart $process@$username");
-    } else {
-      shell_exec("sudo systemctl restart $process@$username");
-    }
-  header('Location: https://' . $_SERVER['HTTP_HOST'] . '/');
-break;
-
+    break;
+  }
 }
 
 ?>
