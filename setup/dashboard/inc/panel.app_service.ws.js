@@ -75,7 +75,15 @@
         if (!checkParameters({event})) {
             return;
         }
-        const target = event.target;
+        let target = event.target;
+        if (!target) {
+            return;
+        }
+        if (!target.dataset["service"]) {
+            do {
+                target = target.parentElement;
+            } while (target && target.nodeName === "DIV" && !target.dataset["service"])
+        }
         if (!target) {
             return;
         }
