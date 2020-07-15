@@ -341,7 +341,7 @@
         <pre style="color: rgb(83, 223, 131) !important;" class="sysout ps-child"><span id="sshoutput"></span></pre>
       </div>
       <div class="modal-footer" style="background:rgba(0, 0, 0, 0.4);border:0!important">
-        <button onclick="boxHandler(event)" data-target="log" data-operation="clean" class="btn btn-xs btn-danger"><?php echo T('CLOSE_REFRESH'); ?></button>
+        <button onclick="boxHandler(event)" data-pacakge="log" data-operation="clean" class="btn btn-xs btn-danger"><?php echo T('CLOSE_REFRESH'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->

@@ -242,9 +242,9 @@ $znc = processExists("znc",$username);
 function isEnabled($process, $username){
   $service = $process;
   if (file_exists('/etc/systemd/system/multi-user.target.wants/'.$process.'@'.$username.'.service')){
-    return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-en toggle-light primary" data-service="'.$process.'@$username$" data-operation="disable"></div></div>';
+    return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-en toggle-light primary" data-service="'.$process.'@$username$" data-operation="stop,disable"></div></div>';
   } else if (file_exists('/etc/systemd/system/multi-user.target.wants/'.$process.'.service')) {
-    return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-en toggle-light primary" data-service="'.$process.'" data-operation="disable"></div></div>';
+    return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-en toggle-light primary" data-service="'.$process.'" data-operation="stop,disable"></div></div>';
   } else {
     return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-dis toggle-light primary" data-service="'.$process.'@$username$" data-operation="enable"></div></div>';
   }

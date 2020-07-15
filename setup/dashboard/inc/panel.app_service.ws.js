@@ -87,13 +87,12 @@
         if (!checkParameters({event})) {
             return;
         }
-        let target = event.target;
-        if (!target) {
+        if (!event.target) {
             return;
         }
-        const operation = target.dataset["operation"];
-        const target = target.dataset["target"];
-        exec(`box:${operation}:${target}`);
+        const operation = event.target.dataset["operation"];
+        const package = event.target.dataset["package"];
+        exec(`box:${operation}:${package}`);
     }
     window.packageInstallHandler = packageHandler("installpackage");
     window.packageRemoveHandler = packageHandler("removepackage");

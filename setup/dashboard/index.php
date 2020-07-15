@@ -137,7 +137,7 @@
                     </h4>
                   </div>
                   <div class="panel-footer">
-                  <button onclick="boxHandler(event)" data-target="quickbox --only-core" data-operation="update" data-toggle="modal" data-target="#sysResponse" class="btn btn-success btn-quirk btn-block"><i class="fa fa-bell text-success"></i> <?php echo T('UPDATE'); ?> </button>
+                  <button onclick="boxHandler(event)" data-package="quickbox --only-core" data-operation="update" data-toggle="modal" data-target="#sysResponse" class="btn btn-success btn-quirk btn-block"><i class="fa fa-bell text-success"></i> <?php echo T('UPDATE'); ?> </button>
                   </div>
                 </div>
               </div><!-- QUICKBOX UPDATE WIDGET -->
