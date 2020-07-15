@@ -43,7 +43,7 @@ const execHandler = async (payload: string, client: SocketIO.Socket) => {
     const commandConfig = config.Value[command];
     if (command === undefined || operation === undefined || target === undefined || commandConfig === undefined) {
         ret.success = false;
-        ret.message = "Invalid command";
+        ret.message = "Invalid Command";
         client.emit(Constant.EVENT_EXEC, ret);
         return;
     }
@@ -73,7 +73,7 @@ const execHandler = async (payload: string, client: SocketIO.Socket) => {
         template.includes(Constant.TEMPLATE_TARGET) ||
         template.includes(Constant.TEMPLATE_USERNAME)) {
         ret.success = false;
-        ret.message = "Invalid arguements";
+        ret.message = "Invalid Arguements";
         client.emit(Constant.EVENT_EXEC, ret);
         return;
     }
@@ -82,7 +82,7 @@ const execHandler = async (payload: string, client: SocketIO.Socket) => {
         ret.stderr = stderr;
         if (error) {
             ret.success = false;
-            ret.message = error.toString();
+            ret.message = "Execute Failed";
         }
         client.emit(Constant.EVENT_EXEC, ret);
     });

@@ -13,7 +13,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-autodlirssi=true" id="autodlirssiRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="autodlirssiRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -31,7 +31,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-btsync=true" id="btsyncRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="btsyncRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -49,7 +49,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-deluge=true" id="delugeRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="delugeRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -67,7 +67,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-filebrowser=true" id="filebrowserRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="filebrowserRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -85,7 +85,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-filebrowser-ee=true" id="filebrowsereeRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="filebrowsereeRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -103,7 +103,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-flexget=true" id="flexgetRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="flexgetRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -121,7 +121,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-flood=true" id="floodRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="floodRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -139,7 +139,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-netdata=true" id="netdataRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="netdataRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -157,7 +157,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-novnc=true" id="novncRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="novncRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -175,7 +175,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-plex=true" id="plexRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="plexRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -193,7 +193,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-rtorrent=true" id="rtorrentRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="rtorrentRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -211,7 +211,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-rutorrent=true" id="rutorrentRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="rutorrentRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -229,7 +229,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-syncthing=true" id="syncthingRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="syncthingRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -247,7 +247,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-transmission=true" id="transmissionRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="transmissionRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -265,7 +265,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-qbittorrent=true" id="qbittorrentRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="qbittorrentRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -283,7 +283,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-x2go=true" id="x2goRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="x2goRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -301,7 +301,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?removepackage-znc=true" id="zncRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" id="zncRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
@@ -404,7 +404,9 @@
 <script src="lib/lazysizes/lazysizes.min.js" async></script>
 <script src="js/quick.js"></script>
 <script src="js/lobipanel.js"></script>
+<script src="lib/bootbox/bootbox.all.min.js"></script>
 <script src="inc/panel.app_status.ws.js"></script>
+<script src="inc/panel.app_service.ws.js"></script>
 
 <script>
   $(function(){
