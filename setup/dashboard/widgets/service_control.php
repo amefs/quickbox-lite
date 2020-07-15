@@ -23,33 +23,33 @@
         <?php if (file_exists("/install/.rtorrent.lock")) { ?>
           <tr>
             <td><span id="appstat_rtorrent"></span> RTorrent <span class="tooltips" data-toggle="tooltip" title="scgi_port: <?php echo "/var/run/$username/.rtorrent.sock"; ?>" data-placement="right"><i class="tooltips fa fa-usb"></i><span></td>
-            <td class="text-center"><button data-service="rtorrent@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></button></td>
+            <td class="text-center"><button onclick="serviceUpdateHandler(event)" data-service="rtorrent@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></button></td>
             <td class="text-center"><?php echo "$cbodyr"; ?></td>
           </tr>
         <?php } ?>
         <?php if (file_exists("/install/.autodlirssi.lock")) { ?>
           <tr>
             <td><span id="appstat_irssi"></span> iRSSi-AutoDL </td>
-            <td class="text-center"><a data-service="irssi@$username$" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="irssi@$username$" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyi"; ?></td>
           </tr>
           <?php } ?>
         <?php if (file_exists("/install/.deluge.lock")) { ?>
           <tr>
             <td><span id="appstat_deluged"></span> DelugeD </td>
-            <td class="text-center"><a data-service="deluged@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="deluged@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyd"; ?></td>
           </tr>
           <tr>
             <td><span id="appstat_delugeweb"></span> Deluge Web </td>
-            <td class="text-center"><a data-service="deluge-web@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="deluge-web@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodydw"; ?></td>
           </tr>
           <?php } ?>
         <?php if (file_exists("/install/.transmission.lock")) { ?>
           <tr>
             <td><span id="appstat_transmission"></span> Transmission </td>
-            <td class="text-center"><a data-service="transmission@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="transmission@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodytr"; ?></td>
           </tr>
           <?php } ?>
@@ -57,7 +57,7 @@
         <?php if (file_exists("/install/.qbittorrent.lock")) { ?>
           <tr>
             <td><span id="appstat_qbittorrent"></span> qBittorrent </td>
-            <td class="text-center"><a data-service="qbittorrent@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="qbittorrent@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyqb"; ?></td>
           </tr>
           <?php } ?>
@@ -65,90 +65,90 @@
       <?php if ($username == "$master") { ?>
           <tr>
             <td><span id="appstat_webconsole"></span> Web Console </td>
-            <td class="text-center"><a data-service="shellinabox@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="shellinabox@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$wcbodyb"; ?></td>
           </tr>
           <?php if (file_exists("/install/.btsync.lock")) { ?>
           <tr>
             <td><span id="appstat_btsync"></span> BTSync </td>
-            <td class="text-center"><a data-service="btsync@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="btsync@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyb"; ?></td>
           </tr>
           <?php } ?>
           <?php if (file_exists("/install/.denyhosts.lock")) { ?>
           <tr>
             <td><span id="appstat_denyhosts"></span> Denyhosts </td>
-            <td class="text-center"><a data-service="denyhosts@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="denyhosts@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodydh"; ?></td>
           </tr>
           <?php } ?>
           <?php if (file_exists("/install/.fail2ban.lock")) { ?>
           <tr>
             <td><span id="appstat_fail2ban"></span> Fail2ban </td>
-            <td class="text-center"><a data-service="fail2ban@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="fail2ban@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyf2b"; ?></td>
           </tr>
           <?php } ?>
           <?php if (file_exists("/install/.filebrowser.lock")) { ?>
           <tr>
             <td><span id="appstat_filebrowser"></span> File Browser </td>
-            <td class="text-center"><a data-service="filebrowser@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="filebrowser@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyfb"; ?></td>
           </tr>
           <?php } ?>
           <?php if (file_exists("/install/.filebrowser-ee.lock")) { ?>
           <tr>
             <td><span id="appstat_filebrowser-ee"></span> File Browser Enhanced </td>
-            <td class="text-center"><a data-service="filebrowser-ee@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="filebrowser-ee@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyfbe"; ?></td>
           </tr>
           <?php } ?>
           <?php if (file_exists("/install/.$username.flexget.lock")) { ?>
           <tr>
             <td><span id="appstat_flexget"></span> FlexGet </td>
-            <td class="text-center"><a data-service="flexget@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="flexget@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyfg"; ?></td>
           </tr>
           <?php } ?>
           <?php if (file_exists("/install/.flood.lock")) { ?>
           <tr>
             <td><span id="appstat_flood"></span> Flood </td>
-            <td class="text-center"><a data-service="flood@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="flood@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyfl"; ?></td>
           </tr>
           <?php } ?>
           <?php if (file_exists("/install/.netdata.lock")) { ?>
           <tr>
             <td><span id="appstat_netdata"></span> Netdata </td>
-            <td class="text-center"><a data-service="netdata@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="netdata@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodynd"; ?></td>
           </tr>
           <?php } ?>
           <?php if (file_exists("/install/.novnc.lock")) { ?>
           <tr>
             <td><span id="appstat_novnc"></span> noVNC </td>
-            <td class="text-center"><a data-service="novnc@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="novnc@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyvnc"; ?></td>
           </tr>
           <?php } ?>
           <?php if (file_exists("/install/.plex.lock")) { ?>
           <tr>
             <td><span id="appstat_plex"></span> Plex </td>
-            <td class="text-center"><a data-service="plexmediaserver" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="plexmediaserver" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyp"; ?></td>
           </tr>
           <?php } ?>
           <?php if (file_exists("/install/.syncthing.lock")) { ?>
           <tr>
             <td><span id="appstat_syncthing"></span> Syncthing </td>
-            <td class="text-center"><a data-service="syncthing@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="syncthing@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$cbodyst"; ?></td>
           </tr>
           <?php } ?>
           <?php if (file_exists("/install/.sample.lock")) { ?>
           <tr>
             <td><?php echo "$sampleval"; ?> SAMPLE </td>
-            <td class="text-center"><a data-service="sample@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
+            <td class="text-center"><a onclick="serviceUpdateHandler(event)" data-service="sample@$username$" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></a></td>
             <td class="text-center"><?php echo "$samplebody"; ?></td>
           </tr>
           <?php } ?>

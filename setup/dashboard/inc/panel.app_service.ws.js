@@ -87,4 +87,5 @@
     }
     window.packageInstallHandler = packageInstallHandler;
     window.packageRemoveHandler = packageRemoveHandler;
+    window.serviceUpdateHandler = serviceUpdateHandler;
 })(window.jQuery);
