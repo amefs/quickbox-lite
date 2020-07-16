@@ -77,7 +77,7 @@ const execHandler = async (payload: string, client: SocketIO.Socket) => {
         client.emit(Constant.EVENT_EXEC, ret);
         return;
     }
-    exec(template, (error, stdout, stderr) => {
+    exec(template, { env: { TERM: "xterm" } }, (error, stdout, stderr) => {
         ret.stdout = stdout;
         ret.stderr = stderr;
         if (error) {
