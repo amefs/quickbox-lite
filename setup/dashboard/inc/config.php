@@ -278,7 +278,6 @@ if(file_exists('/srv/dashboard/custom/url.override.php')){
 include ($_SERVER['DOCUMENT_ROOT'].'/widgets/lang_select.php');
 include ($_SERVER['DOCUMENT_ROOT'].'/widgets/plugin_data.php');
 include ($_SERVER['DOCUMENT_ROOT'].'/widgets/package_data.php');
-include ($_SERVER['DOCUMENT_ROOT'].'/widgets/sys_data.php');
 include ($_SERVER['DOCUMENT_ROOT'].'/widgets/theme_select.php');
 $base = 1024;
 $location = "/home";
