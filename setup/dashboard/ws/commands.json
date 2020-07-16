@@ -8,12 +8,12 @@
     "installpackage": {
         "template": "bash /usr/local/bin/quickbox/package/install/installpackage-$target$",
         "operations": [],
-        "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "qbittorrent", "x2go", "znc"]
+        "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go", "znc"]
     },
     "removepackage": {
         "template": "/usr/local/bin/quickbox/package/remove/removepackage-$target$",
         "operations": [],
-        "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "qbittorrent", "x2go", "znc"]
+        "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go", "znc"]
     },
     "box": {
         "template": "bash /usr/local/bin/quickbox/system/box $operation$ $target$",
