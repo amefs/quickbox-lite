@@ -13,12 +13,12 @@
             let message = response.message || "";
             const stdout = response.stdout || "";
             const stderr = response.stderr || "";
-            message = `${message}<code>${response.cmd}</code>`;
+            message = `${message}<br><code>${response.cmd}</code>`;
             if (stdout) {
-                message += `<hr><code>${stdout}</code>`;
+                message += `<hr><code style="white-space:pre-wrap">${stdout}</code>`;
             }
             if (stderr) {
-                message += `<hr><code>${stderr}</code>`;
+                message += `<hr><code style="white-space:pre-wrap">${stderr}</code>`;
             }
             showAlert(message);
         } else {
