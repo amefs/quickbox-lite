@@ -22,8 +22,12 @@
             }
             showAlert(message);
         } else {
-            // page should refresh manually
-            // location.reload();
+            if (response.cmd && response.cmd.startsWith("systemctl")) {
+                setTimeout(function() {
+                    // service status is renedred by php, a force refresh is required
+                    location.reload();
+                }, 100);
+            }
         }
     });
     function exec(command) {
