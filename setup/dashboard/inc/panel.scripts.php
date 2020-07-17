@@ -396,7 +396,7 @@
 <script src="lib/jquery.ui.touch-punch.min.js"></script>
 <script src="lib/bootstrap/js/bootstrap.js"></script>
 <script src="lib/jquery-toggles/toggles.js"></script>
-<script src="lib/jquery.gritter/jquery.gritter.js"></script>
+<script src="lib/jquery-gritter/js/jquery.gritter.min.js"></script>
 <script src="lib/visibility/visibility.fallback.js"></script>
 <script src="lib/visibility/visibility.core.js"></script>
 <script src="lib/visibility/visibility.timers.js"></script>
@@ -535,7 +535,7 @@ $(document).ready(function() {
   $('#plexRemove').click(gritterHandler('Plex', 'Plex Media Server'));
   $('#rtorrentRemove').click(gritterHandler('rtorrent'));
   $('#rutorrentRemove').click(gritterHandler('rutorrent'));
-  $('#synctingRemove').click(gritterHandler('Syncthing'));
+  $('#syncthingRemove').click(gritterHandler('Syncthing'));
   $('#transmissionRemove').click(gritterHandler('Transmission'));
   $('#qbittorrentRemove').click(gritterHandler('qBittorrent'));
   $('#x2goRemove').click(gritterHandler('x2go'));
