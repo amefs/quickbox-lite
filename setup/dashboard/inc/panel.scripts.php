@@ -394,7 +394,7 @@
 <!--script src="js/script.js"></script-->
 <script src="lib/jquery-ui/jquery-ui.min.js"></script>
 <script src="lib/jquery.ui.touch-punch.min.js"></script>
-<script src="lib/bootstrap/js/bootstrap.js"></script>
+<script src="lib/bootstrap/js/bootstrap.min.js"></script>
 <script src="lib/visibility/visibility.fallback.js"></script>
 <script src="lib/visibility/visibility.core.js"></script>
 <script src="lib/visibility/visibility.timers.js"></script>
