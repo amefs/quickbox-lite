@@ -28,9 +28,10 @@
           }
           $service = $package["service"];
           foreach ($service["process"] as $process => $name) {
+            $processLowercase = strtolower($process)
         ?>
           <tr>
-            <td><span id="appstat_<?php echo $process;?>"></span><?php echo $name; ?>
+            <td><span id="appstat_<?php echo $processLowercase;?>"></span><?php echo $name; ?>
             <?php if (isset($service["tooltips"])) { ?>
             <span class="tooltips" data-toggle="tooltip" title="<?php echo $service["tooltips"]; ?>" data-placement="right"><i class="tooltips fa <?php echo $service["tooltipsicon"]?>"></i><span></td>
             <?php } ?>

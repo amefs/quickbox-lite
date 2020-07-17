@@ -12,7 +12,7 @@
   }, {
     name: "DELUGE WEB",
     url: "/widgets/app_status/app_status_delugeweb.php",
-    id: "#appstat_delugeweb",
+    id: "#appstat_deluge-web",
     time: 5000
   }, {
     name: "DENYHOSTS",
@@ -57,12 +57,12 @@
   }, {
     name: "NOVNC",
     url: "/widgets/app_status/app_status_novnc.php",
-    id: "#appstat_novnc",
+    id: "#appstat_xtightvnc",
     time: 5000
   }, {
     name: "PLEX",
     url: "/widgets/app_status/app_status_plex.php",
-    id: "#appstat_plex",
+    id: "#appstat_plexmediaserver",
     time: 5000
   }, {
     name: "RTORRENT",
@@ -77,17 +77,17 @@
   }, {
     name: "TRANSMISSION",
     url: "/widgets/app_status/app_status_transmission.php",
-    id: "#appstat_transmission",
+    id: "#appstat_transmission-daemon",
     time: 5000
   }, {
     name: "QBITTORRENT",
     url: "/widgets/app_status/app_status_qbittorrent.php",
-    id: "#appstat_qbittorrent",
+    id: "#appstat_qbittorrent-nox",
     time: 5000
   }, {
     name: "WEB CONSOLE",
     url: "/widgets/app_status/app_status_webconsole.php",
-    id: "#appstat_webconsole",
+    id: "#appstat_shellinabox",
     time: 5000
   }, {
     name: "X2GO",

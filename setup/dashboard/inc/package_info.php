@@ -92,7 +92,7 @@ $packageList = array(
     ]
   ], [
     "package" => "filebrowser-ee",
-    "name" => "File Browser Enhanced",
+    "name" => "FBE",
     "description" => "FILEBROWSEREE",
     "lockfile" => "/install/.filebrowser-ee.lock",
     "uninstall" => "UNINSTALL_FILEBROWSEREE_TXT",
@@ -158,7 +158,7 @@ $packageList = array(
     "boxonly" => false,
     "service" => [
       "process" => [
-        "novnc" => "noVNC"
+        "Xtightvnc" => "noVNC"
       ],
       "username" => $username
     ]
@@ -183,7 +183,9 @@ $packageList = array(
     "uninstall" => "UNINSTALL_RTORRENT_TXT",
     "boxonly" => false,
     "service" => [
-        "list" => ["rtorrent"],
+        "process" => [
+          "rtorrent" => "rTorrent"
+        ],
         "username" => $username,
         "tooltips" => "scgi_port: /var/run/".$username."/.rtorrent.sock",
         "tooltipsicon" => "fa-usb"
@@ -194,13 +196,7 @@ $packageList = array(
     "description" => "RUTORRENT",
     "lockfile" => "/install/.rutorrent.lock",
     "uninstall" => "UNINSTALL_RUTORRENT_TXT",
-    "boxonly" => false,
-    "service" => [
-      "process" => [
-        "netdata" => "Netdata"
-      ],
-      "username" => "netdata"
-    ]
+    "boxonly" => false
   ], [
     "package" => "syncthing",
     "name" => "Syncthing",
@@ -223,7 +219,7 @@ $packageList = array(
     "boxonly" => false,
     "service" => [
       "process" => [
-        "transmission" => "Transmission"
+        "transmission-daemon" => "Transmission"
       ]
     ]
   ], [
@@ -235,7 +231,7 @@ $packageList = array(
     "boxonly" => false,
     "service" => [
       "process" => [
-        "qbittorrent" => "qBittorrent"
+        "qbittorrent-nox" => "qBittorrent"
       ]
     ]
   ], [
