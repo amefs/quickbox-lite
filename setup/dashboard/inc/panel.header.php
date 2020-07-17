@@ -22,12 +22,13 @@
   <link rel="stylesheet" href="lib/jquery-toggles/toggles-full.css">
   <link rel="stylesheet" href="lib/jquery-gritter/css/jquery.gritter.css">
   <link rel="stylesheet" href="lib/datatables/css/dataTables.bootstrap.css">
+  <link rel="stylesheet" href="lib/perfect-scrollbar/css/perfect-scrollbar.min.css">
   <link rel="stylesheet" href="lib/animate.css/animate.css">
   <link rel="stylesheet" href="lib/font-awesome/font-awesome.css">
   <link rel="stylesheet" href="lib/ionicons/css/ionicons.css">
   <link rel="stylesheet" href="lib/select2/select2.css">
+  <link rel="stylesheet" href="lib/lobipanel/css/lobipanel.min.css"/>
   <link rel="stylesheet" href="skins/quick.css">
-  <link rel="stylesheet" href="skins/lobipanel.css"/>
   <!-- JAVASCRIPT -->
   <script src="lib/modernizr/modernizr.js"></script>
   <script src="lib/jquery/jquery.js"></script>

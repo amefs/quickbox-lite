@@ -395,23 +395,31 @@
 <script src="lib/jquery-ui/jquery-ui.min.js"></script>
 <script src="lib/jquery.ui.touch-punch.min.js"></script>
 <script src="lib/bootstrap/js/bootstrap.js"></script>
-<script src="lib/jquery-toggles/toggles.js"></script>
-<script src="lib/jquery-gritter/js/jquery.gritter.min.js"></script>
 <script src="lib/visibility/visibility.fallback.js"></script>
 <script src="lib/visibility/visibility.core.js"></script>
 <script src="lib/visibility/visibility.timers.js"></script>
 <script src="lib/socket.io/socket.io.js"></script>
 <script src="lib/lazysizes/lazysizes.min.js" async></script>
 <script src="js/quick.js"></script>
-<script src="js/lobipanel.js"></script>
 <script src="lib/bootbox/bootbox.all.min.js"></script>
 <script src="inc/panel.app_status.ws.js"></script>
 <script src="inc/panel.app_service.ws.js"></script>
 
+<!-- async load function -->
 <script>
-  $(function(){
-    //$('.lobipanel').lobiPanel();
-    $('.panel').lobiPanel({
+  function asyncLoad(url, func) {
+    var script = document.createElement('script'),
+        orgins = document.getElementsByTagName('script')[0];
+    script.src = url;
+    if (func) { script.addEventListener('load', function (e) { func(null, e); }, false); }
+    orgins.parentNode.insertBefore(script, orgins);
+  }
+</script>
+
+<script>
+asyncLoad("lib/lobipanel/js/lobipanel.min.js", function() {
+$(function() {
+  $('.panel').lobiPanel({
       reload: {
         icon: 'fa fa-refresh'
       },
@@ -441,21 +449,17 @@
       resize: true,
       editTitle: false,
       expand: false
-    });
   });
-</script>
-
-<script>
-  $(function(){
-    $('#rutorrent').on('loaded.lobiPanel', function (ev, lobiPanel) {
-      var $body = lobiPanel.$el.find('.panel-body');
-      $body.html('<div>' + $body.html() + '</div>');
+  $('#rutorrent').on('loaded.lobiPanel', function (ev, lobiPanel) {
+    var $body = lobiPanel.$el.find('.panel-body');
+    $body.html('<div>' + $body.html() + '</div>');
   });
+});
 });
 </script>
 
-<script src="js/jquery.scrollbar.js"></script>
 <script>
+asyncLoad("lib/perfect-scrollbar/perfect-scrollbar.min.js", function() {
 $(function() {
   $('.leftpanel').perfectScrollbar();
   $('.leftpanel').perfectScrollbar({ wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 });
@@ -467,8 +471,11 @@ $(function() {
   $('.sysout').perfectScrollbar({ wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 });
   $('.sysout').perfectScrollbar('update');
 });
+});
 </script>
+
 <script>
+asyncLoad("lib/jquery-toggles/toggles.js", function() {
 $(function() {
   // Toggles
   $('.toggle-en').toggles({
@@ -506,10 +513,12 @@ $(function() {
     }
   });
 });
+});
 </script>
-<script>
-$(document).ready(function() {
 
+<script>
+asyncLoad("lib/jquery-gritter/js/jquery.gritter.min.js", function() {
+$(function() {
   'use strict';
 
   function gritterHandler(packagename, fullname) {
@@ -540,6 +549,7 @@ $(document).ready(function() {
   $('#qbittorrentRemove').click(gritterHandler('qBittorrent'));
   $('#x2goRemove').click(gritterHandler('x2go'));
   $('#zncRemove').click(gritterHandler('ZNC'));
+});
 });
 </script>
 
