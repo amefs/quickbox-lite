@@ -512,97 +512,34 @@ $(document).ready(function() {
 
   'use strict';
 
-  // BTSyncRemove
-  $('#btsyncRemove').click(function(){
-    $.gritter.add({
-      title: '<?php echo T('UNINSTALLING_TITLE'); ?> BTSync',
-      text: '<?php echo T('UNINSTALLING_TXT_1'); ?> Bittorrent Sync <?php echo T('UNINSTALLING_TXT_2'); ?>',
-      class_name: 'with-icon times-circle danger',
-      sticky: true
-    });
-  });
-  // DelugeRemove
-  $('#delugeRemove').click(function(){
-    $.gritter.add({
-      title: '<?php echo T('UNINSTALLING_TITLE'); ?> Deluge',
-      text: '<?php echo T('UNINSTALLING_TXT_1'); ?> Deluge <?php echo T('UNINSTALLING_TXT_2'); ?>',
-      class_name: 'with-icon times-circle danger',
-      sticky: true
-    });
-  });
-  // EmbyRemove
-  $('#embyRemove').click(function(){
-    $.gritter.add({
-      title: '<?php echo T('UNINSTALLING_TITLE'); ?> Emby-Server',
-      text: '<?php echo T('UNINSTALLING_TXT_1'); ?> Emby-Server <?php echo T('UNINSTALLING_TXT_2'); ?>',
-      class_name: 'with-icon times-circle danger',
-      sticky: true
-    });
-  });
-  // filebrowserRemove
-  $('#filebrowserRemove').click(function(){
-    $.gritter.add({
-      title: '<?php echo T('UNINSTALLING_TITLE'); ?> filebrowser',
-      text: '<?php echo T('UNINSTALLING_TXT_1'); ?> filebrowser <?php echo T('UNINSTALLING_TXT_2'); ?>',
-      class_name: 'with-icon times-circle danger',
-      sticky: true
-    });
-  });
-  // PlexRemove
-  $('#plexRemove').click(function(){
-    $.gritter.add({
-      title: '<?php echo T('UNINSTALLING_TITLE'); ?> Plex',
-      text: '<?php echo T('UNINSTALLING_TXT_1'); ?> Plex Media Server <?php echo T('UNINSTALLING_TXT_2'); ?>',
-      class_name: 'with-icon times-circle danger',
-      sticky: true
-    });
-  });
-  // SyncthingRemove
-  $('#synctingRemove').click(function(){
-    $.gritter.add({
-      title: '<?php echo T('UNINSTALLING_TITLE'); ?> Syncthing',
-      text: '<?php echo T('UNINSTALLING_TXT_1'); ?> Sycthing <?php echo T('UNINSTALLING_TXT_2'); ?>',
-      class_name: 'with-icon times-circle danger',
-      sticky: true
-    });
-  });
-  // TransmissionRemove
-  $('#transmissionRemove').click(function(){
-    $.gritter.add({
-      title: '<?php echo T('UNINSTALLING_TITLE'); ?> Transmission',
-      text: '<?php echo T('UNINSTALLING_TXT_1'); ?> Transmission <?php echo T('UNINSTALLING_TXT_2'); ?>',
-      class_name: 'with-icon times-circle danger',
-      sticky: true
-    });
-  });
-  // qbittorrentRemove
-  $('#qbittorrentRemove').click(function(){
-    $.gritter.add({
-      title: '<?php echo T('UNINSTALLING_TITLE'); ?> qBittorrent',
-      text: '<?php echo T('UNINSTALLING_TXT_1'); ?> qBittorrent <?php echo T('UNINSTALLING_TXT_2'); ?>',
-      class_name: 'with-icon times-circle danger',
-      sticky: true
-    });
-  });
-  // x2goRemove
-  $('#x2goRemove').click(function(){
-    $.gritter.add({
-      title: '<?php echo T('UNINSTALLING_TITLE'); ?> x2go',
-      text: '<?php echo T('UNINSTALLING_TXT_1'); ?> x2go <?php echo T('UNINSTALLING_TXT_2'); ?>',
-      class_name: 'with-icon times-circle danger',
-      sticky: true
-    });
-  });
-  // ZNCRemove
-  $('#zncRemove').click(function(){
-    $.gritter.add({
-      title: 'Uninstalling ZNC',
-      text: '<?php echo T('UNINSTALLING_TXT_1'); ?> ZNC <?php echo T('UNINSTALLING_TXT_2'); ?>',
-      class_name: 'with-icon times-circle danger',
-      sticky: true
-    });
-  });
+  function gritterHandler(package, fullname) {
+    return function() {
+        $.gritter.add({
+        title: `<?php echo T('UNINSTALLING_TITLE'); ?> ${package}`,
+        text: `<?php echo T('UNINSTALLING_TXT_1'); ?> ${fullname || package} <?php echo T('UNINSTALLING_TXT_2'); ?>`,
+        class_name: 'with-icon times-circle danger',
+        sticky: true
+      });
+    }
+  }
 
+  $('#autodlirssiRemove').click(gritterHandler('AutoDL-iRSSi'));
+  $('#btsyncRemove').click(gritterHandler('BTSync', 'Bittorrent Sync'));
+  $('#delugeRemove').click(gritterHandler('Deluge'));
+  $('#filebrowserRemove').click(gritterHandler('filebrowser'));
+  $('#filebrowsereeRemove').click(gritterHandler('filebrowser-ee', 'File Browser Enhanced'));
+  $('#flexgetRemove').click(gritterHandler('flexget'));
+  $('#floodRemove').click(gritterHandler('flood'));
+  $('#netdataRemove').click(gritterHandler('netdata'));
+  $('#novncRemove').click(gritterHandler('novnc'));
+  $('#plexRemove').click(gritterHandler('Plex', 'Plex Media Server'));
+  $('#rtorrentRemove').click(gritterHandler('rtorrent'));
+  $('#rutorrentRemove').click(gritterHandler('rutorrent'));
+  $('#synctingRemove').click(gritterHandler('Syncthing'));
+  $('#transmissionRemove').click(gritterHandler('Transmission'));
+  $('#qbittorrentRemove').click(gritterHandler('qBittorrent'));
+  $('#x2goRemove').click(gritterHandler('x2go'));
+  $('#zncRemove').click(gritterHandler('ZNC'));
 });
 </script>
 
