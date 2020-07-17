@@ -266,24 +266,15 @@ $(function() {
       });
     }
   }
-
-  $('#autodlirssiRemove').click(gritterHandler('AutoDL-iRSSi'));
-  $('#btsyncRemove').click(gritterHandler('BTSync', 'Bittorrent Sync'));
-  $('#delugeRemove').click(gritterHandler('Deluge'));
-  $('#filebrowserRemove').click(gritterHandler('filebrowser'));
-  $('#filebrowsereeRemove').click(gritterHandler('filebrowser-ee', 'File Browser Enhanced'));
-  $('#flexgetRemove').click(gritterHandler('flexget'));
-  $('#floodRemove').click(gritterHandler('flood'));
-  $('#netdataRemove').click(gritterHandler('netdata'));
-  $('#novncRemove').click(gritterHandler('novnc'));
-  $('#plexRemove').click(gritterHandler('Plex', 'Plex Media Server'));
-  $('#rtorrentRemove').click(gritterHandler('rtorrent'));
-  $('#rutorrentRemove').click(gritterHandler('rutorrent'));
-  $('#syncthingRemove').click(gritterHandler('Syncthing'));
-  $('#transmissionRemove').click(gritterHandler('Transmission'));
-  $('#qbittorrentRemove').click(gritterHandler('qBittorrent'));
-  $('#x2goRemove').click(gritterHandler('x2go'));
-  $('#zncRemove').click(gritterHandler('ZNC'));
+<?php
+  foreach ($packageList as &$package) {
+  if ($package["boxonly"]) {
+    continue;
+  }
+  $packageLowercase = strtolower($package["package"]);
+?>
+  $('#<?php echo $packageLowercase; ?>Remove').click(gritterHandler('<?php echo $packageLowercase ?>', '<?php echo $package["name"]?>'));
+<?php } ?>
 });
 // });
 </script>
