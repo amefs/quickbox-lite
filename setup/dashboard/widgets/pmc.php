@@ -2,7 +2,7 @@
   include ('..inc/config.php');
   include ('..inc/panel.header.php');
   include ('..inc/panel.menu.php');
-  include ('..inc/package_info.php');
+  require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
 ?>
 
 
