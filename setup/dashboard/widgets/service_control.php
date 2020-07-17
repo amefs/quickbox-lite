@@ -23,20 +23,19 @@
         <tbody>
         <?php
         foreach ($packageList as &$package) {
-          if (!isset($package["service"]) || !file_exists($package["lockfile"])) {
+          if (!isset($package["services"]) || !file_exists($package["lockfile"])) {
             continue;
           }
-          $service = $package["service"];
-          foreach ($service["process"] as $process => $name) {
-            $processLowercase = strtolower($process)
+          $services = $package["services"];
+          foreach ($services as $service => $info) {
         ?>
           <tr>
-            <td><span id="appstat_<?php echo $processLowercase;?>"></span><?php echo $name; ?>
-            <?php if (isset($service["tooltips"])) { ?>
-            <span class="tooltips" data-toggle="tooltip" title="<?php echo $service["tooltips"]; ?>" data-placement="right"><i class="tooltips fa <?php echo $service["tooltipsicon"]?>"></i><span></td>
+            <td><span id="appstat_<?php echo $service;?>"></span><?php echo $info["name"]; ?>
+            <?php if (isset($info["tooltips"])) { ?>
+            <span class="tooltips" data-toggle="tooltip" title="<?php echo $info["tooltips"]; ?>" data-placement="right"><i class="tooltips fa <?php echo $info["tooltipsicon"]?>"></i><span></td>
             <?php } ?>
-            <td class="text-center"><button onclick="serviceUpdateHandler(event)" data-service="<?php echo $process; ?>" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></button></td>
-            <td class="text-center"><?php echo isEnabled($process, $service["username"]); ?></td>
+            <td class="text-center"><button onclick="serviceUpdateHandler(event)" data-service="<?php echo $service; ?>" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></button></td>
+            <td class="text-center"><?php echo isEnabled($info["process"], $info["username"]); ?></td>
           </tr>
         <?php
           }

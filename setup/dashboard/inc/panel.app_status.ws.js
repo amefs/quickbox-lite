@@ -57,12 +57,12 @@
   }, {
     name: "NOVNC",
     url: "/widgets/app_status/app_status_novnc.php",
-    id: "#appstat_xtightvnc",
+    id: "#appstat_novnc",
     time: 5000
   }, {
     name: "PLEX",
     url: "/widgets/app_status/app_status_plex.php",
-    id: "#appstat_plexmediaserver",
+    id: "#appstat_plex",
     time: 5000
   }, {
     name: "RTORRENT",
@@ -77,12 +77,12 @@
   }, {
     name: "TRANSMISSION",
     url: "/widgets/app_status/app_status_transmission.php",
-    id: "#appstat_transmission-daemon",
+    id: "#appstat_transmission",
     time: 5000
   }, {
     name: "QBITTORRENT",
     url: "/widgets/app_status/app_status_qbittorrent.php",
-    id: "#appstat_qbittorrent-nox",
+    id: "#appstat_qbittorrent",
     time: 5000
   }, {
     name: "WEB CONSOLE",

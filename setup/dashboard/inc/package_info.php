@@ -3,6 +3,28 @@ require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 
 $username = getUser();
 
+/*
+$sample = [
+  "package" => "required",
+  "name" => "required",
+  "description" => "required",
+  "lockfile" => "required",
+  "package" => "required",
+  "install" => "required when box only is true",
+  "uninstall" => "required when boxonly is false",
+  "skip" => "true for service only package",
+  "services" => [
+    "$servicename$" => [
+      "process" => "required",
+      "name" => "required",
+      "username" => "required",
+      "tooltips" => "optional",
+      "tooltipsicon" => "optional"
+    ]
+  ]// optional
+]
+ */
+
 $packageList = array(
   [
     "package" => "autodlirssi",
@@ -11,11 +33,12 @@ $packageList = array(
     "lockfile" => "/install/.autodlirssi.lock",
     "uninstall" => "UNINSTALL_AUTODL_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "irssi" => "iRSSi-AutoDL"
-      ],
-      "username" => $username
+    "services" => [
+      "irssi" => [
+        "process" => "irssi",
+        "name" => "iRSSi-AutoDL",
+        "username" => $username
+      ]
     ]
   ], [
     "package" => "autoremovetorrents",
@@ -31,11 +54,12 @@ $packageList = array(
     "lockfile" => "/install/.btsync.lock",
     "uninstall" => "UNINSTALL_BTSYNC_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "btsync" => "BTSync"
-      ],
-      "username" => $username
+    "services" => [
+      "btsync" => [
+        "process" => "btsync",
+        "name" => "BTSync",
+        "username" => $username
+      ]
     ]
   ], [
     "package" => "deluge",
@@ -44,12 +68,17 @@ $packageList = array(
     "lockfile" => "/install/.deluge.lock",
     "uninstall" => "UNINSTALL_DELUGE_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "deluged" => "DelugeD",
-        "deluge-web" => "Deluge Web"
+    "services" => [
+      "deluged" => [
+        "process" => "deluged",
+        "name" => "DelugeD",
+        "username" => $username
       ],
-      "username" => $username
+      "deluge-web" => [
+        "process" => "deluge-web",
+        "name" => "Deluge Web",
+        "username" => $username
+      ]
     ]
   ], [
     "package" => "denyhosts",
@@ -58,11 +87,12 @@ $packageList = array(
     "lockfile" => "/install/.denyhosts.lock",
     "install" => "BOX_TOOLTIP_DENYHOSTS",
     "boxonly" => true,
-    "service" => [
-      "process" => [
-        "denyhosts" => "Denyhosts"
-      ],
-      "username" => "root"
+    "services" => [
+      "denyhosts" => [
+        "process" => "denyhosts",
+        "name" => "Denyhosts",
+        "username" => "root"
+      ]
     ]
   ], [
     "package" => "fail2ban",
@@ -71,11 +101,12 @@ $packageList = array(
     "lockfile" => "/install/.fail2ban.lock",
     "install" => "BOX_TOOLTIP_FAIL2BAN",
     "boxonly" => true,
-    "service" => [
-      "process" => [
-        "fail2ban" => "Fail2ban"
-      ],
-      "username" => "root"
+    "services" => [
+      "fail2ban" => [
+        "process" => "fail2ban",
+        "name" => "Fail2ban",
+        "username" => "root"
+      ]
     ]
   ], [
     "package" => "filebrowser",
@@ -84,11 +115,12 @@ $packageList = array(
     "lockfile" => "/install/.filebrowser.lock",
     "uninstall" => "UNINSTALL_FILEBROWSER_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "filebrowser" => "File Browser"
-      ],
-      "username" => $username
+    "services" => [
+      "filebrowser" => [
+        "process" => "filebrowser",
+        "name" => "File Browser",
+        "username" => $username
+      ]
     ]
   ], [
     "package" => "filebrowser-ee",
@@ -97,11 +129,12 @@ $packageList = array(
     "lockfile" => "/install/.filebrowser-ee.lock",
     "uninstall" => "UNINSTALL_FILEBROWSEREE_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "filebrowser-ee" => "File Browser Enhanced"
-      ],
-      "username" => $username
+    "services" => [
+      "filebrowser-ee" => [
+        "process" => "filebrowser-ee",
+        "name" => "File Browser Enhanced",
+        "username" => $username
+      ]
     ]
   ], [
     "package" => "flexget",
@@ -110,11 +143,12 @@ $packageList = array(
     "lockfile" => "/install/.$username.flexget.lock",
     "uninstall" => "UNINSTALL_FLEXGET_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "flexget" => "FlexGet"
-      ],
-      "username" => $username
+    "services" => [
+      "flexget" => [
+        "process" => "flexget",
+        "name" => "FlexGet",
+        "username" => $username
+      ]
     ]
   ], [
     "package" => "flood",
@@ -123,11 +157,12 @@ $packageList = array(
     "lockfile" => "/install/.flood.lock",
     "uninstall" => "UNINSTALL_FLOOD_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "flood" => "Flood"
-      ],
-      "username" => $username
+    "services" => [
+      "flood" => [
+        "process" => "flood",
+        "flood" => "Flood",
+        "username" => $username
+      ]
     ]
   ], [
     "package" => "lecert",
@@ -143,11 +178,12 @@ $packageList = array(
     "lockfile" => "/install/.netdata.lock",
     "uninstall" => "UNINSTALL_NETDATA_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "netdata" => "Netdata"
-      ],
-      "username" => $username
+    "services" => [
+      "netdata" => [
+        "process" => "netdata",
+        "name" => "Netdata",
+        "username" => $username
+      ]
     ]
   ], [
     "package" => "novnc",
@@ -156,11 +192,12 @@ $packageList = array(
     "lockfile" => "/install/.novnc.lock",
     "uninstall" => "UNINSTALL_NOVNC_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "Xtightvnc" => "noVNC"
-      ],
-      "username" => $username
+    "services" => [
+      "novnc" => [
+        "process" => "Xtightvnc",
+        "name" => "noVNC",
+        "username" => $username
+      ]
     ]
   ], [
     "package" => "plex",
@@ -169,11 +206,12 @@ $packageList = array(
     "lockfile" => "/install/.plex.lock",
     "uninstall" => "UNINSTALL_PLEX_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "plexmediaserver" => "Plex"
-      ],
-      "username" => $username
+    "services" => [
+      "plex" => [
+        "process" => "plexmediaserver",
+        "name" => "Plex",
+        "username" => $username
+      ]
     ]
   ], [
     "package" => "rtorrent",
@@ -182,13 +220,14 @@ $packageList = array(
     "lockfile" => "/install/.rtorrent.lock",
     "uninstall" => "UNINSTALL_RTORRENT_TXT",
     "boxonly" => false,
-    "service" => [
-        "process" => [
-          "rtorrent" => "rTorrent"
-        ],
-        "username" => $username,
-        "tooltips" => "scgi_port: /var/run/".$username."/.rtorrent.sock",
-        "tooltipsicon" => "fa-usb"
+    "services" => [
+        "rtorrent" => [
+          "process" => "rtorrent",
+          "name" => "rTorrent",
+          "username" => $username,
+          "tooltips" => "scgi_port: /var/run/".$username."/.rtorrent.sock",
+          "tooltipsicon" => "fa-usb"
+        ]
     ]
   ], [
     "package" => "rutorrent",
@@ -204,11 +243,12 @@ $packageList = array(
     "lockfile" => "/install/.syncthing.lock",
     "uninstall" => "UNINSTALL_SYNCTHING_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "syncthing" => "Syncthing"
-      ],
-      "username" => $username
+    "services" => [
+      "syncthing" => [
+        "process" => "syncthing",
+        "name" => "Syncthing",
+        "username" => $username
+      ]
     ]
   ], [
     "package" => "transmission",
@@ -217,9 +257,11 @@ $packageList = array(
     "lockfile" => "/install/.transmission.lock",
     "uninstall" => "UNINSTALL_TRANSMISSION_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "transmission-daemon" => "Transmission"
+    "services" => [
+      "transmission" => [
+        "process" => "transmission-daemon",
+        "name" => "Transmission",
+        "username" => $username
       ]
     ]
   ], [
@@ -229,9 +271,11 @@ $packageList = array(
     "lockfile" => "/install/.qbittorrent.lock",
     "uninstall" => "UNINSTALL_QBITTORRENT_TXT",
     "boxonly" => false,
-    "service" => [
-      "process" => [
-        "qbittorrent-nox" => "qBittorrent"
+    "services" => [
+      "qbittorrent" => [
+        "process" => "qbittorrent-nox",
+        "name" => "qBittorrent",
+        "username" => $username
       ]
     ]
   ], [
@@ -253,11 +297,12 @@ $packageList = array(
     "package" => "shellinabox",
     "name" => "Web Console",
     "lockfile" => "/install/.shellinabox.lock",
-    "service" => [
-      "process" => [
-        "shellinabox" => "Web Console"
-      ],
-      "username" => "shellinabox"
+    "services" => [
+      "shellinabox" => [
+        "process" => "shellinabox",
+        "name" => "Web Console",
+        "username" => "shellinabox"
+      ]
     ]
   ]
 );
