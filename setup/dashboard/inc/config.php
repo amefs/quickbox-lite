@@ -220,25 +220,6 @@ function processExists($processName, $username) {
   return $exists;
 }
 
-$btsync = processExists("resilio-sync",$username);
-$deluged = processExists("deluged",$username);
-$delugedweb = processExists("deluge-web",$username);
-$denyhosts = processExists("denyhosts",root);
-$fail2ban = processExists("fail2ban",root);
-$filebrowser = processExists("filebrowser",$username);
-$flexget = processExists("flexget",$username);
-$flood = processExists("flood",$username);
-$irssi = processExists("irssi",$username);
-$netdata = processExists("netdata",netdata);
-$novnc = processExists("Xtightvnc", $username);
-$plex = processExists("Plex",plex);
-$rtorrent = processExists("rtorrent",$username);
-$syncthing = processExists("syncthing",$username);
-$shellinabox = processExists("shellinabox",shellinabox);
-$transmission = processExists("transmission-daemon",$username);
-$qbittorrent = processExists("qbittorrent-nox",$username);
-$znc = processExists("znc",$username);
-
 function isEnabled($process, $username){
   $service = $process;
   if (file_exists('/etc/systemd/system/multi-user.target.wants/'.$process.'@'.$username.'.service') || file_exists('/etc/systemd/system/multi-user.target.wants/'.$process.'.service')) {
@@ -279,52 +260,4 @@ include ($_SERVER['DOCUMENT_ROOT'].'/widgets/package_data.php');
 include ($_SERVER['DOCUMENT_ROOT'].'/widgets/theme_select.php');
 $base = 1024;
 $location = "/home";
-
-/* check for services */
-switch (intval($_GET['id'])) {
-  case 0: {
-    $rtorrent = isEnabled("rtorrent", $username);
-    $cbodyr .= $rtorrent;
-    $irssi = isEnabled("irssi", $username);
-    $cbodyi .= $irssi;
-    $deluged = isEnabled("deluged", $username);
-    $cbodyd .= $deluged;
-    $delugedweb = isEnabled("deluge-web", $username);
-    $cbodydw .= $delugedweb;
-    $denyhosts = isEnabled("denyhosts", root);
-    $cbodydh .= $denyhosts;
-    $fail2ban = isEnabled("fail2ban", root);
-    $cbodyf2b .= $fail2ban; 
-    $filebrowser = isEnabled("filebrowser", $username);
-    $cbodyfb .= $filebrowser;
-    $filebrowseree = isEnabled("filebrowser-ee", $username);
-    $cbodyfbe .= $filebrowseree;
-    $flexget = isEnabled("flexget", $username);
-    $cbodyfg .= $flexget;
-    $flood = isEnabled("flood", $username);
-    $cbodyfl .= $flood;
-    $shellinabox = isEnabled("shellinabox",shellinabox);
-    $wcbodyb .= $shellinabox;
-    $btsync = isEnabled("resilio-sync",$username);
-    $cbodyb .= $btsync;
-    $netdata = isEnabled("netdata",netdata);
-    $cbodynd .= $netdata;
-    $novnc = isEnabled("tightvnc",$username);
-    $cbodyvnc .= $novnc;
-    $plex = isEnabled("plexmediaserver",plex);
-    $cbodyp .= $plex;
-    $syncthing = isEnabled("syncthing", $username);
-    $cbodyst .= $syncthing;
-    $transmission = isEnabled("transmission", $username);
-    $cbodytr .= $transmission;
-    $qbittorrent = isEnabled("qbittorrent", $username);
-    $cbodyqb .= $qbittorrent;
-    $x2go = isEnabled("x2go", $username);
-    $cbodyx .= $x2go;
-    $znc = isEnabled("znc", $username);
-    $cbodyz .= $znc;
-    break;
-  }
-}
-
 ?>

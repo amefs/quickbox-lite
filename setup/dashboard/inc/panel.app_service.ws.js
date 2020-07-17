@@ -24,7 +24,7 @@
         } else {
             if (response.cmd && response.cmd.startsWith("systemctl")) {
                 setTimeout(function() {
-                    // service status is renedred by php, a force refresh is required
+                    // service status is rendered by php, a force refresh is required
                     location.reload();
                 }, 100);
             }
@@ -64,8 +64,8 @@
             if (!target) {
                 return;
             }
-            const package = target.dataset["package"];
-            exec(`${template}::${package}`);
+            const pkg = target.dataset["package"];
+            exec(`${template}::${pkg}`);
         }
     }
     function serviceUpdateHandler(event) {
@@ -98,8 +98,8 @@
             return;
         }
         const operation = event.target.dataset["operation"];
-        const package = event.target.dataset["package"];
-        exec(`box:${operation}:${package}`);
+        const pkg = event.target.dataset["package"];
+        exec(`box:${operation}:${pkg}`);
     }
     window.packageInstallHandler = packageHandler("installpackage");
     window.packageRemoveHandler = packageHandler("removepackage");

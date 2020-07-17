@@ -28,6 +28,9 @@
         <tbody>
           <?php
             foreach ($packageList as &$package) {
+              if (isset($package["skip"]) && $package["skip"]) {
+                continue;
+              }
               $packageLowercase = strtolower($package["package"]);
               $packageUppercase = strtoupper($package["package"]);
             ?>

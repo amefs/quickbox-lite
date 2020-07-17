@@ -5,7 +5,7 @@ require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
 
 <?php
 foreach ($packageList as &$package) {
-  if ($package["boxonly"]) {
+  if ($package["boxonly"] || (isset($package["skip"]) && $package["skip"])) {
     continue;
   }
   $packageLowercase = strtolower($package["package"]);
