@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="lib/Hover/hover.css">
   <link rel="stylesheet" href="lib/jquery-toggles/toggles-full.css">
   <link rel="stylesheet" href="lib/jquery-gritter/css/jquery.gritter.css">
+  <link rel="stylesheet" href="lib/datatables/css/dataTables.bootstrap.css">
   <link rel="stylesheet" href="lib/animate.css/animate.css">
   <link rel="stylesheet" href="lib/font-awesome/font-awesome.css">
   <link rel="stylesheet" href="lib/ionicons/css/ionicons.css">

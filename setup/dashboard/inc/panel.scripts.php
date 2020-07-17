@@ -551,8 +551,8 @@ $(document).ready(function() {
 });
 </script>
 
-<script src="lib/datatables/jquery.dataTables.js"></script>
-<script src="lib/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.js"></script>
+<script src="lib/datatables/js/jquery.dataTables.min.js"></script>
+<script src="lib/datatables/js/dataTables.bootstrap.min.js"></script>
 <script src="lib/select2/select2.js"></script>
 
 <script>
