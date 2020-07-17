@@ -130,7 +130,7 @@
               <li><a class="grayscale" href="<?php echo "$rutorrentURL"; ?>" target="_blank"><img data-src="img/brands/rtorrent.png" class="brand-ico lazyload"> <span>ruTorrent</span></a></li>
             <?php } ?>
             <!-- // FLOOD // -->
-            <?php if (processExists("rtorrent",$username) && file_exists('/install/.flood.lock')) { ?>
+            <?php if (processExists("flood",$username) && file_exists('/install/.flood.lock')) { ?>
               <li><a class="grayscale" href="<?php echo "$floodURL"; ?>" target="_blank"><img data-src="img/brands/flood.png" class="brand-ico lazyload"> <span>Flood</span></a></li>
             <?php } ?>
             <!-- // DELUGE-WEB // -->
@@ -146,7 +146,7 @@
               <li><a href="<?php echo "$qbittorrentURL"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/qbittorrent.png" class="brand-ico lazyload"> <span>qBittorrent</span></a></li>
             <?php } ?>
             <?php if ($username == "$master") { ?>
-              <?php if (processExists("resilio-sync",rslsync) && file_exists('/install/.btsync.lock')) { ?>
+              <?php if (processExists("rslsync",$username) && file_exists('/install/.btsync.lock')) { ?>
                 <li><a class="grayscale" href="<?php echo "$btsyncURL"; ?>" target="_blank"><img data-src="img/brands/btsync.png" class="brand-ico lazyload"> <span>BTSync</span></a></li>
               <?php } ?>
               <?php if (processExists("filebrowser",$username) && file_exists('/install/.filebrowser.lock')) { ?>

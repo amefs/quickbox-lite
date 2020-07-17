@@ -2,7 +2,7 @@
   const service_status_list = [{
     name: "BTSYNC",
     url: "/widgets/app_status/app_status_btsync.php",
-    id: "#appstat_btsync",
+    id: "#appstat_resilio-sync",
     time: 5000
   }, {
     name: "DELUGED",
@@ -57,12 +57,12 @@
   }, {
     name: "NOVNC",
     url: "/widgets/app_status/app_status_novnc.php",
-    id: "#appstat_novnc",
+    id: "#appstat_tightvnc",
     time: 5000
   }, {
     name: "PLEX",
     url: "/widgets/app_status/app_status_plex.php",
-    id: "#appstat_plex",
+    id: "#appstat_plexmediaserver",
     time: 5000
   }, {
     name: "RTORRENT",

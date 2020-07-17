@@ -220,12 +220,11 @@ function processExists($processName, $username) {
   return $exists;
 }
 
-function isEnabled($process, $username){
-  $service = $process;
-  if (file_exists('/etc/systemd/system/multi-user.target.wants/'.$process.'@'.$username.'.service') || file_exists('/etc/systemd/system/multi-user.target.wants/'.$process.'.service')) {
-    return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-en toggle-light primary" data-service="'.$process.'" data-operation="stop,disable"></div></div>';
+function isEnabled($service, $username) {
+  if (file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'@'.$username.'.service') || file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'.service')) {
+    return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-en toggle-light primary" data-service="'.$service.'" data-operation="stop,disable"></div></div>';
   } else {
-    return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-dis toggle-light primary" data-service="'.$process.'" data-operation="enable,restart"></div></div>';
+    return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-dis toggle-light primary" data-service="'.$service.'" data-operation="enable,restart"></div></div>';
   }
 }
 

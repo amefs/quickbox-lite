@@ -35,7 +35,7 @@
             <span class="tooltips" data-toggle="tooltip" title="<?php echo $info["tooltips"]; ?>" data-placement="right"><i class="tooltips fa <?php echo $info["tooltipsicon"]?>"></i><span></td>
             <?php } ?>
             <td class="text-center"><button onclick="serviceUpdateHandler(event)" data-service="<?php echo $service; ?>" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></button></td>
-            <td class="text-center"><?php echo isEnabled($info["process"], $info["username"]); ?></td>
+            <td class="text-center"><?php echo isEnabled($service, $info["username"]); ?></td>
           </tr>
         <?php
           }
