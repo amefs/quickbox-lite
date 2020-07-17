@@ -82,49 +82,6 @@ $(document).ready(function () {
     });
   }
 
-  // Toggles
-  $(".toggle-en").toggles({
-    on: true,
-    height: 26,
-    width: 100,
-    text: {
-      on: "<?php echo T('ENABLED') ?>",
-    },
-  });
-  $(".toggle-dis").toggles({
-    on: false,
-    height: 26,
-    width: 100,
-    text: {
-      off: "<?php echo T('DISABLED') ?>",
-    },
-  });
-  $(".toggle-pen").toggles({
-    on: true,
-    height: 16,
-    width: 90,
-    text: {
-      on: "<?php echo T('INSTALLED') ?>",
-      off: "<?php echo T('UNINSTALLING') ?>",
-    },
-  });
-  $(".toggle-pdis").toggles({
-    on: false,
-    height: 16,
-    width: 90,
-    text: {
-      off: "<?php echo T('UNINSTALLED') ?>",
-      on: "<?php echo T('INSTALLING') ?>",
-    },
-  });
-
-  // Left Panel Toggles
-  $(".leftpanel-toggle").toggles({
-    on: true,
-    height: 11,
-  });
-  $(".leftpanel-toggle-off").toggles({ height: 11 });
-
   // Tooltip
   $(".tooltips").tooltip({ container: "body" });
 

@@ -399,7 +399,6 @@
 <script src="lib/visibility/visibility.core.js"></script>
 <script src="lib/visibility/visibility.timers.js"></script>
 <script src="lib/socket.io/socket.io.js"></script>
-<script src="lib/jquery-toggles/toggles.js"></script>
 <script src="lib/lazysizes/lazysizes.min.js" async></script>
 <script src="lib/bootbox/bootbox.all.min.js" async></script>
 <script src="js/quick.js"></script>
@@ -460,7 +459,55 @@ $(function() {
 </script>
 
 <script>
-asyncLoad("lib/perfect-scrollbar/js/perfect-scrollbar.min.js", function() {
+asyncLoad("lib/jquery-toggles/toggles.js", function() {
+$(function() {
+  // Left Panel Toggles
+  $(".leftpanel-toggle").toggles({
+      on: true,
+      height: 11,
+  });
+  $(".leftpanel-toggle-off").toggles({ height: 11 });
+  // Toggles
+  $(".toggle-en").toggles({
+    on: true,
+    height: 26,
+    width: 100,
+    text: {
+      on: "<?php echo T('ENABLED') ?>",
+    },
+  });
+  $(".toggle-dis").toggles({
+    on: false,
+    height: 26,
+    width: 100,
+    text: {
+      off: "<?php echo T('DISABLED') ?>",
+    },
+  });
+  $(".toggle-pen").toggles({
+    on: true,
+    height: 16,
+    width: 90,
+    text: {
+      on: "<?php echo T('INSTALLED') ?>",
+      off: "<?php echo T('UNINSTALLING') ?>",
+    },
+  });
+  $(".toggle-pdis").toggles({
+    on: false,
+    height: 16,
+    width: 90,
+    text: {
+      off: "<?php echo T('UNINSTALLED') ?>",
+      on: "<?php echo T('INSTALLING') ?>",
+    },
+  });
+});
+});
+</script>
+
+<script>
+asyncLoad("lib/perfect-scrollbar/js/perfect-scrollbar.jquery.min.js", function() {
 $(function() {
   $('.leftpanel').perfectScrollbar();
   $('.leftpanel').perfectScrollbar({ wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 });
