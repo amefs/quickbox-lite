@@ -1,311 +1,36 @@
 </section>
+<?php
+include ('./package_info.php');
+?>
 
-<!-- AUTODL UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="autodlirssiRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="AutodlirssiRemovalConfirm" aria-hidden="true">
+<?php
+foreach ($packageList as &$package) {
+  if ($package["boxonly"]) {
+    continue;
+  }
+  $packageLowercase = strtolower($package["package"]);
+  $packageUppercase = strtoupper($package["package"]);
+?>
+<!-- <?php echo $packageUppercase; ?> UNINSTALL MODAL -->
+<div class="modal bounceIn animated" id="<?php echo $packageLowercase;?>RemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="<?php echo $packageUppercase;?>RemovalConfirm" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="AutodlirssiRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> autodl-irssi?</h4>
+        <h4 class="modal-title" id="<?php echo $packageUppercase;?>RemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> <?php echo $package["name"] ?>?</h4>
       </div>
       <div class="modal-body">
-        <?php echo T('UNINSTALL_AUTODL_TXT'); ?>
+        <?php echo T($package["uninstall"]); ?>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="autodlirssi" id="autodlirssiRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="<?php echo $packageLowercase;?>" id="<?php echo $packageLowercase;?>Remove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
 </div><!-- modal -->
-<!-- BTSYNC UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="btsyncRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="BTSyncRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="BTSyncRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> BTSync?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_BTSYNC_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="btsync" id="btsyncRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- DELUGE UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="delugeRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="DelugeRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="DelugeRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> Deluge?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_DELUGE_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="deluge" id="delugeRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- FILEBROWSER UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="filebrowserRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="filebrowserRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="filebrowserRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> File Browser?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_FILEBROWSER_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="filebrowser" id="filebrowserRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- FILEBROWSEREE UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="filebrowsereeRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="filebrowsereeRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="filebrowsereeRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> File Browser?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_FILEBROWSEREE_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="filebrowser-ee" id="filebrowsereeRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- FLEXGET UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="flexgetRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="flexgetRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="flexgetRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> FlexGet?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_FLEXGET_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="flexget" id="flexgetRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- FLOOD UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="floodRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="floodRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="floodRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> Flood?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_FLOOD_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="flood" id="floodRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- NETDATA UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="netdataRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="netdataRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="netdataRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> Netdata?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_NETDATA_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="netdata" id="netdataRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- NOVNC UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="novncRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="novncRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="novncRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> noVNC?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_NOVNC_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="novnc" id="novncRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- PLEX UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="plexRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="PlexRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="PlexRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> Plex?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_PLEX_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="plex" id="plexRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- RTORRENT UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="rtorrentRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="rtorrentRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="rtorrentRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> rTorrent?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_RTORRENT_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="rtorrent" id="rtorrentRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- RUTORRENT UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="rutorrentRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="rutorrentRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="rutorrentRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> ruTorrent?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_RUTORRENT_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="rutorrent" id="rutorrentRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- SYNCTHING UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="syncthingRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="SyncthingRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="SyncthingRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> Syncthing?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_SYNCTHING_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="syncthing" id="syncthingRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- TRANSMISSION UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="transmissionRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="TransmissionRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="TransmissionRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> Transmission?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_TRANSMISSION_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="transmission" id="transmissionRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- QBITTORRENT UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="qbittorrentRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="qBittorrentRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="qBittorrentRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> qBittorrent?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_QBITTORRENT_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="qbittorrent" id="qbittorrentRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- X2GO UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="x2goRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="x2goRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="x2goRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> x2go?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_X2GO_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="x2go" id="x2goRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<!-- ZNC UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="zncRemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="ZNCRemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="ZNCRemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> ZNC?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T('UNINSTALL_ZNC_TXT'); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="znc" id="zncRemove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
+<?php } ?>
+
 <!-- THEME SELECT MODAL -->
 <?php $option = array();
               $option[] = array('file' => 'defaulted', 'title' =>'Defaulted');
