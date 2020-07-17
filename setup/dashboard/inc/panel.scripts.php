@@ -512,11 +512,11 @@ $(document).ready(function() {
 
   'use strict';
 
-  function gritterHandler(package, fullname) {
+  function gritterHandler(packagename, fullname) {
     return function() {
         $.gritter.add({
-        title: `<?php echo T('UNINSTALLING_TITLE'); ?> ${package}`,
-        text: `<?php echo T('UNINSTALLING_TXT_1'); ?> ${fullname || package} <?php echo T('UNINSTALLING_TXT_2'); ?>`,
+        title: `<?php echo T('UNINSTALLING_TITLE'); ?> ${packagename}`,
+        text: `<?php echo T('UNINSTALLING_TXT_1'); ?> ${fullname || packagename} <?php echo T('UNINSTALLING_TXT_2'); ?>`,
         class_name: 'with-icon times-circle danger',
         sticky: true
       });
