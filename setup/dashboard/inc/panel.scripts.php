@@ -416,8 +416,9 @@
   }
 </script>
 
+<script src="lib/lobipanel/js/lobipanel.min.js"></script>
 <script>
-asyncLoad("lib/lobipanel/js/lobipanel.min.js", function() {
+// asyncLoad("lib/lobipanel/js/lobipanel.min.js", function() {
 $(function() {
   $('.panel').lobiPanel({
       reload: {
@@ -455,11 +456,12 @@ $(function() {
     $body.html('<div>' + $body.html() + '</div>');
   });
 });
-});
+// });
 </script>
 
+<script src="lib/jquery-toggles/toggles.js"></script>
 <script>
-asyncLoad("lib/jquery-toggles/toggles.js", function() {
+// asyncLoad("lib/jquery-toggles/toggles.js", function() {
 $(function() {
   // Left Panel Toggles
   $(".leftpanel-toggle").toggles({
@@ -503,11 +505,12 @@ $(function() {
     },
   });
 });
-});
+// });
 </script>
 
+<script src="lib/perfect-scrollbar/js/perfect-scrollbar.jquery.min.js"></script>
 <script>
-asyncLoad("lib/perfect-scrollbar/js/perfect-scrollbar.jquery.min.js", function() {
+// asyncLoad("lib/perfect-scrollbar/js/perfect-scrollbar.jquery.min.js", function() {
 $(function() {
   $('.leftpanel').perfectScrollbar();
   $('.leftpanel').perfectScrollbar({ wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 });
@@ -519,11 +522,12 @@ $(function() {
   $('.sysout').perfectScrollbar({ wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 });
   $('.sysout').perfectScrollbar('update');
 });
-});
+// });
 </script>
 
+<script src="lib/jquery-gritter/js/jquery.gritter.min.js"></script>
 <script>
-asyncLoad("lib/jquery-gritter/js/jquery.gritter.min.js", function() {
+// asyncLoad("lib/jquery-gritter/js/jquery.gritter.min.js", function() {
 $(function() {
   'use strict';
 
@@ -556,7 +560,7 @@ $(function() {
   $('#x2goRemove').click(gritterHandler('x2go'));
   $('#zncRemove').click(gritterHandler('ZNC'));
 });
-});
+// });
 </script>
 
 <script>
