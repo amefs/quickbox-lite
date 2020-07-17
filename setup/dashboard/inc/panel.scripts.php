@@ -399,9 +399,10 @@
 <script src="lib/visibility/visibility.core.js"></script>
 <script src="lib/visibility/visibility.timers.js"></script>
 <script src="lib/socket.io/socket.io.js"></script>
+<script src="lib/jquery-toggles/toggles.js"></script>
 <script src="lib/lazysizes/lazysizes.min.js" async></script>
+<script src="lib/bootbox/bootbox.all.min.js" async></script>
 <script src="js/quick.js"></script>
-<script src="lib/bootbox/bootbox.all.min.js"></script>
 <script src="inc/panel.app_status.ws.js"></script>
 <script src="inc/panel.app_service.ws.js"></script>
 
@@ -459,7 +460,7 @@ $(function() {
 </script>
 
 <script>
-asyncLoad("lib/perfect-scrollbar/perfect-scrollbar.min.js", function() {
+asyncLoad("lib/perfect-scrollbar/js/perfect-scrollbar.min.js", function() {
 $(function() {
   $('.leftpanel').perfectScrollbar();
   $('.leftpanel').perfectScrollbar({ wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 });
@@ -470,48 +471,6 @@ $(function() {
   $('.sysout').perfectScrollbar();
   $('.sysout').perfectScrollbar({ wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 });
   $('.sysout').perfectScrollbar('update');
-});
-});
-</script>
-
-<script>
-asyncLoad("lib/jquery-toggles/toggles.js", function() {
-$(function() {
-  // Toggles
-  $('.toggle-en').toggles({
-    on: true,
-    height: 26,
-    width: 100,
-    text: {
-      on: "<?php echo T('ENABLED') ?>"
-    }
-  });
-  $('.toggle-dis').toggles({
-    on: false,
-    height: 26,
-    width: 100,
-    text: {
-      off: "<?php echo T('DISABLED') ?>"
-    }
-  });
-  $('.toggle-pen').toggles({
-    on: true,
-    height: 16,
-    width: 90,
-    text: {
-      on: "<?php echo T('INSTALLED') ?>",
-      off: "<?php echo T('UNINSTALLING') ?>"
-    }
-  });
-  $('.toggle-pdis').toggles({
-    on: false,
-    height: 16,
-    width: 90,
-    text: {
-      off: "<?php echo T('UNINSTALLED') ?>",
-      on: "<?php echo T('INSTALLING') ?>"
-    }
-  });
 });
 });
 </script>
