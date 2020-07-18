@@ -160,7 +160,7 @@ $packageList = array(
     "services" => [
       "flood" => [
         "process" => "flood",
-        "flood" => "Flood",
+        "name" => "Flood",
         "username" => $username
       ]
     ]
@@ -182,7 +182,7 @@ $packageList = array(
       "netdata" => [
         "process" => "netdata",
         "name" => "Netdata",
-        "username" => $username
+        "username" => "netdata"
       ]
     ]
   ], [
@@ -210,7 +210,7 @@ $packageList = array(
       "plexmediaserver" => [
         "process" => "plexmediaserver",
         "name" => "Plex",
-        "username" => $username
+        "username" => "plex"
       ]
     ]
   ], [

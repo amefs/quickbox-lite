@@ -1,7 +1,7 @@
 (function($) {
   const service_status_list = [{
     name: "BTSYNC",
-    url: "/widgets/service_status.php?service=btsync",
+    url: "/widgets/service_status.php?service=resilio-sync",
     id: "#appstat_resilio-sync",
     time: 5000
   }, {
