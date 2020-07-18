@@ -17,12 +17,12 @@ $packageWithService = array_filter($packageList, function($package) {
 
 $status = false;
 
-foreach ($packageList as $package) {
-    foreach ($packageList["service"] as $k => $info) {
+foreach ($packageWithService as $package) {
+    foreach ($package["services"] as $k => $info) {
         if ($k === $service) {
             $process = $info["process"];
             $username = $info["username"];
-            $status = processExists("resilio-sync", $username);
+            $status = processExists($process, $username);
         }
     }
 }
@@ -33,5 +33,5 @@ if ($status) {
     $val = '<span class="badge badge-service-disabled-dot"></span><span class="badge badge-service-disabled-pulse"></span>';
 }
 
-echo "$bval";
+echo "$val";
 ?>
