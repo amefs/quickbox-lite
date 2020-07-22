@@ -60,28 +60,32 @@
                           <div class="row">
                             <div class="col-xs-12">
                               <div class="col-xs-12 col-md-6" style="padding: 0">
-                                <?php $language = array();
-                                $language[] = array('file' => 'lang_zh', 'title' =>'Chinese');             
-                                $language[] = array('file' => 'lang_dk', 'title' =>'Danish');
-                                $language[] = array('file' => 'lang_en', 'title' =>'English');
-                                $language[] = array('file' => 'lang_fr', 'title' =>'French');
-                                $language[] = array('file' => 'lang_de', 'title' =>'German');
-                                $language[] = array('file' => 'lang_es', 'title' =>'Spanish'); { ?>
+                                <?php
+                                $languages = array(
+                                  [ 'file' => 'lang_zh', 'title' => 'Chinese' ],
+                                  [ 'file' => 'lang_dk', 'title' => 'Danish'  ],
+                                  [ 'file' => 'lang_en', 'title' => 'English' ],
+                                  [ 'file' => 'lang_fr', 'title' => 'French'  ],
+                                  [ 'file' => 'lang_de', 'title' => 'German'  ],
+                                  [ 'file' => 'lang_es', 'title' => 'Spanish' ]
+                                );
+                                ?>
                                 <h5><?php echo T('LANG_SELECT'); ?></h5>
-                                <?php foreach($language as $lang) { ?>
-                                  <small><a href='?langSelect-<?php echo $lang['file'] ?>=true'><img class='lang-flag lazyload' data-src='lang/flag_<?php echo $lang['file'] ?>.png' /><?php echo $lang['title'] ?></a></small>
-                                <?php } ?>
+                                <?php foreach($languages as $lang) { ?>
+                                  <small><div onclick="boxHandler(event)" data-package="<?php echo $lang['file'] ?>" data-operation="lang"><img class="lang-flag lazyload" data-src="lang/flag_<?php echo $lang['file'] ?>.png" /><?php echo $lang['title'] ?></div></small>
                                 <?php } ?>
                               </div>
                               <div class="col-xs-12 col-md-6" style="padding: 0">
-                              <?php $option = array();
-                              $option[] = array('file' => 'defaulted', 'title' =>'Defaulted');
-                              $option[] = array('file' => 'smoked', 'title' =>'Smoked'); { ?>
+                              <?php
+                              $themes = array(
+                                [ 'file' => 'defaulted', 'title' => 'Defaulted' ],
+                                [ 'file' => 'smoked'   , 'title' => 'Smoked'    ]
+                              );
+                              ?>
                                 <h5><?php echo T('THEME_SELECT'); ?></h5>
-                                <?php foreach($option as $theme) { ?>
-                                  <small><a href="javascript:void()" data-toggle="modal" data-target="#themeSelect<?php echo $theme['file'] ?>Confirm"><img class='lang-flag lazyload' data-src='img/themes/opt_<?php echo $theme['file'] ?>.png' /><?php echo $theme['title'] ?></a></small>
+                                <?php foreach($themes as $theme) { ?>
+                                  <small><div data-toggle="modal" data-target="#themeSelect<?php echo $theme['file'] ?>Confirm"><img class="lang-flag lazyload" data-src="img/themes/opt_<?php echo $theme['file'] ?>.png" /><?php echo $theme['title'] ?></div></small>
                                 <?php } ?>
-                              <?php } ?>
                               </div>
                             </div>
                           </div>

@@ -252,8 +252,7 @@ if(file_exists('/srv/dashboard/custom/url.override.php')){
   $transmissiondlURL = "https://" . $_SERVER['HTTP_HOST'] . "/$username.transmission.downloads";
   $zncURL = "https://" . $_SERVER['HTTP_HOST'] . "/znc/";
  }
- 
-include ($_SERVER['DOCUMENT_ROOT'].'/widgets/lang_select.php');
+
 include ($_SERVER['DOCUMENT_ROOT'].'/widgets/plugin_data.php');
 include ($_SERVER['DOCUMENT_ROOT'].'/widgets/package_data.php');
 include ($_SERVER['DOCUMENT_ROOT'].'/widgets/theme_select.php');
