@@ -72,7 +72,7 @@
                                 ?>
                                 <h5><?php echo T('LANG_SELECT'); ?></h5>
                                 <?php foreach($languages as $lang) { ?>
-                                  <small><div onclick="boxHandler(event)" data-package="<?php echo $lang['file'] ?>" data-operation="lang"><img class="lang-flag lazyload" data-src="lang/flag_<?php echo $lang['file'] ?>.png" /><?php echo $lang['title'] ?></div></small>
+                                  <small><div onclick="boxHandler(event)" data-package="<?php echo $lang['file'] ?>" data-operation="lang" style="cursor: pointer;"><img class="lang-flag lazyload" data-src="lang/flag_<?php echo $lang['file'] ?>.png" /><?php echo $lang['title'] ?></div></small>
                                 <?php } ?>
                               </div>
                               <div class="col-xs-12 col-md-6" style="padding: 0">

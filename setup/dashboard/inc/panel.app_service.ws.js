@@ -22,7 +22,7 @@
             }
             showAlert(message);
         } else {
-            if (response.cmd && response.cmd.startsWith("systemctl")) {
+            if (response.cmd && (response.cmd.startsWith("systemctl") || response.cmd.startsWith("box:lang"))) {
                 setTimeout(function() {
                     // service status is rendered by php, a force refresh is required
                     location.reload();
@@ -94,7 +94,16 @@
         if (!checkParameters({event})) {
             return;
         }
-        if (!event.target) {
+        let target = event.target;
+        if (!target) {
+            return;
+        }
+        if (!target.dataset["package"]) {
+            do {
+                target = target.parentElement;
+            } while (target && target.nodeName === "DIV" && !target.dataset["package"])
+        }
+        if (!target) {
             return;
         }
         const operation = event.target.dataset["operation"];
