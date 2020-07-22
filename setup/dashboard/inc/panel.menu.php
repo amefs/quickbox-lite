@@ -84,7 +84,7 @@
                               ?>
                                 <h5><?php echo T('THEME_SELECT'); ?></h5>
                                 <?php foreach($themes as $theme) { ?>
-                                  <small><div data-toggle="modal" data-target="#themeSelect<?php echo $theme['file'] ?>Confirm"><img class="lang-flag lazyload" data-src="img/themes/opt_<?php echo $theme['file'] ?>.png" /><?php echo $theme['title'] ?></div></small>
+                                  <small><div data-toggle="modal" data-target="#themeSelect<?php echo $theme['file'] ?>Confirm" style="cursor: pointer;"><img class="lang-flag lazyload" data-src="img/themes/opt_<?php echo $theme['file'] ?>.png" /><?php echo $theme['title'] ?></div></small>
                                 <?php } ?>
                               </div>
                             </div>
