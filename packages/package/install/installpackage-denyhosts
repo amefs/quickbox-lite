@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.5
+# Current version:  v1.3.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -72,7 +72,7 @@ function _error() {
 APP_TITLE="Denyhosts"
 APP_NAME="denyhosts"
 APP_SERVICE="denyhosts"
-APP_BASEDEPS="python rsyslog python-ipaddr"
+APP_BASEDEPS="python rsyslog"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
@@ -181,9 +181,14 @@ function _installDepends() {
 
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
+	cd /tmp || exit 1
+	_execute "wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py"
+	_execute "python2 get-pip.py --force-reinstall"
+	_execute "python2 -m pip install --upgrade pip"
+	_execute "python2 -m pip install --upgrade ipaddr"
+	rm -f get-pip.py
 	_execute "/etc/init.d/rsyslog restart"
 	cat /dev/null >/var/log/auth.log
-	cd /tmp || exit 1
 	mkdir -p /tmp/denyhosts
 	wget -t2 -T5 -q -N -O denyhosts-3.1.tar.gz http://downloads.sourceforge.net/project/denyhost/denyhost-3.1/denyhosts-3.1.tar.gz
 	_execute "tar zxvf denyhosts-3.1.tar.gz -C /tmp/denyhosts --strip-components=1"

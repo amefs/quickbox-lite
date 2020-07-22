@@ -1,0 +1,546 @@
+#!/bin/bash
+#
+# [QuickBox Lite Deluge Updater]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.3.6
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+#   Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+CODENAME=$(lsb_release -cs)
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _execute() {
+	($1 >>"${OUTTO}" 2>&1)
+}
+function _print() {
+	printf "${_norm}%s${_norm}\n" "$@"
+	printf "%s\n" "$@" >>"${OUTTO}"
+}
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
+
+function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+#################################################################################
+# APP VARIABLE
+#################################################################################
+APP_TITLE="Deluge"
+APP_NAME="deluge"
+APP_SERVICE="deluge"
+
+APP_LOCK=.$APP_NAME.lock
+OUTTO=/srv/dashboard/db/output.log
+deversion=2.0.3
+cdn=$(cat /install/.cdn.lock)
+
+BRANCH_LT="https://github.com/arvidn/libtorrent.git"
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+	echo -e "\nQuickBox Lite $APP_TITLE Updater"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [--qb]"
+	echo -e "\nOptions:\n"
+	echo "-l, --log <logfile>       specific log file"
+	echo "--de <version>            the qbittorrent version you want to install"
+	echo "--with-cf                 use cloudflare instead of github"
+	echo "--with-sf                 use sourceforge instead of github"
+	echo "--with-osdn               use osdn(jp)  instead of github"
+	echo "--with-github             use github"	
+	echo ""
+	echo "-h, --help                display this help and exit"
+}
+################################################################################
+# REMOVE FUNCTIONS
+################################################################################
+function _lockCheck() {
+	if [[ -f "/install/.install.lock" ]]; then
+		prevApp=$(cat /install/.install.lock)
+		_info "$prevApp process running."
+		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
+		_error "Exiting..."
+		exit 1
+	fi
+	if [[ ! -f "/install/$APP_LOCK" ]]; then
+		_error "${APP_TITLE} haven't installed ..."
+		exit 1
+	fi
+}
+function _setLock() {
+	echo "${APP_TITLE}" >/install/.install.lock
+}
+function _lockCleanup() {
+	rm -f /install/.install.lock
+}
+
+function _installDepends() {
+	_info "Installing ${APP_TITLE} dependencies..."
+	local DEPLIST="${APP_BASEDEPS}"
+	for depend in $DEPLIST; do
+		_info "Installing ${depend}... "
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+	done
+	if [[ $dependError != "1" ]]; then
+		_success "${APP_TITLE} dependencies installed."
+	else
+		_error "${APP_TITLE} dependencies failed to install."
+		exit 1
+	fi
+}
+
+
+function _installFpm() {
+	fpm -h >/dev/null 2>&1
+	exit=$?
+	if [[ ! $exit == '0' ]]; then
+		_info "Installing fpm package management..."
+		_execute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
+		_execute "gem install -N fpm"
+		_success "fpm installed."
+	fi
+}
+
+function _updateInfo() {
+	_print "
+$APP_TITLE will now be updated.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _cf() {
+	DOMAIN="deb.ezapi.net"
+	SUBFOLDER=""
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _sf() {
+	DOMAIN="sourceforge.net"
+	SUBFOLDER="projects/seedbox-software-for-linux/files/"
+	ARCH="amd64"
+	SUFFIX="/download"
+}
+
+function _osdn() {
+	DOMAIN="osdn.dl.osdn.net"
+	SUBFOLDER="storage/g/s/se/seedbox-software-for-linux/"
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _github() {
+	DOMAIN="raw.githubusercontent.com"
+	SUBFOLDER="amefs/quickbox-files/master/"
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _download() {
+	# init download url
+	PACKAGE=$1
+	DEB=$2
+	case "$cdn" in
+	"cf")
+		_cf
+		wget -t3 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_github
+			wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"sf")
+		_sf
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_github
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_cf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"osdn")
+		_osdn
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_github
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_cf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"github")
+		_github
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	*)
+		_github
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	esac
+}
+
+function _updateApp() {
+	# get current version
+	_info "Fetching package list..."
+	cd /tmp || exit 1
+	wget -t3 -T20 -q -O packages.lst https://deb.ezapi.net/packages.lst
+	if [ $? -ne 0 ]; then
+		_github
+		wget -t5 -T10 -q -O packages.lst https://raw.githubusercontent.com/amefs/quickbox-files/master/packages.lst
+		if [ $? -ne 0 ]; then
+			_sf
+			wget -t5 -T10 -q -O packages.lst https://sourceforge.net/projects/seedbox-software-for-linux/files/packages.lst/download
+		fi
+	fi
+	de_version_list=$(cat packages.lst | grep -w deluged | grep ${CODENAME} | grep amd64 | awk '{ print $5}')
+	rm -f packages.lst
+	cur_version=$(deluged -v | grep 'deluged:' | grep -Eo "[0-9.]+" | head -n1)
+
+	APP_TITLE="Deluge"
+	if (_version_gt ${deversion} ${cur_version}); then
+		# lock check
+		libt_compile_python3_req=0
+		libt_deb_python3_req=0
+		# .libtorrent-rasterbar-python.lock libtorrent-rasterbar python binding
+		# .libtorrent-rasterbar-python3.lock libtorrent-rasterbar python3 binding
+		if [[ -f /install/.libtorrent-rasterbar.lock ]]; then
+			if [[ ! -f /install/.libtorrent-rasterbar-python3.lock ]]; then
+				libt_compile_python3_req=1
+			else
+				_success "Libtorrent already installed, Skip..." 
+			fi
+		else
+			if [[ ! -f /install/.libtorrent-rasterbar-python3.lock ]]; then
+				libt_deb_python3_req=1
+			else
+				_success "Libtorrent python binding already installed, Skip..." 
+			fi
+		fi
+
+		# Libtorrent
+		APP_TITLE="Libtorrent"
+		if [[ ${libt_deb_python3_req} == 1 ]]; then
+			_info "Installing Libtorrent..."
+			PACKAGE="libtorrent-rasterbar"
+			cd /tmp || exit 1
+			[[ "$(dpkg -s libtorrent-rasterbar9 2> /dev/null | grep -cow '^Status: install ok installed$')" -eq '1' ]] && libtversion=$(dpkg -s libtorrent-rasterbar9 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+			[[ "$(dpkg -s libtorrent-rasterbar10 2> /dev/null | grep -cow '^Status: install ok installed$')" -eq '1' ]] && libtversion=$(dpkg -s libtorrent-rasterbar10 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+			cd /tmp || exit 1
+			PYLIBTBIN=python3-libtorrent_${libtversion}-1build1_amd64.deb
+			DEB=${PYLIBTBIN}
+			_download ${PACKAGE} ${DEB}
+			_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${PYLIBTBIN}"
+			rm -rf ${PYLIBTBIN}
+			touch /install/.libtorrent-rasterbar-python3.lock
+		elif [[ ${libt_compile_python3_req} == 1 ]]; then
+			# ensure python binding has the same version
+			libtversion=$(cat /install/.libtorrent-rasterbar.lock)
+			libt_major_version=$(echo ${libtversion}| cut -d. -f1,2)
+			if [[ ${libt_major_version} == "1.2" ]]; then
+				LTRC=RC_1_2
+				case ${libtversion} in
+				1.2.0) LTCIMMIT="3a1e546" ;;
+				1.2.1) LTCIMMIT="4b26829" ;;
+				1.2.2) LTCIMMIT="9c97055" ;;
+				1.2.3) LTCIMMIT="078f7b9" ;;
+				1.2.4) LTCIMMIT="ad83b1c" ;;
+				1.2.5) LTCIMMIT="bc66605" ;;
+				1.2.6) LTCIMMIT="b9b5443" ;;
+				1.2.7) LTCIMMIT="8e71015" ;;
+				*) LTCIMMIT="." ;;
+				esac
+			elif [[ ${libt_major_version} == "1.1" ]]; then
+				LTRC=RC_1_1
+				case ${libtversion} in
+				1.1.0) LTCIMMIT="2921caf" ;;
+				1.1.1) LTCIMMIT="599967c" ;;
+				1.1.2) LTCIMMIT="a42d439" ;;
+				1.1.3) LTCIMMIT="b065536" ;;
+				1.1.4) LTCIMMIT="5188c19" ;;
+				1.1.5) LTCIMMIT="6214103" ;;
+				1.1.6) LTCIMMIT="b45acf2" ;;
+				1.1.7) LTCIMMIT="aaf9304" ;;
+				1.1.8) LTCIMMIT="4576723" ;;
+				1.1.9) LTCIMMIT="19df645" ;;
+				1.1.10) LTCIMMIT="200bb49" ;;
+				1.1.11) LTCIMMIT="25a1f12" ;;
+				1.1.12) LTCIMMIT="4342725" ;;
+				1.1.13) LTCIMMIT="6f1250c" ;;
+				1.1.14) LTCIMMIT="244f0f1" ;;
+				*) LTCIMMIT="." ;;
+				esac
+			elif [[ ${libt_major_version} == "1.0" ]]; then
+				LTRC=RC_1_0
+				case ${libtversion} in
+				1.0.0) LTCIMMIT="1633ee2" ;;
+				1.0.1) LTCIMMIT="49c2ec9" ;;
+				1.0.2) LTCIMMIT="8f2c17c" ;;
+				1.0.3) LTCIMMIT="edfe81b" ;;
+				1.0.4) LTCIMMIT="a586deb" ;;
+				1.0.5) LTCIMMIT="45521a3" ;;
+				1.0.6) LTCIMMIT="b709199" ;;
+				1.0.7) LTCIMMIT="15b1cd9" ;;
+				1.0.8) LTCIMMIT="e44e8da" ;;
+				1.0.9) LTCIMMIT="b342192" ;;
+				1.0.10) LTCIMMIT="e650ecc" ;;
+				1.0.11) LTCIMMIT="4e90eb1" ;;
+				*) LTCIMMIT="." ;;
+				esac
+			fi
+			cd /tmp || exit 1
+			_execute "git clone -b ${LTRC} ${BRANCH_LT} libtorrent"
+			cd libtorrent || { _error "Can not download libtorrent-rasterbar" && exit 1; }
+			_execute "git checkout ${LTCIMMIT}"
+
+			if [ ${libt_compile_python3_req} == 1 ]; then
+				_info "Build libtorrent python binding for Deluge ... "
+				cd /tmp/libtorrent || exit 1
+				_execute "./autotool.sh"
+				if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
+					boost_args="--with-boost-python=boost_python-py35"
+				else
+					boost_args="--with-boost-python=boost_python3"
+				fi
+				if [[ ${libt_major_version} == "1.0" ]] || [[ ${libt_major_version} == "1.1" ]]; then
+					PYTHON=python3 ./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++11 CPPFLAGS=-std=c++11 ${boost_args} --prefix=/tmp/dist/libtorrent-rasterbar/usr/local >>${OUTTO} 2>&1
+				elif [[ ${libt_major_version} == "1.2" ]]; then
+					PYTHON=python3 ./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++14 CPPFLAGS=-std=c++14 ${boost_args} --prefix=/tmp/dist/libtorrent-rasterbar/usr/local >>${OUTTO} 2>&1
+				fi
+				_execute "make -j$(nproc)"
+				mkdir -p /tmp/dist/libtorrent-rasterbar/usr/local
+				_execute "make install"
+				fpm --verbose --python-bin=python3 --python-package-name-prefix=python3 -n python3-libtorrent -f -p /root/pool/python3-libtorrent_${libtversion}.deb --version ${libtversion} --description "Libtorrent rasterbar python bindings compiled by QuickBox Lite" -s python -t deb /tmp/libtorrent/bindings/python/setup.py >>${OUTTO} 2>&1
+				_execute "dpkg -i /root/pool/python3-libtorrent_${libtversion}.deb"
+				echo ${libtversion} >/install/.libtorrent-rasterbar-python3.lock
+				_success "Libtorrent python binding built ..."
+			fi
+			ldconfig
+		fi
+		# Deluge
+		APP_TITLE="Deluge"
+		_info "Updating ${APP_TITLE}..."
+		_info "Removing old ${APP_TITLE}..."
+		userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+		for username in $userlist; do
+			_execute "systemctl stop deluged@${username}"
+			_execute "systemctl stop deluge-web@${username}"
+		done
+
+		if $(echo "${de_version_list[@]}" | grep -wq "${deversion}") && [ ! -f /install/.libtorrent-rasterbar.lock ]; then
+			_info "Installing Deluge ${deversion}..."
+			PACKAGE="deluge"
+			cd /tmp || exit 1
+			APP_BASEDEPS="python3 python3-dev python3-pip"
+			_installDepends
+			_execute "pip3 install --upgrade twisted[tls]"
+			DEBASE="deluge-common_${deversion}-1build1_all.deb deluge-console_${deversion}-1build1_all.deb deluge-gtk_${deversion}-1build1_all.deb deluge-web_${deversion}-1build1_all.deb deluged_${deversion}-1build1_all.deb"
+			for DEB in $DEBASE; do
+				_download ${PACKAGE} ${DEB}
+				_execute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
+				rm -rf /tmp/${DEB}
+			done
+			_success "${APP_TITLE} installed."
+		else
+			cd /tmp || exit 1
+			_info "Building Deluge ${deversion}..."
+			_info "Downloading deluge-${deversion}.tar.xz ..."
+			while true; do
+				wget -q -O deluge-${deversion}.tar.xz http://download.deluge-torrent.org/source/2.0/deluge-${deversion}.tar.xz && break
+			done
+			APP_BASEDEPS="build-essential intltool libtool libssl-dev libgeoip-dev librsvg2-common geoip-database python3 python3-dev python3-setuptools intltool python3-zope.interface python3-twisted python3-openssl python3-xdg python3-chardet python3-mako python3-setproctitle python3-rencode python3-pil librsvg2-common xdg-utils"
+			_installDepends
+			_execute "pip3 install --upgrade twisted[tls]"
+			tar -xf deluge-${deversion}.tar.xz
+			cd deluge-${deversion} || exit 1
+			_execute "python3 setup.py build"
+			_execute "python3 setup.py install --record /install/.deluge.install.record --install-layout=deb"
+			_execute "python3 setup.py install_data"
+			cd /tmp || exit 1
+			rm -rf deluge-${deversion}
+			rm -f deluge-${deversion}.tar.xz
+			_success "${APP_TITLE} Built."
+		fi
+		cat >/etc/systemd/system/deluge-web@.service <<DWS
+[Unit]
+Description=Deluge Bittorrent Client Web Interface
+After=network.target
+
+[Service]
+Type=simple
+User=%I
+
+ExecStart=/usr/bin/deluge-web -d
+ExecStop=/usr/bin/killall -w -s 9 /usr/bin/deluge-web
+TimeoutStopSec=300
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+DWS
+		_execute "systemctl daemon-reload"
+		userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+		for username in $userlist; do
+			# clean old plugins
+			rm -f /home/${username}/.config/deluge/plugins/ltConfig-0.3.1-py2.7.egg
+			rm -f /home/${username}/.config/deluge/plugins/YaRSS2-1.4.3-py2.7.egh
+			rm -f /home/${username}/.config/deluge/plugins/AutoRemovePlus-0.6.1-py2.7.egg 
+			rm -f /home/${username}/.config/deluge/plugins/LabelPlus-0.3.2.2-py2.7.egg
+			rm -f /home/${username}/.config/deluge/plugins/TotalTraffic-0.5-py2.7.egg
+			rm -f /home/${username}/.config/deluge/plugins/Stats-0.3.2-py2.7.egg
+			# download newer plugins
+			if [[ ! -f /usr/local/bin/quickbox/deluge/plugins/ltConfig-2.0.0.egg ]]; then
+				wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/ltConfig-2.0.0.egg https://github.com/ratanakvlun/deluge-ltconfig/releases/download/v2.0.0/ltConfig-2.0.0.egg
+			fi
+			if [[ ! -f /usr/local/bin/quickbox/deluge/plugins/YaRSS2-2.1.4-py3.6.egg ]]; then
+				wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/YaRSS2-2.1.4-py3.6.egg https://bitbucket.org/bendikro/deluge-yarss-plugin/downloads/YaRSS2-2.1.4-py3.6.egg
+			fi
+			if [[ ! -f /usr/local/bin/quickbox/deluge/plugins/YaRSS2-2.1.4-py3.7.egg ]]; then
+				wget --no-check-certificate -q -O /usr/local/bin/quickbox/deluge/plugins/YaRSS2-2.1.4-py3.7.egg https://bitbucket.org/bendikro/deluge-yarss-plugin/downloads/YaRSS2-2.1.4-py3.7.egg
+			fi
+			# copy new plugins for deluge 2.0.x
+			cp -f /usr/local/bin/quickbox/deluge/plugins/ltConfig-2.0.0.egg /home/${username}/.config/deluge/plugins/
+			if [[ "$CODENAME" =~ ("xenial"|"bionic"|"stretch") ]]; then
+				cp -f /usr/local/bin/quickbox/deluge/plugins/YaRSS2-2.1.4-py3.6.egg /home/${username}/.config/deluge/plugins/
+			else
+				cp -f /usr/local/bin/quickbox/deluge/plugins/YaRSS2-2.1.4-py3.7.egg /home/${username}/.config/deluge/plugins/
+			fi
+			chown -R ${username}.${username} /home/${username}/.config/deluge
+			chmod 755 -R /home/${username}/.config/deluge
+			_execute "systemctl start deluged@${username}"
+			_execute "systemctl start deluge-web@${username}"
+		done
+		_success "${APP_TITLE} is now update to date."
+	else
+		_warning "Nothing to be update"
+	fi
+}
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+if ! ARGS=$(getopt -a -o hl: -l help,with-cf,with-sf,with-osdn,with-github,log:,de: -- "$@")
+then
+    _usage
+    exit 1
+fi
+eval set -- "${ARGS}"
+while true; do
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 1
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	--de)
+		deversion="$2"
+		shift
+		;;
+	--with-cf)
+		cdn="cf"
+		;;
+	--with-sf)
+		cdn="sf"
+		;;
+	--with-osdn)
+		cdn="osdn"
+		;;
+	--with-github)
+		cdn="github"
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
+_lockCheck
+_setLock
+_updateInfo
+_updateApp
+_lockCleanup

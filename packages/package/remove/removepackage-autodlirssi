@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.5
+# Current version:  v1.3.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -137,7 +137,7 @@ function _removeDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Removing ${depend}... "
-		_execute "apt-get purge ${depend}"
+		_execute "apt-get -y purge ${depend}"
 		_execute "apt-get -y autoremove"
 		_execute "apt-get -y autoclean"
 	done

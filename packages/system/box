@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.5
+# Current version:  v1.3.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -244,7 +244,8 @@ if [[ $resolver == "set" ]]; then
 			"cf") echo "cf" > /install/.cdn.lock ;;
 			"sf") echo "sf" > /install/.cdn.lock ;;
 			"osdn") echo "osdn" > /install/.cdn.lock ;;
-			*) echo "cf" > /install/.cdn.lock ;;
+			"github") echo "github" > /install/.cdn.lock ;;
+			*) echo "github" > /install/.cdn.lock ;;
 		esac
 		;;
 	*)

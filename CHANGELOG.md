@@ -1,3 +1,34 @@
+## CHANGELOG v1.3.6:
+
+*Changelog update Sunday, Jul 19, 2020*
+
+### General additions
+
+* add support for Ubuntu Focal
+* add support for libtorrent-rasterbar 1.2.x
+* add mirror GitHub as file host mirror
+
+### Function improved
+
+- rewrite function for compile libtorrent-rasterbar
+- add delay for reloading nginx/php while upgrade service
+
+### Function updated
+
+* use GitHub mirror as default
+* use qBittorrent 4.2.5 with libtorrent-rasterbar 1.1.14 as default
+* use rtorrent 0.9.8 as default
+* use php 7.4
+
+### Bug fixed
+
+* fix auto-irssi remove function
+* FlexGet nginx reverse proxy
+
+---
+
+
+
 ## CHANGELOG v1.3.5:
 
 *Changelog update Saturday, Jun 13, 2020*
@@ -23,7 +54,7 @@
 
 ---
 
-## 
+
 
 ## CHANGELOG v1.3.4:
 

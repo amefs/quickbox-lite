@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.5
+# Current version:  v1.3.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -368,10 +368,11 @@ location /rutorrent {
   auth_basic "Password Required";
   auth_basic_user_file /etc/htpasswd.d/htpasswd.\$remote_user;
 
-  location ~ \.php$ {
-    include snippets/fastcgi-php.conf;
+  location ~ \.php$
+  {
     fastcgi_read_timeout 240;
-    fastcgi_pass unix:/run/php/php7.2-fpm.sock;
+    fastcgi_pass  unix:/run/php/php7.4-fpm.sock;
+    include snippets/fastcgi-php.conf;
     fastcgi_param SCRIPT_FILENAME /srv\$fastcgi_script_name;
   }
 }
@@ -403,8 +404,13 @@ function _installAppLock() {
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	_execute "nginx -s reload"
-	_execute "/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'"
+	# schedule restart service
+	at now + 1 minute >>"${OUTTO}" 2>&1 <<EOF
+sleep 5;\
+/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();';\
+systemctl restart php7.4-fpm;\
+nginx -s reload
+EOF
 	_success "${APP_TITLE} started."
 }
 

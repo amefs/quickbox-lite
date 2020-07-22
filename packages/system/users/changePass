@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.5
+# Current version:  v1.3.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -168,6 +168,12 @@ function _chPasswd() {
 		filebrowser -d /home/${username}/.config/filebrowser/filebrowser.db users update ${username} --password="${password}" >/dev/null 2>&1
 		_execute "systemctl start filebrowser@${username}"
 		_success "File Browser password updated"
+	fi
+	if [[ -f /install/.filebrowser-ee.lock ]]; then
+		_execute "systemctl stop filebrowser-ee@${username}"
+		filebrowser -d /home/${username}/.config/filebrowser-ee/database.db users update ${username} --password="${password}" >/dev/null 2>&1
+		_execute "systemctl start filebrowser-ee@${username}"
+		_success "File Browser Enhanced password updated"
 	fi
 	if [[ -f /install/.${username}.flexget.lock ]]; then
 		_execute "systemctl stop flexget@${username}"

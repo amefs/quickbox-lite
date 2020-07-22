@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.3.5
+# Current version:  v1.3.6
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -71,7 +71,7 @@ function _error() {
 APP_TITLE="Netdata"
 APP_NAME="netdata"
 APP_SERVICE="netdata"
-APP_BASEDEPS="zlib1g-dev uuid-dev libuv1-dev liblz4-dev libjudy-dev libssl-dev libmnl-dev gcc make git autoconf autoconf-archive autogen automake pkg-config curl python"
+APP_BASEDEPS="autoconf autoconf-archive autogen automake cmake gcc libjson-c-dev libjudy-dev liblz4-dev libmnl-dev libssl-dev libuv1-dev make pkg-config python3-pymongo uuid-dev zlib1g-dev git"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log

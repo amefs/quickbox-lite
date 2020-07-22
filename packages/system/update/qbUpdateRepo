@@ -47,7 +47,7 @@ function _updateRepo() {
 	fi
 	dos2unix $(find ${local_prefix} -type f) >/dev/null 2>&1
 	if [[ ! -f /install/.cdn.lock ]]; then
-		echo "sf" > /install/.cdn.lock
+		echo "github" > /install/.cdn.lock
 	fi
 	_success "QuickBox local repository updated"
 }

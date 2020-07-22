@@ -24,7 +24,7 @@ location / {
 
         include snippets/fastcgi-php.conf;
         fastcgi_read_timeout 240;
-        fastcgi_pass unix:/run/php/php7.2-fpm.sock;
+        fastcgi_pass unix:/run/php/php7.4-fpm.sock;
         fastcgi_param SCRIPT_FILENAME /srv/dashboard$fastcgi_script_name;
 
     }

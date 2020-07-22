@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.5
+# Current version:  v1.3.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -92,9 +92,10 @@ function _usage() {
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
 	echo "-v, --version <version>   the application version you want to update"
-	echo "--with-cf                 use cloudflare instead of sourceforge"
-	echo "--with-sf                 use sourceforge"
-	echo "--with-osdn               use osdn(jp) instead of sourceforge"	
+	echo "--with-cf                 use cloudflare instead of github"
+	echo "--with-sf                 use sourceforge instead of github"
+	echo "--with-osdn               use osdn(jp)  instead of github"
+	echo "--with-github             use github"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -127,7 +128,7 @@ function _installFpm() {
 	if [[ ! $exit == '0' ]]; then
 		_info "Installing fpm package management..."
 		_execute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
-		_execute "gem install --no-ri --no-rdoc fpm"
+		_execute "gem install -N fpm"
 		_success "fpm installed."
 	fi
 }
@@ -162,6 +163,13 @@ function _osdn() {
 	SUFFIX=""
 }
 
+function _github() {
+	DOMAIN="raw.githubusercontent.com"
+	SUBFOLDER="amefs/quickbox-files/master/"
+	ARCH="amd64"
+	SUFFIX=""
+}
+
 function _download() {
 	# init download url
 	PACKAGE=$1
@@ -171,10 +179,10 @@ function _download() {
 		_cf
 		wget -t3 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
 		if [ $? -ne 0 ]; then
-			_sf
+			_github
 			wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
 			if [ $? -ne 0 ]; then
-				_osdn
+				_sf
 				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
 			fi
 		fi
@@ -183,16 +191,28 @@ function _download() {
 		_sf
 		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
 		if [ $? -ne 0 ]; then
-			_cf
+			_github
 			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
 			if [ $? -ne 0 ]; then
-				_osdn
+				_cf
 				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
 			fi
 		fi
 		;;
 	"osdn")
 		_osdn
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_github
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_cf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"github")
+		_github
 		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
 		if [ $? -ne 0 ]; then
 			_cf
@@ -204,13 +224,13 @@ function _download() {
 		fi
 		;;
 	*)
-		_sf
+		_github
 		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
 		if [ $? -ne 0 ]; then
 			_cf
 			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
 			if [ $? -ne 0 ]; then
-				_osdn
+				_sf
 				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
 			fi
 		fi
@@ -340,7 +360,7 @@ function _updateApp() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl:v: -l help,with-cf,with-sf,with-osdn,log:,version: -- "$@")
+if ! ARGS=$(getopt -a -o hl:v: -l help,with-cf,with-sf,with-osdn,with-github,log:,version: -- "$@")
 then
     _usage
     exit 1
@@ -368,6 +388,9 @@ while true; do
 		;;
 	--with-osdn)
 		cdn="osdn"
+		;;
+	--with-github)
+		cdn="github"
 		;;
 	--)
 		shift

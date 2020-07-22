@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   JMSolo, Amefs
-# Current version:  v1.3.5
+# Current version:  v1.3.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -145,7 +145,7 @@ function _removeApp() {
 	rm -rf /root/acme.sh
 	rm -rf /root/.acme.sh
 	# reset ssl setting
-	sock='php7.2-fpm'
+	sock='php7.4-fpm'
 	cat >/etc/nginx/sites-enabled/default <<NGC
 server {
     listen 80 default_server;

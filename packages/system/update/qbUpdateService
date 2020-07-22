@@ -24,10 +24,6 @@ function _error() {
 
 function _updateservice() {
 	# Update nginx service
-	if (! grep -c 'location /ws' < /etc/nginx/apps/dashboard.conf > /dev/null); then
-		_info "Updating Nginx Configuration..."
-		\cp -f ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
-	fi
 	if [[ ! -f /install/.quickbox-ws.lock ]]; then
 		# Install nodejs for websocks method
 		if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
@@ -64,9 +60,69 @@ function _updateservice() {
 			_success "FlexGet reverse proxy updated..."
 		fi
 	fi
+	# Install at command
+	if [[ $(dpkg -s at 2> /dev/null | grep -cow '^Status: install ok installed$') -eq '0' ]]; then
+		DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
+		DEBIAN_FRONTEND=noninteractive apt-get -y install at --allow-unauthenticated >>"${OUTTO}" 2>&1 || { local dependError=1; }
+	fi
+	# Update php version
+	if (grep -c 'php7.2-fpm.sock' < /etc/nginx/sites-enabled/default > /dev/null); then
+		_info "Installing php7.4..."
+		DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
+		DEPLIST="php7.4-cli php7.4-fpm php7.4 php7.4-dev php7.4-memcached php7.4-curl php7.4-gd php7.4-geoip php7.4-json php7.4-mbstring php7.4-opcache php7.4-xml php7.4-xmlrpc php7.4-zip"
+		for depend in $DEPLIST; do
+			DEBIAN_FRONTEND=noninteractive apt-get -y install "${depend}" --allow-unauthenticated >>"${OUTTO}" 2>&1 || { local dependError=1; }
+		done
+		rm -f /usr/bin/php
+		ln -nsf /usr/bin/php7.4 /usr/bin/php
+		sed -i.bak -e "s/post_max_size.*/post_max_size = 64M/" \
+			-e "s/upload_max_filesize.*/upload_max_filesize = 92M/" \
+			-e "s/expose_php.*/expose_php = Off/" \
+			-e "s/128M/768M/" \
+			-e "s/;cgi.fix_pathinfo.*/cgi.fix_pathinfo=1/" \
+			-e "s/;opcache.enable.*/opcache.enable=1/" \
+			-e "s/;opcache.memory_consumption.*/opcache.memory_consumption=128/" \
+			-e "s/;opcache.max_accelerated_files.*/opcache.max_accelerated_files=4000/" \
+			-e "s/;opcache.revalidate_freq.*/opcache.revalidate_freq=240/" /etc/php/7.4/fpm/php.ini
+		phpenmod -v 7.4 opcache
+		phpenmod -v 7.4 xml
+		phpenmod -v 7.4 mbstring
+		phpenmod -v 7.4 msgpack
+		phpenmod -v 7.4 memcached
+		sed -i "s/php7.2-fpm.sock/php7.4-fpm.sock/g" /etc/nginx/sites-enabled/default
+		_success "php version updated..."
+	fi
+	if (grep -c 'php7.2-fpm.sock' < /etc/nginx/apps/dashboard.conf > /dev/null); then
+		\cp -f ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
+	fi
+	if [[ -f /install/.rutorrent.lock ]]; then
+		if (grep -c 'php7.2-fpm.sock' < /etc/nginx/apps/rutorrent.conf > /dev/null); then
+			_info "updating rutorrent config..."
+			cat >/etc/nginx/apps/rutorrent.conf <<NGX
+location /rutorrent {
+	alias /srv/rutorrent;
+	include /etc/nginx/snippets/proxy.conf;
+	auth_basic "Password Required";
+	auth_basic_user_file /etc/htpasswd.d/htpasswd.\$remote_user;
+
+    location ~ \.php$
+    {
+      fastcgi_read_timeout 240;
+      fastcgi_pass  unix:/run/php/php7.4-fpm.sock;
+      include snippets/fastcgi-php.conf;
+      fastcgi_param SCRIPT_FILENAME /srv\$fastcgi_script_name;
+    }
+}
+NGX
+			_success "rutorrent config updated..."
+		fi
+	fi
 }
 
 function _startservice() {
 	# always reload to ensure service up to date
-	_execute "systemctl restart quickbox-ws.service"
+	at now + 1 minute >>"${OUTTO}" 2>&1 <<EOF
+sleep 5;\
+systemctl restart quickbox-ws.service
+EOF
 }

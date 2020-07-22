@@ -26,9 +26,11 @@ For more information, please check our [wiki](https://github.com/amefs/quickbox-
 
 ## Script status
 
-![Version](https://img.shields.io/badge/version-1.3.5-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.3.6-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
 
 When upgrade from 1.3.2 to 1.3.3, very recommend to use SSH with `box update quickbox`. You also need to run the command twice to finish the service upgrade. If you are using WebUI to finish the upgrade, please also upgrade twice.
+
+From version 1.3.6, the php version has upgraded to 7.4, so you can remove old php7.2 with `sudo apt purge php7.2*` when you don't need it anymore.
 
 ---
 
@@ -44,7 +46,7 @@ Hardware requirement:
 
 OS Support (amd64 only):
 
-![Ubuntu18.04](https://img.shields.io/badge/Ubuntu%2018.04-passing-brightgreen.svg?style=flat-square)![Ubuntu16.04](https://img.shields.io/badge/Ubuntu%2016.04-passing-brightgreen.svg?style=flat-square)![Debian9](https://img.shields.io/badge/Debian%209-passing-brightgreen.svg?style=flat-square)![Debian10](https://img.shields.io/badge/Debian%2010-passing-brightgreen.svg?style=flat-square)
+![Ubuntu20.04](https://img.shields.io/badge/Ubuntu%2020.04-passing-brightgreen.svg?style=flat-square)![Ubuntu18.04](https://img.shields.io/badge/Ubuntu%2018.04-passing-brightgreen.svg?style=flat-square)![Ubuntu16.04](https://img.shields.io/badge/Ubuntu%2016.04-passing-brightgreen.svg?style=flat-square)![Debian9](https://img.shields.io/badge/Debian%209-passing-brightgreen.svg?style=flat-square)![Debian10](https://img.shields.io/badge/Debian%2010-passing-brightgreen.svg?style=flat-square)
 
 Server Support:
 
@@ -172,7 +174,7 @@ sudo box update quickbox
   - ruTorrent
   - flood
 - Transmission (*2.94*)
-- qBittorrent (*4.2.3*)
+- qBittorrent (*4.2.5*)
 - Deluge (*1.3.15, 2.0.3*)
 - mktorrent (with `createtorrent` command as wrapper)
 - FFmpeg

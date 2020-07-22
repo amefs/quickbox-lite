@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.5
+# Current version:  v1.3.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -124,9 +124,13 @@ function _fin() {
 	echo >>"${OUTTO}" 2>&1
 	echo >>"${OUTTO}" 2>&1
 	echo "Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
-	sleep 5
-	/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'
-	_execute "nginx -s reload"
+	# schedule restart service
+	at now + 1 minute >>"${OUTTO}" 2>&1 <<EOF
+sleep 5;\
+/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();';\
+systemctl restart php7.4-fpm
+nginx -s reload
+EOF
 }
 
 # initialization environment
