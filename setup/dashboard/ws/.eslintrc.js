@@ -6,7 +6,7 @@ module.exports = {
     },
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "project": "tsconfig.json",
+        "project": "./tsconfig.json",
         "sourceType": "module"
     },
     "plugins": [
@@ -16,7 +16,6 @@ module.exports = {
         "@typescript-eslint/adjacent-overload-signatures": "error",
         "@typescript-eslint/array-type": "error",
         "@typescript-eslint/ban-types": "error",
-        "@typescript-eslint/class-name-casing": "error",
         "@typescript-eslint/consistent-type-assertions": "error",
         "@typescript-eslint/consistent-type-definitions": "error",
         "@typescript-eslint/explicit-member-accessibility": [
