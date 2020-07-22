@@ -176,18 +176,19 @@ function _selectlang() {
 		source ${local_lang}en.lang
 		echo 'LANGUAGE="en_US.UTF-8"' >>/etc/default/locale
 		echo 'LC_ALL="en_US.UTF-8"' >>/etc/default/locale
+		uilang="en"
 		;;
 	"Chinese Simpified")
 		source ${local_lang}zh-cn.lang
 		echo 'LANGUAGE="zh_CN.UTF-8"' >>/etc/default/locale
 		echo 'LC_ALL="zh_CN.UTF-8"' >>/etc/default/locale
+		uilang="zh"
 		;;
 	esac
 	DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales >/dev/null 2>&1
 }
 
 function _checkroot() {
-	source ${local_lang}en.lang
 	if [[ $EUID != 0 ]]; then
 		_errorcolor
 		whiptail --title "$ERROR_TITLE_PERM" --msgbox "$ERROR_TEXT_PERM" --ok-button "$BUTTON_OK" 8 72
@@ -197,7 +198,6 @@ function _checkroot() {
 }
 
 function _checkdistro() {
-	source ${local_lang}en.lang
 	if [[ ! "$DISTRO" =~ ("Ubuntu"|"Debian") ]]; then
 		_errorcolor
 		whiptail --title "$ERROR_TITLE_OS" --msgbox "${ERROR_TEXT_DESTRO_1}${DISTRO}${ERROR_TEXT_DESTRO_2}" --ok-button "$BUTTON_OK" 8 72
@@ -217,7 +217,6 @@ function _checkdistro() {
 }
 
 function _checkkernel() {
-	source ${local_lang}en.lang
 	local kernel=0
 	grsec=$(uname -a | grep -i grs)
 	if [[ -n $grsec ]]; then
@@ -251,7 +250,6 @@ function _checkkernel() {
 }
 
 function _checkovz() {
-	source ${local_lang}en.lang
 	if [[ -d /proc/vz ]]; then
 		whiptail --title "$ERROR_TITLE_OVZ" --msgbox "$ERROR_TEXT_OVZ" --ok-button "$BUTTON_OK" 6 72
 		exit 1
@@ -822,14 +820,18 @@ function _insdashboard() {
 	cp ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
 	sed -i "s/\/etc\/htpasswd/\/etc\/htpasswd.d\/htpasswd.${username}/g" /etc/nginx/apps/dashboard.conf
 	service nginx force-reload >/dev/null 2>&1
-	case $lang_ui in
+	case $uilang in
 	"en")
 		bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en >/dev/null 2>&1
 		touch /install/.lang_en.lock
 		;;
-	"zh-cn")
+	"zh")
 		bash /usr/local/bin/quickbox/system/lang/langSelect-lang_zh-cn >/dev/null 2>&1
 		touch /install/.lang_zh.lock
+		;;
+	*)
+		bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en >/dev/null 2>&1
+		touch /install/.lang_en.lock
 		;;
 	esac
 	touch /install/.dashboard.lock
