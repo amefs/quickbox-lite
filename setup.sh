@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.4
+# Current version:  v1.3.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -187,6 +187,7 @@ function _selectlang() {
 }
 
 function _checkroot() {
+	source ${local_lang}en.lang
 	if [[ $EUID != 0 ]]; then
 		_errorcolor
 		whiptail --title "$ERROR_TITLE_PERM" --msgbox "$ERROR_TEXT_PERM" --ok-button "$BUTTON_OK" 8 72
@@ -196,12 +197,13 @@ function _checkroot() {
 }
 
 function _checkdistro() {
+	source ${local_lang}en.lang
 	if [[ ! "$DISTRO" =~ ("Ubuntu"|"Debian") ]]; then
 		_errorcolor
 		whiptail --title "$ERROR_TITLE_OS" --msgbox "${ERROR_TEXT_DESTRO_1}${DISTRO}${ERROR_TEXT_DESTRO_2}" --ok-button "$BUTTON_OK" 8 72
 		_defaultcolor
 		exit 1
-	elif [[ ! "$CODENAME" =~ ("xenial"|"bionic"|"stretch"|"buster") ]]; then
+	elif [[ ! "$CODENAME" =~ ("xenial"|"bionic"|"stretch"|"buster"|"focal") ]]; then
 		_errorcolor
 		whiptail --title "$ERROR_TITLE_OS" --msgbox "${ERROR_TEXT_CODENAME_1}${DISTRO}${ERROR_TEXT_CODENAME_2}" --ok-button "$BUTTON_OK" 8 72
 		_defaultcolor
@@ -215,6 +217,7 @@ function _checkdistro() {
 }
 
 function _checkkernel() {
+	source ${local_lang}en.lang
 	local kernel=0
 	grsec=$(uname -a | grep -i grs)
 	if [[ -n $grsec ]]; then
@@ -248,6 +251,7 @@ function _checkkernel() {
 }
 
 function _checkovz() {
+	source ${local_lang}en.lang
 	if [[ -d /proc/vz ]]; then
 		whiptail --title "$ERROR_TITLE_OVZ" --msgbox "$ERROR_TEXT_OVZ" --ok-button "$BUTTON_OK" 6 72
 		exit 1
@@ -382,6 +386,12 @@ function _osdn() {
 	SUFFIX=""
 }
 
+function _github() {
+	DOMAIN="raw.githubusercontent.com"
+	SUBFOLDER="amefs/quickbox-files/master/"
+	SUFFIX=""
+}
+
 function _skel() {
 	echo -e "XXX\n17\n$INFO_TEXT_PROGRESS_3_1\nXXX"
 	mkdir -p /etc/skel
@@ -427,15 +437,28 @@ function _skel() {
 			fi
 		fi
 		;;
-	*)
-		_sf
-		echo "sf" > /install/.cdn.lock
+	"--with-github")
+		_github
+		echo "github" > /install/.cdn.lock
 		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
 		if [ $? -ne 0 ]; then
 			_cf
 			wget -t5 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
 			if [ $? -ne 0 ]; then
-				_osdn
+				_sf
+				wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			fi
+		fi
+		;;
+	*)
+		_github
+		echo "github" > /install/.cdn.lock
+		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
 				wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
 			fi
 		fi
@@ -586,12 +609,13 @@ function _askcdn() {
 			whiptail --title "$INFO_TITLE_CDN" --radiolist \
 				"$INFO_TEXT_CDN_EXTRA" 12 42 4 \
 				"cf" "$CHOICE_TEXT_CDN_EXTRA_CF" off \
-				"sf" "$CHOICE_TEXT_CDN_EXTRA_SF" on \
+				"sf" "$CHOICE_TEXT_CDN_EXTRA_SF" off \
 				"osdn" "$CHOICE_TEXT_CDN_EXTRA_OSDN" off \
+				"github" "$CHOICE_TEXT_CDN_EXTRA_GITHUB" on \
 				3>&1 1>&2 2>&3
 		)
 	else
-		cdn="--with-cf"
+		cdn="--with-github"
 	fi
 }
 
@@ -618,7 +642,7 @@ function _chsource() {
 
 function _addPHP() {
 	if [[ $DISTRO == "Ubuntu" ]]; then
-		# add php7.2
+		# add php7.4
 		apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0x5a16e7281be7a449 >/dev/null 2>&1
 		LC_ALL=en_US.UTF-8 add-apt-repository ppa:ondrej/php -y >/dev/null 2>&1
 	elif [[ $DISTRO == "Debian" ]]; then
@@ -655,7 +679,7 @@ DPHP
 
 function _dependency() {
 	_addPHP
-	DEPLIST="sudo bc build-essential curl wget nginx-extras subversion ssl-cert php7.2-memcached memcached php7.2 php7.2-cli php7.2-curl php7.2-dev php7.2-fpm php7.2-gd php7.2-geoip php7.2-json php7.2-mbstring php7.2-opcache php7.2-xml php7.2-xmlrpc php7.2-zip libfcgi0ldbl mcrypt libmcrypt-dev nano python-dev unzip htop iotop vnstat vnstati automake make openssl net-tools debconf-utils ntp rsync"
+	DEPLIST="sudo at bc build-essential curl wget nginx-extras subversion ssl-cert php7.4-cli php7.4-fpm php7.4 php7.4-dev php7.4-memcached memcached php7.4-curl php7.4-gd php7.4-geoip php7.4-json php7.4-mbstring php7.4-opcache php7.4-xml php7.4-xmlrpc php7.4-zip libfcgi0ldbl mcrypt libmcrypt-dev nano python-dev unzip htop iotop vnstat vnstati automake make openssl net-tools debconf-utils ntp rsync"
 	for depend in $DEPLIST; do
 		echo -e "XXX\n12\n$INFO_TEXT_PROGRESS_Extra_2${depend}\nXXX"
 		DEBIAN_FRONTEND=noninteractive apt-get -y install "${depend}" --allow-unauthenticated >>"${OUTTO}" 2>&1 || { local dependError=1; }
@@ -668,7 +692,7 @@ function _dependency() {
 
 function _insngx() {
 	rm -rf /etc/nginx/nginx.conf
-	if [[ $CODENAME =~ ("bionic"|"stretch"|"buster") ]]; then
+	if [[ $CODENAME =~ ("bionic"|"stretch"|"buster"|"focal") ]]; then
 		cp ${local_setup_template}nginx/nginx.conf.new.template /etc/nginx/nginx.conf
 	else
 		cp ${local_setup_template}nginx/nginx.conf.old.template /etc/nginx/nginx.conf
@@ -677,7 +701,7 @@ function _insngx() {
 	rm -rf /etc/nginx/sites-enabled/default
 	cp ${local_setup_template}nginx/default.template /etc/nginx/sites-enabled/default
 
-	ln -nsf /usr/bin/php7.2 /usr/bin/php
+	ln -nsf /usr/bin/php7.4 /usr/bin/php
 	sed -i.bak -e "s/post_max_size.*/post_max_size = 64M/" \
 		-e "s/upload_max_filesize.*/upload_max_filesize = 92M/" \
 		-e "s/expose_php.*/expose_php = Off/" \
@@ -686,13 +710,13 @@ function _insngx() {
 		-e "s/;opcache.enable.*/opcache.enable=1/" \
 		-e "s/;opcache.memory_consumption.*/opcache.memory_consumption=128/" \
 		-e "s/;opcache.max_accelerated_files.*/opcache.max_accelerated_files=4000/" \
-		-e "s/;opcache.revalidate_freq.*/opcache.revalidate_freq=240/" /etc/php/7.2/fpm/php.ini
+		-e "s/;opcache.revalidate_freq.*/opcache.revalidate_freq=240/" /etc/php/7.4/fpm/php.ini
 
-	phpenmod -v 7.2 opcache
-	phpenmod -v 7.2 xml
-	phpenmod -v 7.2 mbstring
-	phpenmod -v 7.2 msgpack
-	phpenmod -v 7.2 memcached
+	phpenmod -v 7.4 opcache
+	phpenmod -v 7.4 xml
+	phpenmod -v 7.4 mbstring
+	phpenmod -v 7.4 msgpack
+	phpenmod -v 7.4 memcached
 
 	mkdir -p /etc/nginx/ssl/
 	mkdir -p /etc/nginx/snippets/
@@ -720,7 +744,7 @@ function _insngx() {
 	mkdir -p /var/log/nginx/
 	chown -R www-data.www-data /var/log/nginx/
 	systemctl restart nginx
-	systemctl restart php7.2-fpm
+	systemctl restart php7.4-fpm
 }
 
 function _insnodejs() {
@@ -1113,8 +1137,14 @@ ${INFO_TEXT_SUMMARY_4} $ip:$sshport\n\
 ${INFO_TEXT_SUMMARY_5} $username\n\
 ${INFO_TEXT_SUMMARY_6} $password\n\
 $(if [[ $ftp == 1 ]]; then echo -e "${INFO_TEXT_SUMMARY_11} $ftp_ip:5757\n"; fi)\
-\n${INFO_TEXT_SUMMARY_12} $dash_theme ${INFO_TEXT_SUMMARY_13}\n\
-$(if [[ $chsource == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_14}\n"; fi)\
+\n${INFO_TEXT_SUMMARY_12} $dash_theme ${INFO_TEXT_SUMMARY_13}\
+$(if [[ $chsource == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_14}"; fi)\
+$(case "$cdn" in
+	"--with-cf") echo -e "\nCloudflare ${INFO_TEXT_SUMMARY_19}";;
+	"--with-sf") echo -e "\nSourceforge ${INFO_TEXT_SUMMARY_19}";;
+	"--with-osdn") echo -e "\nOSDN ${INFO_TEXT_SUMMARY_19}";;
+	*) echo -e "\nOSDN ${INFO_TEXT_SUMMARY_19}";;
+esac)\
 $(if [[ $app_list != "" ]]; then
 		echo -e "\n${INFO_TEXT_SUMMARY_15}"
 		for i in "${app_list[@]}"; do
@@ -1140,6 +1170,7 @@ $(if [[ $autoreboot == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_17}\n"; fi)\
 				"ftp" "$CHOICE_TEXT_EDIT_7" \
 				"dashboard theme" "$CHOICE_TEXT_EDIT_8" \
 				"source.list" "$CHOICE_TEXT_EDIT_9" \
+				"cdn" "$CHOICE_TEXT_EDIT_13" \
 				"softwares" "$CHOICE_TEXT_EDIT_10" \
 				"BBR" "$CHOICE_TEXT_EDIT_12" \
 				"autoreboot" "$CHOICE_TEXT_EDIT_11" 3>&1 1>&2 2>&3
@@ -1152,6 +1183,7 @@ $(if [[ $autoreboot == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_17}\n"; fi)\
 		"ftp") _askvsftpd ;;
 		"dashboard theme") _askdashtheme ;;
 		"source.list") _askchsource ;;
+		"cdn") _askcdn ;;
 		"softwares") _askapps ;;
 		"BBR") _askbbr ;;
 		"autoreboot") _askautoreboot ;;
@@ -1185,9 +1217,10 @@ function _usage() {
   --with-ftp,--no-ftp              install ftp or not (default yes)
   --ftp-ip <ip address>            manually setup ftp ip
   --with-bbr,--no-bbr              install bbr or not (default no)
-  --with-cf                        use cloudflare instead of sourceforge
-  --with-sf                        use sourceforge
-  --with-osdn                      use osdn(jp) instead of sourceforge
+  --with-cf                        use cloudflare instead of github
+  --with-sf                        use sourceforge instead of github
+  --with-osdn                      use osdn(jp)  instead of github
+  --with-github                    use github
   --with-APPNAME                   install an application
 
     Available applications:
@@ -1216,7 +1249,7 @@ rtgui="rutorrent"
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hrH:p:P:s:t:u: -l help,ftp-ip:,lang:,reboot,with-log,no-log,with-ftp,no-ftp,with-bbr,no-bbr,with-cf,with-sf,with-osdn,with-rtorrent,with-rutorrent,with-flood,with-transmission,with-qbittorrent,with-deluge,with-mktorrent,with-ffmpeg,with-filebrowser,with-linuxrar,hostname:,port:,username:,password:,source:,theme: -- "$@")
+if ! ARGS=$(getopt -a -o hrH:p:P:s:t:u: -l help,ftp-ip:,lang:,reboot,with-log,no-log,with-ftp,no-ftp,with-bbr,no-bbr,with-cf,with-sf,with-osdn,with-github,with-rtorrent,with-rutorrent,with-flood,with-transmission,with-qbittorrent,with-deluge,with-mktorrent,with-ffmpeg,with-filebrowser,with-linuxrar,hostname:,port:,username:,password:,source:,theme: -- "$@")
 then
 	_usage
     exit 1
@@ -1321,6 +1354,7 @@ while true; do
 	--with-cf) cdn="--with-cf" ;;
 	--with-sf) cdn="--with-sf" ;;
 	--with-osdn) cdn="--with-osdn" ;;
+	--with-github) cdn="--with-github" ;;
 	--with-rtorrent) app_list+=" rtorrent" ;;
 	--with-rutorrent) rtgui="rutorrent" ;;
 	--with-flood) rtgui="flood" ;;
