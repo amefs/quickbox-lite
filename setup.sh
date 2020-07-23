@@ -1145,7 +1145,8 @@ $(case "$cdn" in
 	"--with-cf") echo -e "\nCloudflare ${INFO_TEXT_SUMMARY_19}";;
 	"--with-sf") echo -e "\nSourceforge ${INFO_TEXT_SUMMARY_19}";;
 	"--with-osdn") echo -e "\nOSDN ${INFO_TEXT_SUMMARY_19}";;
-	*) echo -e "\nOSDN ${INFO_TEXT_SUMMARY_19}";;
+	"--with-github") echo -e "\nGitHub ${INFO_TEXT_SUMMARY_19}";;
+	*) echo -e "\nGitHub ${INFO_TEXT_SUMMARY_19}";;
 esac)\
 $(if [[ $app_list != "" ]]; then
 		echo -e "\n${INFO_TEXT_SUMMARY_15}"
