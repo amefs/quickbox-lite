@@ -14067,3 +14067,15 @@ img.grayscale:hover {
   color: rgba(229,88,105,1);
   text-shadow: 0 0 0 rgba(229,88,105,0.2), 0 0 10px rgba(229,88,105,0.2), 0 0 15px rgba(229,88,105,0.2), 0 0 20px rgba(229,88,105,0.2), 0 0 35px rgba(229,88,105,0.2), 0 0 40px rgba(229,88,105,0.2), 0 0 50px rgba(229,88,105,0.2), 0 0 75px rgba(229,88,105,0.2);
 }
+
+div.dataTables_paginate {
+  text-align: unset;
+}
+
+div.dataTables_filter {
+  text-align: unset;
+}
+
+div.dataTables_info {
+  padding-top: 0;
+}
