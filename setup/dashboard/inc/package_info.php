@@ -290,8 +290,15 @@ $packageList = array(
     "name" => "ZNC",
     "description" => "ZNC",
     "lockfile" => "/install/.znc.lock",
-    "uninstall" => "UNINSTALL_ZNC_TXT",
-    "boxonly" => false
+    "install" => "BOX_TOOLTIP_ZNC",
+    "boxonly" => true,
+    "services" => [
+      "znc" => [
+        "process" => "znc",
+        "name" => "ZNC",
+        "username" => "znc"
+      ]
+    ]
   ], [
     "skip" => true,
     "package" => "shellinabox",

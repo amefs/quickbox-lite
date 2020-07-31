@@ -26,7 +26,7 @@ function _updatedashboard() {
 	_info "Updating QuickBox dashboard..."
 	# Update dashboard config
 	cd /srv/dashboard || exit 1
-	_execute "rsync -aP --exclude=share.php --exclude=custom.menu.php --exclude=url.override.php --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
+	_execute "rsync -aP --delete --exclude=output.log  --exclude=interface.txt --exclude=master.txt --exclude=.smoked.lock --exclude=.defaulted.lock --exclude=share.php --exclude=custom.menu.php --exclude=url.override.php --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
 
 	IFACE=$(cat /srv/dashboard/db/interface.txt)
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/stat.php
