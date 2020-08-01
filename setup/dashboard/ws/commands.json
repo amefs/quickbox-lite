@@ -3,23 +3,23 @@
     "systemctl": {
         "template": "systemctl $operation$ $target$",
         "operations": ["enable", "start", "stop" , "disable", "restart", "status"],
-        "targets": ["deluge-web@$username$", "deluged@$username$", "denyhosts", "fail2ban", "filebrowser@$username$", "filebrowser-ee@$username$", "flexget@$username$", "flood@$username$", "irssi@$username$", "netdata", "plexmediaserver", "qbittorrent@$username$", "resilio-sync@$username$", "rtorrent@$username$", "shellinabox", "syncthing@$username$", "tightvnc", "transmission@$username$"]
+        "targets": ["deluge-web@$username$", "deluged@$username$", "denyhosts", "fail2ban", "filebrowser@$username$", "filebrowser-ee@$username$", "flexget@$username$", "flood@$username$", "irssi@$username$", "netdata", "plexmediaserver", "qbittorrent@$username$", "resilio-sync@$username$", "rtorrent@$username$", "shellinabox", "syncthing@$username$", "tightvnc", "transmission@$username$", "novnc@$username$", "znc"]
     },
     "installpackage": {
         "template": "bash /usr/local/bin/quickbox/package/install/installpackage-$target$",
         "operations": [],
-        "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "filebrowser-ee", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go", "znc"]
+        "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go"]
     },
     "removepackage": {
         "template": "/usr/local/bin/quickbox/package/remove/removepackage-$target$",
         "operations": [],
-        "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "filebrowser-ee", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go", "znc"]
+        "targets": ["autodlirssi", "btsync", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "novnc", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go"]
     },
     "box": {
         "template": "bash /usr/local/bin/quickbox/system/box $operation$ $target$",
         "operations": ["clean", "update", "lang"],
         "targets": ["mem", "log",
-            "quickbox",
+            "quickbox --only-core",
             "lang_de", "lang_dk", "lang_en", "lang_fr", "lang_es", "lang_zh"
         ]
     }

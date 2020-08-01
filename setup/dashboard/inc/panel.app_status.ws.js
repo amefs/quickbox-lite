@@ -1,102 +1,102 @@
 (function($) {
   const service_status_list = [{
     name: "BTSYNC",
-    url: "/widgets/app_status/app_status_btsync.php",
-    id: "#appstat_btsync",
+    url: "/widgets/service_status.php?service=resilio-sync",
+    id: "#appstat_resilio-sync",
     time: 5000
   }, {
     name: "DELUGED",
-    url: "/widgets/app_status/app_status_deluged.php",
+    url: "/widgets/service_status.php?service=deluged",
     id: "#appstat_deluged",
     time: 5000
   }, {
     name: "DELUGE WEB",
-    url: "/widgets/app_status/app_status_delugeweb.php",
-    id: "#appstat_delugeweb",
+    url: "/widgets/service_status.php?service=deluge-web",
+    id: "#appstat_deluge-web",
     time: 5000
   }, {
     name: "DENYHOSTS",
-    url: "/widgets/app_status/app_status_denyhosts.php",
+    url: "/widgets/service_status.php?service=denyhosts",
     id: "#appstat_denyhosts",
     time: 5000
   }, {
     name: "FAIL2BAN",
-    url: "/widgets/app_status/app_status_fail2ban.php",
+    url: "/widgets/service_status.php?service=fail2ban",
     id: "#appstat_fail2ban",
     time: 5000
   }, {
     name: "FILEBROWSER",
-    url: "/widgets/app_status/app_status_filebrowser.php",
+    url: "/widgets/service_status.php?service=filebrowser",
     id: "#appstat_filebrowser",
     time: 5000
   }, {
     name: "FILEBROWSEREE",
-    url: "/widgets/app_status/app_status_filebrowser-ee.php",
+    url: "/widgets/service_status.php?service=filebrowser-ee",
     id: "#appstat_filebrowser-ee",
     time: 5000
   }, {
     name: "FLEXGET",
-    url: "/widgets/app_status/app_status_flexget.php",
+    url: "/widgets/service_status.php?service=flexget",
     id: "#appstat_flexget",
     time: 5000
   }, {
     name: "FLOOD",
-    url: "/widgets/app_status/app_status_flood.php",
+    url: "/widgets/service_status.php?service=flood",
     id: "#appstat_flood",
     time: 5000
   }, {
     name: "IRSSI",
-    url: "/widgets/app_status/app_status_irssi.php",
+    url: "/widgets/service_status.php?service=irssi",
     id: "#appstat_irssi",
     time: 5000
   }, {
     name: "NETDATA",
-    url: "/widgets/app_status/app_status_netdata.php",
+    url: "/widgets/service_status.php?service=netdata",
     id: "#appstat_netdata",
     time: 5000
   }, {
     name: "NOVNC",
-    url: "/widgets/app_status/app_status_novnc.php",
-    id: "#appstat_novnc",
+    url: "/widgets/service_status.php?service=tightvnc",
+    id: "#appstat_tightvnc",
     time: 5000
   }, {
     name: "PLEX",
-    url: "/widgets/app_status/app_status_plex.php",
-    id: "#appstat_plex",
+    url: "/widgets/service_status.php?service=plexmediaserver",
+    id: "#appstat_plexmediaserver",
     time: 5000
   }, {
     name: "RTORRENT",
-    url: "/widgets/app_status/app_status_rtorrent.php",
+    url: "/widgets/service_status.php?service=rtorrent",
     id: "#appstat_rtorrent",
     time: 5000
   }, {
     name: "SYNCTHING",
-    url: "/widgets/app_status/app_status_syncthing.php",
+    url: "/widgets/service_status.php?service=syncthing",
     id: "#appstat_syncthing",
     time: 5000
   }, {
     name: "TRANSMISSION",
-    url: "/widgets/app_status/app_status_transmission.php",
+    url: "/widgets/service_status.php?service=transmission",
     id: "#appstat_transmission",
     time: 5000
   }, {
     name: "QBITTORRENT",
-    url: "/widgets/app_status/app_status_qbittorrent.php",
+    url: "/widgets/service_status.php?service=qbittorrent",
     id: "#appstat_qbittorrent",
     time: 5000
   }, {
     name: "WEB CONSOLE",
-    url: "/widgets/app_status/app_status_webconsole.php",
-    id: "#appstat_webconsole",
+    url: "/widgets/service_status.php?service=shellinabox",
+    id: "#appstat_shellinabox",
     time: 5000
   }, {
     name: "X2GO",
-    url: "/widgets/app_status/app_status_x2go.php",
+    url: "/widgets/service_status.php?service=x2go",
     id: "#appstat_x2go",
     time: 5000
   }, {
     name: "ZNC",
-    url: "/widgets/app_status/app_status_znc.php",
+    url: "/widgets/service_status.php?service=znc",
     id: "#appstat_znc",
     time: 5000
   }];
