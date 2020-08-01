@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.6
+# Current version:  v1.4.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -236,9 +236,10 @@ function _configureApp() {
 
 		mkdir -p /home/${username}/.config/filebrowser-ee/
 		mkdir -p /home/${username}/.config/filebrowser-ee/log/
-		/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser-ee/database.db config init >>"${OUTTO}" 2>&1
-		/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser-ee/database.db config set --locale ${UIlang} --auth.method=noauth >>"${OUTTO}" 2>&1
-		/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser-ee/database.db users add ${username} ${password} --perm.admin >>"${OUTTO}" 2>&1
+		chown ${username}.${username} -R /home/${username}/.config/filebrowser-ee/
+		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser-ee/database.db config init" >>"${OUTTO}" 2>&1
+		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser-ee/database.db config set --locale ${UIlang} --auth.method=noauth" >>"${OUTTO}" 2>&1
+		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser-ee/database.db users add ${username} ${password} --perm.admin" >>"${OUTTO}" 2>&1
 		chown ${username}.${username} -R /home/${username}/.config/filebrowser-ee/
 		
 		# setup docker File Browser EE

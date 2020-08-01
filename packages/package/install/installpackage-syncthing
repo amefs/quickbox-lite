@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.6
+# Current version:  v1.4.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -231,7 +231,7 @@ EOF
 		# create default config
 		mkdir -p /home/${username}/.config/syncthing
 		chown -R ${username}.${username} /home/${username}/.config/syncthing
-		_execute "/usr/bin/syncthing -generate=/home/${username}/.config/syncthing"
+		sudo -u ${username} -H bash -c "/usr/bin/syncthing -generate=/home/${username}/.config/syncthing" >>"${OUTTO}" 2>&1
 
 		# set a port for WebUI
 		sed -i "s/127\.0\.0\.1:8384/127\.0\.0\.1:${PORT}/g" /home/${username}/.config/syncthing/config.xml

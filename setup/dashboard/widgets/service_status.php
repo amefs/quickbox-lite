@@ -18,12 +18,18 @@ $packageWithService = array_filter($packageList, function($package) {
 $status = false;
 
 foreach ($packageWithService as $package) {
+    $matched = false;
     foreach ($package["services"] as $k => $info) {
         if ($k === $service) {
             $process = $info["process"];
             $username = $info["username"];
             $status = processExists($process, $username);
+            $matched = true;
+            break;
         }
+    }
+    if ($matched) {
+        break;
     }
 }
 

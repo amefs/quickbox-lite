@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.6
+# Current version:  v1.4.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -125,8 +125,6 @@ function _updateApp() {
 	rm -rf /srv/$APP_NAME
 	_execute "git clone --recurse-submodules $BRANCH $APP_NAME"
 	chown -R www-data:www-data /srv/$APP_NAME
-	rm -rf /srv/$APP_NAME/plugins/throttle
-	rm -rf /srv/$APP_NAME/plugins/extratio
 	rm -rf /srv/$APP_NAME/conf/config.php
 	_info "Setting up plugins... "
 	plugin_lib="/usr/local/bin/quickbox/rutorrent/plugins/"
@@ -170,7 +168,7 @@ EOF
 		fi
 
 		if [[ ! -d ${plugin_lib}ratiocolor ]]; then
-			cd ${plugin_lib} || { _error "Can not install ruTorrent ratiocolor" && exit 1; }
+			_execute "sudo svn co https://github.com/Gyran/rutorrent-ratiocolor.git/trunk ${plugin_lib}ratiocolor"
 			sed -i "s/changeWhat = \"cell-background\";/changeWhat = \"font\";/g" ${plugin_lib}ratiocolor/init.js
 		fi
 		if [[ ! -d ${plugin_lib}logoff ]]; then
@@ -316,8 +314,14 @@ TAS
 ?>
 RUCONF
 	done
-	_execute "nginx -s reload"
-	_execute "/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'"
+	_info "Starting ${APP_TITLE}..."
+	# schedule restart service
+	at now + 1 minute >>"${OUTTO}" 2>&1 <<EOF
+sleep 5;\
+/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();';\
+systemctl restart php7.4-fpm;\
+nginx -s reload
+EOF
 	_success "${APP_TITLE} is now update to date."
 }
 

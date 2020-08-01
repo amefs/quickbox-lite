@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.6
+# Current version:  v1.4.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -280,7 +280,6 @@ ExecStart=/usr/bin/rslsync --config /home/%I/.config/resilio-sync/config.json
 WantedBy=multi-user.target
 EOF
 	_execute "systemctl daemon-reload"
-	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."
 }
 
@@ -297,6 +296,7 @@ function _installAppStart() {
 		_execute "systemctl enable ${APP_SERVICE}@${username}"
 		_execute "systemctl start ${APP_SERVICE}@${username}"
 	done
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} started."
 }
 

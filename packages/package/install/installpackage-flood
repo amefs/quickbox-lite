@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.3.6
+# Current version:  v1.4.0
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -237,7 +237,7 @@ const CONFIG = {
 // Do not remove the below line.
 module.exports = CONFIG;
 EOF
-		su ${username} -c "cd /home/${username}/.flood; npm install --force && npm run build" >/dev/null 2>&1
+		sudo -u ${username} -H bash -c "cd /home/${username}/.flood; npm install --force && npm run build" >/dev/null 2>&1
 	done
 	_success "${APP_TITLE} Built."
 }

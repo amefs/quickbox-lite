@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.6
+# Current version:  v1.4.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -122,8 +122,10 @@ Please wait until the process is completed
 
 function _removeService() {
 	_info "Removing ${APP_TITLE} service..."
-	_execute "systemctl disable $APP_SERVICE"
-	_execute "systemctl stop $APP_SERVICE"
+	for username in $userlist; do
+		_execute "systemctl disable ${APP_SERVICE}@${username}"
+		_execute "systemctl stop ${APP_SERVICE}@${username}"
+	done
 	rm -rf /etc/systemd/${APP_SERVICE}@.service
 	_execute "systemctl daemon-reload"
 	_success "${APP_TITLE} service removed."

@@ -1,3 +1,28 @@
+## CHANGELOG v1.4.0
+
+*Changelog update Saturday, Aug 1, 2020*
+
+### General additions
+
+- Replace php script with websocket to manage package & service.
+
+### Function improved
+
+- Upgrade front-end deps, eg: jquery, bootstrap.
+- Import missing css and some other assets.
+
+### Function updated
+
+* Refactor package management.
+* Refactor service status management.
+
+### Bug fixed
+
+* fix permission problem in FlexGet and autoremovetorrents
+* adjust package management via websocket
+
+---
+
 ## CHANGELOG v1.3.6:
 
 *Changelog update Sunday, Jul 19, 2020*

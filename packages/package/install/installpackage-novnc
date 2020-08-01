@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.3.6
+# Current version:  v1.4.0
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -222,7 +222,6 @@ After=syslog.target network.target
 User=${username}
 Group=${username}
 Type=forking
-PAMName=login
 PIDFile=/home/${username}/.vnc/%H:1.pid
 ExecStartPre=/bin/sh -c '/usr/bin/vncserver -kill :1 > /dev/null 2>&1 || :'
 ExecStart=/usr/bin/vncserver -depth 24 -geometry 1440x900 :1
