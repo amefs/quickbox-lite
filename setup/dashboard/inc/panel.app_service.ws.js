@@ -7,18 +7,18 @@
         });
     }
 
+    const ansi_up = new AnsiUp();
+
     const socket = io(location.origin, { path: "/ws/socket.io" });
     socket.on("exec", function(response) {
         if (response.success === false) {
             let message = response.message || "";
-            const stdout = response.stdout || "";
-            const stderr = response.stderr || "";
+            let output = response.stdout || response.stderr || "";
+            output = output.replace(/\u001b[\(\)][B0UK]/g, ""); // replace some none CSI-sequences
+            const output_html = ansi_up.ansi_to_html(output);
             message = `${message}<br><code>${response.cmd}</code>`;
             if (stdout) {
-                message += `<hr><code style="white-space:pre-wrap">${stdout}</code>`;
-            }
-            if (stderr) {
-                message += `<hr><code style="white-space:pre-wrap">${stderr}</code>`;
+                message += `<hr>${output_html}`;
             }
             showAlert(message);
         } else {
