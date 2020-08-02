@@ -14079,3 +14079,7 @@ div.dataTables_filter {
 div.dataTables_info {
   padding-top: 0;
 }
+
+div.exec-output span {
+  display: block;
+}
