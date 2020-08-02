@@ -124,6 +124,7 @@ foreach ($packageList as &$package) {
 <script src="lib/visibility/visibility.core.js"></script>
 <script src="lib/visibility/visibility.timers.js"></script>
 <script src="lib/socket.io/socket.io.js"></script>
+<script src="lib/ansi_up/ansi_up.min.js"></script>
 <script src="lib/lazysizes/lazysizes.min.js" async></script>
 <script src="lib/bootbox/bootbox.all.min.js" async></script>
 <script src="js/quick.js"></script>

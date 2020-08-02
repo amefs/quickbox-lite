@@ -17,8 +17,8 @@
             output = output.replace(/\u001b[\(\)][B0UK]/g, ""); // replace some none CSI-sequences
             const output_html = ansi_up.ansi_to_html(output);
             message = `${message}<br><code>${response.cmd}</code>`;
-            if (stdout) {
-                message += `<hr>${output_html}`;
+            if (output) {
+                message += `<hr><div class="exec-output" style="display: inline-grid">${output_html}</div>`;
             }
             showAlert(message);
         } else {
