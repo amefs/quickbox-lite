@@ -31,6 +31,8 @@ const config = new WatchedConfig<CommandType>(configPath);
 const quickboxUsers = getFiles("/root/.qbuser/");
 const username = quickboxUsers.map(user => user.replace(".info", ""))[0];
 
+const env = { TERM: "xterm", ...process.env };
+
 const execHandler = async (payload: string, client: SocketIO.Socket) => {
     const ret = {
         cmd: payload,
@@ -77,7 +79,7 @@ const execHandler = async (payload: string, client: SocketIO.Socket) => {
         client.emit(Constant.EVENT_EXEC, ret);
         return;
     }
-    exec(template, { env: { TERM: "xterm" } }, (error, stdout, stderr) => {
+    exec(template, { env }, (error, stdout, stderr) => {
         ret.stdout = stdout;
         ret.stderr = stderr;
         if (error) {
