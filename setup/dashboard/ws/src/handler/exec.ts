@@ -1,27 +1,13 @@
 import { exec } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import * as SocketIO from "socket.io";
+
 
 import Constant from "../constant";
 import { WatchedConfig } from "../watchedConfig";
+import { CommandType,getFiles, buildCommand } from "./utils/command";
 
-interface CommandType {
-    [key: string]: {
-        template: string;
-        operations: string[];
-        targets: string[];
-    };
-};
-
-
-const getFiles = (dir: string): string[] => {
-    const files = [];
-    if (!fs.existsSync(dir)) {
-        return files;
-    }
-    return fs.readdirSync(dir, { withFileTypes: true })
-        .filter(file => file.isFile()).map(file => file.name);
-};
 
 let configPath = path.join(__dirname, "commands.json");
 if (!fs.existsSync(configPath)) {
@@ -31,7 +17,11 @@ const config = new WatchedConfig<CommandType>(configPath);
 const quickboxUsers = getFiles("/root/.qbuser/");
 const username = quickboxUsers.map(user => user.replace(".info", ""))[0];
 
-const env = { TERM: "xterm", ...process.env };
+const execOption = {
+    env: { TERM: "xterm", ...process.env },
+    timeout: 1000 * 60 * 114, // 114 minutes
+    maxBuffer: 5 * 1024 * 1024, // 5 MiB
+};
 
 const execHandler = async (payload: string, client: SocketIO.Socket) => {
     const ret = {
@@ -41,50 +31,27 @@ const execHandler = async (payload: string, client: SocketIO.Socket) => {
         stdout: "",
         stderr: "",
     };
-    const [command, operation, target] = payload.split(":");
-    const commandConfig = config.Value[command];
-    if (command === undefined || operation === undefined || target === undefined || commandConfig === undefined) {
+    let template: string;
+    try {
+        template = buildCommand(payload, config, username);
+    } catch (e) {
         ret.success = false;
-        ret.message = "Invalid Command";
+        ret.message = "Invalid command";
+        if (e instanceof Error) {
+            ret.message = e.message;
+        }
         client.emit(Constant.EVENT_EXEC, ret);
         return;
     }
-    let commandValid = true;
-    let template = commandConfig.template;
-    if (operation) {
-        const configOperation = commandConfig.operations.find(value => value === operation);
-        if (configOperation) {
-            template = template.replace(Constant.TEMPLATE_OPERATION, configOperation);
-        } else {
-            commandValid = false;
-        }
-    }
-    if (target) {
-        const configTarget = commandConfig.targets.find(value => value === target || value === target + `@${Constant.TEMPLATE_USERNAME}`);
-        if (configTarget) {
-            template = template.replace(Constant.TEMPLATE_TARGET, configTarget);
-        } else {
-            commandValid = false;
-        }
-    }
-    if (template.includes(Constant.TEMPLATE_USERNAME) && username) {
-        template = template.replace(Constant.TEMPLATE_USERNAME, username);
-    }
-    if (commandValid === false ||
-        template.includes(Constant.TEMPLATE_OPERATION) ||
-        template.includes(Constant.TEMPLATE_TARGET) ||
-        template.includes(Constant.TEMPLATE_USERNAME)) {
-        ret.success = false;
-        ret.message = "Invalid Arguements";
-        client.emit(Constant.EVENT_EXEC, ret);
-        return;
-    }
-    exec(template, { env }, (error, stdout, stderr) => {
+    exec(template, execOption, (error, stdout, stderr) => {
         ret.stdout = stdout;
         ret.stderr = stderr;
         if (error) {
             ret.success = false;
             ret.message = "Execute Failed";
+            if (error.killed && error.signal === "SIGTERM") {
+                ret.message = "Execute Timeout";
+            }
         }
         client.emit(Constant.EVENT_EXEC, ret);
     });
