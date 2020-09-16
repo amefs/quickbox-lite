@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   JMSolo, Amefs
-# Current version:  v1.4.0
+# Current version:  v1.4.1
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -195,6 +195,15 @@ server {
     }
 }
 NGC
+
+	# vsftpd
+	ftp_ip=$(cat /etc/vsftpd.conf | grep pasv_address | grep -Eo "[0-9.]+")
+	\cp -rf /etc/QuickBox/setup/templates/vsftpd/vsftpd.conf.template /etc/vsftpd.conf
+	sed -i 's/^\(pasv_min_port=\).*/\110090/' /etc/vsftpd.conf
+	sed -i 's/^\(pasv_max_port=\).*/\110100/' /etc/vsftpd.conf
+	echo "pasv_address=$ftp_ip" >>/etc/vsftpd.conf
+
+	_execute "systemctl restart vsftpd"
 	_execute "nginx -s reload"
 	_success "${APP_TITLE} removed."
 }

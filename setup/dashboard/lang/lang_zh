@@ -116,6 +116,7 @@ $L['AVAILABILITY'] = '状态';
 $L['AUTODL'] = 'AutoDL-iRSSi 是一个 irssi 插件, 用于监视 IRC 发布频道并且可以根据用户定义的过滤器下载.';
 $L['ART'] = 'Auto Remove Torrents 可以帮助你全自动的删除 torrents, 无需担心磁盘空间问题';
 $L['BTSYNC'] = 'BitTorrent 公司的 BitTorrent Sync 是一个专有的对等文件同步工具.';
+$L['CIFS'] = '服务器消息块（Server Message Block，缩写为SMB），又称网络文件共享系统（Common Internet File System，缩写为CIFS），一种应用层网络传输协议，由微软开发，主要功能是使网络上的机器能够共享计算机文件、打印机、串行端口和通讯等资源. 它也提供经认证的进程间通信机能.';
 $L['DELUGE'] = 'Deluge 是一款轻量级的免费软件, 跨平台的BitTorrent客户端.';
 $L['DENYHOSTS'] = 'DenyHosts 是针对 SSH 服务器的一个基于日志的入侵预防安全工具, 它使用Python编写.';
 $L['FAIL2BAN'] = 'Fail2Ban 是一种入侵防御软件框架, 可以保护计算机和服务器免受暴力攻击的威胁.';
@@ -125,7 +126,9 @@ $L['FLEXGET'] = 'FlexGet 是一款适用于所有媒体的多功能自动化工�
 $L['FLOOD'] = 'Flood 是 rtorrent 的另一个 Web 界面. 它使用 Node.js 服务与 rTorrent API 交互, 存储数据, 并且提供 Web UI.';
 $L['LECERT'] = 'Let’s Encrypt 是一个免费, 自动化的和开放的证书颁发机构 (CA), 由 ISRG (<a href="https://letsencrypt.org/" target="_blank">Internet Security Research Group</a>) 运营.';
 $L['NETDATA'] = 'Netdata 分布式的, 实时的适用于应用与系统的性能与健康情况的监视器.';
+$L['NFS'] = '网络文件系统（英语：Network File System，缩写作 NFS）是一种分布式文件系统，力求客户端主机可以访问服务器端文件，并且其过程与访问本地存储时一样，它由Sun微系统（已被甲骨文公司收购）开发，于1984年发布';
 $L['NOVNC'] = 'noVNC 不仅是一个 VNC 客户端 JavaScript 库, 也是一个利用该库构建的应用程序. noVNC 可以在任何的现代浏览器包括移动浏览器 (iOS and Android) 中运行.';
+$L['OPENVPN'] = 'OpenVPN是一个用于创建虚拟私人网络加密通道的软件包，最早由James Yonan编写. OpenVPN允许创建的VPN使用公开密钥、电子证书、或者用户名／密码来进行身份验证.';
 $L['PLEX'] = 'Plex 可让你将内容传输到任何支持 Plex 的设备.';
 $L['QBITTORRENT'] = 'qBittorrent 是一款免费可靠的 P2P BitTorrent 客户端, 先进的多平台 BitTorrent 客户端, 具有良好的 Qt 用户界面以及用于远程控制并且集成搜索引擎的 Web 用户界面.';
 $L['RTORRENT'] = 'rTorrent 是一个快速高效的 BitTorrent 客户端, 同时使用正在开发的 libtorrent 库 (并非 libtorrent-rasterbar). 它是利用 C ++ 和 ncurses 库编写的软件, 因此它使用一个字符用户界面.';
@@ -236,6 +239,9 @@ $L['TOTAL_RAM'] = '系统内存总计';
 // clean mem button
 $L['CLEAR_CACHE'] = '清除缓存';
 
+// clean lock button
+$L['CLEAR_LOCK'] = '清除锁定';
+$L['CLEAR_LOCK_TXT'] = '检测到软件安装锁. 如果上次安装过程发生意外, 可以点击按钮解除锁定';
 
 ////////////////////////////////////////
 //CPU STATUS WIDGET
@@ -310,6 +316,7 @@ $L['UNINSTALL_AUTODL_TXT'] = '即将从系统中卸载 AutoDL-iRSSi. <br/> <br/>
 $L['UNINSTALL_BTSYNC_TXT'] = '即将从系统中卸载 BitTorrent Sync.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 BitTorrent Sync, 但是, 你的存储路径和链接的文件夹设置将被重置为默认值.';
 $L['UNINSTALL_DELUGE_TXT'] = '即将从系统中卸载 Deluge.<br/> <br/>这将彻底删除<strong>所有用户</strong>的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 Deluge, 但是, 你的存储路径和链接文件夹设置将被重置为默认值.';
 $L['UNINSTALL_FILEBROWSER_TXT'] = '即将从系统中卸载 File Browser.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 File Browser, 但是你的存储路径和链接的文件夹设置将被重置为默认值.';
+$L['UNINSTALL_FILEBROWSEREE_TXT'] = '即将从系统中卸载 File Browser Enhanced.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 File Browser, 但是你的存储路径和链接的文件夹设置将被重置为默认值.';
 $L['UNINSTALL_FLEXGET_TXT'] = '即将从系统中卸载 FlexGet.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 FlexGet, 但是你的设置将被重置为默认值.';
 $L['UNINSTALL_FLOOD_TXT'] = '即将从系统中卸载 Flood.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 Flood, 但是你的设置将被重置为默认值.';
 $L['UNINSTALL_NETDATA_TXT'] = '即将从系统中卸载 Netdata.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 Netdata, 但是你的设置将被重置为默认值.';

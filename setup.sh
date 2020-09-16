@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.6
+# Current version:  v1.4.1
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -615,6 +615,38 @@ function _askcdn() {
 	else
 		cdn="--with-github"
 	fi
+}
+
+function _askSwap() {
+	swap_path=$(whiptail --title "$INFO_TITLE_SWAP" --inputbox "${INFO_TEXT_SWAP_1} \n${INFO_TEXT_SWAP_2}" 10 72 --ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3)
+	if [[ ${swap_path} == "" ]]; then
+		swap_path="/root/.swapfile"
+	elif [[ ! -d $(dirname ${swap_path}) ]]; then
+		swap_path="/root/.swapfile"
+	fi
+	{
+		if [[ ! -f ${swap_path} ]]; then
+			touch ${swap_path} || exit 1
+		fi
+		echo -e "XXX\n10\n$INFO_TEXT_SWAPON_0$INFO_TEXT_DONE\nXXX"
+		sleep 1
+		echo -e "XXX\n10\n$INFO_TEXT_SWAPON_1\nXXX"
+		dd if=/dev/zero of=${swap_path} bs=1M count=2048 >/dev/null 2>&1
+		echo -e "XXX\n50\n$INFO_TEXT_SWAPON_1$INFO_TEXT_DONE\nXXX"
+		sleep 1
+		echo -e "XXX\n50\n$INFO_TEXT_SWAPON_2\nXXX"
+		chmod 600 ${swap_path} >/dev/null 2>&1
+		mkswap ${swap_path} >/dev/null 2>&1
+		swapon ${swap_path} >/dev/null 2>&1
+		swapon -s >/dev/null 2>&1
+		echo -e "XXX\n75\n$INFO_TEXT_SWAPON_2$INFO_TEXT_DONE\nXXX"
+		sleep 1
+		echo -e "XXX\n75\n$INFO_TEXT_SWAPON_3\nXXX"
+		cat >> /etc/fstab <<EOF
+${swap_path} swap swap defaults 0 0
+EOF
+		echo -e "XXX\n100\n$INFO_TEXT_SWAPON_3$INFO_TEXT_DONE\nXXX"
+	} | whiptail --title "$INFO_TITLE_SWAPON" --gauge "$INFO_TEXT_SWAPON_0" 8 64 0
 }
 
 function _chsource() {
@@ -1395,6 +1427,32 @@ if [[ $onekey == 1 ]]; then
 			source ${local_lang}en.lang
 		fi
 		DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales >/dev/null 2>&1
+		if [ $(free -m | grep Mem | awk '{print  $2}') -le 2048 ]; then
+			swap_path=/root/.swapfile
+			{
+				if [[ ! -f ${swap_path} ]]; then
+					touch ${swap_path} || exit 1
+				fi
+				echo -e "XXX\n10\n$INFO_TEXT_SWAPON_0$INFO_TEXT_DONE\nXXX"
+				sleep 1
+				echo -e "XXX\n10\n$INFO_TEXT_SWAPON_1\nXXX"
+				dd if=/dev/zero of=${swap_path} bs=1M count=2048 >/dev/null 2>&1
+				echo -e "XXX\n50\n$INFO_TEXT_SWAPON_1$INFO_TEXT_DONE\nXXX"
+				sleep 1
+				echo -e "XXX\n50\n$INFO_TEXT_SWAPON_2\nXXX"
+				chmod 600 ${swap_path} >/dev/null 2>&1
+				mkswap ${swap_path} >/dev/null 2>&1
+				swapon ${swap_path} >/dev/null 2>&1
+				swapon -s >/dev/null 2>&1
+				echo -e "XXX\n75\n$INFO_TEXT_SWAPON_2$INFO_TEXT_DONE\nXXX"
+				sleep 1
+				echo -e "XXX\n75\n$INFO_TEXT_SWAPON_3\nXXX"
+				cat >> /etc/fstab <<EOF
+${swap_path} swap swap defaults 0 0
+EOF
+				echo -e "XXX\n100\n$INFO_TEXT_SWAPON_3$INFO_TEXT_DONE\nXXX"
+			} | whiptail --title "$INFO_TITLE_SWAPON" --gauge "$INFO_TEXT_SWAPON_0" 8 64 0
+    	fi
 		_startinstall
 	else
 		_error "Onekey install need Username and Password!"
@@ -1420,6 +1478,9 @@ elif [[ $onekey == 0 ]]; then
 	_askcdn
 	_askapps
 	_askbbr
+	if [ $(free -m | grep Mem | awk '{print  $2}') -le 2048 ]; then
+		_askSwap
+	fi
 	_askautoreboot
 
 	# Conclusion

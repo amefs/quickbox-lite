@@ -5,6 +5,11 @@
     id: "#appstat_resilio-sync",
     time: 5000
   }, {
+    name: "CIFS",
+    url: "/widgets/service_status.php?service=smbd",
+    id: "#appstat_smbd",
+    time: 5000
+  }, {
     name: "DELUGED",
     url: "/widgets/service_status.php?service=deluged",
     id: "#appstat_deluged",
@@ -55,9 +60,19 @@
     id: "#appstat_netdata",
     time: 5000
   }, {
+    name: "NFS",
+    url: "/widgets/service_status.php?service=nfs-kernel-server",
+    id: "#appstat_nfs-kernel-server",
+    time: 5000
+  }, {
     name: "NOVNC",
     url: "/widgets/service_status.php?service=tightvnc",
     id: "#appstat_tightvnc",
+    time: 5000
+  }, {
+    name: "OPENVPN",
+    url: "/widgets/service_status.php?service=openvpn",
+    id: "#appstat_openvpn",
     time: 5000
   }, {
     name: "PLEX",
@@ -83,6 +98,11 @@
     name: "QBITTORRENT",
     url: "/widgets/service_status.php?service=qbittorrent",
     id: "#appstat_qbittorrent",
+    time: 5000
+  }, {
+    name: "VSFTPD",
+    url: "/widgets/service_status.php?service=vsftpd",
+    id: "#appstat_vsftpd",
     time: 5000
   }, {
     name: "WEB CONSOLE",

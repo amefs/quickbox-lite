@@ -118,6 +118,7 @@ $L['AVAILABILITY'] = 'Tilgængelighed';
 $L['AUTODL'] = 'AutoDL-iRSSi er et plugin til irssi, der overvåger IRC annoncerer kanaler og downloader torrent-filer baseret på brugerdefinerede filtre.';
 $L['ART'] = 'Auto Remove Torrents can help you to remove your torrents. Now you don\'t need to worry about your disk space - according to your strategies, the program will check each torrent if it satisfies the remove condition; If so, delete it automatically.';
 $L['BTSYNC'] = 'BitTorrent Sync by BitTorrent, Inc er et proprietært peer-to-peer-fil synkronisering værktøj.';
+$L['CIFS'] = 'CIFS is a communication protocol for providing shared access to files, printers, and serial ports between nodes on a network.';
 $L['DELUGE'] = 'Deluge en gratis letvægts cross-platform BitTorrent klient.';
 $L['DENYHOSTS'] = 'DenyHosts is a log-based intrusion-prevention security tool for SSH servers written in Python.';
 $L['FAIL2BAN'] = 'Fail2Ban er et framework til indtrængningsforebyggelse af software som beskytter servere imod brute force angreb.';
@@ -127,7 +128,9 @@ $L['FLEXGET'] = 'FlexGet er et multifunktionsautomatiseringsværktøj til alle d
 $L['FLOOD'] = 'Flood er en anden webgrænseflade til rtorrent. Det implementerer en Node.js-server til kommunikation med rTorrent API, lagring af historiske data og visning af web-brugergrænsefladen.';
 $L['LECERT'] = 'Let’s Encrypt er en gratis, automatiseret og åben certifikatmyndighed (CA). Det er en tjeneste fra <a href="https://letsencrypt.org/" target="_blank">Internet Security Research Group (ISRG)</a>.';
 $L['NETDATA'] = 'Netdata er et distribueret, realtids - ydeevne og sundheds overvågning for systemer og applikationer.';
+$L['NFS'] = 'Network File System (NFS) is a distributed file system protocol originally developed by Sun Microsystems (Sun) in 1984, allowing a user on a client computer to access files over a computer network much like local storage is accessed.';
 $L['NOVNC'] = 'noVNC er både et VNC klient JavaScript bibliotek samt et program bygget oven på biblioteket. noVNC kører godt i enhver moderne browser, herunder mobilbrowsere (iOS og Android).';
+$L['OPENVPN'] = 'OpenVPN is open-source commercial software that implements virtual private network (VPN) techniques to create secure point-to-point or site-to-site connections in routed or bridged configurations and remote access facilities.';
 $L['PLEX'] = 'Plex lader dig streame dit indhold til enhver Plex enhed.';
 $L['QBITTORRENT'] = 'qBittorrent er en gratis og pålidelig P2P BitTorrent klient. En avanceret multiplatform BitTorrent-klient med en flot Qt-brugergrænseflade samt et web-interface til remote betjening og en integreret søgemaskine.';
 $L['RTORRENT'] = 'rTorrent er en hurtig og effektiv BitTorrent-klient, der bruger og er ved at blive udviklet sammen med libTorrent-biblioteket (ikke forveksles med libtorrent-rasterbar). Det er skrevet i C ++ og bruger ncurses programmeringsbiblioteket, hvilket betyder at det bruger en tekstbrugergrænseflade.';
@@ -141,8 +144,6 @@ $L['ZNC'] = 'ZNC er en IRC bouncer eller BNC. Den kan frigøre ircklienten fra s
 $L['CLI'] = 'Kun Webkonsol';
 $L['INSTALL'] = 'Install';
 $L['INSTALLED'] = 'Installeret';
-$L['OVPN_TOOLTIP_I'] = 'Adgang til denne feature fås via webkonsollen ved at skrive: quickVPN';
-$L['OVPN_TOOLTIP_U'] = 'Adgang til denne feature fås via webkonsollen ved at skrive: quickVPN';
 $L['BOX'] = 'Kun BOX';
 $L['BOX_TOOLTIP_ART'] = 'Adgang til denne feature fås via ssh ved at skrive: box install art';
 $L['BOX_TOOLTIP_DENYHOSTS'] = 'Adgang til denne feature fås via ssh ved at skrive:  box install denyhosts';
@@ -238,6 +239,9 @@ $L['TOTAL_RAM'] = 'Total System RAM';
 // clean mem button
 $L['CLEAR_CACHE'] = 'Ryd Hukommelsescache';
 
+// clean lock button
+$L['CLEAR_LOCK'] = 'Clear lock';
+$L['CLEAR_LOCK_TXT'] = 'Install Lock Exist. If you believe this to be in error, click the button to remove the lock.';
 
 ////////////////////////////////////////
 //CPU STATUS WIDGET
@@ -310,13 +314,16 @@ $L['UNINSTALL_TITLE'] = 'Afinstaller';
 //MODAL TEXT
 $L['UNINSTALL_AUTODL_TXT'] = 'Du er ved at afinstallere AutoDL-iRSSi fra dit system.<br/><br/>Dette vil fuldstændig fjerne dine kofigurations og delte indstillinger... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere AutoDL-iRSSi til hver en tid, men din sti til lagering og linkede mappeindstillinger vil blive nulstillet til standard.';
 $L['UNINSTALL_BTSYNC_TXT'] = 'Du er ved at afinstallere BitTorrent Sync fra dit system.<br/><br/>Dette vil fuldstændig fjerne dine kofigurations og delte indstillinger... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere BitTorrent Sync til hver en tid, men din sti til lagering og linkede mappeindstillinger vil blive nulstillet til standard.';
+$L['UNINSTALL_CIFS_TXT'] = 'You are about to uninstall Samba Server from your system.<br/><br/>This will completely remove all of your configuration... this action is irreversible. <br/><br/>You may reinstall Samba Server at any time.';
 $L['UNINSTALL_DELUGE_TXT'] = 'Du er ved at afinstallere Deluge fra dit system.<br/><br/>Dette vil fuldstændig fjerne dine kofigurations og delte indstillinger for <strong>alle brugere</strong>... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere Deluge til hver en tid, men din sti til lagring og linkede mappeindstillinger vil blive nulstillet til standard..';
 $L['UNINSTALL_FILEBROWSER_TXT'] = 'Du er ved at afinstallere File Browser fra dit system.<br/><br/>Dette vil fuldstændig fjerne dine kofigurations og delte indstillinger for <strong>alle brugere</strong>... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere File Browser til hver en tid, men din sti til lagring og linkede mappeindstillinger vil blive nulstillet til standard..';
 $L['UNINSTALL_FILEBROWSEREE_TXT'] = 'Du er ved at afinstallere File Browser fra dit system.<br/><br/>Dette vil fuldstændig fjerne dine kofigurations og delte indstillinger for <strong>alle brugere</strong>... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere File Browser Enhanced til hver en tid, men din sti til lagring og linkede mappeindstillinger vil blive nulstillet til standard..';
 $L['UNINSTALL_FLEXGET_TXT'] = 'Du er ved at afinstallere FlexGet fra dit system.<br/><br/>Dette vil fuldstændig fjerne dine kofigurations og delte indstillinger for <strong>alle brugere</strong>... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere FlexGet til hver en tid, men din sti til lagring og linkede mappeindstillinger vil blive nulstillet til standard..';
 $L['UNINSTALL_FLOOD_TXT'] = 'Du er ved at afinstallere Flood fra dit system.<br/><br/>Dette vil fuldstændig fjerne dine kofigurations og delte indstillinger for <strong>alle brugere</strong>... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere Flood til hver en tid, men din sti til lagring og linkede mappeindstillinger vil blive nulstillet til standard..';
 $L['UNINSTALL_NETDATA_TXT'] = 'Du er ved at afinstallere Netdata fra dit system.<br/><br/>Dette vil fuldstændig fjerne dine kofigurations og delte indstillinger for <strong>alle brugere</strong>... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere Netdata til hver en tid, men din sti til lagring og linkede mappeindstillinger vil blive nulstillet til standard..';
+$L['UNINSTALL_NFS_TXT'] = 'You are about to uninstall NFS Server from your system.<br/><br/>This will completely remove all of your configuration... this action is irreversible. <br/><br/>You may reinstall NFS Server at any time.';
 $L['UNINSTALL_NOVNC_TXT'] = 'Du er ved at afinstallere noVNC fra dit system.<br/><br/>Dette vil fuldstændig fjerne dine kofigurations og delte indstillinger for <strong>alle brugere</strong>... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere noVNC til hver en tid, men din sti til lagring og linkede mappeindstillinger vil blive nulstillet til standard..';
+$L['UNINSTALL_OPENVPN_TXT'] = 'You are about to uninstall OpenVPN from your system.<br/><br/>This will completely remove all of your configuration... this action is irreversible. <br/><br/>You may reinstall OpenVPN at any time.';
 $L['UNINSTALL_PLEX_TXT'] = 'Du er ved at afinstallere Plex Media Server fra dit system.<br/><br/>Dette vil fuldstændig fjerne din kofiguration og biblioteksindstillinger... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere Plex til hver en tid, men dine indstillinger vil blive nulstillet til standard.';
 $L['UNINSTALL_QBITTORRENT_TXT'] = 'Du er ved at afinstallere qBittorrent fra dit system.<br/><br/>Dette vil fuldstændig fjerne dine kofigurations og delte indstillinger for <strong>alle brugere</strong>... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere qBittorrent til hver en tid, men din sti til lagring og linkede mappeindstillinger vil blive nulstillet til standard..';
 $L['UNINSTALL_RTORRENT_TXT'] = 'Du er ved at afinstallere rTorrent fra dit system.<br/><br/>Dette vil fuldstændig fjerne dine kofigurations og delte indstillinger for <strong>alle brugere</strong>... denne handling kan ikke fortrydes. <br/><br/>Du har mulighed for at geninstallere rTorrent til hver en tid, men din sti til lagring og linkede mappeindstillinger vil blive nulstillet til standard..';

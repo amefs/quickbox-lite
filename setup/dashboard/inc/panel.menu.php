@@ -178,7 +178,7 @@
                 <li><a class="grayscale" href="<?php echo "$zncURL"; ?>" target="_blank"><img data-src="img/brands/znc.png" class="brand-ico lazyload"> <span>ZNC</span></a></li>
               <?php } ?>
             <?php } ?>
-            <?php if (file_exists('/install/.rtorrent.lock') || file_exists('/install/.deluge.lock') || file_exists('/install/.transmission.lock') || file_exists('/install/.qbittorrent.lock')) { ?>
+            <?php if (file_exists('/install/.rtorrent.lock') || file_exists('/install/.deluge.lock') || file_exists('/install/.transmission.lock') || file_exists('/install/.qbittorrent.lock') || file_exists('/home/'. $username .'/openvpn/'. $username .'.zip')) { ?>
               <li class="nav-parent">
                 <a href=""><i class="fa fa-download"></i> <span><?php echo T('DOWNLOADS'); ?></span></a>
                 <ul class="children">
@@ -194,8 +194,8 @@
                   <?php if (file_exists('/install/.qbittorrent.lock')) { ?>
                     <li><a href="<?php echo "$qbittorrentdlURL"; ?>" target="_blank">qBittorrent</a></li>
                   <?php } ?>
-                  <?php if (file_exists('/home/'. $username .'/public_html/'. $username .'.zip')) { ?>
-                    <li><a href="/~<?php echo "$username"; ?>/<?php echo "$username"; ?>.zip" target="_blank"> <span>OpenVPN Config</span></a></li>
+                  <?php if (file_exists('/home/'. $username .'/openvpn/'. $username .'.zip')) { ?>
+                    <li><a href="<?php echo "$openvpndlURL"; ?>" target="_blank">OpenVPN Config</a></li>
                   <?php } ?>
                 </ul>
               </li>

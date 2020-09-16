@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   JMSolo, Amefs
-# Current version:  v1.4.0
+# Current version:  v1.4.1
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -317,11 +317,20 @@ function _installAppLock() {
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
 	./acme.sh --issue -d $domain -w /srv >/dev/null 2>&1
+	# vsftpd tls
+	ftp_ip=$(cat /etc/vsftpd.conf | grep pasv_address | grep -Eo "[0-9.]+")
+	mv /etc/vsftpd.conf /root/.vsftpd.conf.bak
+	\cp -rf /etc/QuickBox/setup/templates/vsftpd/vsftpd.conf.tls.template /etc/vsftpd.conf
+	sed -i 's/^\(pasv_min_port=\).*/\110090/' /etc/vsftpd.conf
+	sed -i 's/^\(pasv_max_port=\).*/\110100/' /etc/vsftpd.conf
+	sed -i "s/^\(rsa_cert_file=\).*/rsa_cert_file=\/etc\/nginx\/ssl\/$domain\/$domain-fullchain.pem/" /etc/vsftpd.conf
+	sed -i "s/^\(rsa_private_key_file=\).*/rsa_private_key_file=\/etc\/nginx\/ssl\/$domain\/$domain-privkey.pem/" /etc/vsftpd.conf
+	echo "pasv_address=$ftp_ip" >>/etc/vsftpd.conf
 	./acme.sh --install-cert -d $domain \
 	--cert-file /etc/nginx/ssl/$domain/$domain-ssl.pem \
 	--key-file /etc/nginx/ssl/$domain/$domain-privkey.pem \
 	--fullchain-file /etc/nginx/ssl/$domain/$domain-fullchain.pem \
-	--reloadcmd "systemctl reload nginx.service" \
+	--reloadcmd "systemctl reload nginx.service; systemctl restart vsftpd.service" \
 	--log /root/.quickbox/logs/${domain}.log >/dev/null 2>&1
 	_success "${APP_TITLE} started."
 }

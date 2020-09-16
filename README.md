@@ -26,7 +26,7 @@ For more information, please check our [wiki](https://github.com/amefs/quickbox-
 
 ## Script status
 
-![Version](https://img.shields.io/badge/version-1.4.0-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.4.1-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
 
 When upgrade from 1.3.2 to 1.3.3, very recommend to use SSH with `box update quickbox`. You also need to run the command twice to finish the service upgrade. If you are using WebUI to finish the upgrade, please also upgrade twice.
 
@@ -186,9 +186,12 @@ sudo box update quickbox
 
 - Autodl-irssi
 - BTSync
+- CIFS
 - FlexGet (both 2.x and 3.x)
 - Netdata
+- NFS
 - noVNC
+- OpenVPN
 - Plex
 - Syncthing
 - x2Go

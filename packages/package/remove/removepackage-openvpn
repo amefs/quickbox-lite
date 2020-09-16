@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# [QuickBox Lite mktorrent Remover]
+# [QuickBox Lite OpenVPN Remover]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
@@ -69,21 +69,22 @@ function _error() {
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="mktorrent"
-APP_NAME="mktorrent"
-APP_BASEDEPS="mktorrent"
+APP_TITLE="OpenVPN"
+APP_NAME="openvpn"
+APP_SERVICE="openvpn"
 
-APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
+username=$(cat /root/.admin.info | cut -d: -f1)
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Remover"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
+	echo "-u, --user <username>     the user for this remover"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -98,7 +99,7 @@ function _lockCheck() {
 		_error "Exiting..."
 		exit 1
 	fi
-	if [[ ! -f "/install/$APP_LOCK" ]]; then
+	if [[ ! -f "/install/.${username}.${APP_NAME}.lock" ]]; then
 		_error "${APP_TITLE} haven't installed ..."
 		exit 1
 	fi
@@ -121,8 +122,8 @@ Please wait until the process is completed
 
 function _removeService() {
 	_info "Removing ${APP_TITLE} service..."
-	_execute "systemctl disable $APP_SERVICE"
-	_execute "systemctl stop $APP_SERVICE"
+	_execute "systemctl disable ${APP_SERVICE}"
+	_execute "systemctl stop ${APP_SERVICE}"
 	_success "${APP_TITLE} service removed."
 }
 
@@ -140,21 +141,34 @@ function _removeDepends() {
 
 function _removeApp() {
 	_info "Removing ${APP_TITLE}..."
-	rm -rf /usr/local/bin/createtorrent
-	rm -rf /etc/dialogrc
+	cd /tmp || exit 1
+	_execute "curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh"
+	_execute "chmod +x openvpn-install.sh"
+
+	# headless remove
+	export APPROVE_INSTALL=y
+	export MENU_OPTION="3"
+	/tmp/openvpn-install.sh <<< y >>"${OUTTO}" 2>&1
+
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		rm -rf /home/${username}/openvpn/
+		rm -f /etc/nginx/apps/${username}.ovpn.conf
+		rm -f /install/.${username}.openvpn.lock
+	done
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} removed."
 }
 
 function _removeAppLock() {
 	_info "Removing ${APP_TITLE} lock..."
-	rm -f /install/${APP_LOCK}
 	_success "${APP_TITLE} lock removed."
 }
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
+if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
 then
     _usage
     exit 1
@@ -168,6 +182,10 @@ while true; do
 		;;
 	-l | --log)
 		OUTTO="$2"
+		shift
+		;;
+	-u | --user)
+		username="$2"
 		shift
 		;;
 	--)
@@ -184,7 +202,6 @@ done
 _lockCheck
 _setLock
 _removeInfo
-_removeDepends
+_removeService
 _removeApp
-_removeAppLock
 _lockCleanup

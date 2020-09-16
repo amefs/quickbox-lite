@@ -1,3 +1,28 @@
+## CHANGELOG v1.4.1
+
+*Changelog update Wednesday, Sep 16, 2020*
+
+### General additions
+
+- Add CIFS support
+- Add NFS support
+- Add OpenVPN support
+
+### Function improved
+
+- A swapfile will be active, when system memory less than 2GB
+- Add service control for vsFTPD
+
+### Function updated
+
+* Add remove dpkg and installation lock button on the dashboard
+
+### Bug fixed
+
+* general bug fix on quickbox backend service
+
+---
+
 ## CHANGELOG v1.4.0
 
 *Changelog update Saturday, Aug 1, 2020*

@@ -43,7 +43,6 @@ $L['CLEAN_LOG_TXT'] = 'Führe diesen Befehl via SSH aus, um die Logs zu löschen
 $L['DISKTEST_TXT'] = 'Dieser Befehl führt einen schnellen Lese/Schreib-Test deiner Festplatte durch.';
 // seedbox commands section
 $L['SEEDBOX_COMMANDS'] = 'Seedbox Befehle';
-$L['SEEDBOX_COMMANDS'] = 'Seedbox Commands';
 $L['APP_INSTALL_TXT'] = 'Führe diesen Befehl via SSH aus, um eine Software-Paketes zu installieren.';
 $L['APP_UNINSTALL_TXT'] = 'Führe diesen Befehl via SSH aus, um eine Software-Paketes zu löschen.';
 $L['APP_UPGRADE_TXT'] = 'Führe diesen Befehl via SSH aus, um eine Software-Paketes zu aktualisieren.';
@@ -115,6 +114,7 @@ $L['AVAILABILITY'] = 'Verfügbarkeit';
 $L['AUTODL'] = 'AutoDL-iRSSi ist ein Plugin für irssi, das IRC-Ankündigungskanäle überwacht und Torrent-Dateien auf Basis benutzerdefinierter Filter herunterlädt.';
 $L['ART'] = 'Auto Remove Torrents can help you to remove your torrents. Now you don\'t need to worry about your disk space - according to your strategies, the program will check each torrent if it satisfies the remove condition; If so, delete it automatically.';
 $L['BTSYNC'] = 'BitTorrent Sync von BitTorrent, Inc ist ein proprietäres Peer-to-Peer Dateisynchronisationsprogramm.';
+$L['CIFS'] = 'CIFS is a communication protocol for providing shared access to files, printers, and serial ports between nodes on a network.';
 $L['DELUGE'] = 'Deluge ist ein leichter, kostenloser, Cross-Plattform BitTorrent-Client.';
 $L['DENYHOSTS'] = 'DenyHosts ist ein in Python geschriebenes, log-basiertes Intrusion Prevention System für SSH-Server.';
 $L['FAIL2BAN'] = 'Fail2Ban ist ein Software-Framework zur Einbruchsvermeidung, das Computerserver vor Brute-Force-Angriffen schützt.';
@@ -124,7 +124,9 @@ $L['FLEXGET'] = 'FlexGet ist ein Mehrzweck-Automatisierungstool für alle Ihre M
 $L['FLOOD'] = 'Flood ist ein weiteres Webinterface für rtorrent. Es implementiert einen Node.js-Server, um mit der rTorrent-API zu kommunizieren, historische Daten zu speichern und die Web-Benutzeroberfläche zu bedienen.';
 $L['LECERT'] = 'Let\'s Encrypt ist eine kostenlose, automatisierte und offene Certificate Authority (CA), die zum Nutzen der Öffentlichkeit betrieben wird. Es ist ein Service der <a href="https://letsencrypt.org/" target="_blank">Internet Security Research Group (ISRG)</a>.';
 $L['NETDATA'] = 'Netdata ist eine verteilte Echtzeit-, Leistungs- und Zustandsüberwachung für Systeme und Anwendungen.';
+$L['NFS'] = 'Network File System (NFS) is a distributed file system protocol originally developed by Sun Microsystems (Sun) in 1984, allowing a user on a client computer to access files over a computer network much like local storage is accessed.';
 $L['NOVNC'] = 'noVNC ist sowohl eine VNC-Client-JavaScript-Bibliothek als auch eine Anwendung, die auf dieser Bibliothek basiert. noVNC kann in allen modernen Browsern, einschließlich mobilen Browsern, verwendet werden (iOS and Android).';
+$L['OPENVPN'] = 'OpenVPN is open-source commercial software that implements virtual private network (VPN) techniques to create secure point-to-point or site-to-site connections in routed or bridged configurations and remote access facilities.';
 $L['PLEX'] = 'Mit Plex kannst du deine Medien verwalten und auf jedes Gerät streamen, auf dem Plex verfügbar ist.';
 $L['QBITTORRENT'] = 'qBittorrent ist ein kostenloser und zuverlässiger P2P-BitTorrent-Client. Ein erweiterter BitTorrent-Client für mehrere Plattformen mit einer schönen Qt-Benutzeroberfläche sowie eine Web-Benutzeroberfläche für die Fernsteuerung und eine integrierte Suchmaschine.';
 $L['RTORRENT'] = 'rTorrent ist ein schneller und effizienter BitTorrent-Client, der die Bibliothek libTorrent (nicht zu verwechseln mit libtorrent-rasterbar) verwendet und in Entwicklung ist. Es ist in C ++ geschrieben und verwendet die Programmierbibliothek ncurses, was bedeutet, dass es eine Text-Benutzerschnittstelle verwendet. Das ruTorrent-Frontend wird zusätzlich installiert.';
@@ -138,8 +140,6 @@ $L['ZNC'] = 'ZNC ist ein IRC-Netzwerk Bouncer oder BNC. Er kann den Clienten vom
 $L['CLI'] = 'Nur per Web-Konsole';
 $L['INSTALL'] = 'Installieren';
 $L['INSTALLED'] = 'Installiert';
-$L['OVPN_TOOLTIP_I'] = 'Greife per Web-Konsole auf das Feature mit dem Befehl "quickVPN" zu';
-$L['OVPN_TOOLTIP_U'] = 'Greife per Web-Konsole auf das Feature mit dem Befehl "quickVPN" zu';
 $L['BOX'] = 'Nur BOX';
 $L['BOX_TOOLTIP_ART'] = 'Greife per SSH auf das Feature mit dem Befehl "box install art" zu';
 $L['BOX_TOOLTIP_DENYHOSTS'] = 'Greife per SSH auf das Feature mit dem Befehl "box install denyhosts" zu';
@@ -235,6 +235,9 @@ $L['TOTAL_RAM'] = 'Gesamter Arbeitsspeicher';
 // clean mem button
 $L['CLEAR_CACHE'] = 'Lösche den Cache-Speicher';
 
+// clean lock button
+$L['CLEAR_LOCK'] = 'Clear lock';
+$L['CLEAR_LOCK_TXT'] = 'Install Lock Exist. If you believe this to be in error, click the button to remove the lock.';
 
 ////////////////////////////////////////
 //CPU STATUS WIDGET
@@ -307,13 +310,16 @@ $L['UNINSTALL_TITLE'] = 'Deinstallieren';
 //MODAL TEXT
 $L['UNINSTALL_AUTODL_TXT'] = 'Du bist gerade dabei, AutoDL-iRSSi auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Einstellungen gemeinsamer Ordner löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit AutoDL-iRSSi neu installieren, dabei werden jedoch dein Speicherpfad sowie die verknüpften Ordnereinstellungen kompett zurückgesetzt.';
 $L['UNINSTALL_BTSYNC_TXT'] = 'Du bist gerade dabei, BitTorrent Sync auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Einstellungen gemeinsamer Ordner löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit BitTorrent Sync neu installieren, dabei werden jedoch dein Speicherpfad sowie die verknüpften Ordnereinstellungen kompett zurückgesetzt.';
+$L['UNINSTALL_CIFS_TXT'] = 'You are about to uninstall Samba Server from your system.<br/><br/>This will completely remove all of your configuration... this action is irreversible. <br/><br/>You may reinstall Samba Server at any time.';
 $L['UNINSTALL_DELUGE_TXT'] = 'Du bist gerade dabei, Deluge auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Einstellungen gemeinsamer Ordner für <strong>alle Nutzer</strong> löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit Deluge neu installieren, dabei werden jedoch dein Speicherpfad sowie die verknüpften Ordnereinstellungen kompett zurückgesetzt.';
 $L['UNINSTALL_FILEBROWSER_TXT'] = 'Du bist gerade dabei, File Browser auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Einstellungen gemeinsamer Ordner löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit File Browser neu installieren, dabei werden jedoch dein Speicherpfad sowie die verknüpften Ordnereinstellungen kompett zurückgesetzt.';
 $L['UNINSTALL_FILEBROWSEREE_TXT'] = 'Du bist gerade dabei, File Browser auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Einstellungen gemeinsamer Ordner löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit File Browser Enhanced neu installieren, dabei werden jedoch dein Speicherpfad sowie die verknüpften Ordnereinstellungen kompett zurückgesetzt.';
 $L['UNINSTALL_FLEXGET_TXT'] = 'Du bist gerade dabei, FlexGet auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Einstellungen gemeinsamer Ordner löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit FlexGet neu installieren, dabei werden jedoch dein Speicherpfad sowie die verknüpften Ordnereinstellungen kompett zurückgesetzt.';
 $L['UNINSTALL_FLOOD_TXT'] = 'Du bist gerade dabei, Flood auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Einstellungen gemeinsamer Ordner löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit Flood neu installieren, dabei werden jedoch dein Speicherpfad sowie die verknüpften Ordnereinstellungen kompett zurückgesetzt.';
 $L['UNINSTALL_NETDATA_TXT'] = 'Du bist gerade dabei, Netdata auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Einstellungen gemeinsamer Ordner löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit Netdata neu installieren, dabei werden jedoch dein Speicherpfad sowie die verknüpften Ordnereinstellungen kompett zurückgesetzt.';
+$L['UNINSTALL_NFS_TXT'] = 'You are about to uninstall NFS Server from your system.<br/><br/>This will completely remove all of your configuration... this action is irreversible. <br/><br/>You may reinstall NFS Server at any time.';
 $L['UNINSTALL_NOVNC_TXT'] = 'Du bist gerade dabei, noVNC auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Einstellungen gemeinsamer Ordner löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit noVNC neu installieren, dabei werden jedoch dein Speicherpfad sowie die verknüpften Ordnereinstellungen kompett zurückgesetzt.';
+$L['UNINSTALL_OPENVPN_TXT'] = 'You are about to uninstall OpenVPN from your system.<br/><br/>This will completely remove all of your configuration... this action is irreversible. <br/><br/>You may reinstall OpenVPN at any time.';
 $L['UNINSTALL_PLEX_TXT'] = 'Du bist gerade dabei, Plex Media Server auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Bibliothekseinstellungen löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit Plex neu installieren, dabei werden jedoch deine Bibliothekseinstellungen komplett zurückgesetzt.';
 $L['UNINSTALL_QBITTORRENT_TXT'] = 'Du bist gerade dabei, qBittorrent auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Einstellungen gemeinsamer Ordner löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit qBittorrent neu installieren, dabei werden jedoch dein Speicherpfad sowie die verknüpften Ordnereinstellungen kompett zurückgesetzt.';
 $L['UNINSTALL_RTORRENT_TXT'] = 'Du bist gerade dabei, rTorrent auf deinem System zu deinstallieren.<br/><br/>Diese Aktion wird deine gesamte Konfiguration sowie alle Einstellungen gemeinsamer Ordner löschen und ist nicht rückgängig zu machen. <br/><br/>Du kannst aber jederzeit rTorrent neu installieren, dabei werden jedoch dein Speicherpfad sowie die verknüpften Ordnereinstellungen kompett zurückgesetzt.';

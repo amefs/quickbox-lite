@@ -116,6 +116,7 @@ $L['AVAILABILITY'] = 'Disponibilidad';
 $L['AUTODL'] = 'AutoDL-iRSSi es un plugin para irssi que supervisa los anuncios en canales IRC y descarga archivos de torrent según los filtros definidos por el usuario.';
 $L['ART'] = 'Auto Remove Torrents can help you to remove your torrents. Now you don\'t need to worry about your disk space - according to your strategies, the program will check each torrent if it satisfies the remove condition; If so, delete it automatically.';
 $L['BTSYNC'] = 'BitTorrent Sync de BitTorrent, Inc es un software propietario basado en P2P para la sincronización e intercambio de archivos.';
+$L['CIFS'] = 'CIFS is a communication protocol for providing shared access to files, printers, and serial ports between nodes on a network.';
 $L['DELUGE'] = 'Deluge es un cliente BitTorrent multiplataforma ligero y liviano, de software libre.';
 $L['DENYHOSTS'] = 'DenyHosts is a log-based intrusion-prevention security tool for SSH servers written in Python.';
 $L['FAIL2BAN'] = 'Fail2Ban is an intrusion prevention software framework that protects computer servers from brute-force attacks.';
@@ -125,7 +126,9 @@ $L['FLEXGET'] = 'FlexGet es una herramienta de automatización multipropósito p
 $L['FLOOD'] = 'Flood es una interfaz web para rtorrent. Implementa un servidor Node.js para comunicarse con la API de  rTorrent, almacenar datos históricos y servir a la interfaz web.';
 $L['LECERT'] = 'Let’s Encrypt es una autoridad de certificación (CA) gratuita, automatizada y abierta, que se ejecuta en beneficio del público por el <a href="https://letsencrypt.org/isrg/" target="_blank">Grupo de Investigación de Seguridad de Internet (ISRG)</a>.';
 $L['NETDATA'] = 'Netdata is distributed, real-time, performance and health monitoring for systems and applications.';
-$L['NOVNC'] = 'NoVNC es un cliente VNC escrito completamente en HTML5 de manera que nos permite conectarnos a un servidor remoto sin necesidad de instalar ningún software adicional. noVNC funciona bien en cualquier navegador moderno, incluidos los navegadores móviles (iOS y Android).';
+$L['NFS'] = 'Network File System (NFS) is a distributed file system protocol originally developed by Sun Microsystems (Sun) in 1984, allowing a user on a client computer to access files over a computer network much like local storage is accessed.';
+$L['NOVNC'] = 'noVNC is both a VNC client JavaScript library as well as an application built on top of that library. noVNC runs well in any modern browser including mobile browsers (iOS and Android).';
+$L['OPENVPN'] = 'OpenVPN is open-source commercial software that implements virtual private network (VPN) techniques to create secure point-to-point or site-to-site connections in routed or bridged configurations and remote access facilities.';
 $L['PLEX'] = 'Plex lets you stream your content to any Plex enabled device.';
 $L['QBITTORRENT'] = 'qBittorrent is a free and reliable P2P BitTorrent client. An advanced and multi-platform BitTorrent client with a nice Qt user interface as well as a Web UI for remote control and an integrated search engine.';
 $L['RTORRENT'] = 'rTorrent es un cliente de BitTorrent rápido y eficiente que utiliza, y está en desarrollo junto con, la biblioteca libTorrent (que no debe confundirse con libtorrent-rasterbar). Está escrito en C ++ y usa la biblioteca de programación ncurses, lo que significa que usa una interfaz de usuario de texto.';
@@ -139,8 +142,6 @@ $L['ZNC'] = 'ZNC es un bouncer o BNC para IRC. Permite separar al cliente del se
 $L['CLI'] = 'Solo Consola Web';
 $L['INSTALL'] = 'Instalar';
 $L['INSTALLED'] = 'Instalado';
-$L['OVPN_TOOLTIP_I'] = 'Accede a esta característica desde la consola web escribiendo: quickVPN';
-$L['OVPN_TOOLTIP_U'] = 'Accede a esta característica desde la consola web escribiendo: quickVPN';
 $L['BOX'] = 'Solo BOX';
 $L['BOX_TOOLTIP_ART'] = 'Accede a esta característica desde SSH escribiendo: box install art';
 $L['BOX_TOOLTIP_DENYHOSTS'] = 'Accede a esta característica desde SSH escribiendo: box install denyhosts';
@@ -236,6 +237,9 @@ $L['TOTAL_RAM'] = 'RAM total del sistema';
 // clean mem button
 $L['CLEAR_CACHE'] = 'Limpiar Memoria Caché';
 
+// clean lock button
+$L['CLEAR_LOCK'] = 'Clear lock';
+$L['CLEAR_LOCK_TXT'] = 'Install Lock Exist. If you believe this to be in error, click the button to remove the lock.';
 
 ////////////////////////////////////////
 //CPU STATUS WIDGET
@@ -308,13 +312,16 @@ $L['UNINSTALL_TITLE'] = 'Desinstalar';
 //MODAL TEXT
 $L['UNINSTALL_AUTODL_TXT'] = 'Estás a punto de desinstalar AutoDL-iRSSi de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y los ajustes de directorios compartidos... esta acción es irreversible. <br/><br/>Puedes reinstalar AutoDL-iRSSi en cualquier momento, sin embargo, tu ruta de almacenamiento y sus directorios enlazados serán establecidos por defecto.';
 $L['UNINSTALL_BTSYNC_TXT'] = 'Estás a punto de desinstalar BitTorrent Sync de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y los ajustes de directorios compartidos... esta acción es irreversible. <br/><br/>Puedes reinstalar BitTorrent Sync en cualquier momento, sin embargo, tu ruta de almacenamiento y sus directorios enlazados serán establecidos por defecto.';
+$L['UNINSTALL_CIFS_TXT'] = 'You are about to uninstall Samba Server from your system.<br/><br/>This will completely remove all of your configuration... this action is irreversible. <br/><br/>You may reinstall Samba Server at any time.';
 $L['UNINSTALL_DELUGE_TXT'] = 'Estás a punto de desinstalar Deluge de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y las opciones de directorios compartidos para<strong>todos los usuarios</strong>... esta acción es irreversible. <br/><br/>Puedes reinstalar Deluge en cualquier momento, sin embargo, tu ruta de almacenamiento y sus directorios enlazados serán establecidos por defecto.';
 $L['UNINSTALL_FILEBROWSER_TXT'] = 'Estás a punto de desinstalar File Browser de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y las opciones de directorios compartidos para<strong>todos los usuarios</strong>... esta acción es irreversible. <br/><br/>Puedes reinstalar File Browser en cualquier momento, sin embargo, tu ruta de almacenamiento y sus directorios enlazados serán establecidos por defecto.';
 $L['UNINSTALL_FILEBROWSEREE_TXT'] = 'Estás a punto de desinstalar File Browser Enhanced de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y las opciones de directorios compartidos para<strong>todos los usuarios</strong>... esta acción es irreversible. <br/><br/>Puedes reinstalar File Browser Enhanced en cualquier momento, sin embargo, tu ruta de almacenamiento y sus directorios enlazados serán establecidos por defecto.';
 $L['UNINSTALL_FLEXGET_TXT'] = 'Estás a punto de desinstalar FlexGet de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y las opciones de directorios compartidos para<strong>todos los usuarios</strong>... esta acción es irreversible. <br/><br/>Puedes reinstalar FlexGet en cualquier momento, sin embargo, tu ruta de almacenamiento y sus directorios enlazados serán establecidos por defecto.';
 $L['UNINSTALL_FLOOD_TXT'] = 'Estás a punto de desinstalar Flood de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y las opciones de directorios compartidos para<strong>todos los usuarios</strong>... esta acción es irreversible. <br/><br/>Puedes reinstalar Flood en cualquier momento, sin embargo, tu ruta de almacenamiento y sus directorios enlazados serán establecidos por defecto.';
 $L['UNINSTALL_NETDATA_TXT'] = 'Estás a punto de desinstalar Netdata de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y las opciones de directorios compartidos para<strong>todos los usuarios</strong>... esta acción es irreversible. <br/><br/>Puedes reinstalar Netdata en cualquier momento, sin embargo, tu ruta de almacenamiento y sus directorios enlazados serán establecidos por defecto.';
+$L['UNINSTALL_NFS_TXT'] = 'You are about to uninstall NFS Server from your system.<br/><br/>This will completely remove all of your configuration... this action is irreversible. <br/><br/>You may reinstall NFS Server at any time.';
 $L['UNINSTALL_NOVNC_TXT'] = 'Estás a punto de desinstalar noVNC de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y las opciones de directorios compartidos para<strong>todos los usuarios</strong>... esta acción es irreversible. <br/><br/>Puedes reinstalar noVNC en cualquier momento, sin embargo, tu ruta de almacenamiento y sus directorios enlazados serán establecidos por defecto.';
+$L['UNINSTALL_OPENVPN_TXT'] = 'You are about to uninstall OpenVPN from your system.<br/><br/>This will completely remove all of your configuration... this action is irreversible. <br/><br/>You may reinstall OpenVPN at any time.';
 $L['UNINSTALL_PLEX_TXT'] = 'Estás a punto de desinstalar Plex Media Server de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y ajustes de biblioteca... esta acción es irreversible. <br/><br/>Puedes reinstalar Plex en cualquier momento, sin embargo, la configuración de tu biblioteca será reiniciada por defecto.';
 $L['UNINSTALL_QBITTORRENT_TXT'] = 'Estás a punto de desinstalar qBittorrent de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y las opciones de directorios compartidos para<strong>todos los usuarios</strong>... esta acción es irreversible. <br/><br/>Puedes reinstalar qBittorrent en cualquier momento, sin embargo, tu ruta de almacenamiento y sus directorios enlazados serán establecidos por defecto.';
 $L['UNINSTALL_RTORRENT_TXT'] = 'Estás a punto de desinstalar rTorrent de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y las opciones de directorios compartidos para<strong>todos los usuarios</strong>... esta acción es irreversible. <br/><br/>Puedes reinstalar rTorrent en cualquier momento, sin embargo, tu ruta de almacenamiento y sus directorios enlazados serán establecidos por defecto.';

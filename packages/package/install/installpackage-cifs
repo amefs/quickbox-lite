@@ -1,11 +1,12 @@
 #!/bin/bash
 #
-# [QuickBox Lite Netdata Installer]
+# [QuickBox Lite Samba Server Installer]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
-# Maintainer:   Amefs
+# Author:   Amefs
 # Current version:  v1.4.1
-# Author:           Mischief
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 #   Licensed under GNU General Public License v3.0 GPL-3 (in short)
@@ -68,24 +69,25 @@ function _error() {
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="Netdata"
-APP_NAME="netdata"
-APP_SERVICE="netdata"
-APP_BASEDEPS="autoconf autoconf-archive autogen automake cmake gcc libjson-c-dev libjudy-dev liblz4-dev libmnl-dev libssl-dev libuv1-dev make pkg-config python3-pymongo uuid-dev zlib1g-dev git"
+APP_TITLE="Samba Server"
+APP_NAME="samba"
+APP_SERVICE="samba"
+APP_BASEDEPS="samba"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-
-BRANCH="https://github.com/netdata/netdata.git"
+username=$(cat /root/.admin.info | cut -d: -f1)
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-u username] [-l logfile]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
+	echo "-u, --user <username>     the user for this installer"
+	# not required by multi-user applications
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -98,10 +100,6 @@ function _lockCheck() {
 		_info "$prevApp process running."
 		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
 		_error "Exiting..."
-		exit 1
-	fi
-	if [[ -f "/install/$APP_LOCK" ]]; then
-		_error "${APP_TITLE} already installed !"
 		exit 1
 	fi
 }
@@ -123,13 +121,6 @@ $APP_TITLE will now be installed.
 This process may take a few minutes
 Please wait until the process is completed
 "
-}
-
-function _installAddSources() {
-	_info "Adding additional keys and sources ${APP_TITLE}..."
-	#curl -sL https://example.ppa/something.key | sudo apt-key add - >/dev/null 2>&1
-	#echo "deb https://example.ppa/ubuntu CODENAME stable" | sudo tee /etc/apt/sources.list.d/app.list >/dev/null 2>&1
-	_success "Keys and sources added."
 }
 
 function _installSystemUpdates() {
@@ -176,74 +167,100 @@ function _installDepends() {
 	fi
 }
 
-function _installApp() {
-	_info "Building ${APP_TITLE}..."
-	#bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive >> "${OUTTO}" 2>&1;
-	username=$(cat /root/.admin.info | cut -d: -f1)
-	mkdir -p /home/${username}/.config/ >/dev/null 2>&1
-	cd /home/${username}/.config/
-	_execute "git clone ${BRANCH} --depth=100 netdata"
-	cd netdata || { _error "Download Netdata failed..." && exit 1; }
-	./netdata-installer.sh --disable-telemetry --dont-start-it --dont-wait >>"${OUTTO}" 2>&1
-	sleep 3
-	_success "${APP_TITLE} Built."
-}
-
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
-	_execute "systemctl stop ${APP_NAME}"
-	username=$(cat /root/.admin.info | cut -d: -f1)
-
-	echo "[web]
-    bind to = unix:/run/netdata/netdata.sock" >>/etc/netdata/netdata.conf
-	cat >/etc/nginx/apps/netdata.conf <<EOF
-location  = /netdata {
-    return 301 /netdata/;
-}
-location ~ /netdata/(?<ndpath>.*) {
-    proxy_redirect off;
-    proxy_set_header Host \$host;
-    proxy_set_header X-Forwarded-Host \$host;
-    proxy_set_header X-Forwarded-Server \$host;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_http_version 1.1;
-    proxy_pass_request_headers on;
-    proxy_set_header Connection "keep-alive";
-    proxy_store off;
-    proxy_pass http://unix:/run/netdata/netdata.sock:/\$ndpath\$is_args\$args;
-    auth_basic "Password Required";
-    auth_basic_user_file /etc/htpasswd.d/htpasswd.${username};
-    gzip on;
-    gzip_proxied any;
-    gzip_types *;
-}
+	passphrase=$(cat /root/.ssh/local_user)
+	passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
+	if [[ $CODENAME == xenial ]]; then
+		password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:${passphrase} -nosalt)
+	else
+		password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
+	fi
+	_execute "systemctl stop smbd"
+	# Gobal Conf
+	cat >/etc/samba/smb.conf <<'EOF'
+[global]
+workgroup = HOME
+server string = %h server
+dns proxy = no
+log level = 0
+syslog = 0
+log file = /var/log/samba/log.%m
+max log size = 1000
+syslog only = yes
+panic action = /usr/share/samba/panic-action %d
+encrypt passwords = true
+passdb backend = tdbsam
+obey pam restrictions = no
+unix password sync = no
+passwd program = /usr/bin/passwd %u
+passwd chat = *Enter\snew\s*\spassword:* %n\n *Retype\snew\s*\spassword:* %n\n *password\supdated\ssuccessfully* .
+pam password change = yes
+socket options = TCP_NODELAY IPTOS_LOWDELAY
+guest account = nobody
+load printers = no
+disable spoolss = yes
+printing = bsd
+printcap name = /dev/null
+unix extensions = yes
+wide links = no
+create mask = 0777
+directory mask = 0777
+use sendfile = yes
+aio read size = 16384
+aio write size = 16384
+null passwords = no
+local master = yes
+time server = no
+wins support = no
 EOF
-	_execute "nginx -s reload"
+	# User Space
+	printf "${password}\n${password}\n" | smbpasswd -a -s ${username} >>"${OUTTO}"
+	cat >>/etc/samba/smb.conf <<EOF
+[${username}]
+path = /home/${username}/
+guest ok = no
+read only = no
+browseable = yes
+inherit acls = yes
+inherit permissions = no
+ea support = no
+store dos attributes = no
+printable = no
+create mask = 0755
+force create mode = 0644
+directory mask = 0755
+force directory mode = 0755
+hide dot files = yes
+valid users = "${username}"
+invalid users =
+read list =
+write list = "${username}"
+smb encrypt = required
+EOF
 	_success "${APP_TITLE} configured."
 }
 
 function _installAppLock() {
 	_info "Configuring ${APP_TITLE} lock..."
-	touch /install/${APP_LOCK}
+	touch /install/.${APP_NAME}.lock
 	_success "${APP_TITLE} lock configured."
 }
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	_execute "systemctl enable ${APP_SERVICE}"
-	_execute "systemctl start ${APP_SERVICE}"
+	_execute "systemctl start smbd"
 	_success "${APP_TITLE} started."
 }
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
+if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
 then
-    _usage
+	_usage
     exit 1
 fi
-
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
@@ -253,6 +270,10 @@ while true; do
 		;;
 	-l | --log)
 		OUTTO="$2"
+		shift
+		;;
+	-u | --user)
+		username="$2"
 		shift
 		;;
 	--)
@@ -271,7 +292,6 @@ _setLock
 _installInfo
 _installSystemUpdates
 _installDepends
-_installApp
 _configureApp
 _installAppLock
 _installAppStart

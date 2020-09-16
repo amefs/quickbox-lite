@@ -48,6 +48,12 @@
           <?php } ?>
         </tbody>
       </table>
+      <?php if (($username == "$master") && file_exists('/install/.install.lock')) { ?>
+        <p style="font-size:10px" style="padding-bottom:12px">
+        <hr />
+        <?php echo T('CLEAR_LOCK_TXT'); ?>&nbsp; &nbsp; &nbsp; &nbsp;<button onclick="boxHandler(event)" data-package="dpkg" data-operation="fix" data-toggle="modal" data-target="#sysResponse" class="btn btn-xs btn-default"><?php echo T('CLEAR_LOCK'); ?></button>
+        </p>
+      <?php } ?>
     </div>
   </div>
 </div><!-- package center panel -->

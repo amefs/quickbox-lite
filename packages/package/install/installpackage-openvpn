@@ -1,11 +1,12 @@
 #!/bin/bash
 #
-# [QuickBox Lite Netdata Installer]
+# [QuickBox Lite OpenVPN Installer]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
-# Maintainer:   Amefs
+# Author:   Amefs
 # Current version:  v1.4.1
-# Author:           Mischief
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 #   Licensed under GNU General Public License v3.0 GPL-3 (in short)
@@ -16,6 +17,11 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+CODENAME=$(lsb_release -cs)
+
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -68,24 +74,25 @@ function _error() {
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="Netdata"
-APP_NAME="netdata"
-APP_SERVICE="netdata"
-APP_BASEDEPS="autoconf autoconf-archive autogen automake cmake gcc libjson-c-dev libjudy-dev liblz4-dev libmnl-dev libssl-dev libuv1-dev make pkg-config python3-pymongo uuid-dev zlib1g-dev git"
+APP_TITLE="OpenVPN"
+APP_NAME="openvpn"
+APP_SERVICE="openvpn"
+APP_BASEDEPS="zip"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-
-BRANCH="https://github.com/netdata/netdata.git"
+username=$(cat /root/.admin.info | cut -d: -f1)
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-u username] [-l logfile]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
+	echo "-u, --user <username>     the user for this installer"
+	# not required by multi-user applications
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -178,44 +185,41 @@ function _installDepends() {
 
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
-	#bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive >> "${OUTTO}" 2>&1;
-	username=$(cat /root/.admin.info | cut -d: -f1)
-	mkdir -p /home/${username}/.config/ >/dev/null 2>&1
-	cd /home/${username}/.config/
-	_execute "git clone ${BRANCH} --depth=100 netdata"
-	cd netdata || { _error "Download Netdata failed..." && exit 1; }
-	./netdata-installer.sh --disable-telemetry --dont-start-it --dont-wait >>"${OUTTO}" 2>&1
-	sleep 3
+	cd /tmp || exit 1
+	_execute "curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh"
+	_execute "chmod +x openvpn-install.sh"
+	
+	# headless installation
+	export ENDPOINT=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
+	export APPROVE_INSTALL=y
+	export APPROVE_IP=y
+	export IPV6_SUPPORT=n
+	export PORT_CHOICE=1
+	export PROTOCOL_CHOICE=1
+	export DNS=1
+	export COMPRESSION_ENABLED=n
+	export CUSTOMIZE_ENC=n
+	export CLIENT=${username}
+	export PASS=1
+	/tmp/openvpn-install.sh >>"${OUTTO}" 2>&1
 	_success "${APP_TITLE} Built."
 }
 
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
-	_execute "systemctl stop ${APP_NAME}"
-	username=$(cat /root/.admin.info | cut -d: -f1)
-
-	echo "[web]
-    bind to = unix:/run/netdata/netdata.sock" >>/etc/netdata/netdata.conf
-	cat >/etc/nginx/apps/netdata.conf <<EOF
-location  = /netdata {
-    return 301 /netdata/;
-}
-location ~ /netdata/(?<ndpath>.*) {
-    proxy_redirect off;
-    proxy_set_header Host \$host;
-    proxy_set_header X-Forwarded-Host \$host;
-    proxy_set_header X-Forwarded-Server \$host;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_http_version 1.1;
-    proxy_pass_request_headers on;
-    proxy_set_header Connection "keep-alive";
-    proxy_store off;
-    proxy_pass http://unix:/run/netdata/netdata.sock:/\$ndpath\$is_args\$args;
-    auth_basic "Password Required";
-    auth_basic_user_file /etc/htpasswd.d/htpasswd.${username};
-    gzip on;
-    gzip_proxied any;
-    gzip_types *;
+	# Configuration file
+	mkdir -p /home/${username}/openvpn
+	mv /home/${username}/${username}.ovpn /home/${username}/openvpn/${username}.ovpn
+	cd /home/${username}/ || exit 1
+	_execute "zip openvpn/${username}.zip /home/${username}/openvpn/${username}.ovpn"
+	_execute "rm /home/${username}/openvpn/${username}.ovpn"
+	chown ${username}.${username} /home/${username}/openvpn >/dev/null 2>&1
+	cat >/etc/nginx/apps/${username}.ovpn.conf<<EOF
+location /${username}/ovpn.zip {
+  alias /home/${username}/openvpn/${username}.zip;
+  auth_basic "Password Required";
+  auth_basic_user_file /etc/htpasswd.d/htpasswd.${username};
+  autoindex on;
 }
 EOF
 	_execute "nginx -s reload"
@@ -224,26 +228,28 @@ EOF
 
 function _installAppLock() {
 	_info "Configuring ${APP_TITLE} lock..."
-	touch /install/${APP_LOCK}
+	touch /install/.${username}.$APP_NAME.lock
 	_success "${APP_TITLE} lock configured."
 }
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	_execute "systemctl enable ${APP_SERVICE}"
-	_execute "systemctl start ${APP_SERVICE}"
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		_execute "systemctl enable ${APP_SERVICE}@${username}"
+		_execute "systemctl start ${APP_SERVICE}@${username}"
+	done
 	_success "${APP_TITLE} started."
 }
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
+if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
 then
-    _usage
+	_usage
     exit 1
 fi
-
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
@@ -253,6 +259,10 @@ while true; do
 		;;
 	-l | --log)
 		OUTTO="$2"
+		shift
+		;;
+	-u | --user)
+		username="$2"
 		shift
 		;;
 	--)
@@ -269,10 +279,8 @@ done
 _lockCheck
 _setLock
 _installInfo
-_installSystemUpdates
 _installDepends
 _installApp
 _configureApp
 _installAppLock
-_installAppStart
 _lockCleanup

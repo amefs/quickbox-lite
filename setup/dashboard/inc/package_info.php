@@ -62,6 +62,20 @@ $packageList = array(
       ]
     ]
   ], [
+    "package" => "cifs",
+    "name" => "CIFS",
+    "description" => "CIFS",
+    "lockfile" => "/install/.samba.lock",
+    "uninstall" => "UNINSTALL_CIFS_TXT",
+    "boxonly" => false,
+    "services" => [
+      "smbd" => [
+        "process" => "smbd",
+        "name" => "CIFS",
+        "username" => "root"
+      ]
+    ]
+  ], [
     "package" => "deluge",
     "name" => "Deluge",
     "description" => "DELUGE",
@@ -186,6 +200,20 @@ $packageList = array(
       ]
     ]
   ], [
+    "package" => "nfs",
+    "name" => "NFS",
+    "description" => "NFS",
+    "lockfile" => "/install/.nfs.lock",
+    "uninstall" => "UNINSTALL_NFS_TXT",
+    "boxonly" => false,
+    "services" => [
+      "nfs-kernel-server" => [
+        "process" => "nfsd",
+        "name" => "NFS",
+        "username" => "root"
+      ]
+    ]
+  ], [
     "package" => "novnc",
     "name" => "noVNC",
     "description" => "NOVNC",
@@ -197,6 +225,20 @@ $packageList = array(
         "process" => "Xtightvnc",
         "name" => "noVNC",
         "username" => $username
+      ]
+    ]
+  ], [
+    "package" => "openvpn",
+    "name" => "OpenVPN",
+    "description" => "OPENVPN",
+    "lockfile" => "/install/.$username.openvpn.lock",
+    "uninstall" => "UNINSTALL_OPENVPN_TXT",
+    "boxonly" => false,
+    "services" => [
+      "openvpn" => [
+        "process" => "openvpn",
+        "name" => "OpenVPN",
+        "username" => "nobody"
       ]
     ]
   ], [
@@ -297,6 +339,18 @@ $packageList = array(
         "process" => "znc",
         "name" => "ZNC",
         "username" => "znc"
+      ]
+    ]
+  ], [
+    "skip" => true,
+    "package" => "vsftpd",
+    "name" => "vsFTPD",
+    "lockfile" => "/etc/vsftpd.conf",
+    "services" => [
+      "vsftpd" => [
+        "process" => "vsftpd",
+        "name" => "vsFTPD",
+        "username" => "root"
       ]
     ]
   ], [
