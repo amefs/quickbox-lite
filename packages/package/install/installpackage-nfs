@@ -169,7 +169,7 @@ function _installDepends() {
 
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
-	_execute "systemctl stop nfs-kernel-server"
+	_execute "systemctl stop nfs-server"
 	mkdir /export >/dev/null 2>&1
 	mkdir /export/${username} >/dev/null 2>&1
 	_execute "mount --bind /home/${username} /export/${username}"
@@ -190,7 +190,7 @@ function _installAppLock() {
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	_execute "systemctl start nfs-kernel-server"
+	_execute "systemctl start nfs-server"
 	_success "${APP_TITLE} started."
 }
 

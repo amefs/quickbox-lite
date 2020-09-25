@@ -61,8 +61,8 @@
     time: 5000
   }, {
     name: "NFS",
-    url: "/widgets/service_status.php?service=nfs-kernel-server",
-    id: "#appstat_nfs-kernel-server",
+    url: "/widgets/service_status.php?service=nfs-server",
+    id: "#appstat_nfs-server",
     time: 5000
   }, {
     name: "NOVNC",
