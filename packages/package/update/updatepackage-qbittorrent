@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.1
+# Current version:  v1.4.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -276,8 +276,74 @@ function _updateApp() {
 	qbit_version_list=$(cat packages.lst | grep -w qbittorrent-nox | grep ${CODENAME} | grep amd64 | awk '{ print $5}')
 	rm -f packages.lst
 	cur_version=$(dpkg -s qbittorrent-nox 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+	# version check
+	# detect installed version
+	if [[ -f /install/.libtorrent-rasterbar9.lock ]]; then
+		libt_installed_version=$(dpkg -s libtorrent-rasterbar9 | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+		libt_installed_major_version=$(echo ${libt_installed_version}| cut -d. -f1,2)
+	elif [[ -f /install/.libtorrent-rasterbar10.lock ]]; then
+		libt_installed_version=$(dpkg -s libtorrent-rasterbar10 | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+		libt_installed_major_version=$(echo ${libt_installed_version}| cut -d. -f1,2)
+	elif [[ -f /install/.libtorrent-rasterbar.lock ]]; then
+		libt_installed_version=$(dpkg -s libtorrent-rasterbar | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+		libt_installed_major_version=$(echo ${libt_installed_version}| cut -d. -f1,2)
+	else
+		libt_installed_version=0
+		libt_installed_major_version=0
+	fi
+	qbit_major_version=$(echo ${qbitversion}| cut -d. -f1,2)
+	if ! (_version_gt "4.3" ${qbit_major_version}); then
+		if (_version_gt "1.2.10" ${libt_installed_version}); then
+			libtversion="1.2.10"
+			libt_major_version="1.2"
+			_warning "Use Libtorrent ${libtversion} against qBittorrent 4.3.x"
+			_info "Upgrading libtorrent-rasterbar..."
+			_execute "apt-mark unhold qbittorrent-nox"
+			PACKAGE="libtorrent-rasterbar"
+			cd /tmp || exit 1
+			LIBTBIN=libtorrent-rasterbar10_${libtversion}-1build1_amd64.deb
+			DEB=${LIBTBIN}
+			_download ${PACKAGE} ${DEB}
+			_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTBIN}"
+			LIBTDEVBIN=libtorrent-rasterbar-dev_${libtversion}-1build1_amd64.deb
+			DEB=${LIBTDEVBIN}
+			_download ${PACKAGE} ${DEB}
+			_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTDEVBIN}"
+			rm -rf {${LIBTBIN},${LIBTDEVBIN}}
+			touch /install/.libtorrent-rasterbar10.lock
+			libt_installed_version=${libtversion}
+			libt_installed_major_version=${libt_major_version}
+			_execute "apt-mark hold qbittorrent-nox"
+		fi
+	fi
 	if (_version_gt ${qbitversion} ${cur_version}) ||  [[ $FORCE == 1 ]] ; then
-		_info "Updating ${APP_TITLE}..."
+		if (_version_gt "4.2" ${qbit_major_version}); then
+			if (_version_gt ${libt_installed_version} "1.2"); then
+				libtversion="1.1.14"
+				libt_major_version="1.1"
+				_warning "Use Libtorrent ${libtversion} against qBittorrent ${qbitversion}"
+				_info "Upgrading libtorrent-rasterbar..."
+				_execute "apt-mark unhold qbittorrent-nox"
+				PACKAGE="libtorrent-rasterbar"
+				cd /tmp || exit 1
+				LIBTBIN=libtorrent-rasterbar10_${libtversion}-1build1_amd64.deb
+				DEB=${LIBTBIN}
+				_download ${PACKAGE} ${DEB}
+				_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTBIN}"
+				LIBTDEVBIN=libtorrent-rasterbar-dev_${libtversion}-1build1_amd64.deb
+				DEB=${LIBTDEVBIN}
+				_download ${PACKAGE} ${DEB}
+				_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTDEVBIN}"
+				rm -rf {${LIBTBIN},${LIBTDEVBIN}}
+				touch /install/.libtorrent-rasterbar9.lock
+				libt_installed_version=${libtversion}
+				libt_installed_major_version=${libt_major_version}
+				_execute "apt-mark hold qbittorrent-nox"
+			fi
+		fi
+	fi
+	if (_version_gt ${qbitversion} ${cur_version}) ||  [[ $FORCE == 1 ]] ; then
+		_info "Upgrading ${APP_TITLE}..."
 		_info "Removing old ${APP_TITLE}..."
 		userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 		for username in $userlist; do
@@ -299,7 +365,7 @@ function _updateApp() {
 				fi
 			fi
 			PACKAGE="qbittorrent"
-			QBITBIN=qbittorrent-nox_${qbitversion}-libt1.1-1build1_amd64.deb
+			QBITBIN=qbittorrent-nox_${qbitversion}-libt${libt_installed_major_version}-1build1_amd64.deb
 			DEB=${QBITBIN}
 			_download ${PACKAGE} ${DEB}
 			_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install /tmp/${QBITBIN}"

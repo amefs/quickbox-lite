@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.1
+# Current version:  v1.4.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -97,43 +97,10 @@ BRANCH_LIBQBPASS="https://github.com/KozakaiAya/libqbpasswd.git"
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
-function _menuinstall() {
-	OUTTO=$(whiptail --title "Log" --inputbox "Specify a log path?\nENTER to make no changes" 10 72 3>&1 1>&2 2>&3)
-	if [[ $OUTTO == "" ]]; then
-		OUTTO=/srv/dashboard/db/output.log
-	fi
-	if (whiptail --title "Application Version" --yesno "Want to install a custom version of $APP_TITLE?" --defaultno 8 56); then
-		if [[ ! -f /install/.libtorrent-rasterbar9.lock || ! -f /install/.libtorrent-rasterbar.lock ]]; then
-			libtversion=$(whiptail --title "Libtorrent" --inputbox "Enter a Custom Libtorrent version\ne.g. 1.1.13" 10 64 3>&1 1>&2 2>&3)
-		elif [[ -f /install/.libtorrent-rasterbar9.lock ]]; then
-			libtversion=$(dpkg -s libtorrent-rasterbar9 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
-		elif [[ -f /install/.libtorrent-rasterbar.lock ]]; then
-			libtversion=$(cat /install/.libtorrent-rasterbar.lock)
-		fi
-		qbitversion=$(whiptail --title "qBittorrent" --inputbox "Enter a Custom qBittorrent version\ne.g. 4.1.7" 10 64 3>&1 1>&2 2>&3)
-		if (_version_gt 1.1.0 ${libtversion}) && (_version_gt ${qbitversion} 4.1.3); then
-			_warning "qBittorrent ${qbitversion} not support my libtorrent 1.0.x, fallback to 4.1.3"
-			qbitversion=4.1.3
-		fi
-		if (_version_gt ${libtversion} 1.1.0) && (_version_gt 4.0.5 ${qbitversion}); then
-			_warning "qBittorrent ${qbitversion} not support my libtorrent 1.1.x, libtorrent fallback to 1.0.11"
-			libtversion=1.0.11
-		fi
-	else
-		qbitversion=4.1.7
-		if [[ -f /install/.libtorrent-rasterbar.lock ]]; then
-			libtversion=$(cat /install/.libtorrent-rasterbar.lock)
-		else
-			libtversion=1.1.13
-		fi
-	fi
-}
-
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-g gui] [--lt] [--qb]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [--lt] [--qb]"
 	echo -e "\nOptions:\n"
-	echo "-g, --gui                 use a menu configuration to install"
 	echo "-l, --log <logfile>       specific log file"
 	echo "--lt <version>            the libtorrent version you want to install"
 	echo "--qb <version>            the qbittorrent version you want to install"
@@ -345,7 +312,15 @@ function _installApp() {
 		fi
 	fi
 	# version check
+	qbit_major_version=$(echo ${qbitversion}| cut -d. -f1,2)
 	libt_major_version=$(echo ${libtversion}| cut -d. -f1,2)
+	if (_version_gt ${qbit_major_version} "4.2"); then
+		if (_version_gt "1.2.10" ${libtversion}); then
+			libtversion="1.2.10"
+			libt_major_version="1.2"
+			_warning "Use Libtorrent ${libtversion} against qBittorrent 4.3.x"
+		fi
+	fi
 	if [[ ${libt_major_version} == "1.1" ]]; then
 		qbit_version_list=$(cat packages.lst | grep -w qbittorrent-nox | grep ${CODENAME} | grep amd64 | grep libt1.1 | awk '{ print $5}' | cut -d '-' -f1)
 	elif [[ ${libt_major_version} == "1.2" ]]; then
@@ -360,7 +335,8 @@ function _installApp() {
 	# .libtorrent-rasterbar9.lock libtorrent-rasterbar 1.1.x
 	# .libtorrent-rasterbar10.lock libtorrent-rasterbar 1.2.x
 	if [[ -f /install/.libtorrent-rasterbar.lock ]]; then
-		_success "Libtorrent already installed, Skip..." 
+		_success "Libtorrent already installed, Skip..."
+		##TODO check if version > request, block installation if not match
 	else
 		APP_TITLE="Libtorrent"
 		if $(echo "${libt_version_list[@]}" | grep -wq "${libtversion}"); then

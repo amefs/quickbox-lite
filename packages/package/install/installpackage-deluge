@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.1
+# Current version:  v1.4.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -104,39 +104,10 @@ BRANCH_LT="https://github.com/arvidn/libtorrent.git"
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
-function _menuinstall() {
-	OUTTO=$(whiptail --title "Log" --inputbox "Specify a log path?\nENTER to make no changes" 10 72 3>&1 1>&2 2>&3)
-	if [[ $OUTTO == "" ]]; then
-		OUTTO=/srv/dashboard/db/output.log
-	fi
-	deversion=$(
-		whiptail --title "App Version" --radiolist \
-			"Choose an available version" 10 36 4 \
-			"1.3.15" "stable" on \
-			"2.0.3" "latest version" off \
-			"other" "custom version" off 3>&1 1>&2 2>&3
-	)
-	if [[ ${deversion} == "other" ]]; then
-		if [[ ! -f /install/.libtorrent-rasterbar9.lock && ! -f /install/.libtorrent-rasterbar.lock ]]; then
-			if (whiptail --title "Application Version" --yesno "Want to install a custom version of Libtorrent?" --defaultno 8 56); then
-				libtversion=$(whiptail --title "Libtorrent" --inputbox "Enter a Custom Libtorrent version\ne.g. 1.1.13" 10 64 3>&1 1>&2 2>&3)
-			fi
-		elif [[ -f /install/.libtorrent-rasterbar9.lock ]]; then
-			libtversion=$(dpkg -s libtorrent-rasterbar9 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
-		elif [[ -f /install/.libtorrent-rasterbar.lock ]]; then
-			libtversion=$(cat /install/.libtorrent-rasterbar.lock)
-		else
-			libtversion=""
-		fi
-		deversion=$(whiptail --title "Deluge" --inputbox "Enter a Custom Deluge version\ne.g. 1.3.15" 10 64 3>&1 1>&2 2>&3)
-	fi
-}
-
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-g gui] [--lt] [--de]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [--lt] [--de]"
 	echo -e "\nOptions:\n"
-	echo "-g, --gui                 use a menu configuration to install"
 	echo "-l, --log <logfile>       specific log file"
 	echo "--lt <version>            the libtorrent version you want to install"
 	echo "--de <version>            the deluge version you want to install"
@@ -350,7 +321,6 @@ function _installApp() {
 	libt_version_list=$(cat packages.lst | grep -wE 'libtorrent-rasterbar[0-9]{1,2}' | grep ${CODENAME} | grep amd64 | awk '{ print $5}')
 	de_version_list=$(cat packages.lst | grep -w deluged | grep ${CODENAME} | grep amd64 | awk '{ print $5}')
 	rm -f packages.lst
-
 	# version check
 	if ([ $CODENAME == "focal" ] && _version_gt 2.0 $deversion); then
 		_warning "Deluge 1.3.x currently not available in focal, fallback to v2.0.3"
@@ -1104,7 +1074,7 @@ function _flexget() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o ghl: -l gui,help,with-cf,with-sf,with-osdn,with-github,log:,de:,lt: -- "$@")
+if ! ARGS=$(getopt -a -o hl: -l help,with-cf,with-sf,with-osdn,with-github,log:,de:,lt: -- "$@")
 then
     _usage
     exit 1
@@ -1112,10 +1082,6 @@ fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
-	-g | --gui)
-		_menuinstall
-		break
-		;;
 	-h | --help)
 		_usage
 		exit 1

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.1
+# Current version:  v1.4.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -1117,8 +1117,12 @@ function _startinstall() {
 
 		# setup vsftpd
 		echo -e "XXX\n85\n$INFO_TEXT_PROGRESS_10\nXXX"
-		_setvsftpd
-		echo -e "XXX\n90\n$INFO_TEXT_PROGRESS_10$INFO_TEXT_DONE\nXXX"
+		if [[ $ftp == 1 ]]; then
+			_setvsftpd
+			echo -e "XXX\n90\n$INFO_TEXT_PROGRESS_10$INFO_TEXT_DONE\nXXX"
+		else
+			echo -e "XXX\n90\n$INFO_TEXT_PROGRESS_10$INFO_TEXT_SKIP\nXXX"
+		fi
 		sleep 1
 
 		# setup BBR

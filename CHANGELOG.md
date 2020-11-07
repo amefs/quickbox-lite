@@ -1,3 +1,22 @@
+## CHANGELOG v1.4.2
+
+*Changelog update Saturday, Nov 7, 2020*
+
+### General additions
+
+- add support for qBittorrent 4.3.0
+
+### Function improved
+
+### Function updated
+
+### Bug fixed
+
+- fix traffic status display in focal
+- fix nfs service status display
+
+---
+
 ## CHANGELOG v1.4.1
 
 *Changelog update Wednesday, Sep 16, 2020*
