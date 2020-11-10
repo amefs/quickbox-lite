@@ -314,13 +314,16 @@ $L['UNINSTALL_TITLE'] = '卸载';
 //MODAL TEXT
 $L['UNINSTALL_AUTODL_TXT'] = '即将从系统中卸载 AutoDL-iRSSi. <br/> <br/>这将完全删除你的所有配置和共享文件夹设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 AutoDL-iRSSi, 但是, 你的存储路径和链接的文件夹设置将被重置为默认值.';
 $L['UNINSTALL_BTSYNC_TXT'] = '即将从系统中卸载 BitTorrent Sync.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 BitTorrent Sync, 但是, 你的存储路径和链接的文件夹设置将被重置为默认值.';
+$L['UNINSTALL_CIFS_TXT'] = '即将从系统中卸载 Samba Server.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 Samba Server, 但是, 你的文件夹设置将被重置为默认值.';
 $L['UNINSTALL_DELUGE_TXT'] = '即将从系统中卸载 Deluge.<br/> <br/>这将彻底删除<strong>所有用户</strong>的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 Deluge, 但是, 你的存储路径和链接文件夹设置将被重置为默认值.';
 $L['UNINSTALL_FILEBROWSER_TXT'] = '即将从系统中卸载 File Browser.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 File Browser, 但是你的存储路径和链接的文件夹设置将被重置为默认值.';
 $L['UNINSTALL_FILEBROWSEREE_TXT'] = '即将从系统中卸载 File Browser Enhanced.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 File Browser, 但是你的存储路径和链接的文件夹设置将被重置为默认值.';
 $L['UNINSTALL_FLEXGET_TXT'] = '即将从系统中卸载 FlexGet.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 FlexGet, 但是你的设置将被重置为默认值.';
 $L['UNINSTALL_FLOOD_TXT'] = '即将从系统中卸载 Flood.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 Flood, 但是你的设置将被重置为默认值.';
 $L['UNINSTALL_NETDATA_TXT'] = '即将从系统中卸载 Netdata.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 Netdata, 但是你的设置将被重置为默认值.';
+$L['UNINSTALL_NFS_TXT'] = '即将从系统中卸载 NFS Server.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 NFS Server, 但是, 你的文件夹设置将被重置为默认值.';
 $L['UNINSTALL_NOVNC_TXT'] = '即将从系统中卸载 noVNC.<br/> <br/>这将完全删除你的所有配置和共享文件夹设置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 noVNC, 但是你的设置将被重置为默认值.';
+$L['UNINSTALL_OPENVPN_TXT'] = '即将从系统中卸载 OpenVPN.<br/> <br/>这将完全删除你的所有配置...此操作是不可逆转的. <br/> <br/>你可以随时重新安装 OpenVPN, 但是你的设置将被重置为默认值.';
 $L['UNINSTALL_PLEX_TXT'] = '即将从系统中卸载 Plex Media Server.<br/> <br/>这将完全删除你的所有配置和库设置...这个操作是不可逆的. <br/> <br/>你可以随时重新安装 Plex, 但是, 你的磁带库设置将被重置为默认值.';
 $L['UNINSTALL_QBITTORRENT_TXT'] = '即将从系统中卸载 qBittorrent.<br/> <br/>这将完全删除你的所有配置设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 qBittorrent, 但是你的配置设置将被重置为默认值.';
 $L['UNINSTALL_RTORRENT_TXT'] = '即将从系统中卸载 rTorrent.<br/> <br/>这将完全删除你的所有配置设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 rTorrent, 但是你的配置设置将被重置为默认值.';

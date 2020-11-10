@@ -8,7 +8,7 @@ require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/widgets/class.php');
 
-$version = "v1.4.1";
+$version = "v1.4.2";
 error_reporting(E_ERROR);
 $username = getUser();
 $master = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
