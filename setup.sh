@@ -866,6 +866,11 @@ function _insdashboard() {
 		touch /install/.lang_en.lock
 		;;
 	esac
+	if [[ $(vnstat -v | grep -Eo "[0-9.]+" | cut -d . -f1) == "1" ]]; then
+		\cp -f /srv/dashboard/widgets/vnstat-raw.php /srv/dashboard/widgets/vnstat.php
+	elif [[ $(vnstat -v | grep -Eo "[0-9.]+" | cut -d . -f1) == "2" ]]; then
+		\cp -f /srv/dashboard/widgets/vnstat-json.php /srv/dashboard/widgets/vnstat.php
+	fi
 	touch /install/.dashboard.lock
 	cd /srv/dashboard/ws || exit 1
 	npm install --production >>"${OUTTO}" 2>&1
