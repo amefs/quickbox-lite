@@ -4,6 +4,7 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "isolatedModules": false,
+        "allowJs": true,
         "sourceMap": true,
         "jsx": "react",
         "experimentalDecorators": true,
@@ -20,7 +21,8 @@
         ]
     },
     "include": [
-        "src/server.ts"
+        "**/*.ts",
+        "**/*.js"
     ],
     "exclude": [
         "node_modules"
