@@ -1,7 +1,7 @@
 import { exec } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
-import * as SocketIO from "socket.io";
+import { Socket } from "socket.io";
 
 
 import Constant from "../constant";
@@ -23,7 +23,7 @@ const execOption = {
     maxBuffer: 5 * 1024 * 1024, // 5 MiB
 };
 
-const execHandler = async (payload: string, client: SocketIO.Socket) => {
+const execHandler = async (payload: string, client: Socket) => {
     const ret = {
         cmd: payload,
         success: true,
@@ -57,7 +57,7 @@ const execHandler = async (payload: string, client: SocketIO.Socket) => {
     });
 };
 
-export default (client: SocketIO.Socket, next?: (err?: Error) => void) => {
+export default (client: Socket, next?: (err?: Error) => void) => {
     client.on(Constant.EVENT_EXEC, payload => execHandler(payload, client));
     if (next) {
         next();
