@@ -4,9 +4,16 @@ module.exports = {
         "es6": true,
         "node": true
     },
+    "ignorePatterns": [
+        "build",
+        "dist",
+        "node_modules",
+        "**/*.js"
+    ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "project": "./tsconfig.json",
+        "tsconfigRootDir": __dirname,
         "sourceType": "module"
     },
     "plugins": [

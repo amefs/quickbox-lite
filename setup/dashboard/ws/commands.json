@@ -22,5 +22,10 @@
             "quickbox --only-core",
             "lang_de", "lang_dk", "lang_en", "lang_fr", "lang_es", "lang_zh"
         ]
+    },
+    "ping": {
+        "template": "echo -n pong",
+        "operations": [],
+        "target": []
     }
 }

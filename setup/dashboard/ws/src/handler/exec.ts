@@ -1,7 +1,7 @@
 import { exec } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
-import * as SocketIO from "socket.io";
+import { Socket } from "socket.io";
 
 
 import Constant from "../constant";
@@ -9,10 +9,21 @@ import { WatchedConfig } from "../watchedConfig";
 import { CommandType,getFiles, buildCommand } from "./utils/command";
 
 
-let configPath = path.join(__dirname, "commands.json");
-if (!fs.existsSync(configPath)) {
-    configPath = path.join(__dirname, "..", "commands.json");
+let baseDir = __dirname;
+let configPath = "";
+let lookupDepth = 3;
+while (lookupDepth-- > 0) {
+    const filePath = path.join(baseDir, "commands.json");
+    if (fs.existsSync(filePath)) {
+        configPath = filePath;
+        break;
+    }
+    baseDir = path.join(baseDir, "..");
 }
+if (!configPath) {
+    console.error("commonds.json not found");
+}
+
 const config = new WatchedConfig<CommandType>(configPath);
 const quickboxUsers = getFiles("/root/.qbuser/");
 const username = quickboxUsers.map(user => user.replace(".info", ""))[0];
@@ -23,7 +34,7 @@ const execOption = {
     maxBuffer: 5 * 1024 * 1024, // 5 MiB
 };
 
-const execHandler = async (payload: string, client: SocketIO.Socket) => {
+const execHandler = async (payload: string, client: Socket) => {
     const ret = {
         cmd: payload,
         success: true,
@@ -57,7 +68,7 @@ const execHandler = async (payload: string, client: SocketIO.Socket) => {
     });
 };
 
-export default (client: SocketIO.Socket, next?: (err?: Error) => void) => {
+export default (client: Socket, next?: (err?: Error) => void) => {
     client.on(Constant.EVENT_EXEC, payload => execHandler(payload, client));
     if (next) {
         next();
