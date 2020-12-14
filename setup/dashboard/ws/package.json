@@ -4,10 +4,11 @@
   "description": "QuickBox Status Update WebSocket Interface",
   "main": "server.js",
   "scripts": {
-    "build": "npx webpack --config build/webpack.config.js",
-    "start": "node dist/server.js",
+    "build": "webpack --config build/webpack.config.js",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts",
+    "test/server": "ts-node src/server.ts",
+    "test/client": "ts-node tests/client.ts"
   },
   "author": "TautCony",
   "license": "GPL-3.0-or-later",
