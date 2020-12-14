@@ -7,6 +7,10 @@
           user-select: none;
   direction: ltr;
 }
+div.disabled > .toggle-slide {
+  opacity: 0.7;
+  pointer-events: none;
+}
 .toggle-slide .toggle-on,
 .toggle-slide .toggle-off,
 .toggle-slide .toggle-blob {

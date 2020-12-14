@@ -23,8 +23,8 @@
   <link rel="stylesheet" href="lib/jquery-gritter/css/jquery.gritter.css">
   <link rel="stylesheet" href="lib/datatables/css/dataTables.bootstrap.min.css">
   <link rel="stylesheet" href="lib/perfect-scrollbar/css/perfect-scrollbar.min.css">
-  <link rel="stylesheet" href="lib/animate.css/animate.css">
-  <link rel="stylesheet" href="lib/font-awesome/font-awesome.css">
+  <link rel="stylesheet" href="lib/animate.css/animate.min.css">
+  <link rel="stylesheet" href="lib/font-awesome/css/font-awesome.min.css">
   <link rel="stylesheet" href="lib/ionicons/css/ionicons.css">
   <link rel="stylesheet" href="lib/select2/select2.min.css">
   <link rel="stylesheet" href="lib/lobipanel/css/lobipanel.min.css"/>

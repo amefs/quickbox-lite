@@ -118,7 +118,7 @@ foreach ($packageList as &$package) {
 
 <!--script src="js/script.js"></script-->
 <script src="lib/jquery-ui/jquery-ui.min.js"></script>
-<script src="lib/jquery.ui.touch-punch.min.js"></script>
+<script src="lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js"></script>
 <script src="lib/bootstrap/js/bootstrap.min.js"></script>
 <script src="lib/visibility/visibility.fallback.js"></script>
 <script src="lib/visibility/visibility.core.js"></script>
@@ -185,7 +185,7 @@ $(function() {
 // });
 </script>
 
-<script src="lib/jquery-toggles/toggles.js"></script>
+<script src="lib/jquery-toggles/toggles.min.js"></script>
 <script>
 // asyncLoad("lib/jquery-toggles/toggles.js", function() {
 $(function() {
