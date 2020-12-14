@@ -30,7 +30,6 @@
   <link rel="stylesheet" href="lib/lobipanel/css/lobipanel.min.css"/>
   <link rel="stylesheet" href="skins/quick.css">
   <!-- JAVASCRIPT -->
-  <script src="lib/modernizr/modernizr.js"></script>
   <script src="lib/jquery/jquery.min.js"></script>
 
   <script type="text/javascript">

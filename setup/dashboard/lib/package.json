@@ -25,7 +25,6 @@
     "jquery-ui-touch-punch": "^0.2.3",
     "lazysizes": "^5.2.2",
     "lobipanel": "^1.0.0",
-    "modernizr": "^3.11.4",
     "perfect-scrollbar": "^0.8.1",
     "select2": "^4.0.13",
     "socket.io-client": "^3.0.4",
