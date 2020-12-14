@@ -18,7 +18,7 @@
   <link rel="mask-icon" href="img/favicon/safari-pinned-tab.svg" color="#5bbad5">
   <!-- CSS STYLESHEETS AND ASSETTS -->
   <link rel="stylesheet" href="lib/jquery-ui/jquery-ui.min.css">
-  <link rel="stylesheet" href="lib/Hover/hover.css">
+  <link rel="stylesheet" href="lib/hover.css/hover-min.css">
   <link rel="stylesheet" href="lib/jquery-toggles/toggles-full.css">
   <link rel="stylesheet" href="lib/jquery-gritter/css/jquery.gritter.css">
   <link rel="stylesheet" href="lib/datatables/css/dataTables.bootstrap.min.css">
