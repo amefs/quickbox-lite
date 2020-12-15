@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# [QuickBox Lite NFS Server Installer]
+# [QuickBox Lite LibreSpeed Remover]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
@@ -69,30 +69,26 @@ function _error() {
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="NFS Server"
-APP_NAME="nfs"
-APP_SERVICE="nfs-kernel-server"
-APP_BASEDEPS="nfs-kernel-server"
+APP_TITLE="LibreSpeed"
+APP_NAME="speedtest"
+APP_BASEDEPS=""
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-username=$(cat /root/.admin.info | cut -d: -f1)
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
-	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-u username] [-l logfile]"
+	echo -e "\nQuickBox Lite $APP_TITLE Remover"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
-	echo "-u, --user <username>     the user for this installer"
-	# not required by multi-user applications
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
 ################################################################################
-# INSTALL FUNCTIONS
+# REMOVE FUNCTIONS
 ################################################################################
 function _lockCheck() {
 	if [[ -f "/install/.install.lock" ]]; then
@@ -102,104 +98,71 @@ function _lockCheck() {
 		_error "Exiting..."
 		exit 1
 	fi
+	if [[ ! -f "/install/$APP_LOCK" ]]; then
+		_error "${APP_TITLE} haven't installed ..."
+		exit 1
+	fi
 }
 function _setLock() {
 	echo "${APP_TITLE}" >/install/.install.lock
 }
 function _lockCleanup() {
-	echo "$APP_TITLE Install Complete!
-
-
-Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
 	rm -f /install/.install.lock
 }
 
-function _installInfo() {
+function _removeInfo() {
 	_print "
-$APP_TITLE will now be installed.
+$APP_TITLE will now be removed.
 
 This process may take a few minutes
 Please wait until the process is completed
 "
 }
 
-function _installSystemUpdates() {
-	_info "Checking and performing updates to system... "
-	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
-	## auto solve lock
-	if [ "$?" -eq 2 ]; then
-		_warning "dpkg database is locked."
-		_info "fixing dpkg lock..."
-		rm -f /var/lib/dpkg/updates/0*
-		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
-		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
-			for l in ${locks}; do
-				rm -rf ${l}
-			done
-			_execute "dpkg --configure -a"
-			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
-		fi
-		if ! (apt-get check >/dev/null); then
-			apt-get install -f >>"${OUTTO}" 2>&1
-			if ! (apt-get check >/dev/null); then
-				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
-				exit 1
-			fi
-		fi
-	fi
-	_success "System updated."
+function _removeService() {
+	_info "Removing ${APP_TITLE} service..."
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		_execute "systemctl disable ${APP_SERVICE}@${username}"
+		_execute "systemctl stop ${APP_SERVICE}@${username}"
+	done
+	rm -rf /etc/systemd/system/${APP_SERVICE}@.service >/dev/null 2>&1
+	_execute "systemctl daemon-reload"
+	_success "${APP_TITLE} service removed."
 }
 
-function _installDepends() {
-	_info "Installing ${APP_TITLE} dependencies..."
+function _removeDepends() {
+	_info "Removing ${APP_TITLE} dependencies..."
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
-		_info "Installing ${depend}... "
-		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		_info "Removing ${depend}... "
+		_execute "apt-get -y purge ${depend}"
+		_execute "apt-get -y autoremove"
+		_execute "apt-get -y autoclean"
 	done
-	if [[ $dependError != "1" ]]; then
-		_success "${APP_TITLE} dependencies installed."
-	else
-		_error "${APP_TITLE} dependencies failed to install."
-		exit 1
-	fi
+	_success "${APP_TITLE} dependencies removed."
 }
 
-function _configureApp() {
-	_info "Configuring ${APP_TITLE}..."
-	_execute "systemctl stop nfs-server"
-	mkdir /export >/dev/null 2>&1
-	mkdir /export/${username} >/dev/null 2>&1
-	_execute "mount --bind /home/${username} /export/${username}"
-	cat >>/etc/fstab<<EOF
-/home/${username}    /export/${username}   none    bind  0  0 
-EOF
-cat >>/etc/exports<<EOF
-/export/${username} *(rw,hide,subtree_check,secure)
-EOF
-	_success "${APP_TITLE} configured."
+function _removeApp() {
+	_info "Removing ${APP_TITLE}..."
+	rm -rf /srv/speedtest
+	rm -f /etc/nginx/apps/librespeed.conf >/dev/null 2>&1
+	_execute "nginx -s reload"
+	_success "${APP_TITLE} removed."
 }
 
-function _installAppLock() {
-	_info "Configuring ${APP_TITLE} lock..."
-	touch /install/.${APP_NAME}.lock
-	_success "${APP_TITLE} lock configured."
-}
-
-function _installAppStart() {
-	_info "Starting ${APP_TITLE}..."
-	_execute "systemctl start nfs-server"
-	_success "${APP_TITLE} started."
+function _removeAppLock() {
+	_info "Removing ${APP_TITLE} lock..."
+	rm -f /install/${APP_LOCK}
+	_success "${APP_TITLE} lock removed."
 }
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
+if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
 then
-	_usage
+    _usage
     exit 1
 fi
 eval set -- "${ARGS}"
@@ -211,10 +174,6 @@ while true; do
 		;;
 	-l | --log)
 		OUTTO="$2"
-		shift
-		;;
-	-u | --user)
-		username="$2"
 		shift
 		;;
 	--)
@@ -230,10 +189,7 @@ done
 #################################################################################
 _lockCheck
 _setLock
-_installInfo
-_installSystemUpdates
-_installDepends
-_configureApp
-_installAppLock
-_installAppStart
+_removeInfo
+_removeApp
+_removeAppLock
 _lockCleanup

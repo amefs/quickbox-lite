@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# [QuickBox Lite NFS Server Installer]
+# [QuickBox Lite LibreSpeed Installer]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
@@ -17,6 +17,11 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+CODENAME=$(lsb_release -cs)
+
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -69,25 +74,21 @@ function _error() {
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="NFS Server"
-APP_NAME="nfs"
-APP_SERVICE="nfs-kernel-server"
-APP_BASEDEPS="nfs-kernel-server"
+APP_TITLE="LibreSpeed"
+APP_NAME="speedtest"
+APP_BASEDEPS=""
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-username=$(cat /root/.admin.info | cut -d: -f1)
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-u username] [-l logfile]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
-	echo "-u, --user <username>     the user for this installer"
-	# not required by multi-user applications
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -95,11 +96,16 @@ function _usage() {
 # INSTALL FUNCTIONS
 ################################################################################
 function _lockCheck() {
+	# install docker for enhanced edition
 	if [[ -f "/install/.install.lock" ]]; then
 		prevApp=$(cat /install/.install.lock)
 		_info "$prevApp process running."
 		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
 		_error "Exiting..."
+		exit 1
+	fi
+	if [[ -f "/install/$APP_LOCK" ]]; then
+		_error "${APP_TITLE} already installed !"
 		exit 1
 	fi
 }
@@ -121,6 +127,11 @@ $APP_TITLE will now be installed.
 This process may take a few minutes
 Please wait until the process is completed
 "
+}
+
+function _installAddSources() {
+	_info "Adding additional keys and sources ${APP_TITLE}..."
+	_success "Keys and sources added."
 }
 
 function _installSystemUpdates() {
@@ -167,30 +178,77 @@ function _installDepends() {
 	fi
 }
 
+function _installApp() {
+	_info "Building ${APP_TITLE}..."
+	# install librespeed
+	cd /srv || exit 1
+	if [[ -f /install/.lang_dk.lock ]]; then
+		UIlang=en-US
+	elif [[ -f /install/.lang_en.lock ]]; then
+		UIlang=en-US
+	elif [[ -f /install/.lang_de.lock ]]; then
+		UIlang=en-US
+	elif [[ -f /install/.lang_es.lock ]]; then
+		UIlang=en-US
+	elif [[ -f /install/.lang_fr.lock ]]; then
+		UIlang=en-US
+	elif [[ -f /install/.lang_zh.lock ]]; then
+		UIlang=zh-CN
+	fi
+	git clone https://github.com/amefs/speedtest-x.git -b ${UIlang} speedtest
+	chown www-data.www-data -R /srv/speedtest
+	_success "${APP_TITLE} Built."
+}
+
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
-	_execute "systemctl stop nfs-server"
-	mkdir /export >/dev/null 2>&1
-	mkdir /export/${username} >/dev/null 2>&1
-	_execute "mount --bind /home/${username} /export/${username}"
-	cat >>/etc/fstab<<EOF
-/home/${username}    /export/${username}   none    bind  0  0 
+	sed -i "s/SAME_IP_MULTI_LOGS = false/SAME_IP_MULTI_LOGS = true/g" /srv/speedtest/backend/config.php
+	cat >/etc/nginx/apps/librespeed.conf <<'EOF'
+location /speedtest {
+  auth_basic "Password Required";
+  auth_basic_user_file /etc/htpasswd.d/htpasswd.$remote_user;
+  alias /srv/speedtest;
+  index index.html;
+  gzip off;
+}
+
+location /speedtest/ip {
+  auth_basic "Password Required";
+  auth_basic_user_file /etc/htpasswd.d/htpasswd.$remote_user;
+  default_type text/plain;
+  add_header 'Access-Control-Allow-Origin' '*' always;
+  return 200 "${remote_addr}";
+  gzip off;
+}
+
+location /speedtest/empty {
+  auth_basic "Password Required";
+  auth_basic_user_file /etc/htpasswd.d/htpasswd.$remote_user;
+  client_max_body_size 20M;
+  add_header 'Access-Control-Allow-Origin' '*' always;
+  add_header 'Access-Control-Allow-Headers' 'Content-Encoding';
+  default_type text/plain;
+  return 200;
+  gzip off;
+}
 EOF
-cat >>/etc/exports<<EOF
-/export/${username} *(rw,hide,subtree_check,secure)
-EOF
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."
 }
 
 function _installAppLock() {
 	_info "Configuring ${APP_TITLE} lock..."
-	touch /install/.${APP_NAME}.lock
+	touch /install/${APP_LOCK}
 	_success "${APP_TITLE} lock configured."
 }
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	_execute "systemctl start nfs-server"
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		_execute "systemctl enable ${APP_SERVICE}@${username}"
+		_execute "systemctl start ${APP_SERVICE}@${username}"
+	done
 	_success "${APP_TITLE} started."
 }
 
@@ -199,7 +257,7 @@ function _installAppStart() {
 #################################################################################
 if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
 then
-	_usage
+    _usage
     exit 1
 fi
 eval set -- "${ARGS}"
@@ -211,10 +269,6 @@ while true; do
 		;;
 	-l | --log)
 		OUTTO="$2"
-		shift
-		;;
-	-u | --user)
-		username="$2"
 		shift
 		;;
 	--)
@@ -231,9 +285,7 @@ done
 _lockCheck
 _setLock
 _installInfo
-_installSystemUpdates
-_installDepends
+_installApp
 _configureApp
 _installAppLock
-_installAppStart
 _lockCleanup

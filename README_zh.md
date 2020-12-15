@@ -26,7 +26,7 @@
 
 ## 当前版本
 
-![Version](https://img.shields.io/badge/version-1.4.2-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.4.3-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
 
 在执行 1.3.2 -> 1.3.3 的升级时，建议使用 SSH 运行  `box update quickbox` 进行升级操作，且需要执行两次以完成后台服务升级。若使用 WebUI 也需要执行两次。
 
