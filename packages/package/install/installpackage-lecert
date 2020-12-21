@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   JMSolo, Amefs
-# Current version:  v1.4.2
+# Current version:  v1.4.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -173,16 +173,17 @@ function _installDepends() {
 
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
-	cd /root
 	mkdir -p /srv/.well-known/acme-challenge
 	chown -R root:www-data /srv/.well-known
-	if [[ -d /root/acme.sh ]]; then
-		rm -rf /root/acme.sh
+	if [[ -d /root/.acme.sh ]]; then
+		rm -rf /root/.acme.sh
 	fi
+	cd /tmp
 	_execute "git clone https://github.com/Neilpang/acme.sh.git"
-	cd /root/acme.sh || { _error "Can not download acme.sh ..." && exit 1; }
-	./acme.sh --install >/dev/null 2>&1
+	cd /tmp/acme.sh || { _error "Can not download acme.sh ..." && exit 1; }
+	/tmp/acme.sh/acme.sh --install >/dev/null 2>&1
 	mkdir -p /etc/nginx/ssl/$domain/
+	rm -rf /tmp/acme.sh
 	_success "${APP_TITLE} Built."
 }
 
@@ -298,11 +299,6 @@ server {
 }
 EOF
 
-	command="30 2 * * 1 '~/acme.sh/acme.sh' --cron --home '~/acme.sh' > /dev/null"
-	(
-		crontab -u root -l
-		echo "${command}"
-	) | crontab -u root -
 	hostnamectl set-hostname ${domain}
 
 	_success "${APP_TITLE} configured."
@@ -311,12 +307,13 @@ EOF
 function _installAppLock() {
 	_info "Configuring ${APP_TITLE} lock..."
 	touch /install/${APP_LOCK}
+	echo ${domain} >> /install/domain.info
 	_success "${APP_TITLE} lock configured."
 }
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	./acme.sh --issue -d $domain -w /srv >/dev/null 2>&1
+	/root/.acme.sh/acme.sh --issue -d $domain -w /srv >>"${OUTTO}" 2>&1
 	# vsftpd tls
 	ftp_ip=$(cat /etc/vsftpd.conf | grep pasv_address | grep -Eo "[0-9.]+")
 	mv /etc/vsftpd.conf /root/.vsftpd.conf.bak
@@ -326,12 +323,12 @@ function _installAppStart() {
 	sed -i "s/^\(rsa_cert_file=\).*/rsa_cert_file=\/etc\/nginx\/ssl\/$domain\/$domain-fullchain.pem/" /etc/vsftpd.conf
 	sed -i "s/^\(rsa_private_key_file=\).*/rsa_private_key_file=\/etc\/nginx\/ssl\/$domain\/$domain-privkey.pem/" /etc/vsftpd.conf
 	echo "pasv_address=$ftp_ip" >>/etc/vsftpd.conf
-	./acme.sh --install-cert -d $domain \
+	/root/.acme.sh/acme.sh --install-cert -d $domain \
 	--cert-file /etc/nginx/ssl/$domain/$domain-ssl.pem \
 	--key-file /etc/nginx/ssl/$domain/$domain-privkey.pem \
 	--fullchain-file /etc/nginx/ssl/$domain/$domain-fullchain.pem \
 	--reloadcmd "systemctl reload nginx.service; systemctl restart vsftpd.service" \
-	--log /root/.quickbox/logs/${domain}.log >/dev/null 2>&1
+	--log /root/.quickbox/logs/${domain}.log >>"${OUTTO}" 2>&1
 	_success "${APP_TITLE} started."
 }
 

@@ -118,12 +118,12 @@ foreach ($packageList as &$package) {
 
 <!--script src="js/script.js"></script-->
 <script src="lib/jquery-ui/jquery-ui.min.js"></script>
-<script src="lib/jquery.ui.touch-punch.min.js"></script>
+<script src="lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js"></script>
 <script src="lib/bootstrap/js/bootstrap.min.js"></script>
 <script src="lib/visibility/visibility.fallback.js"></script>
 <script src="lib/visibility/visibility.core.js"></script>
 <script src="lib/visibility/visibility.timers.js"></script>
-<script src="lib/socket.io/socket.io.js"></script>
+<script src="lib/socket.io/socket.io.min.js"></script>
 <script src="lib/ansi_up/ansi_up.min.js"></script>
 <script src="lib/lazysizes/lazysizes.min.js" async></script>
 <script src="lib/bootbox/bootbox.all.min.js" async></script>
@@ -185,7 +185,7 @@ $(function() {
 // });
 </script>
 
-<script src="lib/jquery-toggles/toggles.js"></script>
+<script src="lib/jquery-toggles/toggles.min.js"></script>
 <script>
 // asyncLoad("lib/jquery-toggles/toggles.js", function() {
 $(function() {
@@ -290,7 +290,7 @@ $(document).ready(function() {
 
 <script src="lib/datatables/js/jquery.dataTables.min.js"></script>
 <script src="lib/datatables/js/dataTables.bootstrap.min.js"></script>
-<script src="lib/select2/select2.js"></script>
+<script src="lib/select2/select2.min.js"></script>
 
 <script>
 $(document).ready(function() {

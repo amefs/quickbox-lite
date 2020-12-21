@@ -18,19 +18,18 @@
   <link rel="mask-icon" href="img/favicon/safari-pinned-tab.svg" color="#5bbad5">
   <!-- CSS STYLESHEETS AND ASSETTS -->
   <link rel="stylesheet" href="lib/jquery-ui/jquery-ui.min.css">
-  <link rel="stylesheet" href="lib/Hover/hover.css">
+  <link rel="stylesheet" href="lib/hover.css/hover-min.css">
   <link rel="stylesheet" href="lib/jquery-toggles/toggles-full.css">
   <link rel="stylesheet" href="lib/jquery-gritter/css/jquery.gritter.css">
-  <link rel="stylesheet" href="lib/datatables/css/dataTables.bootstrap.css">
+  <link rel="stylesheet" href="lib/datatables/css/dataTables.bootstrap.min.css">
   <link rel="stylesheet" href="lib/perfect-scrollbar/css/perfect-scrollbar.min.css">
-  <link rel="stylesheet" href="lib/animate.css/animate.css">
-  <link rel="stylesheet" href="lib/font-awesome/font-awesome.css">
+  <link rel="stylesheet" href="lib/animate.css/animate.min.css">
+  <link rel="stylesheet" href="lib/font-awesome/css/font-awesome.min.css">
   <link rel="stylesheet" href="lib/ionicons/css/ionicons.css">
-  <link rel="stylesheet" href="lib/select2/select2.css">
+  <link rel="stylesheet" href="lib/select2/select2.min.css">
   <link rel="stylesheet" href="lib/lobipanel/css/lobipanel.min.css"/>
   <link rel="stylesheet" href="skins/quick.css">
   <!-- JAVASCRIPT -->
-  <script src="lib/modernizr/modernizr.js"></script>
   <script src="lib/jquery/jquery.min.js"></script>
 
   <script type="text/javascript">

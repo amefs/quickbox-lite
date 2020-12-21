@@ -1,5 +1,6 @@
 import axios from "axios";
 import * as https from "https";
+import { Socket } from "socket.io";
 
 import Constant from "../constant";
 
@@ -30,7 +31,7 @@ const parseUrl = (url: string) => {
     };
 };
 
-const messageHandler = async (payload: string, client: SocketIO.Socket) => {
+const messageHandler = async (payload: string, client: Socket) => {
     const ret = {
         pathName: payload,
         success: true,
@@ -48,7 +49,7 @@ const messageHandler = async (payload: string, client: SocketIO.Socket) => {
     }
 };
 
-export default (client: SocketIO.Socket, next?: (err?: Error) => void) => {
+export default (client: Socket, next?: (err?: Error) => void) => {
     client.on(Constant.EVENT_MESSAGE, payload => messageHandler(payload, client));
     if (next) {
         next();

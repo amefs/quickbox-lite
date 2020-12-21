@@ -1,11 +1,7 @@
-var path = require("path");
-var nodeExternals = require("webpack-node-externals");
-var webpack = require("webpack");
-var WebpackBar = require("webpackbar");
-
-var banner = `QuickBox-ws [hash] build at ${new Date().toISOString()} (https://github.com/amefs/quickbox-lite)
-Copyright ${new Date().getFullYear()} TautCony
-Licensed under GPL-3.0 (https://github.com/amefs/quickbox-lite/blob/master/LICENSE)`;
+const path = require("path");
+const nodeExternals = require("webpack-node-externals");
+const WebpackBar = require("webpackbar");
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
     mode: "production",
@@ -19,6 +15,14 @@ module.exports = {
         filename: "dist/server.js",
         path: path.resolve(__dirname, ".."),
         devtoolModuleFilenameTemplate: "[absolute-resource-path]",
+    },
+    optimization: {
+        minimize: true,
+        minimizer: [
+            new TerserPlugin({
+                extractComments: true,
+            }),
+        ],
     },
     devtool: this.mode === "development" ? "source-map" : false,
     module: {
@@ -48,8 +52,8 @@ module.exports = {
     },
     plugins: [
         new WebpackBar(),
-        new webpack.BannerPlugin(banner)],
+    ],
     resolve: {
-        extensions: [".tsx", ".ts", ".js", ],
+        extensions: [".tsx", ".ts", ".js"],
     },
 };

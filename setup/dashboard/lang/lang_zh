@@ -133,6 +133,7 @@ $L['PLEX'] = 'Plex 可让你将内容传输到任何支持 Plex 的设备.';
 $L['QBITTORRENT'] = 'qBittorrent 是一款免费可靠的 P2P BitTorrent 客户端, 先进的多平台 BitTorrent 客户端, 具有良好的 Qt 用户界面以及用于远程控制并且集成搜索引擎的 Web 用户界面.';
 $L['RTORRENT'] = 'rTorrent 是一个快速高效的 BitTorrent 客户端, 同时使用正在开发的 libtorrent 库 (并非 libtorrent-rasterbar). 它是利用 C ++ 和 ncurses 库编写的软件, 因此它使用一个字符用户界面.';
 $L['RUTORRENT'] = 'ruTorrent 是一个受欢迎的 BitTorrent 客户端 rTorrent 的前端. 主要特性: 轻量级的服务端, 因此可以被安装在一些较老以及较地段的服务器上, 甚至可以安装在一些 SOHO 路由器上; 可扩展, 它拥有很多插件, 每个人都可以创建自己的插件; 带有 <a href="https://lab.quickbox.io/QuickBox/club-QuickBox" target="_blank">club-QuickBox 皮肤</a>.';
+$L['SPEEDTEST'] = '一个轻量化的开源网速测试页面';
 $L['SYNCTHING'] = '开源的 BitTorrent 文件同步软件.';
 $L['TRANSMISSION'] = 'Transmission 被设计为功能强大而易于使用的客户端. 它的默认设置即可直接运行, 只需要简单的点击就可以配置例如如监视目录，不良 peers 拦截列表和 Web 界面等高级功能. Ubuntu 以它作为默认的 BitTorrent 客户端, 其中最重要的理由就是它简单易学.';
 $L['X2GO'] = 'X2Go 是一款使用 NX 技术协议的 Linux 开源远程桌面软件.';
@@ -328,6 +329,7 @@ $L['UNINSTALL_PLEX_TXT'] = '即将从系统中卸载 Plex Media Server.<br/> <br
 $L['UNINSTALL_QBITTORRENT_TXT'] = '即将从系统中卸载 qBittorrent.<br/> <br/>这将完全删除你的所有配置设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 qBittorrent, 但是你的配置设置将被重置为默认值.';
 $L['UNINSTALL_RTORRENT_TXT'] = '即将从系统中卸载 rTorrent.<br/> <br/>这将完全删除你的所有配置设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 rTorrent, 但是你的配置设置将被重置为默认值.';
 $L['UNINSTALL_RUTORRENT_TXT'] = '即将从系统中卸载 ruTorrent.<br/> <br/>这将完全删除你的所有配置设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 ruTorrent, 但是你的配置设置将被重置为默认值.';
+$L['UNINSTALL_SPEEDTEST_TXT'] = '即将从系统中卸载 SpeedTest.<br/> <br/>这将完全删除你的所有配置设置...这个操作是不可逆的. <br/> <br/>你可以随时重新安装 SpeedTest, 但是你的配置设置将被重置为默认值.';
 $L['UNINSTALL_SYNCTHING_TXT'] = '即将从系统中卸载 Syncthing.<br/> <br/>这将完全删除你的所有配置设置...这个操作是不可逆的. <br/> <br/>你可以随时重新安装 Syncthing, 但是你的配置设置将被重置为默认值.';
 $L['UNINSTALL_TRANSMISSION_TXT'] = '即将从系统中卸载 Transmission.<br/> <br/>这将完全删除你的所有配置设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 Transmission, 但是你的配置设置将被重置为默认值.';
 $L['UNINSTALL_X2GO_TXT'] = '即将从系统中卸载 x2go.<br/> <br/>这将彻底清除系统中的 x2goserver 和 xfce4 桌面环境.';

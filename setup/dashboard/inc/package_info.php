@@ -279,6 +279,13 @@ $packageList = array(
     "uninstall" => "UNINSTALL_RUTORRENT_TXT",
     "boxonly" => false
   ], [
+    "package" => "speedtest",
+    "name" => "SpeedTest",
+    "description" => "SPEEDTEST",
+    "lockfile" => "/install/.speedtest.lock",
+    "uninstall" => "UNINSTALL_SPEEDTEST_TXT",
+    "boxonly" => false,
+  ], [
     "package" => "syncthing",
     "name" => "Syncthing",
     "description" => "SYNCTHING",

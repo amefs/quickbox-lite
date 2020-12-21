@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.2
+# Current version:  v1.4.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -143,7 +143,7 @@ function _removeApp() {
 
 function _removeAppLock() {
 	_info "Removing ${APP_TITLE} lock..."
-	touch /install/${APP_LOCK}
+	rm -f /install/${APP_LOCK}
 	_success "${APP_TITLE} lock removed."
 }
 

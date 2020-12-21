@@ -8,12 +8,12 @@
     "installpackage": {
         "template": "bash /usr/local/bin/quickbox/package/install/installpackage-$target$",
         "operations": [],
-        "targets": ["autodlirssi", "btsync", "cifs", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "nfs", "novnc", "openvpn", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go"]
+        "targets": ["autodlirssi", "btsync", "cifs", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "nfs", "novnc", "openvpn", "plex", "qbittorrent", "rtorrent", "rutorrent", "speedtest", "syncthing", "transmission", "x2go"]
     },
     "removepackage": {
         "template": "/usr/local/bin/quickbox/package/remove/removepackage-$target$",
         "operations": [],
-        "targets": ["autodlirssi", "btsync", "cifs", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "nfs", "novnc", "openvpn", "plex", "qbittorrent", "rtorrent", "rutorrent", "syncthing", "transmission", "x2go"]
+        "targets": ["autodlirssi", "btsync", "cifs", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "nfs", "novnc", "openvpn", "plex", "qbittorrent", "rtorrent", "rutorrent", "speedtest", "syncthing", "transmission", "x2go"]
     },
     "box": {
         "template": "bash /usr/local/bin/quickbox/system/box $operation$ $target$",
@@ -22,5 +22,10 @@
             "quickbox --only-core",
             "lang_de", "lang_dk", "lang_en", "lang_fr", "lang_es", "lang_zh"
         ]
+    },
+    "ping": {
+        "template": "echo -n pong",
+        "operations": [],
+        "target": []
     }
 }

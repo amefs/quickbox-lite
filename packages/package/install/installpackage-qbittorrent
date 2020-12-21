@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.2
+# Current version:  v1.4.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -806,7 +806,7 @@ function _flexget() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o ghl: -l gui,help,with-cf,with-sf,with-osdn,with-github,log:,qb:,lt: -- "$@")
+if ! ARGS=$(getopt -a -o hl: -l help,with-cf,with-sf,with-osdn,with-github,log:,qb:,lt: -- "$@")
 then
     _usage
     exit 1
@@ -814,10 +814,6 @@ fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
-	-g | --gui)
-		_menuinstall
-		break
-		;;
 	-h | --help)
 		_usage
 		exit 1

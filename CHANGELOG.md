@@ -1,3 +1,25 @@
+## CHANGELOG v1.4.3
+
+*Changelog update Tuesday, Dec 15, 2020*
+
+### General additions
+
+- add Speedtest
+
+### Function improved
+
+- setup Let's Encrypt when new installing this script
+
+### Function updated
+
+- update libraries for backend service
+
+### Bug fixed
+
+- fix acme crontab job
+
+---
+
 ## CHANGELOG v1.4.2
 
 *Changelog update Saturday, Nov 7, 2020*

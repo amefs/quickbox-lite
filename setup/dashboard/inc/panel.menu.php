@@ -171,6 +171,9 @@
               <?php if (file_exists('/install/.plex.lock')) { ?>
                 <li><a class="grayscale" href="<?php echo "$plexURL"; ?>" target="_blank"><img data-src="img/brands/plex.png" class="brand-ico lazyload"> <span>Plex</span></a></li>
               <?php } ?>
+              <?php if (file_exists('/install/.speedtest.lock')) { ?>
+                <li><a class="grayscale" href="<?php echo "$speedtestURL"; ?>" target="_blank"><img data-src="img/brands/speedtest.png" class="brand-ico lazyload"> <span>SpeedTest</span></a></li>
+              <?php } ?>
               <?php if (file_exists('/install/.syncthing.lock')) { ?>
                 <li><a class="grayscale" href="<?php echo "$syncthingURL"; ?>" target="_blank"><img data-src="img/brands/syncthing.png" class="brand-ico lazyload"> <span>Syncthing</span></a></li>
               <?php } ?>

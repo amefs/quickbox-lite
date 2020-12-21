@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   JMSolo, Amefs
-# Current version:  v1.4.2
+# Current version:  v1.4.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -211,6 +211,7 @@ NGC
 function _removeAppLock() {
 	_info "Removing ${APP_TITLE} lock..."
 	rm -f /install/${APP_LOCK}
+	rm -f /install/domain.info
 	_success "${APP_TITLE} lock removed."
 }
 
