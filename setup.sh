@@ -823,7 +823,7 @@ function _webconsole() {
 	cat >/etc/profile <<EOF
 echo " Welcome Back !"
 if [[ -f /install/domain.info ]]; then
-	echo "    * Dashboard:  https://$(cat /install/domain.info)"
+	echo "    * Dashboard:  https://\$(cat /install/domain.info)"
 else
 	echo "    * Dashboard:  https://${PUBLICIP}"
 fi
