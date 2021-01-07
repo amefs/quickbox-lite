@@ -77,14 +77,16 @@ APP_BASEDEPS="samba"
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 username=$(cat /root/.admin.info | cut -d: -f1)
+compatibility=false
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-u username] [-l logfile]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-u username] [-c compatibility] [-l logfile]"
 	echo -e "\nOptions:\n"
+	echo "-c, --compatibility       disable security features to improve compatibility"
 	echo "-l, --log <logfile>       specific log file"
 	echo "-u, --user <username>     the user for this installer"
 	# not required by multi-user applications
@@ -216,7 +218,33 @@ wins support = no
 EOF
 	# User Space
 	printf "${password}\n${password}\n" | smbpasswd -a -s ${username} >>"${OUTTO}"
-	cat >>/etc/samba/smb.conf <<EOF
+	if $compatibility; then
+		cat >>/etc/samba/smb.conf <<EOF
+[${username}]
+path = /home/${username}/
+guest ok = no
+read only = no
+browseable = yes
+inherit acls = yes
+inherit permissions = no
+ea support = no
+store dos attributes = no
+printable = no
+create mask = 0755
+force create mode = 0644
+directory mask = 0755
+force directory mode = 0755
+hide dot files = yes
+valid users = "${username}"
+invalid users =
+read list =
+write list = "${username}"
+smb encrypt = off
+server signing = off
+client signing = off
+EOF
+	else
+		cat >>/etc/samba/smb.conf <<EOF
 [${username}]
 path = /home/${username}/
 guest ok = no
@@ -238,6 +266,7 @@ read list =
 write list = "${username}"
 smb encrypt = required
 EOF
+	fi
 	_success "${APP_TITLE} configured."
 }
 
@@ -256,7 +285,7 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
+if ! ARGS=$(getopt -a -o hcl:u: -l help,compatibility,log:,user: -- "$@")
 then
 	_usage
     exit 1
@@ -267,6 +296,9 @@ while true; do
 	-h | --help)
 		_usage
 		exit 1
+		;;
+	-c | --compatibility)
+		compatibility=true
 		;;
 	-l | --log)
 		OUTTO="$2"
