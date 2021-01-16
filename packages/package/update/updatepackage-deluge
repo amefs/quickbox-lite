@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.3
+# Current version:  v1.4.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -257,6 +257,164 @@ function _download() {
 	esac
 }
 
+function _updateLibt() {
+	# Libtorrent
+	APP_TITLE="Libtorrent"
+	if [[ ${libt_deb_python3_req} == 1 ]]; then
+		_info "Installing Libtorrent..."
+		PACKAGE="libtorrent-rasterbar"
+		cd /tmp || exit 1
+		[[ "$(dpkg -s libtorrent-rasterbar9 2> /dev/null | grep -cow '^Status: install ok installed$')" -eq '1' ]] && libtversion=$(dpkg -s libtorrent-rasterbar9 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+		[[ "$(dpkg -s libtorrent-rasterbar10 2> /dev/null | grep -cow '^Status: install ok installed$')" -eq '1' ]] && libtversion=$(dpkg -s libtorrent-rasterbar10 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+		cd /tmp || exit 1
+		PYLIBTBIN=python3-libtorrent_${libtversion}-1build1_amd64.deb
+		DEB=${PYLIBTBIN}
+		_download ${PACKAGE} ${DEB}
+		_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${PYLIBTBIN}"
+		rm -rf ${PYLIBTBIN}
+		touch /install/.libtorrent-rasterbar-python3.lock
+	elif [[ ${libt_compile_python3_req} == 1 ]]; then
+		# ensure python binding has the same version
+		libtversion=$(cat /install/.libtorrent-rasterbar.lock)
+		libt_major_version=$(echo ${libtversion}| cut -d. -f1,2)
+		if [[ ${libt_major_version} == "1.2" ]]; then
+			LTRC=RC_1_2
+			case ${libtversion} in
+			1.2.0) LTCIMMIT="3a1e546" ;;
+			1.2.1) LTCIMMIT="4b26829" ;;
+			1.2.2) LTCIMMIT="9c97055" ;;
+			1.2.3) LTCIMMIT="078f7b9" ;;
+			1.2.4) LTCIMMIT="ad83b1c" ;;
+			1.2.5) LTCIMMIT="bc66605" ;;
+			1.2.6) LTCIMMIT="b9b5443" ;;
+			1.2.7) LTCIMMIT="8e71015" ;;
+			1.2.8) LTCIMMIT="7dcd091" ;;
+			1.2.9) LTCIMMIT="a80f458" ;;
+			1.2.10) LTCIMMIT="70f1de3" ;;
+			1.2.11) LTCIMMIT="471e772" ;;
+			1.2.12) LTCIMMIT="e3f2b01" ;;
+			*) LTCIMMIT="." ;;
+			esac
+		elif [[ ${libt_major_version} == "1.1" ]]; then
+			LTRC=RC_1_1
+			case ${libtversion} in
+			1.1.0) LTCIMMIT="2921caf" ;;
+			1.1.1) LTCIMMIT="599967c" ;;
+			1.1.2) LTCIMMIT="a42d439" ;;
+			1.1.3) LTCIMMIT="b065536" ;;
+			1.1.4) LTCIMMIT="5188c19" ;;
+			1.1.5) LTCIMMIT="6214103" ;;
+			1.1.6) LTCIMMIT="b45acf2" ;;
+			1.1.7) LTCIMMIT="aaf9304" ;;
+			1.1.8) LTCIMMIT="4576723" ;;
+			1.1.9) LTCIMMIT="19df645" ;;
+			1.1.10) LTCIMMIT="200bb49" ;;
+			1.1.11) LTCIMMIT="25a1f12" ;;
+			1.1.12) LTCIMMIT="4342725" ;;
+			1.1.13) LTCIMMIT="6f1250c" ;;
+			1.1.14) LTCIMMIT="244f0f1" ;;
+			*) LTCIMMIT="." ;;
+			esac
+		elif [[ ${libt_major_version} == "1.0" ]]; then
+			LTRC=RC_1_0
+			case ${libtversion} in
+			1.0.0) LTCIMMIT="1633ee2" ;;
+			1.0.1) LTCIMMIT="49c2ec9" ;;
+			1.0.2) LTCIMMIT="8f2c17c" ;;
+			1.0.3) LTCIMMIT="edfe81b" ;;
+			1.0.4) LTCIMMIT="a586deb" ;;
+			1.0.5) LTCIMMIT="45521a3" ;;
+			1.0.6) LTCIMMIT="b709199" ;;
+			1.0.7) LTCIMMIT="15b1cd9" ;;
+			1.0.8) LTCIMMIT="e44e8da" ;;
+			1.0.9) LTCIMMIT="b342192" ;;
+			1.0.10) LTCIMMIT="e650ecc" ;;
+			1.0.11) LTCIMMIT="4e90eb1" ;;
+			*) LTCIMMIT="." ;;
+			esac
+		fi
+		cd /tmp || exit 1
+		_execute "git clone -b ${LTRC} ${BRANCH_LT} libtorrent"
+		cd libtorrent || { _error "Can not download libtorrent-rasterbar" && exit 1; }
+		_execute "git checkout ${LTCIMMIT}"
+
+		if [ ${libt_compile_python3_req} == 1 ]; then
+			_info "Build libtorrent python binding for Deluge ... "
+			cd /tmp/libtorrent || exit 1
+			_execute "./autotool.sh"
+			if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
+				boost_args="--with-boost-python=boost_python-py35"
+			else
+				boost_args="--with-boost-python=boost_python3"
+			fi
+			if [[ ${libt_major_version} == "1.0" ]] || [[ ${libt_major_version} == "1.1" ]]; then
+				PYTHON=python3 ./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++11 CPPFLAGS=-std=c++11 ${boost_args} --prefix=/tmp/dist/libtorrent-rasterbar/usr/local >>${OUTTO} 2>&1
+			elif [[ ${libt_major_version} == "1.2" ]]; then
+				PYTHON=python3 ./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++14 CPPFLAGS=-std=c++14 ${boost_args} --prefix=/tmp/dist/libtorrent-rasterbar/usr/local >>${OUTTO} 2>&1
+			fi
+			_execute "make -j$(nproc)"
+			mkdir -p /tmp/dist/libtorrent-rasterbar/usr/local
+			_execute "make install"
+			fpm --verbose --python-bin=python3 --python-package-name-prefix=python3 -n python3-libtorrent -f -p /root/pool/python3-libtorrent_${libtversion}.deb --version ${libtversion} --description "Libtorrent rasterbar python bindings compiled by QuickBox Lite" -s python -t deb /tmp/libtorrent/bindings/python/setup.py >>${OUTTO} 2>&1
+			_execute "dpkg -i /root/pool/python3-libtorrent_${libtversion}.deb"
+			echo ${libtversion} >/install/.libtorrent-rasterbar-python3.lock
+			_success "Libtorrent python binding built ..."
+		fi
+		ldconfig
+	fi
+}
+
+function _updateDeluge() {
+	# Deluge
+	APP_TITLE="Deluge"
+	_info "Updating ${APP_TITLE}..."
+	_info "Removing old ${APP_TITLE}..."
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		_execute "systemctl stop deluged@${username}"
+		_execute "systemctl stop deluge-web@${username}"
+	done
+
+	if $(echo "${de_version_list[@]}" | grep -wq "${deversion}") && [ ! -f /install/.libtorrent-rasterbar.lock ]; then
+		_info "Installing Deluge ${deversion}..."
+		PACKAGE="deluge"
+		cd /tmp || exit 1
+		APP_BASEDEPS="python3 python3-dev python3-pip"
+		_installDepends
+		_execute "pip3 install --upgrade wheel"
+		_execute "pip3 install --upgrade cryptography"
+		_execute "pip3 install --upgrade twisted[tls]"
+		DEBASE="deluge-common_${deversion}-1build1_all.deb deluge-console_${deversion}-1build1_all.deb deluge-gtk_${deversion}-1build1_all.deb deluge-web_${deversion}-1build1_all.deb deluged_${deversion}-1build1_all.deb"
+		for DEB in $DEBASE; do
+			_download ${PACKAGE} ${DEB}
+			_execute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
+			rm -rf /tmp/${DEB}
+		done
+		_success "${APP_TITLE} installed."
+	else
+		cd /tmp || exit 1
+		_info "Building Deluge ${deversion}..."
+		_info "Downloading deluge-${deversion}.tar.xz ..."
+		while true; do
+			wget -q -O deluge-${deversion}.tar.xz http://download.deluge-torrent.org/source/2.0/deluge-${deversion}.tar.xz && break
+		done
+		APP_BASEDEPS="build-essential intltool libtool libssl-dev libgeoip-dev librsvg2-common geoip-database python3 python3-dev python3-setuptools intltool python3-zope.interface python3-twisted python3-openssl python3-xdg python3-chardet python3-mako python3-setproctitle python3-rencode python3-pil librsvg2-common xdg-utils"
+		_installDepends
+		_execute "pip3 install --upgrade wheel"
+		_execute "pip3 install --upgrade cryptography"
+		_execute "pip3 install --upgrade twisted[tls]"
+		tar -xf deluge-${deversion}.tar.xz
+		cd deluge-${deversion} || exit 1
+		_execute "python3 setup.py build"
+		_execute "python3 setup.py install --record /install/.deluge.install.record --install-layout=deb"
+		_execute "python3 setup.py install_data"
+		cd /tmp || exit 1
+		rm -rf deluge-${deversion}
+		rm -f deluge-${deversion}.tar.xz
+		_success "${APP_TITLE} Built."
+	fi
+}
+
 function _updateApp() {
 	# get current version
 	_info "Fetching package list..."
@@ -295,149 +453,9 @@ function _updateApp() {
 			fi
 		fi
 
-		# Libtorrent
-		APP_TITLE="Libtorrent"
-		if [[ ${libt_deb_python3_req} == 1 ]]; then
-			_info "Installing Libtorrent..."
-			PACKAGE="libtorrent-rasterbar"
-			cd /tmp || exit 1
-			[[ "$(dpkg -s libtorrent-rasterbar9 2> /dev/null | grep -cow '^Status: install ok installed$')" -eq '1' ]] && libtversion=$(dpkg -s libtorrent-rasterbar9 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
-			[[ "$(dpkg -s libtorrent-rasterbar10 2> /dev/null | grep -cow '^Status: install ok installed$')" -eq '1' ]] && libtversion=$(dpkg -s libtorrent-rasterbar10 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
-			cd /tmp || exit 1
-			PYLIBTBIN=python3-libtorrent_${libtversion}-1build1_amd64.deb
-			DEB=${PYLIBTBIN}
-			_download ${PACKAGE} ${DEB}
-			_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${PYLIBTBIN}"
-			rm -rf ${PYLIBTBIN}
-			touch /install/.libtorrent-rasterbar-python3.lock
-		elif [[ ${libt_compile_python3_req} == 1 ]]; then
-			# ensure python binding has the same version
-			libtversion=$(cat /install/.libtorrent-rasterbar.lock)
-			libt_major_version=$(echo ${libtversion}| cut -d. -f1,2)
-			if [[ ${libt_major_version} == "1.2" ]]; then
-				LTRC=RC_1_2
-				case ${libtversion} in
-				1.2.0) LTCIMMIT="3a1e546" ;;
-				1.2.1) LTCIMMIT="4b26829" ;;
-				1.2.2) LTCIMMIT="9c97055" ;;
-				1.2.3) LTCIMMIT="078f7b9" ;;
-				1.2.4) LTCIMMIT="ad83b1c" ;;
-				1.2.5) LTCIMMIT="bc66605" ;;
-				1.2.6) LTCIMMIT="b9b5443" ;;
-				1.2.7) LTCIMMIT="8e71015" ;;
-				*) LTCIMMIT="." ;;
-				esac
-			elif [[ ${libt_major_version} == "1.1" ]]; then
-				LTRC=RC_1_1
-				case ${libtversion} in
-				1.1.0) LTCIMMIT="2921caf" ;;
-				1.1.1) LTCIMMIT="599967c" ;;
-				1.1.2) LTCIMMIT="a42d439" ;;
-				1.1.3) LTCIMMIT="b065536" ;;
-				1.1.4) LTCIMMIT="5188c19" ;;
-				1.1.5) LTCIMMIT="6214103" ;;
-				1.1.6) LTCIMMIT="b45acf2" ;;
-				1.1.7) LTCIMMIT="aaf9304" ;;
-				1.1.8) LTCIMMIT="4576723" ;;
-				1.1.9) LTCIMMIT="19df645" ;;
-				1.1.10) LTCIMMIT="200bb49" ;;
-				1.1.11) LTCIMMIT="25a1f12" ;;
-				1.1.12) LTCIMMIT="4342725" ;;
-				1.1.13) LTCIMMIT="6f1250c" ;;
-				1.1.14) LTCIMMIT="244f0f1" ;;
-				*) LTCIMMIT="." ;;
-				esac
-			elif [[ ${libt_major_version} == "1.0" ]]; then
-				LTRC=RC_1_0
-				case ${libtversion} in
-				1.0.0) LTCIMMIT="1633ee2" ;;
-				1.0.1) LTCIMMIT="49c2ec9" ;;
-				1.0.2) LTCIMMIT="8f2c17c" ;;
-				1.0.3) LTCIMMIT="edfe81b" ;;
-				1.0.4) LTCIMMIT="a586deb" ;;
-				1.0.5) LTCIMMIT="45521a3" ;;
-				1.0.6) LTCIMMIT="b709199" ;;
-				1.0.7) LTCIMMIT="15b1cd9" ;;
-				1.0.8) LTCIMMIT="e44e8da" ;;
-				1.0.9) LTCIMMIT="b342192" ;;
-				1.0.10) LTCIMMIT="e650ecc" ;;
-				1.0.11) LTCIMMIT="4e90eb1" ;;
-				*) LTCIMMIT="." ;;
-				esac
-			fi
-			cd /tmp || exit 1
-			_execute "git clone -b ${LTRC} ${BRANCH_LT} libtorrent"
-			cd libtorrent || { _error "Can not download libtorrent-rasterbar" && exit 1; }
-			_execute "git checkout ${LTCIMMIT}"
+		_updateLibt
+		_updateDeluge
 
-			if [ ${libt_compile_python3_req} == 1 ]; then
-				_info "Build libtorrent python binding for Deluge ... "
-				cd /tmp/libtorrent || exit 1
-				_execute "./autotool.sh"
-				if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
-					boost_args="--with-boost-python=boost_python-py35"
-				else
-					boost_args="--with-boost-python=boost_python3"
-				fi
-				if [[ ${libt_major_version} == "1.0" ]] || [[ ${libt_major_version} == "1.1" ]]; then
-					PYTHON=python3 ./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++11 CPPFLAGS=-std=c++11 ${boost_args} --prefix=/tmp/dist/libtorrent-rasterbar/usr/local >>${OUTTO} 2>&1
-				elif [[ ${libt_major_version} == "1.2" ]]; then
-					PYTHON=python3 ./configure --enable-python-binding --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++14 CPPFLAGS=-std=c++14 ${boost_args} --prefix=/tmp/dist/libtorrent-rasterbar/usr/local >>${OUTTO} 2>&1
-				fi
-				_execute "make -j$(nproc)"
-				mkdir -p /tmp/dist/libtorrent-rasterbar/usr/local
-				_execute "make install"
-				fpm --verbose --python-bin=python3 --python-package-name-prefix=python3 -n python3-libtorrent -f -p /root/pool/python3-libtorrent_${libtversion}.deb --version ${libtversion} --description "Libtorrent rasterbar python bindings compiled by QuickBox Lite" -s python -t deb /tmp/libtorrent/bindings/python/setup.py >>${OUTTO} 2>&1
-				_execute "dpkg -i /root/pool/python3-libtorrent_${libtversion}.deb"
-				echo ${libtversion} >/install/.libtorrent-rasterbar-python3.lock
-				_success "Libtorrent python binding built ..."
-			fi
-			ldconfig
-		fi
-		# Deluge
-		APP_TITLE="Deluge"
-		_info "Updating ${APP_TITLE}..."
-		_info "Removing old ${APP_TITLE}..."
-		userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-		for username in $userlist; do
-			_execute "systemctl stop deluged@${username}"
-			_execute "systemctl stop deluge-web@${username}"
-		done
-
-		if $(echo "${de_version_list[@]}" | grep -wq "${deversion}") && [ ! -f /install/.libtorrent-rasterbar.lock ]; then
-			_info "Installing Deluge ${deversion}..."
-			PACKAGE="deluge"
-			cd /tmp || exit 1
-			APP_BASEDEPS="python3 python3-dev python3-pip"
-			_installDepends
-			_execute "pip3 install --upgrade twisted[tls]"
-			DEBASE="deluge-common_${deversion}-1build1_all.deb deluge-console_${deversion}-1build1_all.deb deluge-gtk_${deversion}-1build1_all.deb deluge-web_${deversion}-1build1_all.deb deluged_${deversion}-1build1_all.deb"
-			for DEB in $DEBASE; do
-				_download ${PACKAGE} ${DEB}
-				_execute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
-				rm -rf /tmp/${DEB}
-			done
-			_success "${APP_TITLE} installed."
-		else
-			cd /tmp || exit 1
-			_info "Building Deluge ${deversion}..."
-			_info "Downloading deluge-${deversion}.tar.xz ..."
-			while true; do
-				wget -q -O deluge-${deversion}.tar.xz http://download.deluge-torrent.org/source/2.0/deluge-${deversion}.tar.xz && break
-			done
-			APP_BASEDEPS="build-essential intltool libtool libssl-dev libgeoip-dev librsvg2-common geoip-database python3 python3-dev python3-setuptools intltool python3-zope.interface python3-twisted python3-openssl python3-xdg python3-chardet python3-mako python3-setproctitle python3-rencode python3-pil librsvg2-common xdg-utils"
-			_installDepends
-			_execute "pip3 install --upgrade twisted[tls]"
-			tar -xf deluge-${deversion}.tar.xz
-			cd deluge-${deversion} || exit 1
-			_execute "python3 setup.py build"
-			_execute "python3 setup.py install --record /install/.deluge.install.record --install-layout=deb"
-			_execute "python3 setup.py install_data"
-			cd /tmp || exit 1
-			rm -rf deluge-${deversion}
-			rm -f deluge-${deversion}.tar.xz
-			_success "${APP_TITLE} Built."
-		fi
 		cat >/etc/systemd/system/deluge-web@.service <<DWS
 [Unit]
 Description=Deluge Bittorrent Client Web Interface

@@ -1,3 +1,24 @@
+## CHANGELOG v1.4.4
+
+*Changelog update Saturday, Jan 16, 2021*
+
+### General additions
+
+- add support for static linked qBittorrent Binary
+
+### Function improved
+
+- rewrite qBittorrent install function
+- add compatibility mode for cifs
+
+### Function updated
+
+- add support for qBittorrent 4.3.2
+
+### Bug fixed
+
+---
+
 ## CHANGELOG v1.4.3
 
 *Changelog update Tuesday, Dec 15, 2020*

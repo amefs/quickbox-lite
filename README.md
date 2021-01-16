@@ -4,13 +4,11 @@
 
 # Project QuickBox-Lite
 
-[中文版](https://github.com/amefs/quickbox-lite/blob/master/README_zh.md)
+[![Project](https://img.shields.io/badge/Project-中文版-green?logo=git&style=for-the-badge)](https://github.com/amefs/quickbox-lite/blob/master/README_zh.md)    [![DOC](https://img.shields.io/badge/Doc-Read%20Manual-1F8ACB?logo=read-the-docs&style=for-the-badge)](https://en.wiki.ptbox.dev/)
 
 ---
 
 This project is a modified version of the QuickBox community edition. This project aims to build a lightweight QuickBox software kit. Most of the functions of QuickBox CE are retained, but only the most commonly used stable third party software included. The prebuilt BT client also available here, which can significantly reduce the installation time as well as CPU requirement to compile them. Most of the software is available as modules. The panel no longer needs the support of ruTorrent. You can select what you need, and this is also why the project named "Lite".
-
-For more information, please check our [wiki](https://github.com/amefs/quickbox-lite/wiki).
 
 ---
 
@@ -26,7 +24,7 @@ For more information, please check our [wiki](https://github.com/amefs/quickbox-
 
 ## Script status
 
-![Version](https://img.shields.io/badge/version-1.4.3-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.4.4-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
 
 When upgrade from 1.3.2 to 1.3.3, very recommend to use SSH with `box update quickbox`. You also need to run the command twice to finish the service upgrade. If you are using WebUI to finish the upgrade, please also upgrade twice.
 
@@ -64,30 +62,6 @@ Server Support:
 ### install the project
 
 **You must be logged in as root to run this installation.**
-
-#### **TUI install**
-
-**Run the following command to grab our latest stable release ...**
-
-```
-apt-get -yqq update; apt-get -yqq upgrade; apt-get -yqq install git lsb-release dos2unix; \
-git clone https://github.com/amefs/quickbox-lite.git /etc/QuickBox; \
-dos2unix /etc/QuickBox/setup.sh; \
-bash /etc/QuickBox/setup.sh
-
-```
-
-**Want to run in development mode?**
-
-**Run the following command to grab current development repos ...**
-
-```
-mkdir /install/ && touch /install/.developer.lock; \
-apt-get -yqq update; apt-get -yqq upgrade; apt-get -yqq install git lsb-release dos2unix; \
-git clone --branch "development" https://github.com/amefs/quickbox-lite.git /etc/QuickBox; \
-dos2unix /etc/QuickBox/setup.sh; \
-bash /etc/QuickBox/setup.sh
-```
 
 #### **One-key Install mode**
 
@@ -146,65 +120,7 @@ bash <(wget -qO- https://git.io/qbox-lite -o /dev/null) -u demouser -p demo12345
 
 It means: The username being set to demouser, password is demo123456, use 1234 as ssh port, install BBR, deluge, mktorrent, linuxrar. The mirror for deb package in Cloudflare will be used for installation. Change the hostname to vmserver. The server will be automaticly restart after installation.
 
-### Already have QuickBox installed and want to switch over to development?
-
-**EASY! Run the following command to grab current development repos ...**
-
-```
-mkdir /install/ && touch /install/.developer.lock; \
-sudo box update quickbox
-```
-
----
-
-## Installed Features
-
-- pureftp - vsftp (CuteFTP multi-segmented download friendly)
-- SSH Server (for SSH terminal and sFTP connections)
-- Web Console (Shellinabox)
-- QuickBox Dashboard
-
----
-
-## Available software
-
-### Available when setup
-
-- rTorrent (*0.9.4-0.9.8*)
-  - ruTorrent
-  - flood
-- Transmission (*2.94*)
-- qBittorrent (*4.2.5*)
-- Deluge (*1.3.15, 2.0.3*)
-- mktorrent (with `createtorrent` command as wrapper)
-- FFmpeg
-- Linux RAR
-- File Browser
-- BBR
-
-### Available in dashboard
-
-- Autodl-irssi
-- BTSync
-- CIFS
-- FlexGet (both 2.x and 3.x)
-- Netdata
-- NFS
-- noVNC
-- OpenVPN
-- Plex
-- Syncthing
-- x2Go
-
-### Available in CLI
-
-- autoremove-torrents
-- Denyhosts
-- Fail2ban
-- Let's Encrypt
-- ZNC
-
 ## Have trouble with QuickBox Lite
 
-If you still have questions about the QuickBox Lite or need to report bugs, be sure to read the [Wiki](https://github.com/amefs/quickbox-lite/wiki) first. When you still have trouble with it, please assign an issue [here](https://github.com/amefs/quickbox-lite/issues/new), I will try my best to help you.
+If you still have questions about the QuickBox Lite or need to report bugs, be sure to read the [Wiki](https://en.wiki.ptbox.dev) first. When you still have trouble with it, please assign an issue [here](https://github.com/amefs/quickbox-lite/issues/new), I will try my best to help you.
 

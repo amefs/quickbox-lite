@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.3
+# Current version:  v1.4.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -119,9 +119,9 @@ function _setLock() {
 }
 function _lockCleanup() {
 	if [[ -f /install/.lang_zh.lock ]]; then
-		_info "定时任务用法参见: https://github.com/amefs/quickbox-lite/wiki/%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8-autoremove-torrents"
+		_info "定时任务用法参见: https://cn.wiki.ptbox.dev/autoremovetorrents/"
 	else
-		_info "See cronjob example here: https://github.com/amefs/quickbox-lite/wiki/FAQ#how-to-use-autoremove-torrents"
+		_info "See cronjob example here: https://en.wiki.ptbox.dev/autoremovetorrents/"
 	fi
 	echo "$APP_TITLE Install Complete!
 

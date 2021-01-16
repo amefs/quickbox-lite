@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.3
+# Current version:  v1.4.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -147,6 +147,9 @@ function _removeDepends() {
 	fi
 	_execute "apt-get -y autoremove"
 	_execute "apt-get -y autoclean"
+	if [[ -f /usr/local/bin/qbittorrent-nox ]]; then
+		rm -f /usr/local/bin/qbittorrent-nox
+	fi
 	_success "${APP_TITLE} dependencies removed."
 }
 

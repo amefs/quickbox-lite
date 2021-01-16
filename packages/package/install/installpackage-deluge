@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.3
+# Current version:  v1.4.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -305,86 +305,8 @@ function _download() {
 	esac
 }
 
-function _installApp() {
-	_info "Building ${APP_TITLE}..."
-	_info "Fetching package list..."
-	cd /tmp || exit 1
-	wget -t3 -T20 -q -O packages.lst https://deb.ezapi.net/packages.lst
-	if [ $? -ne 0 ]; then
-		_github
-		wget -t5 -T10 -q -O packages.lst https://raw.githubusercontent.com/amefs/quickbox-files/master/packages.lst
-		if [ $? -ne 0 ]; then
-			_sf
-			wget -t5 -T10 -q -O packages.lst https://sourceforge.net/projects/seedbox-software-for-linux/files/packages.lst/download
-		fi
-	fi
-	libt_version_list=$(cat packages.lst | grep -wE 'libtorrent-rasterbar[0-9]{1,2}' | grep ${CODENAME} | grep amd64 | awk '{ print $5}')
-	de_version_list=$(cat packages.lst | grep -w deluged | grep ${CODENAME} | grep amd64 | awk '{ print $5}')
-	rm -f packages.lst
-	# version check
-	if ([ $CODENAME == "focal" ] && _version_gt 2.0 $deversion); then
-		_warning "Deluge 1.3.x currently not available in focal, fallback to v2.0.3"
-		deversion=2.0.3
-	fi
-	libt_major_version=$(echo ${libtversion}| cut -d. -f1,2)
-	if [[ ${libt_major_version} == "1.2" ]]; then
-		if [[ ${de_major_version} == "1.3" ]]; then
-			_warning "Deluge 1.3.x do not support libtorrent 1.2.x, fallback to v2.0.3"
-			deversion=2.0.3
-			de_major_version="2.0"
-		fi
-	fi
-	# lock check
-	libt_compile_req=0
-	libt_compile_python_req=0
-	libt_compile_python3_req=0
-	libt_deb_req=0
-	libt_deb_python_req=0
-	libt_deb_python3_req=0
-	# .libtorrent-rasterbar.lock libtorrent-rasterbar by compiled
-	# .libtorrent-rasterbar9.lock libtorrent-rasterbar 1.1.x
-	# .libtorrent-rasterbar10.lock libtorrent-rasterbar 1.2.x
-	# .libtorrent-rasterbar-python.lock libtorrent-rasterbar python binding
-	# .libtorrent-rasterbar-python3.lock libtorrent-rasterbar python3 binding
-	if [[ -f /install/.libtorrent-rasterbar.lock ]]; then
-		if [[ ${de_major_version} == "2.0" ]]; then
-			if [[ ! -f /install/.libtorrent-rasterbar-python3.lock ]]; then
-				libt_compile_python3_req=1
-			fi
-		else
-			if [[ ! -f /install/.libtorrent-rasterbar-python.lock ]]; then
-				libt_compile_python_req=1
-			fi
-		fi
-		if ! (${libt_compile_python_req} || ${libt_compile_python3_req}); then 
-			_success "Libtorrent already installed, Skip..." 
-		fi
-	else
-		APP_TITLE="Libtorrent"
-		if $(echo "${libt_version_list[@]}" | grep -wq "${libtversion}"); then
-			if ([[ ${libt_major_version} == "1.1" ]] && [[ ! -f /install/.libtorrent-rasterbar9.lock ]]) || ([[ ${libt_major_version} == "1.2" ]] && [[ ! -f /install/.libtorrent-rasterbar10.lock ]]); then
-				libt_deb_req=1
-			fi
-			if [[ ${de_major_version} == "2.0" ]]; then
-				if [[ ! -f /install/.libtorrent-rasterbar-python3.lock ]]; then
-					libt_deb_python3_req=1
-				fi
-			else
-				if [[ ! -f /install/.libtorrent-rasterbar-python.lock ]]; then
-					libt_deb_python_req=1
-				fi
-			fi
-		else
-			libt_compile_req=1
-			if [[ ${de_major_version} == "2.0" ]]; then
-				libt_compile_python3_req=1
-			else
-				libt_compile_python_req=1
-			fi
-		fi
-	fi
-
-	# Libtorrent
+function _installLibt() {
+		# Libtorrent
 	APP_TITLE="Libtorrent"
 	if [ ${libt_deb_req} == 1 ] || [ ${libt_deb_python_req} == 1 ] || [ ${libt_deb_python3_req} == 1 ]; then
 		_info "Installing Libtorrent..."
@@ -458,6 +380,11 @@ function _installApp() {
 				1.2.5) LTCIMMIT="bc66605" ;;
 				1.2.6) LTCIMMIT="b9b5443" ;;
 				1.2.7) LTCIMMIT="8e71015" ;;
+				1.2.8) LTCIMMIT="7dcd091" ;;
+				1.2.9) LTCIMMIT="a80f458" ;;
+				1.2.10) LTCIMMIT="70f1de3" ;;
+				1.2.11) LTCIMMIT="471e772" ;;
+				1.2.12) LTCIMMIT="e3f2b01" ;;
 				*) LTCIMMIT="." ;;
 				esac
 			elif [[ ${libt_major_version} == "1.1" ]]; then
@@ -537,6 +464,11 @@ function _installApp() {
 				1.2.5) LTCIMMIT="bc66605" ;;
 				1.2.6) LTCIMMIT="b9b5443" ;;
 				1.2.7) LTCIMMIT="8e71015" ;;
+				1.2.8) LTCIMMIT="7dcd091" ;;
+				1.2.9) LTCIMMIT="a80f458" ;;
+				1.2.10) LTCIMMIT="70f1de3" ;;
+				1.2.11) LTCIMMIT="471e772" ;;
+				1.2.12) LTCIMMIT="e3f2b01" ;;
 				*) LTCIMMIT="." ;;
 				esac
 			elif [[ ${libt_major_version} == "1.1" ]]; then
@@ -619,7 +551,9 @@ function _installApp() {
 		fi
 		ldconfig
 	fi
+}
 
+function _installDeluge() {
 	APP_TITLE="Deluge"
 	if $(echo "${de_version_list[@]}" | grep -wq "${deversion}") && [ ! -f /install/.libtorrent-rasterbar.lock ]; then
 		_info "Installing Deluge ${deversion}..."
@@ -629,6 +563,7 @@ function _installApp() {
 			APP_BASEDEPS="python3 python3-dev python3-pip"
 			_installDepends
 			_execute "pip3 install --upgrade wheel"
+			_execute "pip3 install --upgrade cryptography"
 			_execute "pip3 install --upgrade twisted[tls]"
 			DEBASE="deluge-common_${deversion}-1build1_all.deb deluge-console_${deversion}-1build1_all.deb deluge-gtk_${deversion}-1build1_all.deb deluge-web_${deversion}-1build1_all.deb deluged_${deversion}-1build1_all.deb"
 			for DEB in $DEBASE; do
@@ -686,6 +621,95 @@ function _installApp() {
 		fi
 		_success "${APP_TITLE} Built."
 	fi
+}
+
+function _installApp() {
+	_info "Building ${APP_TITLE}..."
+	_info "Fetching package list..."
+	cd /tmp || exit 1
+	wget -t3 -T20 -q -O packages.lst https://deb.ezapi.net/packages.lst
+	if [ $? -ne 0 ]; then
+		_github
+		wget -t5 -T10 -q -O packages.lst https://raw.githubusercontent.com/amefs/quickbox-files/master/packages.lst
+		if [ $? -ne 0 ]; then
+			_sf
+			wget -t5 -T10 -q -O packages.lst https://sourceforge.net/projects/seedbox-software-for-linux/files/packages.lst/download
+		fi
+	fi
+	libt_version_list=$(cat packages.lst | grep -wE 'libtorrent-rasterbar[0-9]{1,2}' | grep ${CODENAME} | grep amd64 | awk '{ print $5}')
+	de_version_list=$(cat packages.lst | grep -w deluged | grep ${CODENAME} | grep amd64 | awk '{ print $5}')
+	rm -f packages.lst
+	# version check
+	if ([ $CODENAME == "focal" ] && _version_gt 2.0 $deversion); then
+		_warning "Deluge 1.3.x currently not available in focal, fallback to v2.0.3"
+		deversion=2.0.3
+	fi
+	libt_major_version=$(echo ${libtversion}| cut -d. -f1,2)
+	if [[ ${libt_major_version} == "1.2" ]]; then
+		if [[ ${de_major_version} == "1.3" ]]; then
+			_warning "Deluge 1.3.x do not support libtorrent 1.2.x, fallback to v2.0.3"
+			deversion=2.0.3
+			de_major_version="2.0"
+		fi
+	fi
+	if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
+		if (_version_gt ${libtversion} "1.2.11"); then
+			libtversion="1.2.11"
+			libt_major_version="1.2"
+			_warning "Use Libtorrent ${libtversion} against Deluge";
+		fi
+	fi
+	# lock check
+	libt_compile_req=0
+	libt_compile_python_req=0
+	libt_compile_python3_req=0
+	libt_deb_req=0
+	libt_deb_python_req=0
+	libt_deb_python3_req=0
+	# .libtorrent-rasterbar.lock libtorrent-rasterbar by compiled
+	# .libtorrent-rasterbar9.lock libtorrent-rasterbar 1.1.x
+	# .libtorrent-rasterbar10.lock libtorrent-rasterbar 1.2.x
+	# .libtorrent-rasterbar-python.lock libtorrent-rasterbar python binding
+	# .libtorrent-rasterbar-python3.lock libtorrent-rasterbar python3 binding
+	if [[ -f /install/.libtorrent-rasterbar.lock ]]; then
+		if [[ ${de_major_version} == "2.0" ]]; then
+			if [[ ! -f /install/.libtorrent-rasterbar-python3.lock ]]; then
+				libt_compile_python3_req=1
+			fi
+		else
+			if [[ ! -f /install/.libtorrent-rasterbar-python.lock ]]; then
+				libt_compile_python_req=1
+			fi
+		fi
+		if ! (${libt_compile_python_req} || ${libt_compile_python3_req}); then 
+			_success "Libtorrent already installed, Skip..." 
+		fi
+	else
+		APP_TITLE="Libtorrent"
+		if $(echo "${libt_version_list[@]}" | grep -wq "${libtversion}"); then
+			if ([[ ${libt_major_version} == "1.1" ]] && [[ ! -f /install/.libtorrent-rasterbar9.lock ]]) || ([[ ${libt_major_version} == "1.2" ]] && [[ ! -f /install/.libtorrent-rasterbar10.lock ]]); then
+				libt_deb_req=1
+			fi
+			if [[ ${de_major_version} == "2.0" ]]; then
+				if [[ ! -f /install/.libtorrent-rasterbar-python3.lock ]]; then
+					libt_deb_python3_req=1
+				fi
+			else
+				if [[ ! -f /install/.libtorrent-rasterbar-python.lock ]]; then
+					libt_deb_python_req=1
+				fi
+			fi
+		else
+			libt_compile_req=1
+			if [[ ${de_major_version} == "2.0" ]]; then
+				libt_compile_python3_req=1
+			else
+				libt_compile_python_req=1
+			fi
+		fi
+	fi
+	_installLibt
+	_installDeluge
 }
 
 function _configureApp() {
@@ -760,6 +784,21 @@ function _configureApp() {
 			cp -f /usr/local/bin/quickbox/deluge/plugins/LabelPlus-0.3.2.2-py2.7.egg /home/${username}/.config/deluge/plugins/
 			cp -f /usr/local/bin/quickbox/deluge/plugins/TotalTraffic-0.5-py2.7.egg /home/${username}/.config/deluge/plugins/
 			cp -f /usr/local/bin/quickbox/deluge/plugins/Stats-0.3.2-py2.7.egg /home/${username}/.config/deluge/plugins/
+		fi
+
+
+		if [[ -f /install/.libtorrent-rasterbar.lock ]]; then
+			libtversion=$(cat /install/.libtorrent-rasterbar.lock)
+			libt_major_version=$(echo ${libtversion}| cut -d. -f1,2)
+		elif [[ -f /install/.libtorrent-rasterbar10.lock ]]; then
+			libt_major_version=1.2
+		else
+			libt_major_version=1.1
+		fi
+		if [[ ${libt_major_version} == "1.2" ]]; then
+			IFACE=$(ip link show | grep -i broadcast | grep -m1 UP | cut -d: -f 2 | cut -d@ -f 1 | sed -e 's/ //g')
+		else
+			IFACE=""
 		fi
 		cat >/home/${username}/.config/deluge/core.conf <<DC
   {
@@ -865,7 +904,7 @@ function _configureApp() {
     "cache_size": 512,
     "share_ratio_limit": -1.0,
     "random_port": true,
-    "listen_interface": ""
+    "listen_interface": "${IFACE}"
   }
 DC
 
