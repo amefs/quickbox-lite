@@ -4,7 +4,7 @@
 
 # QuickBox-Lite
 
-[![Project](https://img.shields.io/badge/Project-English%20Ver-green?logo=git&style=for-the-badge)](https://github.com/amefs/quickbox-lite/blob/master/README.md)    [![DOC](https://img.shields.io/badge/Doc-阅读文档-1F8ACB?logo=read-the-docs&style=for-the-badge)](https://cn.wiki.ptbox.dev/)
+[![Project](https://img.shields.io/badge/Project-English%20Ver-green?logo=git&style=for-the-badge)](https://github.com/amefs/quickbox-lite/blob/master/README.md)    [![DOC](https://img.shields.io/badge/Doc-点击此处阅读文档-1F8ACB?logo=read-the-docs&style=for-the-badge)](https://cn.wiki.ptbox.dev/)
 
 ---
 
