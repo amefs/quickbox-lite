@@ -433,11 +433,8 @@ function _updateApp() {
 	cur_version=$(dpkg -s qbittorrent-nox 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
 	if [[ -z ${cur_version} ]]; then cur_version=$(qbittorrent-nox -v 2>/dev/null | grep '^qBittorrent ' | grep -Eo "[0-9.]+" | head -n1); fi
 	if (_version_gt ${qbitversion} ${cur_version}) ||  [[ $FORCE == 1 ]] ; then
-		# Check distro name
 		if (_version_gt ${qbit_major_version} "4.2"); then
-			if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
-				use_static=true
-			fi
+			use_static=true
 		fi
 		# Static / Dynamic linking
 		if $use_static; then
@@ -613,16 +610,6 @@ function _reconfigureAppv2() {
 	_success "${APP_TITLE} configured."
 }
 
-function _flexget() {
-	username=$(cat /root/.admin.info | cut -d: -f1)
-	if [[ -f "/install/.${username}.flexget.lock" ]]; then
-		fgversion=$(su ${username} -c '~/.local/bin/flexget -V | head -1 | cut -d. -f1')
-		if [[ ${fgversion} == '2' ]]; then
-			bash /usr/local/bin/quickbox/package/update/updatepackage-flexget -l $OUTTO
-		fi
-	fi
-}
-
 #################################################################################
 # OPT GENERATOR
 #################################################################################
@@ -680,7 +667,3 @@ _setLock
 _updateInfo
 _updateApp
 _lockCleanup
-
-if (_version_gt ${qbitversion} 4.1.9.1); then
-	_flexget
-fi

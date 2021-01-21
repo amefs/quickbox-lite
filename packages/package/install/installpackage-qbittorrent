@@ -575,11 +575,8 @@ function _installApp() {
 		fi
 	fi
 	if ${libt_fallback}; then _warning "Use Libtorrent ${libtversion} against qBittorrent 4.3.x"; fi
-	# Check distro name
 	if (_version_gt ${qbit_major_version} "4.2"); then
-		if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
-			use_static=true
-		fi
+		use_static=true
 	fi
 	# Static / Dynamic linking
 	if $use_static; then
@@ -885,18 +882,6 @@ function _installAppStart() {
 	_success "${APP_TITLE} started."
 }
 
-function _flexget() {
-	if [[ ! -f /install/.pyenv.lock ]]; then
-		username=$(cat /root/.admin.info | cut -d: -f1)
-		if [[ -f "/install/.${username}.flexget.lock" ]]; then
-			fgversion=$(su ${username} -c '~/.local/bin/flexget -V | head -1 | cut -d. -f1')
-			if [[ ${fgversion} == '2' ]]; then
-				bash /usr/local/bin/quickbox/package/update/updatepackage-flexget -l $OUTTO
-			fi
-		fi
-	fi
-}
-
 #################################################################################
 # OPT GENERATOR
 #################################################################################
@@ -961,7 +946,3 @@ _configureApp
 _installAppLock
 _installAppStart
 _lockCleanup
-
-if (_version_gt ${qbitversion} 4.1.9.1); then
-	_flexget
-fi
