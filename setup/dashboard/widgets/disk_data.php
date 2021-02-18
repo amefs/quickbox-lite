@@ -17,7 +17,11 @@ function processExists($processName, $username) {
 $rtorrents = shell_exec("ls /home/".$username."/.sessions/*.torrent|wc -l");
 $dtorrents = shell_exec("ls /home/".$username."/.config/deluge/state/*.torrent|wc -l");
 $transtorrents = shell_exec("ls /home/".$username."/.config/transmission/torrents/*.torrent|wc -l");
-$qtorrents = shell_exec("ls /home/".$username."/.local/share/data/qBittorrent/BT_backup/*.torrent|wc -l");
+if (file_exists('/home/'.$username.'/.local/share/data/qBittorrent')) {
+  $qtorrents = shell_exec("ls /home/".$username."/.local/share/data/qBittorrent/BT_backup/*.torrent|wc -l");
+} else {
+  $qtorrents = shell_exec("ls /home/".$username."/.local/share/qBittorrent/BT_backup/*.torrent|wc -l");
+}
 $php_self = $_SERVER['PHP_SELF'];
 $web_path = substr($php_self, 0, strrpos($php_self, '/')+1);
 $time = microtime(); $time = explode(" ", $time);
@@ -25,7 +29,7 @@ $time = $time[1] + $time[0]; $start = $time;
 
 $disk_info = array_filter(explode("\n",`df -h| grep -E "^(/dev/)"`));
 foreach ($disk_info as $parts) {
-  $parts_tmp = array_values(array_filter(explode(' ',$parts)));
+  $parts_tmp = array_values(preg_split('/\s+/', $parts));
   if(strstr($parts_tmp[1],"M"))
     continue;
   $perused=(int)substr($parts_tmp['4'],0,-1);

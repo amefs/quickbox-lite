@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 import os
@@ -49,7 +49,23 @@ def printResult():
         table.add_row(list)
     table.align = "r"
     table.align["Test Item"] = "l"
-    print table.get_string(sortby="Test Item", reversesort=True)
+    print(table.get_string(sortby="Test Item", reversesort=True))
+
+def outputResult(filename=None):
+    if os.path.exists(filename):
+        os.remove(filename)
+    fo = open(filename, "w+")
+    fo.write((u"测试结果:\n").encode('utf-8'))
+    table = PrettyTable(["Test Item", u"读取 IOPS", u"读取速度", u"写入 IOPS", u"写入速度"])
+    for k, v in rwResult.items():
+        list = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
+        table.add_row(list)
+    table.align = "r"
+    table.align["Test Item"] = "l"
+    fo.write(table.get_string(sortby="Test Item", reversesort=True).encode('utf-8'))
+    fo.write("\n")
+    fo.close()
+    print(G + "\n保存在 {}" + N).format(filename)
 
 
 class FioTest(object):
@@ -102,7 +118,7 @@ class FioTest(object):
         if errors:
             errors.close()
 
-        return str(result_str)
+        return result_str.decode('utf8')
 
     def explain(self, result):
 
@@ -197,6 +213,15 @@ if __name__ == '__main__':
                         required=False,
                         nargs='+',
                         help='IO 测试文件路径 (默认 {})'.format(defult_path))
+    parser.add_argument('-o',
+                        '--output',
+                        metavar='String',
+                        dest='output_file',
+                        type=str,
+                        default=None,
+                        required=False,
+                        nargs='+',
+                        help='将结果保存到文件')
     args = parser.parse_args()
 
     # get opts.
@@ -226,6 +251,12 @@ if __name__ == '__main__':
         test_file = defult_path
     else:
         test_file = "".join(args.test_file)
+    if args.output_file is None:
+        to_file=False
+    else:
+        to_file=True
+        output_file = "".join(args.output_file)
+
 
     print(R + '开始进行下列测试:\n' + N)
     if test1: print('- Seq Q32T1')
@@ -330,4 +361,7 @@ if __name__ == '__main__':
                       filename=test_file)
         cmd.saveResult()
     cleanup(filename=test_file)
-    printResult()
+    if to_file:
+        outputResult(filename=output_file)
+    else:
+        printResult()

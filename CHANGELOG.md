@@ -1,3 +1,26 @@
+## CHANGELOG v1.4.5
+
+*Changelog update Sunday, Feb 14, 2021*
+
+### General additions
+
+- add support for app version selection when installing quickbox
+- add support for timezone setup when installing quickbox
+
+### Function improved
+
+- use python3 for iotest
+
+### Function updated
+
+### Bug fixed
+
+- fix the bug of disk information widget when disk space occupy 100%
+- fix the bug of change password
+- fix cdn selection when installing quickbox
+
+---
+
 ## CHANGELOG v1.4.4
 
 *Changelog update Saturday, Jan 16, 2021*

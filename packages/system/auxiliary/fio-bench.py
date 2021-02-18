@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 import os
@@ -53,7 +53,27 @@ def printResult():
     table.align["Write Speed"] = "r"
     table.align["Read IOPS"] = "r"
     table.align["Read Speed"] = "r"
-    print table.get_string(sortby="Test Item", reversesort=True)
+    print(table.get_string(sortby="Test Item", reversesort=True))
+
+def outputResult(filename=None):
+    if os.path.exists(filename):
+        os.remove(filename)
+    fo = open(filename, "w+")
+    fo.write("Test Results:\n")
+    table = PrettyTable(
+        ["Test Item", "Read IOPS", "Read Speed", "Write IOPS", "Write Speed"])
+    for k, v in rwResult.items():
+        list = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
+        table.add_row(list)
+    table.align["Test Item"] = "l"
+    table.align["Write IOPS"] = "r"
+    table.align["Write Speed"] = "r"
+    table.align["Read IOPS"] = "r"
+    table.align["Read Speed"] = "r"
+    fo.write(table.get_string(sortby="Test Item", reversesort=True))
+    fo.write("\n")
+    fo.close()
+    print(G + "\nThe test results saved in: {}" + N).format(filename)
 
 
 class FioTest(object):
@@ -106,7 +126,7 @@ class FioTest(object):
         if errors:
             errors.close()
 
-        return str(result_str)
+        return result_str.decode('utf8')
 
     def explain(self, result):
 
@@ -205,6 +225,15 @@ if __name__ == '__main__':
         required=False,
         nargs='+',
         help='IO test file path (Default {})'.format(defult_path))
+    parser.add_argument('-o',
+                        '--output',
+                        metavar='String',
+                        dest='output_file',
+                        type=str,
+                        default=None,
+                        required=False,
+                        nargs='+',
+                        help='Save result to file instead of stdout')
     args = parser.parse_args()
 
     # get opts.
@@ -234,6 +263,11 @@ if __name__ == '__main__':
         test_file = defult_path
     else:
         test_file = "".join(args.test_file)
+    if args.output_file is None:
+        to_file=False
+    else:
+        to_file=True
+        output_file = "".join(args.output_file)
 
     print(R + 'Following item will be test:\n' + N)
     if test1: print('- Seq Q32T1')
@@ -350,4 +384,7 @@ if __name__ == '__main__':
                       filename=test_file)
         cmd.saveResult()
     cleanup(filename=test_file)
-    printResult()
+    if to_file:
+        outputResult(filename=output_file)
+    else:
+        printResult()

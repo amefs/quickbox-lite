@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.4
+# Current version:  v1.4.5
 # URL:
 # Original Repo:    https://teddysun.com/444.html
 # Credits to:       QuickBox.io
@@ -58,9 +58,9 @@ function _error() {
 ################################################################################
 function _iotest() {
 	if [[ -f /install/.lang_zh.lock ]]; then
-		python /usr/local/bin/quickbox/system/auxiliary/fio-bench_zh-cn.py ${EXTRACMD}
+		python3 /usr/local/bin/quickbox/system/auxiliary/fio-bench_zh-cn.py ${EXTRACMD}
 	else
-		python /usr/local/bin/quickbox/system/auxiliary/fio-bench.py ${EXTRACMD}
+		python3 /usr/local/bin/quickbox/system/auxiliary/fio-bench.py ${EXTRACMD}
 	fi
 }
 
@@ -113,26 +113,10 @@ function _checkdep() {
 	if ( [ ! -f /usr/bin/fio ] || ! $(which pip2 > /dev/null 2>&1) || ! $(pip freeze --disable-pip-version-check | grep -q 'prettytable' > /dev/null 2>&1)); then
 		_installSystemUpdates
 		export DEBIAN_FRONTEND=noninteractive
-		for packages in wget fio;
+		for packages in fio python3 python3-pip;
 		do apt-get install -yqq $packages > /dev/null 2>&1; done
-		if [[ "$(dpkg -s python 2> /dev/null | grep -cow '^Status: install ok installed$')" -eq '1' ]];then
-			_success "python installed"
-		else
-			_info "installing python"
-			apt-get install -yqq python > /dev/null 2>&1
-			_success "python installed"
-		fi
-		if ! $(which pip2 > /dev/null 2>&1); then
-			_info "installing python-pip"
-			cd /tmp || exit 1
-			wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py
-			python2 get-pip.py --force-reinstall > /dev/null 2>&1
-			_success "python-pip installed"
-		else
-			_success "python-pip installed"
-		fi
 		_info "pip installing dependent packages..."
-		python2 -m pip install prettytable > /dev/null 2>&1
+		python3 -m pip install prettytable > /dev/null 2>&1
 		_success "pip packages installation finished"
 	else
         	_success "Dependency check passed"

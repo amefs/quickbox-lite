@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.4
+# Current version:  v1.4.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -16,6 +16,7 @@
 #   including (via compiler) GPL-licensed code must also be made available
 #   under the GPL along with build & install instructions.
 #
+# shellcheck disable=SC2046,SC1090
 #################################################################################
 
 function _defaultcolor() {
@@ -109,7 +110,7 @@ function _init() {
 		echo -e "XXX\n10\nPreparing scripts... \nXXX"
 		if [[ $DISTRO == Ubuntu && $CODENAME == xenial ]]; then
 			apt-get -y install git curl wget dos2unix python-minimal apt-transport-https software-properties-common dnsutils unzip >/dev/null 2>&1
-		elif [[ $DISTRO == Ubuntu && $CODENAME == bionic ]]; then
+		elif [[ $DISTRO == Ubuntu && $CODENAME =~ ("bionic"|"focal") ]]; then
 			apt-get -y install git curl wget dos2unix python apt-transport-https software-properties-common dnsutils unzip >/dev/null 2>&1
 		elif [[ $DISTRO == Debian ]]; then
 			apt-get -y install git curl wget dos2unix python apt-transport-https software-properties-common gnupg2 ca-certificates dnsutils unzip >/dev/null 2>&1
@@ -276,13 +277,13 @@ function _logcheck() {
 
 function _get_ip() {
 	ip=$(curl -s https://ipinfo.io/ip)
-	[[ -z $ip ]] && ip=$(curl -s https://api.ip.sb/ip)
-	[[ -z $ip ]] && ip=$(curl -s https://api.ipify.org)
-	[[ -z $ip ]] && ip=$(curl -s https://ip.seeip.org)
-	[[ -z $ip ]] && ip=$(curl -s https://ifconfig.co/ip)
-	[[ -z $ip ]] && ip=$(curl -s https://api.myip.com | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}")
-	[[ -z $ip ]] && ip=$(curl -s icanhazip.com)
-	[[ -z $ip ]] && ip=$(curl -s myip.ipip.net | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}")
+	[[ -z ${ip} ]] && ip=$(curl -s https://api.ip.sb/ip)
+	[[ -z ${ip} ]] && ip=$(curl -s https://api.ipify.org)
+	[[ -z ${ip} ]] && ip=$(curl -s https://ip.seeip.org)
+	[[ -z ${ip} ]] && ip=$(curl -s https://ifconfig.co/ip)
+	[[ -z ${ip} ]] && ip=$(curl -s https://api.myip.com | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}")
+	[[ -z ${ip} ]] && ip=$(curl -s icanhazip.com)
+	[[ -z ${ip} ]] && ip=$(curl -s myip.ipip.net | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}")
 }
 
 function _askdomain() {
@@ -291,7 +292,7 @@ function _askdomain() {
 			domain=$(whiptail --title "$INFO_TITLE_SETDOMAIN" --inputbox "$INFO_TEXT_SETDOMAIN" 10 72 --ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3)
 			_get_ip
 			test_domain=$(curl -sH 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$domain&type=A" | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}" | head -1)
-			if [[ $test_domain != $ip ]]; then
+			if [[ $test_domain != ${ip} ]]; then
 				whiptail --title "$ERROR_TITLE_DOMAINCHK" --msgbox "${ERROR_TEXT_DOMAINCHK_1}$domain${ERROR_TEXT_DOMAINCHK_2}" --ok-button "$BUTTON_OK" 8 72
 				domain=""
 			else
@@ -424,7 +425,7 @@ function _skel() {
 	mkdir -p /etc/skel
 	cp -rf ${local_setup_template}skel /etc
 	# init download url
-	case "$cdn" in
+	case "${cdn}" in
 	"--with-cf")
 		_cf
 		echo "cf" > /install/.cdn.lock
@@ -573,8 +574,8 @@ function _askvsftpd() {
 	if (whiptail --title "$INFO_TITLE_FTP" --yesno "$INFO_TEXT_FTP" --yes-button "$BUTTON_YES" --no-button "$BUTTON_NO" 8 72); then
 		ftp=1
 		ftp_ip=""
-		ftp_ip=$(whiptail --title "$INFO_TITLE_FTP_IP" --inputbox "${INFO_TEXT_FTP_IP_1} $ip\n${INFO_TEXT_FTP_IP_2}" 10 72 --ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3)
-		if [[ $ftp_ip == "" ]]; then ftp_ip=$ip; fi
+		ftp_ip=$(whiptail --title "$INFO_TITLE_FTP_IP" --inputbox "${INFO_TEXT_FTP_IP_1} ${ip}\n${INFO_TEXT_FTP_IP_2}" 10 72 --ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3)
+		if [[ $ftp_ip == "" ]]; then ftp_ip=${ip}; fi
 	else
 		ftp=0
 	fi
@@ -605,6 +606,12 @@ function _askdashtheme() {
 				3>&1 1>&2 2>&3
 		)
 	done
+}
+
+function _askchangetz() {
+	if (whiptail --title "$INFO_TITLE_TZ" --yesno "$INFO_TEXT_TZ" --yes-button "$BUTTON_YES" --no-button "$BUTTON_NO" --defaultno 8 72); then
+		dpkg-reconfigure tzdata
+	fi
 }
 
 function _askchsource() {
@@ -975,7 +982,7 @@ function _askrtgui() {
 function _insapps() {
 	if [[ "$app_list" =~ "rtorrent" ]]; then
 		echo -e "XXX\n30\n$INFO_TEXT_INSTALLAPP_1\nXXX"
-		bash ${local_setup_script}rtorrent.sh "${OUTTO}" "${rtgui}" "$cdn" >/dev/null 2>&1
+		bash ${local_setup_script}rtorrent.sh "${OUTTO}" "${rtgui}" "${cdn}" "${rt_ver}" >/dev/null 2>&1
 		echo -e "XXX\n36\n$INFO_TEXT_INSTALLAPP_1$INFO_TEXT_DONE\nXXX"
 	else
 		echo -e "XXX\n36\n$INFO_TEXT_INSTALLAPP_1$INFO_TEXT_SKIP\nXXX"
@@ -983,7 +990,7 @@ function _insapps() {
 	sleep 1
 	if [[ "$app_list" =~ "transmission" ]]; then
 		echo -e "XXX\n36\n$INFO_TEXT_INSTALLAPP_2\nXXX"
-		bash ${local_setup_script}transmission.sh "${OUTTO}" "$cdn" >/dev/null 2>&1
+		bash ${local_setup_script}transmission.sh "${OUTTO}" "${cdn}" >/dev/null 2>&1
 		echo -e "XXX\n43\n$INFO_TEXT_INSTALLAPP_2$INFO_TEXT_DONE\nXXX"
 	else
 		echo -e "XXX\n43\n$INFO_TEXT_INSTALLAPP_2$INFO_TEXT_SKIP\nXXX"
@@ -991,7 +998,7 @@ function _insapps() {
 	sleep 1
 	if [[ "$app_list" =~ "qbittorrent" ]]; then
 		echo -e "XXX\n43\n$INFO_TEXT_INSTALLAPP_3\nXXX"
-		bash ${local_setup_script}qbittorrent.sh "${OUTTO}" "$cdn" >/dev/null 2>&1
+		bash ${local_setup_script}qbittorrent.sh "${OUTTO}" "${cdn}" "${qbit_ver}" "${qbit_libt_ver}" >/dev/null 2>&1
 		echo -e "XXX\n49\n$INFO_TEXT_INSTALLAPP_3$INFO_TEXT_DONE\nXXX"
 	else
 		echo -e "XXX\n49\n$INFO_TEXT_INSTALLAPP_3$INFO_TEXT_SKIP\nXXX"
@@ -999,7 +1006,7 @@ function _insapps() {
 	sleep 1
 	if [[ "$app_list" =~ "deluge" ]]; then
 		echo -e "XXX\n49\n$INFO_TEXT_INSTALLAPP_4\nXXX"
-		bash ${local_setup_script}deluge.sh "${OUTTO}" "$cdn" >/dev/null 2>&1
+		bash ${local_setup_script}deluge.sh "${OUTTO}" "${cdn}"  "${de_ver}" "${de_libt_ver}" >/dev/null 2>&1
 		echo -e "XXX\n56\n$INFO_TEXT_INSTALLAPP_4$INFO_TEXT_DONE\nXXX"
 	else
 		echo -e "XXX\n56\n$INFO_TEXT_INSTALLAPP_4$INFO_TEXT_SKIP\nXXX"
@@ -1224,13 +1231,13 @@ function _summary() {
 ${INFO_TEXT_SUMMARY_2} $(echo "$OUTTO" | cut -d " " -f 1)\n\
 $(if [[ $domain != "" ]]; then printf "${INFO_TEXT_SUMMARY_20} $domain"; fi)\n\
 $(if [[ $hostname != "" ]]; then printf "${INFO_TEXT_SUMMARY_3} $hostname"; fi)\n\
-${INFO_TEXT_SUMMARY_4} $ip:$sshport\n\
+${INFO_TEXT_SUMMARY_4} ${ip}:$sshport\n\
 ${INFO_TEXT_SUMMARY_5} $username\n\
 ${INFO_TEXT_SUMMARY_6} $password\n\
 $(if [[ $ftp == 1 ]]; then printf "${INFO_TEXT_SUMMARY_11} $ftp_ip:5757"; fi)\n\
 ${INFO_TEXT_SUMMARY_12} $dash_theme ${INFO_TEXT_SUMMARY_13}\
 $(if [[ $chsource == 1 ]]; then printf "\n${INFO_TEXT_SUMMARY_14}"; fi)\
-$(case "$cdn" in
+$(case "${cdn}" in
 	"--with-cf") echo -e "\nCloudflare ${INFO_TEXT_SUMMARY_19}";;
 	"--with-sf") echo -e "\nSourceforge ${INFO_TEXT_SUMMARY_19}";;
 	"--with-osdn") echo -e "\nOSDN ${INFO_TEXT_SUMMARY_19}";;
@@ -1307,6 +1314,7 @@ function _usage() {
   -s, --source <us|au|cn|fr|de|jp|ru|uk|tuna>  
                                    choose apt source (default unchange)
   -t, --theme <defaulted|smoked>   choose a theme for your dashboard (default smoked)
+  --tz,--timezone <timezone>       setup a timezone for server (e.g. GMT-8 or Europe/Berlin)
   --lang <en|zh>                   choose a TUI language (default english)
   --with-log,no-log                install with log to file or not (default yes)
   --with-ftp,--no-ftp              install ftp or not (default yes)
@@ -1317,6 +1325,11 @@ function _usage() {
   --with-osdn                      use osdn(jp)  instead of github
   --with-github                    use github
   --with-APPNAME                   install an application
+  --qbittorrent-version            specify the qBittorrent version
+  --deluge-version                 specify the Deluge version
+  --qbit-libt-version              specify the Libtorrent version for qBittorrent
+  --de-libt-version                specify the Libtorrent version for Deluge
+  --rtorrent-version               specify the rTorrent version
 
     Available applications:
     rtorrent | rutorrent | flood | transmission | qbittorrent
@@ -1339,14 +1352,20 @@ enable_bbr=0
 autoreboot=3
 dash_theme="smoked"
 hostname=""
+timezone=""
 domain=""
 app_list=""
 rtgui="rutorrent"
+qbit_ver=""
+de_ver=""
+qbit_libt_ver=""
+de_libt_ver=""
+rt_ver=""
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o d:hrH:p:P:s:t:u: -l domain:,help,ftp-ip:,lang:,reboot,with-log,no-log,with-ftp,no-ftp,with-bbr,no-bbr,with-cf,with-sf,with-osdn,with-github,with-rtorrent,with-rutorrent,with-flood,with-transmission,with-qbittorrent,with-deluge,with-mktorrent,with-ffmpeg,with-filebrowser,with-linuxrar,hostname:,port:,username:,password:,source:,theme: -- "$@")
+if ! ARGS=$(getopt -a -o d:hrH:p:P:s:t:u: -l domain:,help,ftp-ip:,lang:,reboot,with-log,no-log,with-ftp,no-ftp,with-bbr,no-bbr,with-cf,with-sf,with-osdn,with-github,with-rtorrent,with-rutorrent,with-flood,with-transmission,with-qbittorrent,with-deluge,with-mktorrent,with-ffmpeg,with-filebrowser,with-linuxrar,qbittorrent-version:,deluge-version:,qbit-libt-version:,de-libt-version:,rtorrent-version:,hostname:,port:,username:,password:,source:,theme:,tz:,timezone: -- "$@")
 then
 	_usage
     exit 1
@@ -1441,6 +1460,20 @@ while true; do
 		fi
 		shift
 		;;	
+	--tz | --timezone)
+		timezone="$2"
+		if $(echo ${timezone} | grep -wEq 'GMT[+,-]0?[0-9]|1[0-2]'); then
+			unlink /etc/localtime
+			ln -s /usr/share/zoneinfo/Etc/${timezone} /etc/localtime
+		elif $(echo ${timezone} | grep -wEq 'UTC'); then
+			unlink /etc/localtime
+			ln -s /usr/share/zoneinfo/Etc/${timezone} /etc/localtime
+		elif [[ -f /usr/share/zoneinfo/"${timezone}" ]]; then
+			unlink /etc/localtime
+			ln -s /usr/share/zoneinfo/"${timezone}" /etc/localtime
+		fi
+		shift
+		;;	
 	-s | --source)
 		if [[ "$2" =~ "us"|"au"|"cn"|"fr"|"de"|"jp"|"ru"|"uk"|"tuna" ]]; then
 			chsource=1
@@ -1467,6 +1500,11 @@ while true; do
 	--with-ffmpeg) app_list+=" ffmpeg" ;;
 	--with-filebrowser) app_list+=" filebrowser" ;;
 	--with-linuxrar) app_list+=" linuxrar" ;;
+	--qbittorrent-version) qbit_ver="--qb $2"; shift;;
+	--deluge-version) de_ver="--de $2"; shift;;
+	--qbit-libt-version) qbit_libt_ver="--lt $2"; shift;;
+	--de-libt-version) de_libt_ver="--lt $2"; shift;;
+	--rtorrent-version) rt_ver="--version $2"; shift;;
 	--)
 		shift
 		break
@@ -1496,7 +1534,7 @@ if [[ $onekey == 1 ]]; then
 		if [[ $domain != "" ]]; then
 			_get_ip
 			test_domain=$(curl -sH 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$domain&type=A" | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}" | head -1)
-			if [[ $test_domain != $ip ]]; then
+			if [[ $test_domain != ${ip} ]]; then
 				whiptail --title "$ERROR_TITLE_DOMAINCHK" --msgbox "${ERROR_TEXT_DOMAINCHK_1}$domain${ERROR_TEXT_DOMAINCHK_2}" --ok-button "$BUTTON_OK" 8 72
 				domain=""
 				exit 1
@@ -1555,6 +1593,7 @@ elif [[ $onekey == 0 ]]; then
 	_askpasswd
 	_askvsftpd
 	_askdashtheme
+	_askchangetz
 	_askchsource
 	_askcdn
 	_askapps

@@ -18,5 +18,5 @@
 #
 #################################################################################
 logpath=$1
-extra_arg=$2
+extra_arg=${*:2}
 bash /usr/local/bin/quickbox/package/install/installpackage-deluge -l $logpath $extra_arg

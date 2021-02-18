@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.4
+# Current version:  v1.4.5
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -263,7 +263,7 @@ function _download() {
 }
 
 function _updateLibt() {
-	_warning "Use Libtorrent ${libtversion} against qBittorrent 4.3.x"
+	_warning "Use Libtorrent ${libtversion} against qBittorrent ${qbit_major_version}.x"
 	_info "Upgrading libtorrent-rasterbar..."
 	PACKAGE="libtorrent-rasterbar"
 	cd /tmp || exit 1
@@ -418,8 +418,9 @@ function _updateStatic() {
 		_info "building static qBittorrent... "
 		cd /tmp || exit 1
 		mkdir -p /tmp/qb-static
-		docker run -it -v /tmp/qb-static:/root alpine:latest /bin/ash -c "apk update && apk add bash curl && cd && curl -sL git.io/qbstatic | bash -s all -i -lt \"${libttag}\" -qt \"release-${qbitversion}\"" >> $OUTTO 2>&1
-		cp /tmp/qb-static/qb-build/bin/qbittorrent-nox /usr/local/bin/qbittorrent-nox
+		\cp -rf /etc/QuickBox/packages/system/auxiliary/qbittorrent-nox-static.sh /tmp/qb-static/qbittorrent-nox-static.sh
+		docker run -it -v /tmp/qb-static:/root alpine:latest /bin/ash -c "apk update && apk add bash curl && cd && bash ./qbittorrent-nox-static.sh all -i --lt \"${libttag}\" --qt \"release-${qbitversion}\" -v" >> $OUTTO 2>&1
+		cp /tmp/qb-static/qb-build/completed/qbittorrent-nox /usr/local/bin/qbittorrent-nox
 		chmod +x /usr/local/bin/qbittorrent-nox
 		_info "cleaning up... "
 		rm -rf /tmp/qb-static
@@ -463,7 +464,7 @@ function _updateApp() {
 				libtversion="1.1.14"
 				libt_major_version="1.1"
 			fi
-			_info "Use Libtorrent ${libtversion} against qBittorrent 4.3.x"
+			_warning "Use Libtorrent ${libtversion} against qBittorrent ${qbit_major_version}.x"
 			_info "Fetching package list..."
 			cd /tmp || exit 1
 			wget -t3 -T20 -q -O file.lst https://qbit-static.ezapi.net/file.lst
