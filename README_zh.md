@@ -79,34 +79,43 @@ bash <(wget -qO- https://git.io/qbox-lite -o /dev/null) --dev COMMAND
 ```
 QuickBox Lite Setup Script
 
-Usage: bash setup.sh -u username -p password [OPTS]
+使用方法: bash setup.sh -u username -p password [OPTS]
 
-Options:
+选项:
   NOTE: * is required anyway
 
-  -H, --hostname <hostname>        setup hostname, make no change by default
-  -P, --port <1-65535>             setup ssh service port, use 4747 by default
-  -u, --username <username*>       username is required here
-  -p, --password <password*>       your password is required here
-  -r, --reboot                     reboot after installation finished (default no)
+  -d, --domain <domain>            为服务器设置以 Let's Encrypt 保护的域名
+  -H, --hostname <hostname>        为服务器设置 Hostname，莫恩恩不修改
+  -P, --port <1-65535>             为 SSH 服务设置端口，默认修改为 4747
+  -u, --username <username*>       用户名（必要）
+  -p, --password <password*>       密码（必要）
+  -r, --reboot                     在安装完成后是否直接重启（默认否）
   -s, --source <us|au|cn|fr|de|jp|ru|uk|tuna>  
-                                   choose apt source (default unchange)
-  -t, --theme <defaulted|smoked>   choose a theme for your dashboard (default smoked)
-  --lang <en|zh>                   choose a TUI language (default english)
-  --with-log,no-log                install with log to file or not (default yes)
-  --with-ftp,--no-ftp              install ftp or not (default yes)
-  --ftp-ip <ip address>            manually setup ftp ip
-  --with-bbr,--no-bbr              install bbr or not (default no)
-  --with-cf                        use cloudflare instead of sourceforge
-  --with-sf                        use sourceforge
-  --with-osdn                      use osdn(jp) instead of sourceforge
-  --with-APPNAME                   install an application
+                                   选择一个下载源（默认不修改）
+  -t, --theme <defaulted|smoked>   为仪表盘选择一个主题（默认 smoked）
+  --tz,--timezone <timezone>       为服务器设置时区 (e.g. GMT-8 or Europe/Berlin)
+  
+  --lang <en|zh>                   选择 TUI 使用的语言（默认英语）
+  --with-log,no-log                是否将安装日志写入文件（默认是）
+  --with-ftp,--no-ftp              是否安装 FTP（默认是）
+  --ftp-ip <ip address>            手动设置 FTP IP
+  --with-bbr,--no-bbr              是否安装 BBR（默认否）
+  --with-cf                        使用 cloudflare 替代 github
+  --with-sf                        使用 sourceforge 替代 github
+  --with-osdn                      使用 osdn(jp) 替代 github
+  --with-github                    使用 github
+  --with-APPNAME                   安装一个 app
+  --qbittorrent-version            指定 qBittorrent 版本
+  --deluge-version                 指定 Deluge 版本
+  --qbit-libt-version              指定用于 qBittorrent 的 Libtorrent 版本
+  --de-libt-version                指定用于 Deluge 的 Libtorrent 版本
+  --rtorrent-version               指定 rTorrent 版本
 
-    Available applications:
+    可选的 APP:
     rtorrent | rutorrent | flood | transmission | qbittorrent
     deluge | mktorrent | ffmpeg | filebrowser | linuxrar
 
-  -h, --help                       display this help and exit
+  -h, --help                       显示该帮助文档并退出
 ```
 
 用户名和密码是必须填写的参数，否则仍然会启动 TUI 安装界面。其他可选参数的功能与 TUI 安装界面相同。下面是一个使用示例：

@@ -87,6 +87,7 @@ Usage: bash setup.sh -u username -p password [OPTS]
 Options:
   NOTE: * is required anyway
 
+  -d, --domain <domain>            setup domain for server
   -H, --hostname <hostname>        setup hostname, make no change by default
   -P, --port <1-65535>             setup ssh service port, use 4747 by default
   -u, --username <username*>       username is required here
@@ -95,15 +96,23 @@ Options:
   -s, --source <us|au|cn|fr|de|jp|ru|uk|tuna>  
                                    choose apt source (default unchange)
   -t, --theme <defaulted|smoked>   choose a theme for your dashboard (default smoked)
+  --tz,--timezone <timezone>       setup a timezone for server (e.g. GMT-8 or Europe/Berlin)
+  
   --lang <en|zh>                   choose a TUI language (default english)
   --with-log,no-log                install with log to file or not (default yes)
   --with-ftp,--no-ftp              install ftp or not (default yes)
   --ftp-ip <ip address>            manually setup ftp ip
   --with-bbr,--no-bbr              install bbr or not (default no)
-  --with-cf                        use cloudflare instead of sourceforge
-  --with-sf                        use sourceforge
-  --with-osdn                      use osdn(jp) instead of sourceforge
+  --with-cf                        use cloudflare instead of github
+  --with-sf                        use sourceforge instead of github
+  --with-osdn                      use osdn(jp)  instead of github
+  --with-github                    use github
   --with-APPNAME                   install an application
+  --qbittorrent-version            specify the qBittorrent version
+  --deluge-version                 specify the Deluge version
+  --qbit-libt-version              specify the Libtorrent version for qBittorrent
+  --de-libt-version                specify the Libtorrent version for Deluge
+  --rtorrent-version               specify the rTorrent version
 
     Available applications:
     rtorrent | rutorrent | flood | transmission | qbittorrent
