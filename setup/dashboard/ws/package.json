@@ -8,7 +8,7 @@
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "lint": "eslint . --ext .ts",
     "test/server": "ts-node src/server.ts",
-    "test/client": "ts-node tests/client.ts"
+    "test/client": "ts-node tests/client.js"
   },
   "author": "TautCony",
   "license": "GPL-3.0-or-later",
