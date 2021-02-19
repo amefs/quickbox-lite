@@ -24,7 +24,7 @@
         ]
     },
     "ping": {
-        "template": "echo -n pong",
+        "template": "echo pong",
         "operations": [],
         "target": []
     }

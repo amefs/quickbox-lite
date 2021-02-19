@@ -12,7 +12,7 @@ module.exports = {
     externals: [nodeExternals()],
     entry: path.join(__dirname, "..", "src", "server"),
     output: {
-        filename: "dist/server.js",
+        filename: path.join("dist", "server.js"),
         path: path.resolve(__dirname, ".."),
         devtoolModuleFilenameTemplate: "[absolute-resource-path]",
     },
