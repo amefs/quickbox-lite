@@ -116,7 +116,6 @@ foreach ($packageList as &$package) {
   </div><!- modal-dialog ->
 </div><!- modal -->
 
-<!--script src="js/script.js"></script-->
 <script src="lib/jquery-ui/jquery-ui.min.js"></script>
 <script src="lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js"></script>
 <script src="lib/bootstrap/js/bootstrap.min.js"></script>

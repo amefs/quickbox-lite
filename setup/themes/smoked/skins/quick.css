@@ -263,6 +263,7 @@ th {
   font-family: 'Glyphicons Halflings';
   src: url('../fonts/glyphicons-halflings-regular.eot');
   src: url('../fonts/glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype'), url('../fonts/glyphicons-halflings-regular.woff2') format('woff2'), url('../fonts/glyphicons-halflings-regular.woff') format('woff'), url('../fonts/glyphicons-halflings-regular.ttf') format('truetype'), url('../fonts/glyphicons-halflings-regular.svg#glyphicons_halflingsregular') format('svg');
+  font-display: swap;
 }
 .glyphicon {
   position: relative;
@@ -2311,7 +2312,7 @@ th {
   /*padding: 10px 15px;*/
   padding: 5px;
   line-height: 1.42857143;
-  vertical-align: top;
+  vertical-align: middle;
   border-top: 1px solid #222;
 }
 .table > thead > tr > th {
@@ -9231,18 +9232,21 @@ ul.wysihtml5-toolbar a.btn.wysihtml5-command-active {
 /***** DATA TABLES *****/
 #dataTable1_length {
   font-size: 12px;
-  margin-top: 10px;
+  margin-top: 17px;
 }
 #dataTable1_filter {
   font-size: 12px;
-  margin-top: 18px;
+  margin-top: 17px;
+  text-align: center;
 }
 #dataTable1_info {
   font-size: 11px;
   margin: 17px 0;
 }
 #dataTable1_paginate {
-  /*display: none;*/
+  margin: 17px 17px 17px 0;
+  display: inline-flex;
+  float: right;
 }
 .table.dataTable {
   margin-bottom: -2px !important;

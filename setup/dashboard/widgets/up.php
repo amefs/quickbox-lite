@@ -8,7 +8,7 @@
   $hours = $uptime / 60/ 60 % 24;
   $mins = $uptime / 60 % 60;
 ?>
-<span style="font-size:14px;color:#dedede;">
+<span style="font-size:14px;">
   <b><?php echo "$days" ?></b><small> <?php echo T('DAYS_L'); ?></small>
   <b><?php echo "$hours" ?></b><small> <?php echo T('HOURS_L'); ?></small>
   <b><?php echo "$mins" ?></b><small> <?php echo T('MINUTES_L'); ?></small>
