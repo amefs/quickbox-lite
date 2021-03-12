@@ -1079,7 +1079,7 @@ html {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 body {
-  background-color: #d8dce3;
+  background-color: #d3d6dc;
   color: #696c74;
   font-family: Open Sans;
   font-size: 16px;
@@ -2312,7 +2312,7 @@ th {
   /*padding: 10px 15px;*/
   padding: 5px;
   line-height: 1.42857143;
-  vertical-align: top;
+  vertical-align: middle;
   border-top: 1px solid #ffffff;
 }
 .table > thead > tr > th {
@@ -9232,18 +9232,21 @@ ul.wysihtml5-toolbar a.btn.wysihtml5-command-active {
 /***** DATA TABLES *****/
 #dataTable1_length {
   font-size: 12px;
-  margin-top: 10px;
+  margin-top: 17px;
 }
 #dataTable1_filter {
   font-size: 12px;
-  margin-top: 18px;
+  margin-top: 17px;
+  text-align: center;
 }
 #dataTable1_info {
   font-size: 11px;
   margin: 17px 0;
 }
 #dataTable1_paginate {
-  /*display: none;*/
+  margin: 17px 17px 17px 0;
+  display: inline-flex;
+  float: right;
 }
 .table.dataTable {
   margin-bottom: -2px !important;
