@@ -7606,7 +7606,7 @@ fieldset[disabled] .btn-info.active {
 .panel-danger .panel-heading .panel-title,
 .panel-info .panel-heading .panel-title,
 .panel-inverse .panel-heading .panel-title {
-  color: #fff;
+  color: #000;
 }
 .panel-default .panel-heading .panel-title {
   color: #444;
