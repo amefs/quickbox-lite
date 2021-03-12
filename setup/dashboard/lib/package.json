@@ -11,7 +11,7 @@
   "license": "GPL-3.0-or-later",
   "dependencies": {
     "animate.css": "^3.7.2",
-    "ansi_up": "^4.0.4",
+    "ansi_up": "^5.0.0",
     "bootbox": "^5.5.2",
     "bootstrap": "^3.4.1",
     "datatables": "^1.10.18",
@@ -20,14 +20,14 @@
     "hover.css": "^2.3.2",
     "ionicons": "^2.0.1",
     "jquery": "^3.5.1",
-    "jquery-toggles": "^3.2.0",
+    "jquery-toggles": "^4.0.0",
     "jquery-ui": "^1.12.1",
     "jquery-ui-touch-punch": "^0.2.3",
     "lazysizes": "^5.2.2",
     "lobipanel": "^1.0.0",
     "perfect-scrollbar": "^0.8.1",
     "select2": "^4.0.13",
-    "socket.io-client": "^3.0.4",
+    "socket.io-client": "^4.0.0",
     "visibilityjs": "^2.0.2"
   },
   "devDependencies": {
