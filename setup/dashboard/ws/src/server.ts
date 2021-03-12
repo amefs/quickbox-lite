@@ -1,6 +1,7 @@
 import * as express from "express";
 import * as http from "http";
 import { Server as socketio } from "socket.io";
+import * as ws from "ws";
 
 import logHandler from "./handler/log";
 import messageHandler from "./handler/message";
@@ -11,7 +12,7 @@ const app = express();
 app.set("trust proxy", true);
 
 const server = http.createServer(app);
-const io = new socketio(server, { wsEngine: "ws" });
+const io = new socketio(server, { wsEngine: ws.Server });
 
 io.use(logHandler);
 io.use(messageHandler);
