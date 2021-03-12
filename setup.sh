@@ -816,8 +816,8 @@ function _insngx() {
 function _insnodejs() {
 	# install Nodejs for background service
 	cd /tmp || exit 1
-	curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh
-	sudo bash nodesource_setup.sh >>"${OUTTO}" 2>&1
+	curl -sL https://deb.nodesource.com/setup_14.x -o nodesource_setup.sh
+	bash nodesource_setup.sh >>"${OUTTO}" 2>&1
 	apt-get install -y nodejs >>"${OUTTO}" 2>&1
 	if [[ -f /tmp/nodesource_setup.sh ]]; then
 		rm nodesource_setup.sh
