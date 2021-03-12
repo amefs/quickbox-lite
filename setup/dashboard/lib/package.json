@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "check": "npm outdated",
     "audit": "npm audit --registry=https://registry.npmjs.org",
-    "update": "npm-check -u"
+    "upgrade": "npm-check -u"
   },
   "author": "quickbox-lite",
   "license": "GPL-3.0-or-later",
