@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.5
+# Current version:  v1.4.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -252,7 +252,7 @@ function _installApp() {
 		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade flexget" >>"${OUTTO}" 2>&1
 	fi
 	if [[ -f /install/.transmission.lock ]]; then
-		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install transmissionrpc" >>"${OUTTO}" 2>&1
+		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install transmission-rpc" >>"${OUTTO}" 2>&1
 	fi
 	if [[ -f /install/.deluge.lock ]]; then
 		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install deluge-client" >>"${OUTTO}" 2>&1

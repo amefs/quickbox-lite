@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.5
+# Current version:  v1.4.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -564,6 +564,7 @@ if [ -f ~/.bash_qb ]; then
 fi
 EOF
 		cp ${local_setup_template}bash_qb.template /root/.bash_qb
+		cp ${local_setup_template}bash_qb_extras.template /root/.bash_qb_extras
 	fi
 	# set home permission
 	chmod 755 /home/${username}

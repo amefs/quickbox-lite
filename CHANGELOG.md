@@ -1,3 +1,24 @@
+## CHANGELOG v1.4.6
+
+*Changelog update Sunday, Apr 11, 2021*
+
+### General additions
+
+- add box command `box enable-dev` and `box disable-dev`
+
+### Function improved
+
+### Function updated
+
+- update quickbox-ws service
+
+### Bug fixed
+
+- fix the bug of "Received too large SFTP packet."
+- fix flexget plugin for transmission
+
+---
+
 ## CHANGELOG v1.4.5
 
 *Changelog update Sunday, Feb 14, 2021*

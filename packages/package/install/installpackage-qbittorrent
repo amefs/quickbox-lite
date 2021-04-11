@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.5
+# Current version:  v1.4.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -575,7 +575,7 @@ function _installApp() {
 			libt_fallback=true
 		fi
 	fi
-	if ${libt_fallback}; then _warning "Use Libtorrent ${libtversion} against ${qbit_major_version}x"; fi
+	if ${libt_fallback}; then _warning "Use Libtorrent ${libtversion} for ${qbit_major_version}x"; fi
 	if (_version_gt ${qbit_major_version} "4.2"); then
 		use_static=true
 	fi

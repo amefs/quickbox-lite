@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.5
+# Current version:  v1.4.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -99,6 +99,7 @@ function _help() {
 	echo "iotest                            run IO test"
 	echo "troubleshoot                      generate log for troubleshoot"
 	echo "unban <IP adress>                 remove a IP/all IP from banned list"
+	echo "enable-dev|disable-dev            enable or disable development mode"
 	echo ""
 	echo "help                              display this help and exit"
 }
@@ -290,6 +291,26 @@ if [[ $resolver == "unban" ]]; then
 	fi
 fi
 
+if [[ $resolver == "enable-dev" ]]; then
+	if [[ -f /install/.developer.lock ]]; then
+		_warning "Already in development mode!"
+	else
+		_success "Switching to development mode"
+		touch /install/.developer.lock
+		/usr/local/bin/quickbox/system/box update quickbox
+	fi
+fi
+
+if [[ $resolver == "disable-dev" ]]; then
+	if [[ -f /install/.developer.lock ]]; then
+		_success "Switching to master branch"
+		rm -f /install/.developer.lock
+		/usr/local/bin/quickbox/system/box update quickbox
+	else
+		_warning "Development mode is not activated"
+	fi
+fi
+
 if [[ $resolver == "help" ]]; then
 	_help
 	exit 0
@@ -299,7 +320,7 @@ fi
 # ERROR HANDLER
 #################################################################################
 
-if [[ ! $resolver =~ ("lang"|"install"|"remove"|"update"|"clean"|"troubleshoot"|"set"|"fix"|"iotest"|"disktest"|"unban"|"help") ]]; then
+if [[ ! $resolver =~ ("lang"|"install"|"remove"|"update"|"clean"|"troubleshoot"|"set"|"fix"|"iotest"|"disktest"|"unban"|"enable-dev"|"disable-dev"|"help") ]]; then
 	_error "Command not exist!"
 	_help
 	exit 1

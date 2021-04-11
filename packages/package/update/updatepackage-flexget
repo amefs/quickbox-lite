@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.5
+# Current version:  v1.4.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -219,8 +219,8 @@ function _updateApp() {
 		su ${username} -c 'python2 -m pip uninstall flexget -y' >>"${OUTTO}" 2>&1
 		su ${username} -c 'python3 -m pip uninstall flexget -y' >>"${OUTTO}" 2>&1
 		if [[ -f /install/.transmission.lock ]]; then
-			_execute 'python2 -m pip uninstall transmissionrpc -y'
-			_execute 'python3 -m pip uninstall transmissionrpc -y'
+			_execute 'python2 -m pip uninstall transmission-rpc -y'
+			_execute 'python3 -m pip uninstall transmission-rpc -y'
 		fi
 		if [[ -f /install/.deluge.lock ]]; then
 			_execute 'python2 -m pip uninstall deluge-client -y'
@@ -245,7 +245,7 @@ function _updateApp() {
 	_info "Installing ${APP_TITLE}... "
 	sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade flexget" >>"${OUTTO}" 2>&1
 	if [[ -f /install/.transmission.lock ]]; then
-		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install transmissionrpc" >>"${OUTTO}" 2>&1
+		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install transmission-rpc" >>"${OUTTO}" 2>&1
 	fi
 	if [[ -f /install/.deluge.lock ]]; then
 		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install deluge-client" >>"${OUTTO}" 2>&1

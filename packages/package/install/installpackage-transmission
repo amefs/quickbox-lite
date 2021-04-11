@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.5
+# Current version:  v1.4.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -455,7 +455,7 @@ EOF
 				_execute "apt-get -y --allow-unauthenticated -f install python-pip"
 				_execute 'pip2 install transmissionrpc'
 			else
-				sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install transmissionrpc" >>"${OUTTO}" 2>&1
+				sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install transmission-rpc" >>"${OUTTO}" 2>&1
 			fi
 			sed -i "s/TRPORT/${PORT}/g" /home/${username}/.config/flexget/config.yml
 			_execute "systemctl restart flexget@${username}"

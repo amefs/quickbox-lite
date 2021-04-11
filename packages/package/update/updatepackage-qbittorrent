@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.5
+# Current version:  v1.4.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -263,7 +263,7 @@ function _download() {
 }
 
 function _updateLibt() {
-	_warning "Use Libtorrent ${libtversion} against qBittorrent ${qbit_major_version}.x"
+	_warning "Use Libtorrent ${libtversion} for qBittorrent ${qbit_major_version}.x"
 	_info "Upgrading libtorrent-rasterbar..."
 	PACKAGE="libtorrent-rasterbar"
 	cd /tmp || exit 1
@@ -464,7 +464,7 @@ function _updateApp() {
 				libtversion="1.1.14"
 				libt_major_version="1.1"
 			fi
-			_warning "Use Libtorrent ${libtversion} against qBittorrent ${qbit_major_version}.x"
+			_warning "Use Libtorrent ${libtversion} for qBittorrent ${qbit_major_version}.x"
 			_info "Fetching package list..."
 			cd /tmp || exit 1
 			wget -t3 -T20 -q -O file.lst https://qbit-static.ezapi.net/file.lst

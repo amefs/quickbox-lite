@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.5
+# Current version:  v1.4.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -565,6 +565,7 @@ function _installDeluge() {
 			_execute "pip3 install --upgrade wheel"
 			_execute "pip3 install --upgrade cryptography"
 			_execute "pip3 install --upgrade twisted[tls]"
+			_execute "pip3 install --upgrade --force-reinstall pyOpenSSL"
 			DEBASE="deluge-common_${deversion}-1build1_all.deb deluge-console_${deversion}-1build1_all.deb deluge-gtk_${deversion}-1build1_all.deb deluge-web_${deversion}-1build1_all.deb deluged_${deversion}-1build1_all.deb"
 			for DEB in $DEBASE; do
 				_download ${PACKAGE} ${DEB}
@@ -593,7 +594,10 @@ function _installDeluge() {
 			done
 			APP_BASEDEPS="build-essential intltool libtool libssl-dev libgeoip-dev librsvg2-common geoip-database python3 python3-setuptools intltool python3-zope.interface python3-twisted python3-openssl python3-xdg python3-chardet python3-mako python3-setproctitle python3-rencode python3-pil librsvg2-common xdg-utils"
 			_installDepends
+			_execute "pip3 install --upgrade wheel"
+			_execute "pip3 install --upgrade cryptography"
 			_execute "pip3 install --upgrade twisted[tls]"
+			_execute "pip3 install --upgrade --force-reinstall pyOpenSSL"
 			tar -xf deluge-${deversion}.tar.xz
 			cd deluge-${deversion} || exit 1
 			_execute "python3 setup.py build"
@@ -656,7 +660,7 @@ function _installApp() {
 		if (_version_gt ${libtversion} "1.2.11"); then
 			libtversion="1.2.11"
 			libt_major_version="1.2"
-			_warning "Use Libtorrent ${libtversion} against Deluge";
+			_warning "Use Libtorrent ${libtversion} for Deluge";
 		fi
 	fi
 	# lock check

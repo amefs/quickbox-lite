@@ -46,6 +46,17 @@ function _updateservice() {
 		touch /install/.quickbox-ws.lock
 		_success "QuickBox service updated"
 	else
+		# upgrade to v14
+		if [[ ! $(which npm) ]] || [[ ! $(node --version) =~ "v14" ]]; then
+			_info "Upgrading Node.js..."
+			cd /tmp || exit 1
+			_execute "curl -sL https://deb.nodesource.com/setup_14.x -o nodesource_setup.sh"
+			_execute "sudo bash nodesource_setup.sh"
+			_execute "apt-get install -y nodejs"
+			if [[ -f /tmp/nodesource_setup.sh ]]; then
+				rm nodesource_setup.sh
+			fi
+		fi
 		_info "Reconfig Dashboard service..."
 		cd ${local_setup_dashboard}ws ||exit 1
 		_execute "npm install --production"

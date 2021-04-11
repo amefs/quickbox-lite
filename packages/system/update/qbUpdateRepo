@@ -62,6 +62,10 @@ function _bashrc() {
 	_info "Updating bashrc..."
 	mv /root/.bash_qb /root/.bash_qb.bak
 	\cp -f "${local_setup_template}"bash_qb.template /root/.bash_qb
+	if [ -f /root/.bash_qb_extras ]; then
+		mv /root/.bash_qb_extras /root/.bash_qb_extras.bak
+	fi
+	\cp -f "${local_setup_template}"bash_qb_extras.template /root/.bash_qb_extras
 	_success "bashrc updated"
 }
 
