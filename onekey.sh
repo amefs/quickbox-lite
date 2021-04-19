@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.3.5
+# Current version:  v1.4.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -83,6 +83,9 @@ if [ "$?" -eq 2 ]; then
 fi
 
 apt-get -yqq install git lsb-release dos2unix screen
+if [[ -d /etc/QuickBox ]]; then
+    rm -rf /etc/QuickBox
+fi
 git clone ${dev} https://github.com/amefs/quickbox-lite.git /etc/QuickBox
 dos2unix /etc/QuickBox/setup.sh
 screen -dmS qbox-install -T xterm 
