@@ -6,7 +6,7 @@
 ?>
 
 <!--SERVICE CONTROL CENTER-->
-<div class="panel panel-inverse">
+<div class="panel panel-inverse" data-inner-id="panel-server-service-control">
   <div class="panel-heading">
     <h4 class="panel-title"><?php echo T('SERVICE_CONTROL_CENTER'); ?></h4>
   </div>

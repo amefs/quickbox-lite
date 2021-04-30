@@ -15,7 +15,7 @@
         <div class="col-md-8">
 
           <!--BANDWIDTH CHART & DATA-->
-          <div class="panel panel-main panel-inverse">
+          <div class="panel panel-main panel-inverse" data-inner-id="panel-server-bandwidth-interface">
             <div class="panel-heading">
               <h4 class="panel-title"><?php echo T('BANDWIDTH_DATA'); ?></h4>
             </div>
@@ -47,7 +47,7 @@
               </div>
             </div>
           </div>
-          <div class="panel panel-inverse">
+          <div class="panel panel-inverse" data-inner-id="panel-server-bandwidth-details">
             <div class="panel-heading">
               <h4 class="panel-title"><?php echo T('VIEW_ADDITIONAL_BANDWIDTH_DETAILS'); ?></h4>
             </div>
@@ -71,7 +71,7 @@
         <div class="col-md-4 dash-right">
           <div class="row">
             <div class="col-sm-12">
-              <div class="panel panel-side panel-inverse-full panel-updates">
+              <div class="panel panel-side panel-inverse-full panel-updates" data-inner-id="panel-server-load">
                 <div class="panel-heading">
                   <h4 class="panel-title text-success"><?php echo T('SERVER_LOAD'); ?></h4>
                 </div>
@@ -94,7 +94,7 @@
               </div><!-- panel -->
             </div><!-- SERVER LOAD WIDGET -->
             <div class="col-sm-12">
-              <div class="panel panel-side panel-inverse">
+              <div class="panel panel-side panel-inverse" data-inner-id="panel-server-cpu">
                 <div class="panel-heading">
                   <h4 class="panel-title"><?php echo T('CPU_STATUS'); ?></h4>
                 </div>
@@ -107,7 +107,7 @@
               </div>
             </div><!-- CPU WIDGET -->
             <div class="col-sm-12">
-              <div class="panel panel-side panel-inverse">
+              <div class="panel panel-side panel-inverse" data-inner-id="panel-server-disk">
                 <div class="panel-heading">
                   <h4 class="panel-title"><?php echo T('YOUR_DISK_STATUS'); ?></h4>
                 </div>
@@ -117,7 +117,7 @@
               </div>
             </div><!-- DISK WIDGET -->
             <div class="col-sm-12">
-              <div class="panel panel-side panel-inverse">
+              <div class="panel panel-side panel-inverse" data-inner-id="panel-server-ram">
                 <div class="panel-heading">
                   <h4 class="panel-title"><?php echo T('SYSTEM_RAM_STATUS'); ?></h4>
                 </div>
@@ -128,7 +128,7 @@
             </div><!-- RAM WIDGET -->
             <?php if ($username == "$master") { ?>
               <div class="col-sm-12">
-                <div id="project-commits" class="panel panel-inverse">
+                <div class="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
                   <div class="panel-heading">
                     <h4 class="panel-title text-success"><?php echo T('RECENT_UPDATES'); ?>
 

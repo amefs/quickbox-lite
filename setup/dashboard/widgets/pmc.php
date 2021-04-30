@@ -7,7 +7,7 @@
 
 
 <!--PACKAGE MANAGEMENT CENTER-->
-<div class="panel panel-main panel-inverse">
+<div class="panel panel-main panel-inverse" data-inner-id="panel-server-package-management">
   <div class="panel-heading">
     <h4 class="panel-title"><?php echo T('PACKAGE_MANAGEMENT_CENTER'); ?></h4>
   </div>
