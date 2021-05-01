@@ -9,10 +9,8 @@
       <h2><i class="fa fa-home"></i> Dashboard</h2>
     </div>-->
     <div class="contentpanel">
-
       <div class="row">
-
-        <div class="col-md-8">
+        <div class="col-md-8" data-inner-id="left-panel-container">
 
           <!--BANDWIDTH CHART & DATA-->
           <div class="panel panel-main panel-inverse" data-inner-id="panel-server-bandwidth-interface">
@@ -68,81 +66,76 @@
 
         </div>
 
-        <div class="col-md-4 dash-right">
-          <div class="row">
-            <div class="col-sm-12">
-              <div class="panel panel-side panel-inverse-full panel-updates" data-inner-id="panel-server-load">
-                <div class="panel-heading">
-                  <h4 class="panel-title text-success"><?php echo T('SERVER_LOAD'); ?></h4>
+        <div class="col-md-4 dash-right" data-inner-id="right-panel-container">
+          <div class="panel panel-side panel-inverse-full panel-updates" data-inner-id="panel-server-load">
+            <div class="panel-heading">
+              <h4 class="panel-title text-success"><?php echo T('SERVER_LOAD'); ?></h4>
+            </div>
+            <div class="panel-body">
+              <div class="row">
+                <div class="col-sm-9">
+                  <h4><span id="cpuload"></span></h4>
+                  <p><?php echo T('SL_TXT'); ?></p>
                 </div>
-                <div class="panel-body">
-                  <div class="row">
-                    <div class="col-sm-9">
-                      <h4><span id="cpuload"></span></h4>
-                      <p><?php echo T('SL_TXT'); ?></p>
-                    </div>
-                    <div class="col-sm-3 text-right">
-                      <i class="fa fa-heartbeat text-danger" style="font-size: 70px"></i>
-                    </div>
-                    <div class="row">
-                      <div class="col-sm-12 mt20 text-center">
-                        <strong><?php echo T('UPTIME'); ?>:</strong> <span id="uptime"></span>
-                      </div>
-                    </div>
+                <div class="col-sm-3 text-right">
+                  <i class="fa fa-heartbeat text-danger" style="font-size: 70px"></i>
+                </div>
+                <div class="row">
+                  <div class="col-sm-12 mt20 text-center">
+                    <strong><?php echo T('UPTIME'); ?>:</strong> <span id="uptime"></span>
                   </div>
                 </div>
-              </div><!-- panel -->
-            </div><!-- SERVER LOAD WIDGET -->
-            <div class="col-sm-12">
-              <div class="panel panel-side panel-inverse" data-inner-id="panel-server-cpu">
-                <div class="panel-heading">
-                  <h4 class="panel-title"><?php echo T('CPU_STATUS'); ?></h4>
-                </div>
-                <div class="panel-body" style="overflow:hidden">
-                  <span class="nomargin" style="font-size:14px">
-                    <?php echo $sysInfo['cpu']['model'];?><br/>
-                    [<span style="color:#999;font-weight:600">x<?php echo $sysInfo['cpu']['num']; ?></span> core]
-                  </span>
-                </div>
               </div>
-            </div><!-- CPU WIDGET -->
-            <div class="col-sm-12">
-              <div class="panel panel-side panel-inverse" data-inner-id="panel-server-disk">
-                <div class="panel-heading">
-                  <h4 class="panel-title"><?php echo T('YOUR_DISK_STATUS'); ?></h4>
-                </div>
-                <div class="panel-body">
-                  <div id="disk_data"></div>
-                </div>
-              </div>
-            </div><!-- DISK WIDGET -->
-            <div class="col-sm-12">
-              <div class="panel panel-side panel-inverse" data-inner-id="panel-server-ram">
-                <div class="panel-heading">
-                  <h4 class="panel-title"><?php echo T('SYSTEM_RAM_STATUS'); ?></h4>
-                </div>
-                <div class="panel-body">
-                  <div id="meterram"></div>
-                </div>
-              </div>
-            </div><!-- RAM WIDGET -->
-            <?php if ($username == "$master") { ?>
-              <div class="col-sm-12">
-                <div class="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
-                  <div class="panel-heading">
-                    <h4 class="panel-title text-success"><?php echo T('RECENT_UPDATES'); ?>
+            </div>
+          </div><!-- SERVER LOAD WIDGET -->
+          <div class="panel panel-side panel-inverse" data-inner-id="panel-server-cpu">
+            <div class="panel-heading">
+              <h4 class="panel-title"><?php echo T('CPU_STATUS'); ?></h4>
+            </div>
+            <div class="panel-body" style="overflow:hidden">
+              <span class="nomargin" style="font-size:14px">
+                <?php echo $sysInfo['cpu']['model'];?><br/>
+                [<span style="color:#999;font-weight:600">x<?php echo $sysInfo['cpu']['num']; ?></span> core]
+              </span>
+            </div>
+          </div><!-- CPU WIDGET -->
+          <div class="panel panel-side panel-inverse" data-inner-id="panel-server-disk">
+            <div class="panel-heading">
+              <h4 class="panel-title"><?php echo T('YOUR_DISK_STATUS'); ?></h4>
+            </div>
+            <div class="panel-body">
+              <div id="disk_data"></div>
+            </div>
+          </div><!-- DISK WIDGET -->
 
-                        <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $version ?>...master" target="blank" title="<?php echo T('CURRENT_VERSIONS_CHANGELOG'); ?>" data-placement="top" class="label label-primary tooltips" style="font-size:10px; padding-top:0; padding-bottom:0px; top: -2px; position: relative;" target="_blank" rel="noopener">QuickBox :: <span style="color: #fff;text-shadow: 0px 0px 6px #fff;"><?php echo "$version"; ?></span></a>
-
-                    </h4>
-                  </div>
-                  <div class="panel-footer">
-                  <button onclick="boxHandler(event)" data-package="quickbox --only-core" data-operation="update" data-toggle="modal" data-target="#sysResponse" class="btn btn-success btn-quirk btn-block"><i class="fa fa-bell text-success"></i> <?php echo T('UPDATE'); ?> </button>
-                  </div>
-                </div>
-              </div><!-- QUICKBOX UPDATE WIDGET -->
-            <?php } ?>
-          </div><!-- row -->
+          <div class="panel panel-side panel-inverse" data-inner-id="panel-server-ram">
+            <div class="panel-heading">
+              <h4 class="panel-title"><?php echo T('SYSTEM_RAM_STATUS'); ?></h4>
+            </div>
+            <div class="panel-body">
+              <div id="meterram"></div>
+            </div>
+          </div><!-- RAM WIDGET -->
+          <?php if ($username == "$master") { ?>
+            <div class="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
+              <div class="panel-heading">
+                <h4 class="panel-title text-success"><?php echo T('RECENT_UPDATES'); ?>
+                  <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $version."...".$branch ?>" 
+                    title="<?php echo T('CURRENT_VERSIONS_CHANGELOG'); ?>"
+                    data-placement="top" class="label label-primary tooltips"
+                    style="font-size:10px; padding-top:0; padding-bottom:0px; top: -2px; position: relative;"
+                    target="_blank" rel="noopener">
+                      QuickBox :: <span style="color: #fff;text-shadow: 0px 0px 6px #fff;"><?php echo "$version"; ?></span>
+                  </a>
+                </h4>
+              </div>
+              <div class="panel-footer">
+              <button onclick="boxHandler(event)" data-package="quickbox --only-core" data-operation="update" data-toggle="modal" data-target="#sysResponse" class="btn btn-success btn-quirk btn-block">
+                <i class="fa fa-bell text-success"></i> <?php echo T('UPDATE'); ?>
+              </button>
+              </div>
+            </div><!-- QUICKBOX UPDATE WIDGET -->
+          <?php } ?>
         </div>
       </div>
     </div><!-- contentpanel -->

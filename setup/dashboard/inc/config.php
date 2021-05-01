@@ -9,6 +9,7 @@ require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 require_once ($_SERVER['DOCUMENT_ROOT'].'/widgets/class.php');
 
 $version = "v1.4.6";
+$branch = file_exists('/install/.developer.lock') ? "development" : "master";
 error_reporting(E_ERROR);
 $username = getUser();
 $master = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');

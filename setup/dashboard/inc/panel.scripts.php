@@ -149,9 +149,7 @@ $(function() {
       reload: {
         icon: 'fa fa-refresh'
       },
-      unpin: {
-        icon: 'fa fa-arrows'
-      },
+      unpin: false,
       minimize: {
         icon: 'fa fa-chevron-up',
         icon2: 'fa fa-chevron-down'
