@@ -31,7 +31,7 @@ function _updateRepo() {
 			cd /etc/QuickBox
 			_execute "git checkout master"
 			_execute "git reset --hard origin/master"
-			_execute "git pull"
+			_execute "git pull --ff-only"
 		else
 			_execute "git clone --recursive ${BRANCH} /etc/QuickBox"
 		fi
@@ -40,7 +40,7 @@ function _updateRepo() {
 			cd /etc/QuickBox
 			_execute "git checkout development"
 			_execute "git reset --hard origin/development"
-			_execute "git pull"
+			_execute "git pull --ff-only"
 		else
 			_execute "git clone --recursive --branch development ${BRANCH} /etc/QuickBox"
 		fi
