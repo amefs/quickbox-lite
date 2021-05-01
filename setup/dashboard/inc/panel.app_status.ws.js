@@ -188,11 +188,6 @@
     id: "#meterram",
     time: 10000
   }, {
-    name: "QUICKBOX FEED",
-    url: "/widgets/activity_feed.php",
-    id: "#activityfeed",
-    time: 300000
-  }, {
     name: "SSH OUTPUT",
     url: "/db/output.log",
     id: "#sshoutput",
