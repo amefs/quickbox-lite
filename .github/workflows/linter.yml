@@ -48,4 +48,6 @@ jobs:
     - name: Run linter
       uses: azohra/shell-linter@latest
       with:
-        path: "onekey,setup.sh"
+        # todo: scripts in packages
+        path: "onekey.sh,setup.sh"
+        
