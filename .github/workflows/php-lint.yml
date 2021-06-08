@@ -13,7 +13,7 @@ jobs:
       uses: php-actions/composer@v6
       with:
         php_version: 7.4
-    
+
     - name: Run linters
       run: |
           composer run-script lint

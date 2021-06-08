@@ -1,0 +1,25 @@
+name: ES-Lint
+
+on: [push, pull_request]
+
+jobs:
+  run-linters:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install nodejs
+      uses: actions/setup-node@v1
+      with:
+        node-version: 14
+  
+    - name: Install dependencies
+      run: |
+        cd setup/dashboard/ws || exit 1
+        npm ci
+
+    - name: Run linters
+      run: |
+          cd setup/dashboard/ws || exit 1
+          npm run lint
