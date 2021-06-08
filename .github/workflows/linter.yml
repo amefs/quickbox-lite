@@ -1,9 +1,9 @@
-name: ES-Lint
+name: Linter
 
 on: [push, pull_request]
 
 jobs:
-  run-linters:
+  es-linter:
     runs-on: ubuntu-20.04
 
     steps:
@@ -23,3 +23,18 @@ jobs:
       run: |
           cd setup/dashboard/ws || exit 1
           npm run lint
+
+  php-linter:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      uses: php-actions/composer@v6
+      with:
+        php_version: 7.4
+
+    - name: Run linters
+      run: |
+          composer run-script lint
