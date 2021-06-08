@@ -5,5 +5,10 @@
     "scripts": {
         "lint": ["php-cs-fixer fix -n -vv --dry-run --using-cache no"],
         "lint-fix": ["php-cs-fixer fix -n -vv --using-cache no"]
+    },
+    "config": {
+        "platform": {
+            "php": "7.4"
+        }
     }
 }
