@@ -9,17 +9,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Get Composer Cache Directory
-      id: composer-cache
-      run: |
-        echo "::set-output name=dir::$(composer config cache-files-dir)"
-
-    - name: Cache Composer dependencies
-      uses: actions/cache@v2
-      with:
-        path: ${{ steps.get-composer-cache-dir.outputs.dir }}
-        key: ${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
-
     - name: Install dependencies
       uses: php-actions/composer@v6
       with:
