@@ -19,7 +19,7 @@ jobs:
         cd setup/dashboard/ws || exit 1
         npm ci
 
-    - name: Run linters
+    - name: Run linter
       run: |
           cd setup/dashboard/ws || exit 1
           npm run lint
@@ -35,6 +35,15 @@ jobs:
       with:
         php_version: 7.4
 
-    - name: Run linters
+    - name: Run linter
       run: |
           composer run-script lint
+
+  shell-linter:
+  runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run linter
+      uses: azohra/shell-linter@latest
+      with:
+        path: "onekey,setup.sh"
