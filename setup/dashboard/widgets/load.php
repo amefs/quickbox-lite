@@ -1,6 +1,6 @@
 <?php
 
-include("../inc/localize.php");
+include($_SERVER["DOCUMENT_ROOT"]."/inc/localize.php");
 
 // Information obtained depending on the system CPU
 switch (PHP_OS) {
