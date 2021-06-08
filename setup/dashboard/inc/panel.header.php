@@ -4,10 +4,10 @@
   <!-- META -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <meta name="description" content="<?php echo $panel['description'] ?>">
-  <meta name="author" content="<?php echo $panel['author'] ?>">
-  <title><?php echo $panel['title'] ?></title>
-  <meta name="robots" content="<?php echo $panel['robots'] ?>">
+  <meta name="description" content="<?php echo $panel['description']; ?>">
+  <meta name="author" content="<?php echo $panel['author']; ?>">
+  <title><?php echo $panel['title']; ?></title>
+  <meta name="robots" content="<?php echo $panel['robots']; ?>">
   <meta name="theme-color" content="#ffffff">
   <!-- FAVICON ASSETTS -->
   <link rel="apple-touch-icon" sizes="180x180" href="img/favicon/apple-touch-icon.png">
@@ -33,12 +33,12 @@
   <script src="lib/jquery/jquery.min.js"></script>
 
   <script type="text/javascript">
-    window.NetOutSpeed = <?php echo json_encode($NetOutSpeed) ?>;
-    window.NetInputSpeed = <?php echo json_encode($NetInputSpeed) ?>;
-    window.NetTimeStamp = <?php echo json_encode(microtime(true)) ?>;
+    window.NetOutSpeed = <?php echo json_encode($NetOutSpeed); ?>;
+    window.NetInputSpeed = <?php echo json_encode($NetInputSpeed); ?>;
+    window.NetTimeStamp = <?php echo json_encode(microtime(true)); ?>;
   </script>
 
   <style>
-    <?php include ('custom/custom.css'); ?>
+    <?php include('custom/custom.css'); ?>
   </style>
 </head>

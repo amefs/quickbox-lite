@@ -1,7 +1,7 @@
 <?php
-  include ('inc/config.php');
-  include ('inc/panel.header.php');
-  include ('inc/panel.menu.php');
+  include('inc/config.php');
+  include('inc/panel.header.php');
+  include('inc/panel.menu.php');
 ?>
 
   <div class="mainpanel">
@@ -29,16 +29,16 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <?php if (false !== ($strs = @file("/proc/net/dev"))) : ?>
-                      <?php for ($i = 2; $i < count($strs); $i++ ) : ?>
-                      <?php preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );?>
+                      <?php if (false !== ($strs = @file("/proc/net/dev"))) { ?>
+                      <?php for ($i = 2; $i < count($strs); ++$i) { ?>
+                      <?php preg_match_all("/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info); ?>
                       <tr>
-                        <td style="font-size:14px;font-weight:bold;padding: 2px 2px 2px 12px"><?php echo $info[1][0]?></td>
-                        <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-success"><span id="NetOutSpeed<?php echo $i?>">0B/s</span></span></td>
-                        <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-primary"><span id="NetInputSpeed<?php echo $i?>">0B/s</span></span></td>
+                        <td style="font-size:14px;font-weight:bold;padding: 2px 2px 2px 12px"><?php echo $info[1][0]; ?></td>
+                        <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-success"><span id="NetOutSpeed<?php echo $i; ?>">0B/s</span></span></td>
+                        <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-primary"><span id="NetInputSpeed<?php echo $i; ?>">0B/s</span></span></td>
                       </tr>
-                      <?php endfor; ?>
-                      <?php endif; ?>
+                      <?php } ?>
+                      <?php } ?>
                     </tbody>
                   </table>
                 </div>
@@ -55,12 +55,12 @@
           </div>
 
           <!--SERVICE CONTROL CENTER-->
-          <?php include ('widgets/service_control.php'); ?>
+          <?php include('widgets/service_control.php'); ?>
           <!-- panel -->
 
-          <?php if ($username == "$master") { ?>
+          <?php if ($username == "{$master}") { ?>
             <!--PACKAGE MANAGEMENT CENTER-->
-            <?php include ('widgets/pmc.php'); ?>
+            <?php include('widgets/pmc.php'); ?>
             <!-- panel -->
           <?php } ?>
 
@@ -94,7 +94,7 @@
             </div>
             <div class="panel-body" style="overflow:hidden">
               <span class="nomargin" style="font-size:14px">
-                <?php echo $sysInfo['cpu']['model'];?><br/>
+                <?php echo $sysInfo['cpu']['model']; ?><br/>
                 [<span style="color:#999;font-weight:600">x<?php echo $sysInfo['cpu']['num']; ?></span> core]
               </span>
             </div>
@@ -116,16 +116,16 @@
               <div id="meterram"></div>
             </div>
           </div><!-- RAM WIDGET -->
-          <?php if ($username == "$master") { ?>
+          <?php if ($username == "{$master}") { ?>
             <div class="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
               <div class="panel-heading">
                 <h4 class="panel-title text-success"><?php echo T('RECENT_UPDATES'); ?>
-                  <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $version."...".$branch ?>" 
+                  <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $version."...".$branch; ?>" 
                     title="<?php echo T('CURRENT_VERSIONS_CHANGELOG'); ?>"
                     data-placement="top" class="label label-primary tooltips"
                     style="font-size:10px; padding-top:0; padding-bottom:0px; top: -2px; position: relative;"
                     target="_blank" rel="noopener">
-                      QuickBox :: <span style="color: #fff;text-shadow: 0px 0px 6px #fff;"><?php echo "$version"; ?></span>
+                      QuickBox :: <span style="color: #fff;text-shadow: 0px 0px 6px #fff;"><?php echo "{$version}"; ?></span>
                   </a>
                 </h4>
               </div>
@@ -142,6 +142,6 @@
   </div><!-- mainpanel -->
 
   <?php
-    include ('inc/panel.scripts.php');
-    include ('inc/panel.end.php');
+    include('inc/panel.scripts.php');
+    include('inc/panel.end.php');
   ?>

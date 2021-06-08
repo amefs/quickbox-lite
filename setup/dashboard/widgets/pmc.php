@@ -1,8 +1,8 @@
 <?php
-  include ('..inc/config.php');
-  include ('..inc/panel.header.php');
-  include ('..inc/panel.menu.php');
-  require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
+  include('..inc/config.php');
+  include('..inc/panel.header.php');
+  include('..inc/panel.menu.php');
+  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
 ?>
 
 
@@ -28,27 +28,27 @@
         <tbody>
           <?php
             foreach ($packageList as &$package) {
-              if (isset($package["skip"]) && $package["skip"]) {
-                continue;
-              }
-              $packageLowercase = strtolower($package["package"]);
-              $packageUppercase = strtoupper($package["package"]);
-            ?>
+                if (isset($package["skip"]) && $package["skip"]) {
+                    continue;
+                }
+                $packageLowercase = strtolower($package["package"]);
+                $packageUppercase = strtoupper($package["package"]); ?>
             <tr>
               <td><?php echo $package["name"]; ?></td>
               <td><?php echo T($package["description"]); ?></td>
               <?php if (file_exists($package["lockfile"])) { ?>
-                <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#<?php echo $packageLowercase;?>RemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
-              <?php } else if ($package["boxonly"]) { ?>
+                <td style="vertical-align: middle; text-align: center"><button data-toggle="modal" data-target="#<?php echo $packageLowercase; ?>RemovalConfirm" class="btn btn-xs btn-success"><?php echo T('INSTALLED'); ?></button></td>
+              <?php } elseif ($package["boxonly"]) { ?>
                 <td style="vertical-align: middle; text-align: center"><button data-toggle="tooltip" title="<?php echo T($package["install"]); ?>" data-placement="top" class="btn btn-xs btn-danger disabled tooltips"><?php echo T('BOX'); ?></button></td>
               <?php } else { ?>
-                <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-package="<?php echo $packageLowercase;?>" id="<?php echo $packageLowercase;?>Install" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
+                <td style="vertical-align: middle; text-align: center"><button onclick="packageInstallHandler(event)" data-toggle="modal" data-target="#sysResponse" data-package="<?php echo $packageLowercase; ?>" id="<?php echo $packageLowercase; ?>Install" class="btn btn-xs btn-default"><?php echo T('INSTALL'); ?></button></td>
               <?php } ?>
             </tr>
-          <?php } ?>
+          <?php
+            } ?>
         </tbody>
       </table>
-      <?php if (($username == "$master") && file_exists('/install/.install.lock')) { ?>
+      <?php if (($username == "{$master}") && file_exists('/install/.install.lock')) { ?>
         <p style="font-size:10px" style="padding-bottom:12px">
         <hr />
         <?php echo T('CLEAR_LOCK_TXT'); ?>&nbsp; &nbsp; &nbsp; &nbsp;<button onclick="boxHandler(event)" data-package="dpkg" data-operation="fix" data-toggle="modal" data-target="#sysResponse" class="btn btn-xs btn-default"><?php echo T('CLEAR_LOCK'); ?></button>
