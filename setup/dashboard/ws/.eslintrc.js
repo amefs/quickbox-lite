@@ -85,7 +85,6 @@ module.exports = {
         ],
         "camelcase": "error",
         "class-methods-use-this": "error",
-        "comma-dangle": "error",
         "complexity": "error",
         "constructor-super": "error",
         "curly": "error",
@@ -172,10 +171,6 @@ module.exports = {
                 "asyncArrow": "always",
                 "named": "never"
             }
-        ],
-        "space-in-parens": [
-            "error",
-            "always"
         ],
         "spaced-comment": [
             "error",
