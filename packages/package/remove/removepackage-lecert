@@ -140,7 +140,8 @@ function _removeDepends() {
 
 function _removeApp() {
 	_info "Removing ${APP_TITLE}..."
-	crontab -u root -l | grep -v 'acme.sh' | crontab -u root -
+	cd /root/.acme.sh || exit 1
+	_execute "./acme.sh --uninstall-cronjob"
 	sed -i "/acme/d" /root/.bashrc
 	rm -rf /root/acme.sh
 	rm -rf /root/.acme.sh
