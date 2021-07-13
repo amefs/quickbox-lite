@@ -16,6 +16,7 @@
 #   including (via compiler) GPL-licensed code must also be made available
 #   under the GPL along with build & install instructions.
 #
+# shellcheck disable=SC1090,SC1091,SC2034,SC2129
 #################################################################################
 #################################################################################
 # HELP FUNCTIONS
@@ -88,7 +89,7 @@ function _installSystemUpdates() {
 		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
 		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
 			for l in ${locks}; do
-				rm -rf ${l}
+				rm -rf "${l}"
 			done
 			_execute "dpkg --configure -a"
 			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1

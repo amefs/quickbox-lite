@@ -16,6 +16,7 @@
 #   including (via compiler) GPL-licensed code must also be made available
 #   under the GPL along with build & install instructions.
 #
+# shellcheck disable=SC1090,SC1091,SC2002,SC2034,SC2129
 #################################################################################
 #################################################################################
 # CORE VARIABLE
@@ -96,7 +97,7 @@ function _usage() {
 # SCRIPT FUNCTIONS
 ################################################################################
 function _checkUser() {
-	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	userlist=$(cat "$(find /root/.qbuser/ -type f)" | cut -d: -f1)
 	if [[ ! $username =~ $(echo $userlist) ]]; then
 		_error "User not exist !"
 		exit 1
@@ -132,7 +133,7 @@ function _chPasswd() {
 	else
 		passphrase=$(openssl rand -hex 64)
 		mkdir -p /root/.ssh
-		echo ${passphrase} >/root/.ssh/local_user
+		echo "${passphrase}" >/root/.ssh/local_user
 		chmod 600 /root/.ssh/local_user && chmod 700 /root/.ssh
 	fi
 	if [[ $username == "$(cat /root/.admin.info | cut -d: -f1)" ]]; then
