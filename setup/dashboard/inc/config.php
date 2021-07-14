@@ -88,8 +88,6 @@ function GetCpuPercentages($stat1, $stat2) {
 
     return $cpus;
 }
-$stat1    = GetCoreInformation(); sleep(1); $stat2    = GetCoreInformation(); $data    = GetCpuPercentages($stat1, $stat2);
-$cpu_show = $data['cpu0']['user']."%us,  ".$data['cpu0']['idle']."%id,  ";
 
 // Information obtained depending on the system CPU
 switch (PHP_OS) {
