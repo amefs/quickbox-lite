@@ -15,14 +15,6 @@ $username = getUser();
 $master   = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
 $master   = preg_replace('/\s+/', '', $master);
 
-// Network Interface
-$interface               = INETFACE;
-$iface_list              = ['INETFACE'];
-$iface_title['INETFACE'] = 'External';
-$vnstat_bin              = '/usr/bin/vnstat';
-$data_dir                = './dumps';
-$byte_notation           = null;
-
 define('HTTP_HOST', preg_replace('~^www\.~i', '', $_SERVER['HTTP_HOST']));
 
 $panel = [
@@ -45,7 +37,7 @@ $NetOutSpeed   = [0 => null, 1 => null];
 for ($i = 2; $i < count($strs); ++$i) {
     preg_match_all("/(?<name>[^\s]+):[\s]{0,}(?<rx_bytes>\d+)\s+(?:\d+\s+){7}(?<tx_bytes>\d+)\s+/", $strs[$i], $info);
     $NetInputSpeed[$i] = $info["rx_bytes"][0]; // Receive data in bytes
-  $NetOutSpeed[$i]     = $info["tx_bytes"][0]; // Transmit data in bytes
+    $NetOutSpeed[$i]   = $info["tx_bytes"][0]; // Transmit data in bytes
 }
 
 //Real-time refresh ajax calls

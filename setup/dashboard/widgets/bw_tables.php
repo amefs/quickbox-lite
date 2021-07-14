@@ -1,7 +1,6 @@
 <?php
 
 // Network Interface
-$interface               = 'INETFACE';
 $iface_list              = ['INETFACE'];
 $iface_title['INETFACE'] = 'External';
 $vnstat_bin              = '/usr/bin/vnstat';
