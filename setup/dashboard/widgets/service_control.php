@@ -1,7 +1,4 @@
 <?php
-  include($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
-  include($_SERVER['DOCUMENT_ROOT'].'/inc/panel.header.php');
-  include($_SERVER['DOCUMENT_ROOT'].'/inc/panel.menu.php');
   require_once($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
 ?>
 
