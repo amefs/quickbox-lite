@@ -27,7 +27,6 @@
         global $page,  $page_list;
         global $iface, $iface_list;
         global $graph, $graph_list;
-        global $colorscheme, $style;
         //
         // get interface data
         //
@@ -46,11 +45,6 @@
 
         if (!in_array($graph, $graph_list)) {
             $graph = $graph_list[0];
-        }
-
-        $tp = "./themes/{$style}";
-        if (!is_dir($tp) || !file_exists("{$tp}/theme.php") || !preg_match('/^[a-z0-9-_]+$/i', $style)) {
-            $style = DEFAULT_COLORSCHEME;
         }
     }
 
@@ -204,4 +198,7 @@
         $summary['totalrxk']  = 0;
         $summary['totaltxk']  = 0;
         $summary['interface'] = $iface_data['name'];
+
+        $created = $iface_data['created'];
+        $summary['created'] = mktime(0, 0, 0, $created['date']['month'], $created['date']['day'], $created['date']['year']);
     }
