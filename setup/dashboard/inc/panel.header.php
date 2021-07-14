@@ -1,3 +1,8 @@
+<?php
+assert(isset($panel));
+assert(isset($NetOutSpeed));
+assert(isset($NetInputSpeed));
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

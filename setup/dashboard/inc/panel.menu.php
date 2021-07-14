@@ -1,6 +1,43 @@
 <?php
-  // require_once($_SERVER["DOCUMENT_ROOT"]."/inc/config.php");
-  $current_vs = "<span id=\"version-result\"></span>";
+    assert(isset($username));
+    assert(isset($master));
+    assert(isset($version));
+    assert(isset($plugins));
+    assert(isset($rutorrentURL));
+    assert(isset($floodURL));
+    assert(isset($dwURL));
+    assert(isset($transmissionURL));
+    assert(isset($qbittorrentURL));
+    assert(isset($btsyncURL));
+    assert(isset($filebrowserURL));
+    assert(isset($filebrowsereeURL));
+    assert(isset($flexgetURL));
+    assert(isset($netdataURL));
+    assert(isset($novncURL));
+    assert(isset($plexURL));
+    assert(isset($speedtestURL));
+    assert(isset($syncthingURL));
+    assert(isset($zncURL));
+    assert(isset($rtorrentdlURL));
+    assert(isset($delugedlURL));
+    assert(isset($transmissiondlURL));
+    assert(isset($qbittorrentdlURL));
+    assert(isset($openvpndlURL));
+
+    $current_vs = "<span id=\"version-result\"></span>";
+    $languages  = [
+        ['file' => 'lang_zh', 'title' => 'Chinese'],
+        ['file' => 'lang_dk', 'title' => 'Danish'],
+        ['file' => 'lang_en', 'title' => 'English'],
+        ['file' => 'lang_fr', 'title' => 'French'],
+        ['file' => 'lang_de', 'title' => 'German'],
+        ['file' => 'lang_es', 'title' => 'Spanish'],
+    ];
+    $themes = [
+        ['file' => 'defaulted', 'title' => 'Defaulted'],
+        ['file' => 'smoked', 'title' => 'Smoked'],
+    ];
+    $is_master = $username === $master;
 ?>
 <body class="body">
 <header>
@@ -21,7 +58,7 @@
             </div>
           </li>
           <?php } ?>
-          <?php if ($username == "{$master}") { ?>
+          <?php if ($is_master) { ?>
           <li>
             <div id="noticePanel" class="btn-group">
               <button class="btn" data-toggle="dropdown">
@@ -61,28 +98,12 @@
                           <div class="row">
                             <div class="col-xs-12">
                               <div class="col-xs-12 col-md-6" style="padding: 0">
-                                <?php
-                                $languages = [
-                                    ['file' => 'lang_zh', 'title' => 'Chinese'],
-                                    ['file' => 'lang_dk', 'title' => 'Danish'],
-                                    ['file' => 'lang_en', 'title' => 'English'],
-                                    ['file' => 'lang_fr', 'title' => 'French'],
-                                    ['file' => 'lang_de', 'title' => 'German'],
-                                    ['file' => 'lang_es', 'title' => 'Spanish'],
-                                ];
-                                ?>
                                 <h5><?php echo T('LANG_SELECT'); ?></h5>
                                 <?php foreach ($languages as $lang) { ?>
                                   <small><div onclick="boxHandler(event)" data-package="<?php echo $lang['file']; ?>" data-operation="lang" style="cursor: pointer;"><img class="lang-flag lazyload" data-src="lang/flag_<?php echo $lang['file']; ?>.png" /><?php echo $lang['title']; ?></div></small>
                                 <?php } ?>
                               </div>
                               <div class="col-xs-12 col-md-6" style="padding: 0">
-                              <?php
-                              $themes = [
-                                  ['file' => 'defaulted', 'title' => 'Defaulted'],
-                                  ['file' => 'smoked', 'title' => 'Smoked'],
-                              ];
-                              ?>
                                 <h5><?php echo T('THEME_SELECT'); ?></h5>
                                 <?php foreach ($themes as $theme) { ?>
                                   <small><div data-toggle="modal" data-target="#themeSelect<?php echo $theme['file']; ?>Confirm" style="cursor: pointer;"><img class="lang-flag lazyload" data-src="img/themes/opt_<?php echo $theme['file']; ?>.png" /><?php echo $theme['title']; ?></div></small>
@@ -119,7 +140,7 @@
     <div class="leftpanelinner">
       <ul class="nav nav-tabs nav-justified nav-sidebar">
         <li class="tooltips active" data-toggle="tooltip" title="<?php echo T('MAIN_MENU'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#mainmenu"><i class="tooltips fa fa-ellipsis-h"></i></a></li>
-        <?php if (($username == "{$master}") && file_exists('/install/.rutorrent.lock')) { ?>
+        <?php if (($is_master) && file_exists('/install/.rutorrent.lock')) { ?>
           <li class="tooltips" data-toggle="tooltip" title="<?php echo T('RPLUGIN_MENU'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#plugins"><i class="tooltips fa fa-puzzle-piece"></i></a></li>
         <?php } ?>
         <li class="tooltips" data-toggle="tooltip" title="<?php echo T('HELP_COMMANDS'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#help"><i class="tooltips fa fa-question-circle"></i></a></li>
@@ -150,7 +171,7 @@
             <?php if (processExists("qbittorrent-nox", $username) && file_exists('/install/.qbittorrent.lock')) { ?>
               <li><a href="<?php echo "{$qbittorrentURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/qbittorrent.png" class="brand-ico lazyload"> <span>qBittorrent</span></a></li>
             <?php } ?>
-            <?php if ($username == "{$master}") { ?>
+            <?php if ($is_master) { ?>
               <?php if (processExists("rslsync", $username) && file_exists('/install/.btsync.lock')) { ?>
                 <li><a class="grayscale" href="<?php echo "{$btsyncURL}"; ?>" target="_blank"><img data-src="img/brands/btsync.png" class="brand-ico lazyload"> <span>BTSync</span></a></li>
               <?php } ?>
@@ -198,14 +219,14 @@
                   <?php if (file_exists('/install/.qbittorrent.lock')) { ?>
                     <li><a href="<?php echo "{$qbittorrentdlURL}"; ?>" target="_blank">qBittorrent</a></li>
                   <?php } ?>
-                  <?php if (file_exists('/home/'.$username.'/openvpn/'.$username.'.zip')) { ?>
+                  <?php if (file_exists("/home/{$username}/openvpn/{$username}.zip")) { ?>
                     <li><a href="<?php echo "{$openvpndlURL}"; ?>" target="_blank">OpenVPN Config</a></li>
                   <?php } ?>
                 </ul>
               </li>
             <?php } ?>
-            <?php if (processExists("shellinabox", "shellinabox") && ($username == "{$master}")) { ?>
-            <li><a href="/<?php echo "{$username}"; ?>.console" target="_blank"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
+            <?php if ($is_master && processExists("shellinabox", "shellinabox")) { ?>
+            <li><a href="/<?php echo $username; ?>.console" target="_blank"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
             <?php } ?>
             <!-- /// BEGIN INSERT CUSTOM MENU /// -->
             <?php include($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php'); ?>
@@ -215,7 +236,7 @@
 
         <!-- ######################## HELP MENU TAB ##################### -->
         <div class="tab-pane" id="help">
-          <?php if ($username == "{$master}") { ?>
+          <?php if ($is_master) { ?>
           <h5 class="sidebar-title"><?php echo T('QUICK_SYSTEM_TIPS'); ?></h5>
           <ul class="nav nav-pills nav-stacked nav-quirk nav-mail">
             <li style="padding: 7px"><span style="font-size: 12px; color:#eee">box update quickbox</span><br/>
@@ -274,15 +295,17 @@
               <a href=""><i class="fa fa-puzzle-piece"></i> <span><?php echo T('PLUGINS'); ?></span></a>
               <ul class="children">
                 <li class="info-quote"><p class="info-quote"><?php echo T('PMENU_NOTICE_TXT'); ?></p></li>
-                <?php foreach ($plugins as $plugin) { ?>
-                  <li>
-                  <?php if (file_exists('/srv/rutorrent/plugins/'.$plugin.'/plugin.info')) {
-                                  echo "<a href=\"javascript:void()\">{$plugin}</a> <div class=\"toggle-wrapper pull-right\" style=\"margin-right: -10px; margin-top: 5px;\"> <div class=\"toggle-pen toggle-modern\" onclick=\"location.href='?removeplugin-{$plugin}=true'\"></div></div>";
-                              } else {
-                                  echo "<a href=\"javascript:void()\">{$plugin}</a> <div class=\"toggle-wrapper pull-right\" style=\"margin-right: -10px; margin-top: 5px;\"> <div class=\"toggle-pdis toggle-modern\" onclick=\"location.href='?installplugin-{$plugin}=true'\"></div></div>";
-                              } ?>
-                  </li>
-                <?php } ?>
+                <?php foreach ($plugins as $plugin) {
+    $action = file_exists("/srv/rutorrent/plugins/{$plugin}/plugin.info") ? "removeplugin-{$plugin}=true" : "installplugin-{$plugin}=true"; ?>
+                <li>
+                  <a href="javascript:void()"><?php echo $plugin; ?></a>
+                  <div class="toggle-wrapper pull-right" style="margin-right: -10px; margin-top: 5px;">
+                    <div class="toggle-pen toggle-modern" onclick="location.href='<?php echo $action; ?>'">
+                    </div>
+                  </div>
+                </li>
+                <?php
+} ?>
               </ul>
             </li>
           </ul>

@@ -7,6 +7,11 @@ $vnstat_bin              = '/usr/bin/vnstat';
 $data_dir                = './dumps';
 $byte_notation           = null;
 
+$page  = null;
+$day   = null;
+$hour  = null;
+$month = null;
+
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 require($_SERVER['DOCUMENT_ROOT'].'/widgets/vnstat.php');

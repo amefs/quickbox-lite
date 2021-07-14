@@ -1,12 +1,14 @@
 <?php
 
+error_reporting(E_ERROR);
 if (function_exists("ini_set")) {
     ini_set("display_errors", "0");
     ini_set("log_errors", "1");
-} elseif (file_exists("/install/.debug")) {
-    ini_set("display_errors", "1");
-    ini_set("display_startup_errors", "1");
-    error_reporting(E_ALL | E_STRICT);
+    if (file_exists("/install/.debug")) {
+        ini_set("display_errors", "1");
+        ini_set("display_startup_errors", "1");
+        error_reporting(E_ALL | E_STRICT);
+    }
 }
 
 if (!isset($_SERVER["REMOTE_USER"])) {

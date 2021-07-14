@@ -5,14 +5,6 @@
 // If a parameter is not provided or invalid it will revert to the default,
 // the first parameter in the list.
 
-    if (isset($_SERVER['PHP_SELF'])) {
-        $script = $_SERVER['PHP_SELF'];
-    } elseif (isset($_SERVER['SCRIPT_NAME'])) {
-        $script = $_SERVER['SCRIPT_NAME'];
-    } else {
-        exit('can\'t determine script name!');
-    }
-
     $page_list = ['s', 'h', 'd', 'm'];
 
     $page_title['s'] = T('summary');

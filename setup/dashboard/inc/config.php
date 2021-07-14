@@ -8,9 +8,8 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/widgets/class.php');
 
-$version = "v1.4.6";
-$branch  = file_exists('/install/.developer.lock') ? "development" : "master";
-error_reporting(E_ERROR);
+$version  = "v1.4.6";
+$branch   = file_exists('/install/.developer.lock') ? "development" : "master";
 $username = getUser();
 $master   = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
 $master   = preg_replace('/\s+/', '', $master);
@@ -110,29 +109,22 @@ function sys_linux_cpu() {
         return false;
     }
     $str = implode("", $str);
-    @preg_match_all("/model\s+name\s{0,}\:+\s{0,}([^\:]+)([\r\n]+)/s", $str, $model);
+    @preg_match_all("/model\s+name\s{0,}\:+\s{0,}([^\:]+)[\r\n]+/s", $str, $model);
     @preg_match_all("/cpu\s+MHz\s{0,}\:+\s{0,}([\d\.]+)[\r\n]+/", $str, $mhz);
     @preg_match_all("/cache\s+size\s{0,}\:+\s{0,}([\d\.]+\s{0,}[A-Z]+[\r\n]+)/", $str, $cache);
+    $res = [];
     if (is_array($model[1]) !== false) {
-        $res['cpu']['num'] = sizeof($model[1]);
+        $cpu_count     = count($model[1]);
+        $cpu_model     = $model[1][0];
+        $cpu_frequency = $mhz[1][0];
+        $cpu_cache     = $cache[1][0];
 
-        if ($res['cpu']['num'] == 1) {
-            $x1 = '';
-        } else {
-            $x1 = ' ×'.$res['cpu']['num'];
-        }
-        $mhz[1][0]             = ' <span style="color:#999;font-weight:600">Frequency:</span> '.$mhz[1][0];
-        $cache[1][0]           = ' <br /> <span style="color:#999;font-weight:600">Secondary cache:</span> '.$cache[1][0];
-        $res['cpu']['model'][] = '<h4>'.$model[1][0].'</h4>'.$mhz[1][0].$cache[1][0].$x1;
-        if (is_array($res['cpu']['model']) !== false) {
-            $res['cpu']['model'] = implode("<br />", $res['cpu']['model']);
-        }
-        if (is_array($res['cpu']['mhz']) !== false) {
-            $res['cpu']['mhz'] = implode("<br />", $res['cpu']['mhz']);
-        }
-        if (is_array($res['cpu']['cache']) !== false) {
-            $res['cpu']['cache'] = implode("<br />", $res['cpu']['cache']);
-        }
+        $model_template      = "<h4>{$cpu_model}</h4>";
+        $frequency_template  = " <span style=\"color:#999;font-weight:600\">Frequency:</span> {$cpu_frequency}";
+        $cahce_template      = " <span style=\"color:#999;font-weight:600\">Secondary cache:</span> {$cpu_cache}";
+        $count_template      = $cpu_count > 1 ? " x{$cpu_count}" : "";
+        $res['cpu']['model'] = $model_template.$frequency_template."<br/>".$cahce_template.$count_template;
+        $res['cpu']['num']   = $cpu_count;
     }
 
     return $res;

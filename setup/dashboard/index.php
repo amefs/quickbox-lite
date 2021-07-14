@@ -2,6 +2,11 @@
   require($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
   require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.header.php');
   require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.menu.php');
+  assert(isset($username));
+  assert(isset($master));
+  assert(isset($version));
+  assert(isset($branch));
+  assert(isset($sysCpuInfo));
 ?>
 
 <div class="mainpanel">
@@ -58,7 +63,7 @@
         <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/service_control.php'); ?>
         <!-- panel -->
 
-        <?php if ($username == "{$master}") { ?>
+        <?php if ($username === $master) { ?>
           <!--PACKAGE MANAGEMENT CENTER-->
           <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/pmc.php'); ?>
           <!-- panel -->
@@ -116,7 +121,7 @@
             <div id="meterram"></div>
           </div>
         </div><!-- RAM WIDGET -->
-        <?php if ($username == "{$master}") { ?>
+        <?php if ($username === $master) { ?>
           <div class="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
             <div class="panel-heading">
               <h4 class="panel-title text-success"><?php echo T('RECENT_UPDATES'); ?>

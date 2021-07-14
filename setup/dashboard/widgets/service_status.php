@@ -1,6 +1,7 @@
 <?php
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
+assert(isset($packageList));
 
 function processExists($processName, $username) {
     $exists = false;
