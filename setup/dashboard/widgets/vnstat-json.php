@@ -26,13 +26,11 @@
     function validate_input() {
         global $page,  $page_list;
         global $iface, $iface_list;
-        global $graph, $graph_list;
         //
         // get interface data
         //
         $page  = $_GET['page'] ?? '';
         $iface = $_GET['if'] ?? '';
-        $graph = $_GET['graph'] ?? '';
 
         if (!in_array($page, $page_list)) {
             $page = $page_list[0];
@@ -40,10 +38,6 @@
 
         if (!in_array($iface, $iface_list)) {
             $iface = $iface_list[0];
-        }
-
-        if (!in_array($graph, $graph_list)) {
-            $graph = $graph_list[0];
         }
     }
 
