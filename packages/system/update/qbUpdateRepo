@@ -38,9 +38,15 @@ function _updateRepo() {
 	else
 		if [[ -d /etc/QuickBox ]]; then
 			cd /etc/QuickBox
-			_execute "git checkout development"
-			_execute "git reset --hard origin/development"
-			_execute "git pull --ff-only"
+			if [[ ! -f /install/.debug ]]; then
+				_execute "git checkout development"
+				_execute "git reset --hard origin/development"
+				_execute "git pull --ff-only"
+			else
+				_execute "git reset --hard $(git rev-parse --abbrev-ref --symbolic-full-name @{u})"
+				_execute "git pull --ff-only"
+			fi
+			
 		else
 			_execute "git clone --recursive --branch development ${BRANCH} /etc/QuickBox"
 		fi
