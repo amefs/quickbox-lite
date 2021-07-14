@@ -1,0 +1,53 @@
+name: Linter
+
+on: [push, pull_request]
+
+jobs:
+  es-linter:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install nodejs
+      uses: actions/setup-node@v1
+      with:
+        node-version: 14
+  
+    - name: Install dependencies
+      run: |
+        cd setup/dashboard/ws || exit 1
+        npm ci
+
+    - name: Run linter
+      run: |
+          cd setup/dashboard/ws || exit 1
+          npm run lint
+
+  php-linter:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      uses: php-actions/composer@v6
+      with:
+        php_version: 7.4
+
+    - name: Run linter
+      run: |
+          composer run-script lint
+
+  shell-linter:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Run linter
+      uses: azohra/shell-linter@latest
+      with:
+        # todo: scripts in packages
+        path: "onekey.sh,setup.sh"
+        

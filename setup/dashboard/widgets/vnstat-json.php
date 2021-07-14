@@ -1,105 +1,79 @@
 <?php
-$hour; $day; $month; $top; $summary;
+
 // Valid values for other parameters you can pass to the script.
 // Input parameters will always be limited to one of the values listed here.
 // If a parameter is not provided or invalid it will revert to the default,
 // the first parameter in the list.
 
     if (isset($_SERVER['PHP_SELF'])) {
-	   $script = $_SERVER['PHP_SELF'];
+        $script = $_SERVER['PHP_SELF'];
     } elseif (isset($_SERVER['SCRIPT_NAME'])) {
-	   $script = $_SERVER['SCRIPT_NAME'];
+        $script = $_SERVER['SCRIPT_NAME'];
     } else {
-	   die('can\'t determine script name!');
+        exit('can\'t determine script name!');
     }
 
-    $page_list  = array('s','h','d','m');
+    $page_list = ['s', 'h', 'd', 'm'];
 
     $page_title['s'] = T('summary');
     $page_title['h'] = T('hours');
     $page_title['d'] = T('days');
     $page_title['m'] = T('months');
 
-
     //
     // functions
     //
-    function validate_input()
-    {
+    function validate_input() {
         global $page,  $page_list;
         global $iface, $iface_list;
-        global $graph, $graph_list;
-        global $colorscheme, $style;
         //
         // get interface data
         //
-        $page = isset($_GET['page']) ? $_GET['page'] : '';
-        $iface = isset($_GET['if']) ? $_GET['if'] : '';
-        $graph = isset($_GET['graph']) ? $_GET['graph'] : '';
-        $style = isset($_GET['style']) ? $_GET['style'] : '';
+        $page  = $_GET['page'] ?? '';
+        $iface = $_GET['if'] ?? '';
 
-        if (!in_array($page, $page_list))
-        {
+        if (!in_array($page, $page_list)) {
             $page = $page_list[0];
         }
 
-        if (!in_array($iface, $iface_list))
-        {
+        if (!in_array($iface, $iface_list)) {
             $iface = $iface_list[0];
-        }
-
-        if (!in_array($graph, $graph_list))
-        {
-            $graph = $graph_list[0];
-        }
-
-        $tp = "./themes/$style";
-        if (!is_dir($tp) || !file_exists("$tp/theme.php") || !preg_match('/^[a-z0-9-_]+$/i', $style))
-        {
-            $style = DEFAULT_COLORSCHEME;
         }
     }
 
-
-    function get_vnstat_data($use_label=true)
-    {
+    function get_vnstat_data($use_label = true) {
         global $iface, $vnstat_bin, $data_dir;
         global $hour,$day,$month,$top,$summary;
 
-        $vnstat_data = array();
-        if (!isset($vnstat_bin) || $vnstat_bin == '')
-        {
-            if (file_exists("$data_dir/vnstat_dump_$iface"))
-            {
-                $file_data = file_get_contents("$data_dir/vnstat_dump_$iface");
-                $vnstat_data = json_decode($file_data, TRUE);
+        $vnstat_data = [];
+        if (!isset($vnstat_bin) || $vnstat_bin == '') {
+            if (file_exists("{$data_dir}/vnstat_dump_{$iface}")) {
+                $file_data   = file_get_contents("{$data_dir}/vnstat_dump_{$iface}");
+                $vnstat_data = json_decode($file_data, true);
             }
-        }
-        else
-        {
+        } else {
             // FIXME: use mode and limit parameter to reduce data that needs to be parsed
-            $fd = popen("$vnstat_bin --json -i $iface", "r");
-            if (is_resource($fd))
-            {
+            $fd = popen("{$vnstat_bin} --json -i {$iface}", "r");
+            if (is_resource($fd)) {
                 $buffer = '';
                 while (!feof($fd)) {
                     $buffer .= fgets($fd);
                 }
                 pclose($fd);
-                $vnstat_data = json_decode($buffer, TRUE);
+                $vnstat_data = json_decode($buffer, true);
             }
         }
 
-        $day = array();
-        $hour = array();
-        $month = array();
-        $top = array();
+        $day   = [];
+        $hour  = [];
+        $month = [];
+        $top   = [];
 
         if (!isset($vnstat_data) || !isset($vnstat_data['vnstatversion'])) {
             return;
         }
 
-        $iface_data = $vnstat_data['interfaces'][0];
+        $iface_data   = $vnstat_data['interfaces'][0];
         $traffic_data = $iface_data['traffic'];
 
         // data are grouped for hour, day, month, ... and a data entry looks like this:
@@ -124,89 +98,89 @@ $hour; $day; $month; $top; $summary;
         // per-day data
         // FIXME: instead of using array_reverse, sorting by date/time keys would be more reliable
         $day_data = array_reverse($traffic_data['day']);
-        for($i = 0; $i < min(30, count($day_data)); $i++) {
-            $d = $day_data[$i];
+        for ($i = 0; $i < min(30, count($day_data)); ++$i) {
+            $d  = $day_data[$i];
             $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
 
             $day[$i]['time'] = $ts;
-            $day[$i]['rx'] = $d['rx'] / 1024;
-            $day[$i]['tx'] = $d['tx'] / 1024;
-            $day[$i]['act'] = 1;
+            $day[$i]['rx']   = $d['rx'] / 1024;
+            $day[$i]['tx']   = $d['tx'] / 1024;
+            $day[$i]['act']  = 1;
 
-            if($use_label) {
-                $day[$i]['label'] = strftime(T('datefmt_days'), $ts);
+            if ($use_label) {
+                $day[$i]['label']     = strftime(T('datefmt_days'), $ts);
                 $day[$i]['img_label'] = strftime(T('datefmt_days_img'), $ts);
             }
 
-            $diff_time=strtotime("now")-strtotime(strftime("%d %B %Y",strtotime("now")));
-            $day[$i]['rx_avg']    = round($day[$i]['rx'] / $diff_time) * 8;
-            $day[$i]['tx_avg']    = round($day[$i]['tx'] / $diff_time) * 8;
+            $diff_time         = strtotime("now") - strtotime(strftime("%d %B %Y", strtotime("now")));
+            $day[$i]['rx_avg'] = round($day[$i]['rx'] / $diff_time) * 8;
+            $day[$i]['tx_avg'] = round($day[$i]['tx'] / $diff_time) * 8;
         }
 
         // per-month data
         $month_data = array_reverse($traffic_data['month']);
-        for($i = 0; $i < min(12, count($month_data)); $i++) {
-            $d = $month_data[$i];
-            $ts = mktime(0, 0, 0, $d['date']['month']+1, 0, $d['date']['year']);
+        for ($i = 0; $i < min(12, count($month_data)); ++$i) {
+            $d  = $month_data[$i];
+            $ts = mktime(0, 0, 0, $d['date']['month'] + 1, 0, $d['date']['year']);
 
             $month[$i]['time'] = $ts;
-            $month[$i]['rx'] = $d['rx'] / 1024;
-            $month[$i]['tx'] = $d['tx'] / 1024;
-            $month[$i]['act'] = 1;
+            $month[$i]['rx']   = $d['rx'] / 1024;
+            $month[$i]['tx']   = $d['tx'] / 1024;
+            $month[$i]['act']  = 1;
 
-            if($use_label) {
-                $month[$i]['label'] = strftime(T('datefmt_months'), $ts);
+            if ($use_label) {
+                $month[$i]['label']     = strftime(T('datefmt_months'), $ts);
                 $month[$i]['img_label'] = strftime(T('datefmt_months_img'), $ts);
             }
-            
-            $diff_time=strtotime("now")-strtotime(strftime("1 %B %Y",strtotime("now")));
 
-            $month[$i]['rx_avg']    = round($month[$i]['rx'] / $diff_time) * 8;
-            $month[$i]['tx_avg']    = round($month[$i]['tx'] / $diff_time) * 8;
+            $diff_time = strtotime("now") - strtotime(strftime("1 %B %Y", strtotime("now")));
+
+            $month[$i]['rx_avg'] = round($month[$i]['rx'] / $diff_time) * 8;
+            $month[$i]['tx_avg'] = round($month[$i]['tx'] / $diff_time) * 8;
         }
 
         // per-hour data
         $hour_data = array_reverse($traffic_data['hour']);
-        for($i = 0; $i < min(24, count($hour_data)); $i++) {
-            $d = $hour_data[$i];
+        for ($i = 0; $i < min(24, count($hour_data)); ++$i) {
+            $d  = $hour_data[$i];
             $ts = mktime($d['time']['hour'], $d['time']['minute'], 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
 
             $hour[$i]['time'] = $ts;
-            $hour[$i]['rx'] = $d['rx'] / 1024;
-            $hour[$i]['tx'] = $d['tx'] / 1024;
-            $hour[$i]['act'] = 1;
+            $hour[$i]['rx']   = $d['rx'] / 1024;
+            $hour[$i]['tx']   = $d['tx'] / 1024;
+            $hour[$i]['act']  = 1;
 
-            if($use_label) {
-                $hour[$i]['label'] = strftime(T('datefmt_hours'), $ts);
+            if ($use_label) {
+                $hour[$i]['label']     = strftime(T('datefmt_hours'), $ts);
                 $hour[$i]['img_label'] = strftime(T('datefmt_hours_img'), $ts);
             }
 
-            $diff_time=strtotime("now")-strtotime(strftime("%d %B %Y %H:00:00",strtotime("now")));
-            if ($diff_time <= 300){
-                $diff_time=3600;
+            $diff_time = strtotime("now") - strtotime(strftime("%d %B %Y %H:00:00", strtotime("now")));
+            if ($diff_time <= 300) {
+                $diff_time = 3600;
             }
-            $hour[$i]['rx_avg']    = round($hour[$i]['rx'] / $diff_time) * 8;
-            $hour[$i]['tx_avg']    = round($hour[$i]['tx'] / $diff_time) * 8;
+            $hour[$i]['rx_avg'] = round($hour[$i]['rx'] / $diff_time) * 8;
+            $hour[$i]['tx_avg'] = round($hour[$i]['tx'] / $diff_time) * 8;
         }
 
         // top10 days data
         $top10_data = $traffic_data['top'];
-        for($i = 0; $i < min(10, count($top10_data)); $i++) {
-            $d = $top10_data[$i];
+        for ($i = 0; $i < min(10, count($top10_data)); ++$i) {
+            $d  = $top10_data[$i];
             $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
 
             $top[$i]['time'] = $ts;
-            $top[$i]['rx'] = $d['rx'] / 1024;
-            $top[$i]['tx'] = $d['tx'] / 1024;
-            $top[$i]['act'] = 1;
+            $top[$i]['rx']   = $d['rx'] / 1024;
+            $top[$i]['tx']   = $d['tx'] / 1024;
+            $top[$i]['act']  = 1;
 
-            if($use_label) {
-                $top[$i]['label'] = strftime(T('datefmt_top'), $ts);
+            if ($use_label) {
+                $top[$i]['label']     = strftime(T('datefmt_top'), $ts);
                 $top[$i]['img_label'] = '';
             }
 
-            $top[$i]['rx_avg']    = round($top[$i]['rx'] / 86400) * 8;
-            $top[$i]['tx_avg']    = round($top[$i]['tx'] / 86400) * 8;
+            $top[$i]['rx_avg'] = round($top[$i]['rx'] / 86400) * 8;
+            $top[$i]['tx_avg'] = round($top[$i]['tx'] / 86400) * 8;
         }
 
         // summary data from old dumpdb command
@@ -214,8 +188,9 @@ $hour; $day; $month; $top; $summary;
         $summary['totalrx'] = $traffic_data['total']['rx'] / 1024 / 1024;
         $summary['totaltx'] = $traffic_data['total']['tx'] / 1024 / 1024;
         // FIXME: used to be "total rx kB counter" from dumpdb, no idea how to get those
-        $summary['totalrxk'] = 0;
-        $summary['totaltxk'] = 0;
+        $summary['totalrxk']  = 0;
+        $summary['totaltxk']  = 0;
         $summary['interface'] = $iface_data['name'];
+        $created              = $iface_data['created'];
+        $summary['created']   = mktime(0, 0, 0, $created['date']['month'], $created['date']['day'], $created['date']['year']);
     }
-?>

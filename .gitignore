@@ -46,3 +46,7 @@ Network Trash Folder
 Temporary Items
 .apdisk
 assets
+
+# Directories created by composer
+vendor/
+*.cache

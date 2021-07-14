@@ -70,7 +70,7 @@ if [ "$?" -eq 2 ]; then
     locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
     if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
         for l in ${locks}; do
-            rm -rf ${l}
+            rm -rf "${l}"
         done
         dpkg --configure -a
         DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
@@ -86,7 +86,7 @@ apt-get -yqq install git lsb-release dos2unix screen
 if [[ -d /etc/QuickBox ]]; then
     rm -rf /etc/QuickBox
 fi
-git clone ${dev} https://github.com/amefs/quickbox-lite.git /etc/QuickBox
+git clone "${dev}" https://github.com/amefs/quickbox-lite.git /etc/QuickBox
 dos2unix /etc/QuickBox/setup.sh
 screen -dmS qbox-install -T xterm 
 screen -S qbox-install -X stuff "sleep 3; bash /etc/QuickBox/setup.sh $ExtraArgs;\n"

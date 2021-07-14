@@ -1,8 +1,5 @@
 <?php
-  include ('..inc/config.php');
-  include ('..inc/panel.header.php');
-  include ('..inc/panel.menu.php');
-  require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
+  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
 ?>
 
 <!--SERVICE CONTROL CENTER-->
@@ -23,22 +20,22 @@
         <tbody>
         <?php
         foreach ($packageList as &$package) {
-          if (!isset($package["services"]) || !file_exists($package["lockfile"])) {
-            continue;
-          }
-          $services = $package["services"];
-          foreach ($services as $service => $info) {
-        ?>
+            if (!isset($package["services"]) || !file_exists($package["lockfile"])) {
+                continue;
+            }
+            $services = $package["services"];
+            foreach ($services as $service => $info) {
+                ?>
           <tr>
-            <td><span id="appstat_<?php echo $service;?>"></span><?php echo $info["name"]; ?>
+            <td><span id="appstat_<?php echo $service; ?>"></span><?php echo $info["name"]; ?>
             <?php if (isset($info["tooltips"])) { ?>
-            <span class="tooltips" data-toggle="tooltip" title="<?php echo $info["tooltips"]; ?>" data-placement="right"><i class="tooltips fa <?php echo $info["tooltipsicon"]?>"></i><span></td>
+            <span class="tooltips" data-toggle="tooltip" title="<?php echo $info["tooltips"]; ?>" data-placement="right"><i class="tooltips fa <?php echo $info["tooltipsicon"]; ?>"></i><span></td>
             <?php } ?>
             <td class="text-center"><button onclick="serviceUpdateHandler(event)" data-service="<?php echo $service; ?>" data-operation="enable,restart" class="btn btn-xs btn-default"><i class="fa fa-refresh text-info"></i> <?php echo T('REFRESH'); ?></button></td>
             <td class="text-center"><?php echo isEnabled($service, $info["username"]); ?></td>
           </tr>
         <?php
-          }
+            }
         }
         ?>
         </tbody>

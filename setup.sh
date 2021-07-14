@@ -16,7 +16,7 @@
 #   including (via compiler) GPL-licensed code must also be made available
 #   under the GPL along with build & install instructions.
 #
-# shellcheck disable=SC2046,SC1090
+# shellcheck disable=SC2046,SC1090,SC2181,SC2059
 #################################################################################
 
 function _defaultcolor() {
@@ -292,7 +292,7 @@ function _askdomain() {
 			domain=$(whiptail --title "$INFO_TITLE_SETDOMAIN" --inputbox "$INFO_TEXT_SETDOMAIN" 10 72 --ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3)
 			_get_ip
 			test_domain=$(curl -sH 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$domain&type=A" | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}" | head -1)
-			if [[ $test_domain != ${ip} ]]; then
+			if [[ $test_domain != "${ip}" ]]; then
 				whiptail --title "$ERROR_TITLE_DOMAINCHK" --msgbox "${ERROR_TEXT_DOMAINCHK_1}$domain${ERROR_TEXT_DOMAINCHK_2}" --ok-button "$BUTTON_OK" 8 72
 				domain=""
 			else
@@ -358,7 +358,7 @@ function _askusrname() {
 		# ensure vaild username
 		valid=$(echo "$username" | grep -P '^[a-z][-a-z0-9_]*')
 		_errorcolor
-		if $(echo "${reserved_names[@]}" | grep -wq "$username"); then
+		if echo "${reserved_names[@]}" | grep -wq "$username"; then
 			whiptail --title "$ERROR_TITLE_NAME" --msgbox "$ERROR_TEXT_NAME_1" --ok-button "$BUTTON_OK" 8 72
 			valid=false
 		elif [[ $count -lt 3 || $count -gt 32 ]]; then
@@ -429,65 +429,65 @@ function _skel() {
 	"--with-cf")
 		_cf
 		echo "cf" > /install/.cdn.lock
-		wget -t3 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+		wget -t3 -T20 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 		if [ $? -ne 0 ]; then
 			_sf
-			wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			wget -t5 -T10 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 			if [ $? -ne 0 ]; then
 				_osdn
-				wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+				wget -t5 -T10 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 			fi
 		fi
 		;;
 	"--with-sf")
 		_sf
 		echo "cf" > /install/.cdn.lock
-		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+		wget -t3 -T10 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 		if [ $? -ne 0 ]; then
 			_cf
-			wget -t5 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			wget -t5 -T20 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 			if [ $? -ne 0 ]; then
 				_osdn
-				wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+				wget -t5 -T10 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 			fi
 		fi
 		;;
 	"--with-osdn")
 		_osdn
 		echo "osdn" > /install/.cdn.lock
-		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+		wget -t3 -T10 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 		if [ $? -ne 0 ]; then
 			_cf
-			wget -t5 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			wget -t5 -T20 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 			if [ $? -ne 0 ]; then
 				_sf
-				wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+				wget -t5 -T10 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 			fi
 		fi
 		;;
 	"--with-github")
 		_github
 		echo "github" > /install/.cdn.lock
-		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+		wget -t3 -T10 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 		if [ $? -ne 0 ]; then
 			_cf
-			wget -t5 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			wget -t5 -T20 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 			if [ $? -ne 0 ]; then
 				_sf
-				wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+				wget -t5 -T10 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 			fi
 		fi
 		;;
 	*)
 		_github
 		echo "github" > /install/.cdn.lock
-		wget -t3 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+		wget -t3 -T10 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 		if [ $? -ne 0 ]; then
 			_cf
-			wget -t5 -T20 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+			wget -t5 -T20 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 			if [ $? -ne 0 ]; then
 				_sf
-				wget -t5 -T10 -q -O GeoLiteCity.dat.gz https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}
+				wget -t5 -T10 -q -O GeoLiteCity.dat.gz "https://${DOMAIN}/${SUBFOLDER}all-platform/GeoLiteCity.dat.gz${SUFFIX}"
 			fi
 		fi
 		;;
@@ -529,28 +529,28 @@ function _genadmin() {
 		echo "${username}:$(echo "${password}" | openssl enc -aes-128-ecb -pbkdf2 -a -e -pass pass:"${passphrase}" -nosalt)" >/root/.admin.info
 	fi
 	mkdir -p /root/.qbuser
-	cp /root/.admin.info /root/.qbuser/${username}.info
+	cp /root/.admin.info /root/.qbuser/"${username}".info
 	mkdir -p /root/.ssh
 	echo "${passphrase}" >/root/.ssh/local_user
 	chmod 600 /root/.ssh/local_user && chmod 700 /root/.ssh
 	# create account
 	if [[ -d /home/$username ]]; then
 		cd /etc/skel || exit 1
-		cp -fR . /home/$username/
+		cp -fR . /home/"${username}"/
 	else
 		useradd "${username}" -m -G www-data -s /bin/bash
 	fi
 	chpasswd <<<"${username}:${password}"
 	echo "${username}:$(openssl passwd -apr1 "${password}")" >/etc/htpasswd
 	mkdir -p /etc/htpasswd.d/
-	echo "${username}:$(openssl passwd -apr1 "${password}")" >/etc/htpasswd.d/htpasswd.${username}
-	chown -R $username:$username /home/${username}
-	chmod 750 /home/${username}
-	echo "D /var/run/${username} 0750 ${username} ${username} -" >>/etc/tmpfiles.d/${username}.conf
-	systemd-tmpfiles /etc/tmpfiles.d/${username}.conf --create >>"${OUTTO}" 2>&1
+	echo "${username}:$(openssl passwd -apr1 "${password}")" >/etc/htpasswd.d/htpasswd."${username}"
+	chown -R "${username}":"${username}" /home/"${username}"
+	chmod 750 /home/"${username}"
+	echo "D /var/run/${username} 0750 ${username} ${username} -" >>/etc/tmpfiles.d/"${username}".conf
+	systemd-tmpfiles /etc/tmpfiles.d/"${username}".conf --create >>"${OUTTO}" 2>&1
 	# setup sudoers
 	cp ${local_setup_template}sudoers.template /etc/sudoers.d/dashboard
-	if grep ${username} /etc/sudoers.d/quickbox >/dev/null 2>&1; then
+	if grep "${username}" /etc/sudoers.d/quickbox >/dev/null 2>&1; then
 		echo "No sudoers modification made ... " >>"${OUTTO}" 2>&1
 	else
 		echo "${username} ALL=(ALL:ALL) ALL" >>/etc/sudoers.d/quickbox
@@ -567,7 +567,7 @@ EOF
 		cp ${local_setup_template}bash_qb_extras.template /root/.bash_qb_extras
 	fi
 	# set home permission
-	chmod 755 /home/${username}
+	chmod 755 /home/"${username}"
 }
 
 function _askvsftpd() {
@@ -720,6 +720,7 @@ deb https://packages.sury.org/php/ $(lsb_release -sc) main
 DPHP
 	fi
 	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
+	# shellcheck disable=SC2154
 	echo -e "XXX\n12\n${INFO_TEXT_PROGRESS_Extra_1}\nXXX"
 	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade --allow-unauthenticated >>"${OUTTO}" 2>&1
 	# auto solve dpkg lock
@@ -728,11 +729,13 @@ DPHP
 		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
 		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
 			for l in ${locks}; do
-				rm -rf ${l}
+				rm -rf "${l}"
 			done
-			dpkg --configure -a >>"${OUTTO}" 2>&1
-			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
-			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >>"${OUTTO}" 2>&1
+			{
+				dpkg --configure -a
+				DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update
+				DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
+			} >>"${OUTTO}" 2>&1
 		fi
 		if ! (apt-get check >/dev/null); then
 			apt-get install -f >>"${OUTTO}" 2>&1
@@ -748,6 +751,7 @@ function _dependency() {
 	_addPHP
 	DEPLIST="sudo at bc build-essential curl wget nginx-extras subversion ssl-cert php7.4-cli php7.4-fpm php7.4 php7.4-dev php7.4-memcached memcached php7.4-curl php7.4-gd php7.4-geoip php7.4-json php7.4-mbstring php7.4-opcache php7.4-xml php7.4-xmlrpc php7.4-zip libfcgi0ldbl mcrypt libmcrypt-dev nano python-dev unzip htop iotop vnstat vnstati automake make openssl net-tools debconf-utils ntp rsync"
 	for depend in $DEPLIST; do
+		# shellcheck disable=SC2154
 		echo -e "XXX\n12\n$INFO_TEXT_PROGRESS_Extra_2${depend}\nXXX"
 		DEBIAN_FRONTEND=noninteractive apt-get -y install "${depend}" --allow-unauthenticated >>"${OUTTO}" 2>&1 || { local dependError=1; }
 		if [[ $dependError == "1" ]]; then
@@ -842,8 +846,8 @@ EOF
 	service shellinabox stop >/dev/null 2>&1
 	rm -rf /etc/init.d/shellinabox
 
-	if [[ ! -f /etc/nginx/apps/${username}.console.conf ]]; then
-		cat >/etc/nginx/apps/${username}.console.conf <<WEBC
+	if [[ ! -f /etc/nginx/apps/"${username}".console.conf ]]; then
+		cat > /etc/nginx/apps/"${username}".console.conf <<WEBC
 location /${username}.console/ {
     proxy_pass        http://127.0.0.1:4200;
     #auth_basic "What's the password?";
@@ -881,7 +885,7 @@ function _insdashboard() {
 	cd && mkdir -p /srv/dashboard
 	\cp -fR ${local_setup_dashboard}. /srv/dashboard
 	touch /srv/dashboard/db/output.log
-	/usr/local/bin/quickbox/system/theme/themeSelect-${dash_theme}
+	/usr/local/bin/quickbox/system/theme/themeSelect-"${dash_theme}"
 	IFACE=$(ip link show | grep -i broadcast | grep -m1 UP | cut -d: -f 2 | cut -d@ -f 1 | sed -e 's/ //g')
 	echo "${IFACE}" >/srv/dashboard/db/interface.txt
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/stat.php
@@ -1403,7 +1407,7 @@ while true; do
 		count=0
 		reserved_names=('adm' 'admin' 'audio' 'backup' 'bin' 'cdrom' 'crontab' 'daemon' 'dialout' 'dip' 'disk' 'fax' 'floppy' 'fuse' 'games' 'gnats' 'irc' 'kmem' 'landscape' 'libuuid' 'list' 'lp' 'mail' 'man' 'messagebus' 'mlocate' 'netdev' 'news' 'nobody' 'nogroup' 'operator' 'plugdev' 'proxy' 'root' 'sasl' 'shadow' 'src' 'ssh' 'sshd' 'staff' 'sudo' 'sync' 'sys' 'syslog' 'tape' 'tty' 'users' 'utmp' 'uucp' 'video' 'voice' 'whoopsie' 'www-data')
 		count=$(echo -n "$username" | wc -c)
-		if $(echo "${reserved_names[@]}" | grep -wq "$username"); then
+		if echo "${reserved_names[@]}" | grep -wq "$username"; then
 			_error "Do not use reversed user name !"
 			exit 1
 		elif [[ $count -lt 3 || $count -gt 32 ]]; then
@@ -1463,12 +1467,12 @@ while true; do
 		;;	
 	--tz | --timezone)
 		timezone="$2"
-		if $(echo ${timezone} | grep -wEq 'GMT[+,-]0?[0-9]|1[0-2]'); then
+		if echo "${timezone}" | grep -wEq 'GMT[+,-]0?[0-9]|1[0-2]'; then
 			unlink /etc/localtime
-			ln -s /usr/share/zoneinfo/Etc/${timezone} /etc/localtime
-		elif $(echo ${timezone} | grep -wEq 'UTC'); then
+			ln -s /usr/share/zoneinfo/Etc/"${timezone}" /etc/localtime
+		elif echo "${timezone}" | grep -wEq 'UTC'; then
 			unlink /etc/localtime
-			ln -s /usr/share/zoneinfo/Etc/${timezone} /etc/localtime
+			ln -s /usr/share/zoneinfo/Etc/"${timezone}" /etc/localtime
 		elif [[ -f /usr/share/zoneinfo/"${timezone}" ]]; then
 			unlink /etc/localtime
 			ln -s /usr/share/zoneinfo/"${timezone}" /etc/localtime
@@ -1535,7 +1539,7 @@ if [[ $onekey == 1 ]]; then
 		if [[ $domain != "" ]]; then
 			_get_ip
 			test_domain=$(curl -sH 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$domain&type=A" | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}" | head -1)
-			if [[ $test_domain != ${ip} ]]; then
+			if [[ $test_domain != "${ip}" ]]; then
 				whiptail --title "$ERROR_TITLE_DOMAINCHK" --msgbox "${ERROR_TEXT_DOMAINCHK_1}$domain${ERROR_TEXT_DOMAINCHK_2}" --ok-button "$BUTTON_OK" 8 72
 				domain=""
 				exit 1
