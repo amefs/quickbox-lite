@@ -214,7 +214,6 @@ if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php')) {
 }
 
 require($_SERVER['DOCUMENT_ROOT'].'/widgets/plugin_data.php');
-require($_SERVER['DOCUMENT_ROOT'].'/widgets/package_data.php');
 require($_SERVER['DOCUMENT_ROOT'].'/widgets/theme_select.php');
 $base     = 1024;
 $location = "/home";
