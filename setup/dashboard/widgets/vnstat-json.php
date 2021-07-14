@@ -33,7 +33,6 @@
         $page  = $_GET['page'] ?? '';
         $iface = $_GET['if'] ?? '';
         $graph = $_GET['graph'] ?? '';
-        $style = $_GET['style'] ?? '';
 
         if (!in_array($page, $page_list)) {
             $page = $page_list[0];
@@ -198,7 +197,6 @@
         $summary['totalrxk']  = 0;
         $summary['totaltxk']  = 0;
         $summary['interface'] = $iface_data['name'];
-
-        $created = $iface_data['created'];
-        $summary['created'] = mktime(0, 0, 0, $created['date']['month'], $created['date']['day'], $created['date']['year']);
+        $created              = $iface_data['created'];
+        $summary['created']   = mktime(0, 0, 0, $created['date']['month'], $created['date']['day'], $created['date']['year']);
     }
