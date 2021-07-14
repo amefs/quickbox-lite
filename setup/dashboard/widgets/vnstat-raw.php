@@ -74,7 +74,7 @@
         // extract data
         //
         foreach ($vnstat_data as $line) {
-            $d = explode(';', trim($line));
+            $d = array_map("intval", explode(';', trim($line)));
             if ($d[0] == 'd') {
                 $day[$d[1]]['time'] = $d[2];
                 $day[$d[1]]['rx']   = $d[3] * 1024 + $d[5];

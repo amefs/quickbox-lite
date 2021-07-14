@@ -14,6 +14,28 @@ function processExists($processName, $username) {
     return $exists;
 }
 
+function get_progress_color($percent) {
+    if ($percent >= 90) {
+        return "progress-bar-danger";
+    }
+    if ($percent >= 70) {
+        return "progress-bar-warning";
+    }
+
+    return "progress-bar-success";
+}
+
+function get_disk_class($percent) {
+    if ($percent >= 90) {
+        return "disk-danger";
+    }
+    if ($percent >= 70) {
+        return "disk-warning";
+    }
+
+    return "disk-good";
+}
+
 $rtorrents     = shell_exec("ls /home/".$username."/.sessions/*.torrent|wc -l");
 $dtorrents     = shell_exec("ls /home/".$username."/.config/deluge/state/*.torrent|wc -l");
 $transtorrents = shell_exec("ls /home/".$username."/.config/transmission/torrents/*.torrent|wc -l");
@@ -22,10 +44,9 @@ if (file_exists('/home/'.$username.'/.local/share/data/qBittorrent')) {
 } else {
     $qtorrents = shell_exec("ls /home/".$username."/.local/share/qBittorrent/BT_backup/*.torrent|wc -l");
 }
-$php_self = $_SERVER['PHP_SELF'];
-$web_path = substr($php_self, 0, strrpos($php_self, '/') + 1);
-$time     = microtime(); $time     = explode(" ", $time);
-$time     = $time[1] + $time[0]; $start     = $time;
+// $php_self = $_SERVER['PHP_SELF'];
+// $web_path = substr($php_self, 0, strrpos($php_self, '/') + 1);
+// $start     = microtime_float();
 
 $disk_info = array_filter(explode("\n", `df -h| grep -E "^(/dev/)"`));
 foreach ($disk_info as $parts) {
@@ -48,16 +69,7 @@ foreach ($disk_info as $parts) {
     </p>
     <br>
     <div class="progress">
-      <?php
-        if ($perused <= 70) {
-            $diskcolor = "progress-bar-success";
-        }
-    if ($perused > 70) {
-        $diskcolor = "progress-bar-warning";
-    }
-    if ($perused > 90) {
-        $diskcolor = "progress-bar-danger";
-    } ?>
+      <?php $diskcolor = get_progress_color($perused); ?>
       <div style="width:<?php echo "{$perused}"; ?>%" aria-valuemax="100" aria-valuemin="0" aria-valuenow="<?php echo "{$perused}"; ?>" role="progressbar" class="progress-bar <?php echo $diskcolor; ?>">
         <span class="sr-only"><?php echo "{$perused}"; ?>% <?php echo T('USED'); ?></span>
       </div>
@@ -65,17 +77,8 @@ foreach ($disk_info as $parts) {
     <p style="font-size:10px"><?php echo T('PERCENTAGE_TXT_1'); ?> <?php echo "{$perused}"; ?>% <?php echo T('PERCENTAGE_TXT_2'); ?></p>
   </div>
   <div class="col-sm-4 text-right">
-    <?php
-      if ($perused <= 70) {
-          $diskcolor = "disk-good";
-      }
-    if ($perused > 70) {
-        $diskcolor = "disk-warning";
-    }
-    if ($perused > 90) {
-        $diskcolor = "disk-danger";
-    } ?>
-    <i class="fa fa-hdd-o <?php echo $diskcolor; ?>" style="font-size: 90px;"></i>
+    <?php $diskclass = get_disk_class($perused); ?>
+    <i class="fa fa-hdd-o <?php echo $diskclass; ?>" style="font-size: 90px;"></i>
   </div>
 </div>
 <hr />

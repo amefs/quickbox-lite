@@ -23,13 +23,6 @@ $vnstat_bin              = '/usr/bin/vnstat';
 $data_dir                = './dumps';
 $byte_notation           = null;
 
-function search($data, $find, $end) {
-    $pos1 = strpos($data, $find) + strlen($find);
-    $pos2 = strpos($data, $end, $pos1);
-
-    return substr($data, $pos1, $pos2 - $pos1);
-}
-
 define('HTTP_HOST', preg_replace('~^www\.~i', '', $_SERVER['HTTP_HOST']));
 
 $panel = [
@@ -42,14 +35,6 @@ $panel = [
 ];
 
 $time_start = microtime_float();
-
-// Timing
-function microtime_float() {
-    $mtime = microtime();
-    $mtime = explode(' ', $mtime);
-
-    return $mtime[1] + $mtime[0];
-}
 
 //NIC flow
 $strs = @file("/proc/net/dev");
@@ -118,19 +103,16 @@ $cpu_show = $data['cpu0']['user']."%us,  ".$data['cpu0']['idle']."%id,  ";
 // Information obtained depending on the system CPU
 switch (PHP_OS) {
   case "Linux":
-    $sysReShow = (false !== ($sysInfo = sys_linux())) ? "show" : "none";
-  break;
-
-  case "FreeBSD":
-    $sysReShow = (false !== ($sysInfo = sys_freebsd())) ? "show" : "none";
+    $sysCpuInfo = sys_linux_cpu();
   break;
 
   default:
+    $sysCpuInfo = [];
   break;
 }
 
 //linux system detects
-function sys_linux() {
+function sys_linux_cpu() {
     // CPU
     if (false === ($str = @file("/proc/cpuinfo"))) {
         return false;
@@ -164,79 +146,9 @@ function sys_linux() {
     return $res;
 }
 
-//FreeBSD system detects
-function sys_freebsd() {
-    //CPU
-    if (false === ($res['cpu']['num'] = get_key("hw.ncpu"))) {
-        return false;
-    }
-    $res['cpu']['model'] = get_key("hw.model");
-
-    return $res;
-}
-
-//Obtain the parameter values FreeBSD
-function get_key($keyName) {
-    return do_command('sysctl', "-n {$keyName}");
-}
-
-//Determining the location of the executable file FreeBSD
-function find_command($commandName) {
-    $path = ['/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin', '/usr/local/sbin'];
-    foreach ($path as $p) {
-        if (@is_executable("{$p}/{$commandName}")) {
-            return "{$p}/{$commandName}";
-        }
-    }
-
-    return false;
-}
-
-//Order Execution System FreeBSD
-function do_command($commandName, $args) {
-    $buffer = "";
-    if (false === ($command = find_command($commandName))) {
-        return false;
-    }
-    if ($fp = @popen("{$command} {$args}", 'r')) {
-        while (!@feof($fp)) {
-            $buffer .= @fgets($fp, 4096);
-        }
-
-        return trim($buffer);
-    }
-
-    return false;
-}
-
-function GetWMI($wmi, $strClass, $strValue = []) {
-    $arrData = [];
-
-    $objWEBM    = $wmi->Get($strClass);
-    $arrProp    = $objWEBM->Properties_;
-    $arrWEBMCol = $objWEBM->Instances_();
-    foreach ($arrWEBMCol as $objItem) {
-        @reset($arrProp);
-        $arrInstance = [];
-        foreach ($arrProp as $propItem) {
-            eval("\$value = \$objItem->".$propItem->Name.";");
-            if (empty($strValue)) {
-                $arrInstance[$propItem->Name] = trim($value);
-            } else {
-                if (in_array($propItem->Name, $strValue)) {
-                    $arrInstance[$propItem->Name] = trim($value);
-                }
-            }
-        }
-        $arrData[] = $arrInstance;
-    }
-
-    return $arrData;
-}
-
 function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain = '/') {
-    ini_set("session.gc_maxlifetime", $timeout);
-    ini_set("session.cookie_lifetime", $timeout);
+    ini_set("session.gc_maxlifetime", strval($timeout));
+    ini_set("session.cookie_lifetime", strval($timeout));
     $seperator = strstr(strtoupper(substr(PHP_OS, 0, 3)), "WIN") ? "\\" : "/";
     $path      = ini_get("session.save_path").$seperator."session_".$timeout."sec";
     if (!file_exists($path)) {
@@ -245,8 +157,8 @@ function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain 
         }
     }
     ini_set("session.save_path", $path);
-    ini_set("session.gc_probability", $probability);
-    ini_set("session.gc_divisor", 100);
+    ini_set("session.gc_probability", strval($probability));
+    ini_set("session.gc_divisor", "100");
     session_start();
     if (isset($_COOKIE[session_name()])) {
         setcookie(session_name(), $_COOKIE[session_name()], time() + $timeout, $cookie_domain);
@@ -274,9 +186,9 @@ function isEnabled($service, $username) {
     }
 }
 
-if (file_exists('/srv/dashboard/custom/url.override.php')) {
+if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php')) {
     // BEGIN CUSTOM URL OVERRIDES //
-    include($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php');
+    require($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php');
 // END CUSTOM URL OVERRIDES ////
 } else {
     $btsyncURL         = "https://".$_SERVER['HTTP_HOST']."/{$username}.btsync/";
@@ -301,8 +213,8 @@ if (file_exists('/srv/dashboard/custom/url.override.php')) {
     $zncURL            = "https://".$_SERVER['HTTP_HOST']."/znc/";
 }
 
-include($_SERVER['DOCUMENT_ROOT'].'/widgets/plugin_data.php');
-include($_SERVER['DOCUMENT_ROOT'].'/widgets/package_data.php');
-include($_SERVER['DOCUMENT_ROOT'].'/widgets/theme_select.php');
+require($_SERVER['DOCUMENT_ROOT'].'/widgets/plugin_data.php');
+require($_SERVER['DOCUMENT_ROOT'].'/widgets/package_data.php');
+require($_SERVER['DOCUMENT_ROOT'].'/widgets/theme_select.php');
 $base     = 1024;
 $location = "/home";

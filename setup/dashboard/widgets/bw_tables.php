@@ -10,7 +10,7 @@ $byte_notation           = null;
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-require('vnstat.php');
+require($_SERVER['DOCUMENT_ROOT'].'/widgets/vnstat.php');
 
 validate_input();
 

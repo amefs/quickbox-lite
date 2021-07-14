@@ -1,11 +1,12 @@
 <?php
+  // require_once($_SERVER["DOCUMENT_ROOT"]."/inc/config.php");
   $current_vs = "<span id=\"version-result\"></span>";
 ?>
 <body class="body">
 <header>
   <div class="headerpanel">
     <div class="logopanel">
-      <h2><?php include("db/branding-l.php"); ?></h2>
+      <h2><?php require("db/branding-l.php"); ?></h2>
     </div><!-- logopanel -->
     <div class="headerbar">
       <a id="menuToggle" class="menutoggle"><i class="fa fa-bars"></i></a>
@@ -105,7 +106,7 @@
                 <?php echo "{$username}"; ?>
                 <span class="caret"></span>
               </button>
-              <?php include("db/branding-m.php"); ?>
+              <?php require($_SERVER['DOCUMENT_ROOT'].'/db/branding-m.php'); ?>
             </div>
           </li>
         </ul>
@@ -162,7 +163,7 @@
               <?php if (processExists("flexget", $username) && file_exists("/install/.{$username}.flexget.lock")) { ?>
                 <li><a href="<?php echo "{$flexgetURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/flexget.png" class="brand-ico lazyload"> <span>FlexGet</span></a></li>
               <?php } ?>
-              <?php if (processExists("netdata", netdata) && file_exists("/install/.netdata.lock")) { ?>
+              <?php if (processExists("netdata", "netdata") && file_exists("/install/.netdata.lock")) { ?>
                 <li><a href="<?php echo "{$netdataURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/netdata.png" class="brand-ico lazyload"> <span>NetData</span></a></li>
               <?php } ?>
               <?php if (processExists("Xtightvnc", $username) && file_exists("/install/.novnc.lock")) { ?>
@@ -203,7 +204,7 @@
                 </ul>
               </li>
             <?php } ?>
-            <?php if (processExists("shellinabox", shellinabox) && ($username == "{$master}")) { ?>
+            <?php if (processExists("shellinabox", "shellinabox") && ($username == "{$master}")) { ?>
             <li><a href="/<?php echo "{$username}"; ?>.console" target="_blank"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
             <?php } ?>
             <!-- /// BEGIN INSERT CUSTOM MENU /// -->

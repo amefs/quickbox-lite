@@ -1,7 +1,7 @@
 <?php
-  include('inc/config.php');
-  include('inc/panel.header.php');
-  include('inc/panel.menu.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.header.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.menu.php');
 ?>
 
 <div class="mainpanel">
@@ -55,12 +55,12 @@
         </div>
 
         <!--SERVICE CONTROL CENTER-->
-        <?php include('widgets/service_control.php'); ?>
+        <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/service_control.php'); ?>
         <!-- panel -->
 
         <?php if ($username == "{$master}") { ?>
           <!--PACKAGE MANAGEMENT CENTER-->
-          <?php include('widgets/pmc.php'); ?>
+          <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/pmc.php'); ?>
           <!-- panel -->
         <?php } ?>
 
@@ -94,8 +94,8 @@
           </div>
           <div class="panel-body" style="overflow:hidden">
             <span class="nomargin" style="font-size:14px">
-              <?php echo $sysInfo['cpu']['model']; ?><br/>
-              [<span style="color:#999;font-weight:600">x<?php echo $sysInfo['cpu']['num']; ?></span> core]
+              <?php echo $sysCpuInfo['cpu']['model']; ?><br/>
+              [<span style="color:#999;font-weight:600">x<?php echo $sysCpuInfo['cpu']['num']; ?></span> core]
             </span>
           </div>
         </div><!-- CPU WIDGET -->
@@ -142,6 +142,6 @@
 </div><!-- mainpanel -->
 
 <?php
-  include('inc/panel.scripts.php');
-  include('inc/panel.end.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.scripts.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.end.php');
 ?>

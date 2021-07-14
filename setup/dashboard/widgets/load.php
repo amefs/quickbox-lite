@@ -1,23 +1,20 @@
 <?php
 
-include($_SERVER["DOCUMENT_ROOT"]."/inc/localize.php");
+require($_SERVER["DOCUMENT_ROOT"]."/inc/localize.php");
 
 // Information obtained depending on the system CPU
 switch (PHP_OS) {
-  case "Linux":
-    $sysReShow = (false !== ($sysInfo = sys_linux())) ? "show" : "none";
-  break;
+    case "Linux":
+        $sysLoadInfo = sys_linux_load();
+    break;
 
-  case "FreeBSD":
-    $sysReShow = (false !== ($sysInfo = sys_freebsd())) ? "show" : "none";
-  break;
-
-  default:
-  break;
+    default:
+        $sysLoadInfo = [];
+    break;
 }
 
 //linux system detects
-function sys_linux() {
+function sys_linux_load() {
     // LOAD AVG
     if (false === ($str = @file("/proc/loadavg"))) {
         return false;
@@ -28,5 +25,5 @@ function sys_linux() {
 
     return $res;
 }
-$load = $sysInfo['loadAvg'];  //System load
+$load = $sysLoadInfo['loadAvg'];  //System load
 echo "{$load}";
