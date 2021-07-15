@@ -12,7 +12,8 @@ $version  = "v1.4.6";
 $branch   = file_exists('/install/.developer.lock') ? "development" : "master";
 $username = getUser();
 $master   = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
-$master   = preg_replace('/\s+/', '', $master);
+assert($master !== false);
+$master = preg_replace('/\s+/', '', $master);
 
 define('HTTP_HOST', preg_replace('~^www\.~i', '', $_SERVER['HTTP_HOST']));
 
@@ -29,6 +30,7 @@ $time_start = microtime_float();
 
 //NIC flow
 $strs = @file("/proc/net/dev");
+assert($strs !== false);
 // only index start from 0 will be encoded as an array
 $NetInputSpeed = [0 => null, 1 => null];
 $NetOutSpeed   = [0 => null, 1 => null];
@@ -56,7 +58,8 @@ if ($_GET["act"] == "rt") {
  * @return array<int,mixed>
  */
 function GetCoreInformation() {
-    $data  = file('/proc/stat');
+    $data = file('/proc/stat');
+    assert($data !== false);
     $cores = [];
     foreach ($data as $line) {
         if (preg_match('/^cpu[0-9]/', $line)) {
@@ -71,6 +74,7 @@ function GetCoreInformation() {
 /**
  * @param array<int,mixed> $stat1
  * @param array<int,mixed> $stat2
+ *
  * @return array<string,mixed>
  */
 function GetCpuPercentages($stat1, $stat2) {
@@ -110,7 +114,8 @@ switch (PHP_OS) {
 }
 
 /**
- * linux system detects
+ * linux system detects.
+ *
  * @return bool|array<string,mixed>
  */
 function sys_linux_cpu() {
@@ -141,9 +146,10 @@ function sys_linux_cpu() {
 }
 
 /**
- * @param int $timeout
- * @param int $probability
+ * @param int    $timeout
+ * @param int    $probability
  * @param string $cookie_domain
+ *
  * @return void
  */
 function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain = '/') {
@@ -160,8 +166,10 @@ function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain 
     ini_set("session.gc_probability", strval($probability));
     ini_set("session.gc_divisor", "100");
     session_start();
-    if (isset($_COOKIE[session_name()])) {
-        setcookie(session_name(), $_COOKIE[session_name()], time() + $timeout, $cookie_domain);
+    $session_name = session_name();
+    assert($session_name !== false);
+    if (isset($_COOKIE[$session_name])) {
+        setcookie($session_name, $_COOKIE[$session_name], time() + $timeout, $cookie_domain);
     }
 }
 
@@ -171,6 +179,7 @@ $MSGFILE = session_id();
 /**
  * @param string $processName
  * @param string $username
+ *
  * @return bool
  */
 function processExists($processName, $username) {
@@ -186,6 +195,7 @@ function processExists($processName, $username) {
 /**
  * @param string $service
  * @param string $username
+ *
  * @return string
  */
 function isEnabled($service, $username) {

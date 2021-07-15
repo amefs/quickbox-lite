@@ -1,7 +1,7 @@
 <?php
 class DiskStatus {
     public const RAW_OUTPUT = true;
-    /** @var string $diskPath */
+    /** @var string */
     private $diskPath;
 
     /**
@@ -13,6 +13,7 @@ class DiskStatus {
 
     /**
      * @param bool $rawOutput
+     *
      * @return float|string
      */
     public function totalSpace($rawOutput = false) {
@@ -26,6 +27,7 @@ class DiskStatus {
 
     /**
      * @param bool $rawOutput
+     *
      * @return float|string
      */
     public function freeSpace($rawOutput = false) {
@@ -39,6 +41,7 @@ class DiskStatus {
 
     /**
      * @param int $precision
+     *
      * @return float
      */
     public function usedSpace($precision = 1) {
@@ -58,6 +61,7 @@ class DiskStatus {
 
     /**
      * @param int|float $bytes
+     *
      * @return string
      */
     private function addUnits($bytes) {

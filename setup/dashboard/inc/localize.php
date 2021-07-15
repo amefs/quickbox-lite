@@ -7,6 +7,7 @@ require($_SERVER['DOCUMENT_ROOT']."/lang/");
 
 /**
  * @param string $str
+ *
  * @return string
  */
 function T($str) {

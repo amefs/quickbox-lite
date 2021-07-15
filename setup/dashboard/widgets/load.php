@@ -14,13 +14,14 @@ switch (PHP_OS) {
 }
 
 /**
- * linux system detects
- * @return bool|array<string,mixed>
+ * linux system detects.
+ *
+ * @return array<string,mixed>
  */
 function sys_linux_load() {
     // LOAD AVG
     if (false === ($str = @file("/proc/loadavg"))) {
-        return false;
+        return [];
     }
     $str            = explode(" ", implode("", $str));
     $str            = array_chunk($str, 4);

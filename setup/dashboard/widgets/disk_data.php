@@ -8,6 +8,7 @@ $username = getUser();
 /**
  * @param string $processName
  * @param string $username
+ *
  * @return bool
  */
 function processExists($processName, $username) {
@@ -22,6 +23,7 @@ function processExists($processName, $username) {
 
 /**
  * @param int|float $percent
+ *
  * @return string
  */
 function get_progress_color($percent) {
@@ -37,6 +39,7 @@ function get_progress_color($percent) {
 
 /**
  * @param int|float $percent
+ *
  * @return string
  */
 function get_disk_class($percent) {
@@ -64,7 +67,9 @@ if (file_exists('/home/'.$username.'/.local/share/data/qBittorrent')) {
 
 $disk_info = array_filter(explode("\n", `df -h| grep -E "^(/dev/)"`));
 foreach ($disk_info as $parts) {
-    $parts_tmp = array_values(preg_split('/\s+/', $parts));
+    $splited = preg_split('/\s+/', $parts);
+    assert($splited !== false);
+    $parts_tmp = array_values($splited);
     if (strstr($parts_tmp[1], "M")) {
         continue;
     }

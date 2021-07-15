@@ -35,6 +35,7 @@
 
     /**
      * @param bool $use_label
+     *
      * @return void
      */
     function get_vnstat_data($use_label = true) {
@@ -44,6 +45,7 @@
         if (!isset($vnstat_bin) || $vnstat_bin == '') {
             if (file_exists("{$data_dir}/vnstat_dump_{$iface}")) {
                 $vnstat_data = file("{$data_dir}/vnstat_dump_{$iface}");
+                assert($vnstat_data !== false);
             }
         } else {
             $fd = popen("{$vnstat_bin} --dumpdb -i {$iface}", "r");
@@ -83,7 +85,11 @@
                     $day[$d[1]]['label']     = '';
                     $day[$d[1]]['img_label'] = '';
                 }
-                $diff_time            = strtotime("now") - strtotime(strftime("%d %B %Y", strtotime("now")));
+
+                $now     = strtotime("now");
+                $zerostr = strftime("%d %B %Y", $now);
+                assert($zerostr !== false);
+                $diff_time            = $now - strtotime($zerostr);
                 $day[$d[1]]['rx_avg'] = round($day[$d[1]]['rx'] / $diff_time) * 8;
                 $day[$d[1]]['tx_avg'] = round($day[$d[1]]['tx'] / $diff_time) * 8;
             } elseif ($d[0] == 'm') {
@@ -98,7 +104,10 @@
                     $month[$d[1]]['label']     = '';
                     $month[$d[1]]['img_label'] = '';
                 }
-                $diff_time              = strtotime("now") - strtotime(strftime("1 %B %Y", strtotime("now")));
+                $now          = strtotime("now");
+                $lastmomthstr = strftime("1 %B %Y", $now);
+                assert($lastmomthstr !== false);
+                $diff_time              = $now - strtotime($lastmomthstr);
                 $month[$d[1]]['rx_avg'] = round($month[$d[1]]['rx'] / $diff_time) * 8;
                 $month[$d[1]]['tx_avg'] = round($month[$d[1]]['tx'] / $diff_time) * 8;
             } elseif ($d[0] == 'h') {
@@ -115,7 +124,10 @@
                     $hour[$d[1]]['label']     = '';
                     $hour[$d[1]]['img_label'] = '';
                 }
-                $diff_time             = $d[2] - strtotime(strftime("%d %B %Y %H:00:00", $d[2]));
+                $now         = $d[2];
+                $lasthourstr = strftime("%d %B %Y %H:00:00", $now);
+                assert($lasthourstr !== false);
+                $diff_time             = $now - strtotime($lasthourstr);
                 $hour[$d[1]]['rx_avg'] = round($hour[$d[1]]['rx'] / $diff_time) * 8;
                 $hour[$d[1]]['tx_avg'] = round($hour[$d[1]]['tx'] / $diff_time) * 8;
             } elseif ($d[0] == 't') {

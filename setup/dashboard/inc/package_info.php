@@ -501,13 +501,15 @@ $downloadList = [
 ];
 
 /**
- * @param null|string $package
- * @return null|array<string,mixed>|false
+ * @param string|null $package
+ *
+ * @return array<string,mixed>|false|null
  */
 function get_package_ref($package) {
     global $packageMap;
     if ($package === null) {
         error_log("Parameter #1 \$package of function get_package_ref expects string, null given", 0);
+
         return null;
     }
     if (array_key_exists($package, $packageMap)) {
@@ -520,6 +522,7 @@ function get_package_ref($package) {
 
 /**
  * @param array<string,mixed> $package
+ *
  * @return void
  */
 function __check_package_config($package) {

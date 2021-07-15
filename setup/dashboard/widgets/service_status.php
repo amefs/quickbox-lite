@@ -6,6 +6,7 @@ assert(isset($packageList));
 /**
  * @param string $processName
  * @param string $username
+ *
  * @return bool
  */
 function processExists($processName, $username) {

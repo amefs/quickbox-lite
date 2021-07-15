@@ -1,8 +1,9 @@
 <?php
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-$username   = getUser();
-$master     = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
+$username = getUser();
+$master   = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
+assert($master !== false);
 $master     = preg_replace('/\s+/', '', $master);
 $time_start = microtime_float();
 
@@ -18,13 +19,14 @@ switch (PHP_OS) {
 }
 
 /**
- * linux system detects
- * @return bool|array<string,mixed>
+ * linux system detects.
+ *
+ * @return array<string,mixed>
  */
 function sys_linux_mem() {
     // MEMORY
     if (false === ($str = @file("/proc/meminfo"))) {
-        return false;
+        return [];
     }
     $str = implode("", $str);
     preg_match_all("/MemTotal\s{0,}\:+\s{0,}([\d\.]+).+?MemFree\s{0,}\:+\s{0,}([\d\.]+).+?Cached\s{0,}\:+\s{0,}([\d\.]+).+?SwapTotal\s{0,}\:+\s{0,}([\d\.]+).+?SwapFree\s{0,}\:+\s{0,}([\d\.]+)/s", $str, $buf);
@@ -53,6 +55,7 @@ function sys_linux_mem() {
 
 /**
  * @param int|float|string $percent
+ *
  * @return string
  */
 function get_ram_color($percent) {

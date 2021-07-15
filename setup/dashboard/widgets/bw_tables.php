@@ -8,11 +8,11 @@ $data_dir                = './dumps';
 $byte_notation           = null;
 
 /** @var array<int,mixed> $page */
-$page  = null;
+$page = null;
 /** @var array<int,mixed> $day */
-$day   = null;
+$day = null;
 /** @var array<int,mixed> $hour */
-$hour  = null;
+$hour = null;
 /** @var array<int,mixed> $month */
 $month = null;
 
@@ -124,8 +124,9 @@ function write_summary_t() {
 }
 
 /**
- * @param string $caption
+ * @param string           $caption
  * @param array<int,mixed> $tab
+ *
  * @return void
  */
 function write_data_table_s($caption, $tab) {
@@ -167,8 +168,9 @@ function write_data_table_s($caption, $tab) {
 }
 
 /**
- * @param string $caption
+ * @param string           $caption
  * @param array<int,mixed> $tab
+ *
  * @return void
  */
 function write_data_table_t($caption, $tab) {

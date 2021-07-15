@@ -31,6 +31,7 @@ if (!isset($locale)) {
 
 /**
  * @param array<mixed,mixed> $arr
+ *
  * @return void
  */
 function stripSlashesFromArray(&$arr) {
@@ -55,7 +56,9 @@ setlocale(LC_COLLATE, $locale, "UTF-8", "en_US.UTF-8", "en_US.UTF8");
 function getLogin() {
     if ($_SERVER['REMOTE_ADDR'] === '127.0.0.1') {
         $master = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
+        assert($master !== false);
         $master = preg_replace('/\s+/', '', $master);
+        assert($master !== null);
 
         return $master;
     }
@@ -73,10 +76,12 @@ function getUser() {
 }
 
 /**
- * Unit Conversion, KB by default
+ * Unit Conversion, KB by default.
+ *
  * @param int|float $length
- * @param int $decimals
- * @param int $startwith
+ * @param int       $decimals
+ * @param int       $startwith
+ *
  * @return string
  */
 function formatsize($length, $decimals = 3, $startwith = 1) {
@@ -92,8 +97,9 @@ function formatsize($length, $decimals = 3, $startwith = 1) {
 
 /**
  * @param int|float $length
- * @param int $decimals
- * @param int $startwith
+ * @param int       $decimals
+ * @param int       $startwith
+ *
  * @return string
  */
 function formatspeed($length, $decimals = 3, $startwith = 1) {
@@ -108,7 +114,8 @@ function formatspeed($length, $decimals = 3, $startwith = 1) {
 }
 
 /**
- * Timing
+ * Timing.
+ *
  * @return float
  */
 function microtime_float() {

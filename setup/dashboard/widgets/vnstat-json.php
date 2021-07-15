@@ -35,6 +35,7 @@
 
     /**
      * @param bool $use_label
+     *
      * @return void
      */
     function get_vnstat_data($use_label = true) {
@@ -44,7 +45,8 @@
         $vnstat_data = [];
         if (!isset($vnstat_bin) || $vnstat_bin == '') {
             if (file_exists("{$data_dir}/vnstat_dump_{$iface}")) {
-                $file_data   = file_get_contents("{$data_dir}/vnstat_dump_{$iface}");
+                $file_data = file_get_contents("{$data_dir}/vnstat_dump_{$iface}");
+                assert($file_data !== false);
                 $vnstat_data = json_decode($file_data, true);
             }
         } else {
@@ -97,6 +99,7 @@
         for ($i = 0; $i < min(30, count($day_data)); ++$i) {
             $d  = $day_data[$i];
             $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+            assert($ts !== false);
 
             $day[$i]['time'] = $ts;
             $day[$i]['rx']   = $d['rx'] / 1024;
@@ -108,7 +111,10 @@
                 $day[$i]['img_label'] = strftime(T('datefmt_days_img'), $ts);
             }
 
-            $diff_time         = strtotime("now") - strtotime(strftime("%d %B %Y", strtotime("now")));
+            $now     = strtotime("now");
+            $zerostr = strftime("%d %B %Y", $now);
+            assert($zerostr !== false);
+            $diff_time         = $now - strtotime($zerostr);
             $day[$i]['rx_avg'] = round($day[$i]['rx'] / $diff_time) * 8;
             $day[$i]['tx_avg'] = round($day[$i]['tx'] / $diff_time) * 8;
         }
@@ -118,6 +124,7 @@
         for ($i = 0; $i < min(12, count($month_data)); ++$i) {
             $d  = $month_data[$i];
             $ts = mktime(0, 0, 0, $d['date']['month'] + 1, 0, $d['date']['year']);
+            assert($ts !== false);
 
             $month[$i]['time'] = $ts;
             $month[$i]['rx']   = $d['rx'] / 1024;
@@ -129,7 +136,10 @@
                 $month[$i]['img_label'] = strftime(T('datefmt_months_img'), $ts);
             }
 
-            $diff_time = strtotime("now") - strtotime(strftime("1 %B %Y", strtotime("now")));
+            $now          = strtotime("now");
+            $lastmomthstr = strftime("1 %B %Y", $now);
+            assert($lastmomthstr !== false);
+            $diff_time = $now - strtotime($lastmomthstr);
 
             $month[$i]['rx_avg'] = round($month[$i]['rx'] / $diff_time) * 8;
             $month[$i]['tx_avg'] = round($month[$i]['tx'] / $diff_time) * 8;
@@ -140,6 +150,7 @@
         for ($i = 0; $i < min(24, count($hour_data)); ++$i) {
             $d  = $hour_data[$i];
             $ts = mktime($d['time']['hour'], $d['time']['minute'], 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+            assert($ts !== false);
 
             $hour[$i]['time'] = $ts;
             $hour[$i]['rx']   = $d['rx'] / 1024;
@@ -151,7 +162,10 @@
                 $hour[$i]['img_label'] = strftime(T('datefmt_hours_img'), $ts);
             }
 
-            $diff_time = strtotime("now") - strtotime(strftime("%d %B %Y %H:00:00", strtotime("now")));
+            $now         = strtotime("now");
+            $lasthourstr = strftime("%d %B %Y %H:00:00", $now);
+            assert($lasthourstr !== false);
+            $diff_time = $now - strtotime($lasthourstr);
             if ($diff_time <= 300) {
                 $diff_time = 3600;
             }
@@ -164,6 +178,7 @@
         for ($i = 0; $i < min(10, count($top10_data)); ++$i) {
             $d  = $top10_data[$i];
             $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+            assert($ts !== false);
 
             $top[$i]['time'] = $ts;
             $top[$i]['rx']   = $d['rx'] / 1024;
