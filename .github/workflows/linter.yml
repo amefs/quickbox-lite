@@ -38,6 +38,9 @@ jobs:
     - name: Run linter
       run: |
           composer run-script lint
+    - name: Run PHPStan
+      run: |
+          composer run-script analyse
 
   shell-linter:
     runs-on: ubuntu-20.04
