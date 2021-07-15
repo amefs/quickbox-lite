@@ -12,9 +12,9 @@
     $page_title['d'] = T('days');
     $page_title['m'] = T('months');
 
-    //
-    // functions
-    //
+    /**
+     * @return void
+     */
     function validate_input() {
         global $page,  $page_list;
         global $iface, $iface_list;
@@ -33,6 +33,10 @@
         }
     }
 
+    /**
+     * @param bool $use_label
+     * @return void
+     */
     function get_vnstat_data($use_label = true) {
         global $iface, $vnstat_bin, $data_dir;
         global $hour,$day,$month,$top,$summary;

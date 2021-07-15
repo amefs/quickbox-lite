@@ -7,9 +7,13 @@ $vnstat_bin              = '/usr/bin/vnstat';
 $data_dir                = './dumps';
 $byte_notation           = null;
 
+/** @var array<int,mixed> $page */
 $page  = null;
+/** @var array<int,mixed> $day */
 $day   = null;
+/** @var array<int,mixed> $hour */
 $hour  = null;
+/** @var array<int,mixed> $month */
 $month = null;
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
@@ -18,6 +22,9 @@ require($_SERVER['DOCUMENT_ROOT'].'/widgets/vnstat.php');
 
 validate_input();
 
+/**
+ * @return void
+ */
 function write_summary_s() {
     global $summary, $day, $hour, $month;
 
@@ -66,6 +73,9 @@ function write_summary_s() {
     write_data_table_s(T('Summary'), $sum);
 }
 
+/**
+ * @return void
+ */
 function write_summary_t() {
     global $top, $summary, $hour, $day, $month;
 
@@ -113,6 +123,11 @@ function write_summary_t() {
     write_data_table_t(T('Top 10 days'), $top);
 }
 
+/**
+ * @param string $caption
+ * @param array<int,mixed> $tab
+ * @return void
+ */
 function write_data_table_s($caption, $tab) {
     echo "<table class=\"table table-hover table-default nomargin\" width=\"100%\" cellspacing=\"0\">";
     echo "<thead>";
@@ -151,6 +166,11 @@ function write_data_table_s($caption, $tab) {
     echo "</table>";
 }
 
+/**
+ * @param string $caption
+ * @param array<int,mixed> $tab
+ * @return void
+ */
 function write_data_table_t($caption, $tab) {
     echo "<table class=\"table table-hover table-default nomargin\" width=\"100%\" cellspacing=\"0\">";
     echo "<thead>";

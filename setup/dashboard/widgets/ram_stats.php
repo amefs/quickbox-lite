@@ -17,7 +17,10 @@ switch (PHP_OS) {
     break;
 }
 
-//linux system detects
+/**
+ * linux system detects
+ * @return bool|array<string,mixed>
+ */
 function sys_linux_mem() {
     // MEMORY
     if (false === ($str = @file("/proc/meminfo"))) {
@@ -48,7 +51,12 @@ function sys_linux_mem() {
     return $res;
 }
 
+/**
+ * @param int|float|string $percent
+ * @return string
+ */
 function get_ram_color($percent) {
+    $percent = floatval($percent);
     if ($percent >= 90) {
         return "progress-bar-danger";
     }

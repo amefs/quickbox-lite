@@ -378,6 +378,9 @@ $packageList = [
 
 $packageMap = [];
 foreach ($packageList as $package) {
+    if (array_key_exists($package["package"], $packageMap)) {
+        error_log("package '{$package["package"]}' duplicated in package list!", 0);
+    }
     $packageMap[$package["package"]] = $package;
 }
 
@@ -497,19 +500,28 @@ $downloadList = [
     ],
 ];
 
+/**
+ * @param null|string $package
+ * @return null|array<string,mixed>|false
+ */
 function get_package_ref($package) {
     global $packageMap;
     if ($package === null) {
+        error_log("Parameter #1 \$package of function get_package_ref expects string, null given", 0);
         return null;
     }
     if (array_key_exists($package, $packageMap)) {
         return $packageMap[$package];
     }
-    error_log("package ref to '{$package}' not found!", 0);
+    error_log("package ref to '{$package}' not found in package map!", 0);
 
     return false;
 }
 
+/**
+ * @param array<string,mixed> $package
+ * @return void
+ */
 function __check_package_config($package) {
     assert(array_key_exists("package", $package));
     assert(array_key_exists("name", $package));
@@ -536,6 +548,9 @@ function __check_package_config($package) {
     }
 }
 
+/**
+ * @return void
+ */
 function __check_package() {
     global $packageList;
     foreach ($packageList as $package) {
@@ -544,6 +559,9 @@ function __check_package() {
     }
 }
 
+/**
+ * @return void
+ */
 function __check_menu_ref() {
     global $menuList;
     global $downloadList;

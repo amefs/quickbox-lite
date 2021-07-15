@@ -29,6 +29,10 @@ if (!isset($locale)) {
     $locale = "UTF8";
 }
 
+/**
+ * @param array<mixed,mixed> $arr
+ * @return void
+ */
 function stripSlashesFromArray(&$arr) {
     if (is_array($arr)) {
         foreach ($arr as $k => $v) {
@@ -45,6 +49,9 @@ function stripSlashesFromArray(&$arr) {
 setlocale(LC_CTYPE, $locale, "UTF-8", "en_US.UTF-8", "en_US.UTF8");
 setlocale(LC_COLLATE, $locale, "UTF-8", "en_US.UTF-8", "en_US.UTF8");
 
+/**
+ * @return string
+ */
 function getLogin() {
     if ($_SERVER['REMOTE_ADDR'] === '127.0.0.1') {
         $master = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
@@ -56,32 +63,22 @@ function getLogin() {
     return (isset($_SERVER['REMOTE_USER']) && !empty($_SERVER['REMOTE_USER'])) ? strtolower($_SERVER['REMOTE_USER']) : '';
 }
 
+/**
+ * @return string
+ */
 function getUser() {
     global $forbidUserSettings;
 
     return !$forbidUserSettings ? getLogin() : '';
 }
 
-@ini_set('precision', '16');
-@define('PHP_INT_MIN', ~PHP_INT_MAX);
-@define('XMLRPC_MAX_I4', 2147483647);
-@define('XMLRPC_MIN_I4', ~XMLRPC_MAX_I4);
-@define('XMLRPC_MIN_I8', -9.999999999999999E+15);
-@define('XMLRPC_MAX_I8', 9.999999999999999E+15);
-
-function iclamp($val, $min = 0, $max = XMLRPC_MAX_I8) {
-    $val = floatval($val);
-    if ($val < $min) {
-        $val = $min;
-    }
-    if ($val > $max) {
-        $val = $max;
-    }
-
-    return ((PHP_INT_SIZE > 4) || (($val >= PHP_INT_MIN) && ($val <= PHP_INT_MAX))) ? intval($val) : $val;
-}
-
-//Unit Conversion, KB by default
+/**
+ * Unit Conversion, KB by default
+ * @param int|float $length
+ * @param int $decimals
+ * @param int $startwith
+ * @return string
+ */
 function formatsize($length, $decimals = 3, $startwith = 1) {
     if ($length < 1e-5) {
         return '0 B';
@@ -93,6 +90,12 @@ function formatsize($length, $decimals = 3, $startwith = 1) {
     return number_format($length / pow($base, $index), $decimals).' '.$si_prefix[$index + 1];
 }
 
+/**
+ * @param int|float $length
+ * @param int $decimals
+ * @param int $startwith
+ * @return string
+ */
 function formatspeed($length, $decimals = 3, $startwith = 1) {
     if ($length < 1e-5) {
         return '0 B';
@@ -104,7 +107,10 @@ function formatspeed($length, $decimals = 3, $startwith = 1) {
     return number_format($length / pow($base, $index), $decimals).' '.$si_prefix[$index + 1];
 }
 
-// Timing
+/**
+ * Timing
+ * @return float
+ */
 function microtime_float() {
     $mtime = microtime();
     $mtime = explode(' ', $mtime);

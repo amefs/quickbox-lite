@@ -3,6 +3,11 @@
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
 assert(isset($packageList));
 
+/**
+ * @param string $processName
+ * @param string $username
+ * @return bool
+ */
 function processExists($processName, $username) {
     $exists = false;
     exec("ps axo user:20,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,comm,cmd|grep {$username} | grep -iE {$processName} | grep -v grep", $pids);

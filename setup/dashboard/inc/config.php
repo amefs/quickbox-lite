@@ -52,6 +52,9 @@ if ($_GET["act"] == "rt") {
     exit;
 }
 
+/**
+ * @return array<int,mixed>
+ */
 function GetCoreInformation() {
     $data  = file('/proc/stat');
     $cores = [];
@@ -64,9 +67,15 @@ function GetCoreInformation() {
 
     return $cores;
 }
+
+/**
+ * @param array<int,mixed> $stat1
+ * @param array<int,mixed> $stat2
+ * @return array<string,mixed>
+ */
 function GetCpuPercentages($stat1, $stat2) {
     if (count($stat1) !== count($stat2)) {
-        return;
+        return [];
     }
     $cpus = [];
     for ($i = 0, $l = count($stat1); $i < $l; ++$i) {
@@ -100,7 +109,10 @@ switch (PHP_OS) {
   break;
 }
 
-//linux system detects
+/**
+ * linux system detects
+ * @return bool|array<string,mixed>
+ */
 function sys_linux_cpu() {
     // CPU
     if (false === ($str = @file("/proc/cpuinfo"))) {
@@ -128,6 +140,12 @@ function sys_linux_cpu() {
     return $res;
 }
 
+/**
+ * @param int $timeout
+ * @param int $probability
+ * @param string $cookie_domain
+ * @return void
+ */
 function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain = '/') {
     ini_set("session.gc_maxlifetime", strval($timeout));
     ini_set("session.cookie_lifetime", strval($timeout));
@@ -150,6 +168,11 @@ function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain 
 session_start_timeout(5);
 $MSGFILE = session_id();
 
+/**
+ * @param string $processName
+ * @param string $username
+ * @return bool
+ */
 function processExists($processName, $username) {
     $exists = false;
     exec("ps axo user:20,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,comm,cmd|grep {$username} | grep -iE {$processName} | grep -v grep", $pids);
@@ -160,6 +183,11 @@ function processExists($processName, $username) {
     return $exists;
 }
 
+/**
+ * @param string $service
+ * @param string $username
+ * @return string
+ */
 function isEnabled($service, $username) {
     if (file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'@'.$username.'.service') || file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'.service')) {
         return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-en toggle-light primary" data-service="'.$service.'" data-operation="stop,disable"></div></div>';
@@ -169,9 +197,8 @@ function isEnabled($service, $username) {
 }
 
 if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php')) {
-    // BEGIN CUSTOM URL OVERRIDES //
+    // CUSTOM URL OVERRIDES //
     require($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php');
-// END CUSTOM URL OVERRIDES ////
 } else {
     $btsyncURL         = "https://".$_SERVER['HTTP_HOST']."/{$username}.btsync/";
     $dwURL             = "https://".$_SERVER['HTTP_HOST']."/deluge/";

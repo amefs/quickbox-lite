@@ -13,7 +13,10 @@ switch (PHP_OS) {
     break;
 }
 
-//linux system detects
+/**
+ * linux system detects
+ * @return bool|array<string,mixed>
+ */
 function sys_linux_load() {
     // LOAD AVG
     if (false === ($str = @file("/proc/loadavg"))) {
