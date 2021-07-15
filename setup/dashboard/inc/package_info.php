@@ -8,21 +8,21 @@ $username = getUser();
 $sample = [
     "package"     => "required",
     "name"        => "required",
-    "description" => "required",
-    "lockfile"    => "required",
-    "package"     => "required",
-    "install"     => "required when box only is true",
-    "uninstall"   => "required when boxonly is false",
-    "skip"        => "true for service only package",
+    "description" => "required|optional(skip!=true)",
+    "lockfile"    => "required|optional(skip!=true)",
+    "boxonly"     => "required|optional(skip!=true)",
+    "install"     => "required|optional(boxonly==true)",
+    "uninstall"   => "required|optional(boxonly==false)",
+    "skip"        => "optional(set true for service only package)",
     "services"    => [
-        "{$servicename}$" => [
+        "$servicename$" => [
             "process"      => "required",
             "name"         => "required",
             "username"     => "required",
             "tooltips"     => "optional",
             "tooltipsicon" => "optional",
         ],
-    ], // optional
+    ], // (optional|required(boxonly==true))
 ];
 */
 
@@ -375,3 +375,206 @@ $packageList = [
         ],
     ],
 ];
+
+$packageMap = [];
+foreach ($packageList as $package) {
+    $packageMap[$package["package"]] = $package;
+}
+
+$menuList = [
+    [
+        "name"        => "ruTorrent",
+        "service_ref" => "rtorrent",
+        "lock_ref"    => "rutorrent",
+        "url"         => "/rutorrent/",
+        "logo"        => "img/brands/rtorrent.png",
+    ], [
+        "name"        => "Flood",
+        "service_ref" => "flood",
+        "lock_ref"    => "flood",
+        "url"         => "/{$username}/flood/",
+        "logo"        => "img/brands/flood.png",
+    ], [
+        "name"        => "Deluge Web",
+        "service_ref" => "deluge",
+        "lock_ref"    => "deluge",
+        "url"         => "/deluge/",
+        "logo"        => "img/brands/deluge.png",
+    ], [
+        "name"        => "Transmission Web Control",
+        "service_ref" => "transmission",
+        "lock_ref"    => "transmission",
+        "url"         => "/transmission",
+        "logo"        => "img/brands/transmission.png",
+    ], [
+        "name"        => "qBittorrent",
+        "service_ref" => "qbittorrent",
+        "lock_ref"    => "qbittorrent",
+        "url"         => "/qbittorrent/",
+        "logo"        => "img/brands/qbittorrent.png",
+    ], [
+        "name"        => "BTSync",
+        "service_ref" => "btsync",
+        "lock_ref"    => "btsync",
+        "url"         => "/{$username}.btsync/",
+        "logo"        => "img/brands/btsync.png",
+    ], [
+        "name"        => "File Browser",
+        "service_ref" => "filebrowser",
+        "lock_ref"    => "filebrowser",
+        "url"         => "/filebrowser/",
+        "logo"        => "img/brands/filebrowser.png",
+    ], [
+        "name"        => "File Browser Enhanced",
+        "service_ref" => "filebrowser-ee",
+        "lock_ref"    => "filebrowser-ee",
+        "url"         => "/filebrowser-ee/",
+        "logo"        => "img/brands/filebrowser.png",
+    ], [
+        "name"        => "FlexGet",
+        "service_ref" => "flexget",
+        "lock_ref"    => "flexget",
+        "url"         => "/flexget/",
+        "logo"        => "img/brands/flexget.png",
+    ], [
+        "name"        => "NetData",
+        "service_ref" => "netdata",
+        "lock_ref"    => "netdata",
+        "url"         => "/netdata/",
+        "logo"        => "img/brands/netdata.png",
+    ], [
+        "name"        => "noVNC",
+        "service_ref" => "novnc",
+        "lock_ref"    => "novnc",
+        "url"         => "/vnc/",
+        "logo"        => "img/brands/novnc.png",
+    ], [
+        "name"        => "Plex",
+        "service_ref" => "plex",
+        "lock_ref"    => "plex",
+        "url"         => "/web/",
+        "logo"        => "img/brands/plex.png",
+    ], [
+        "name"     => "SpeedTest",
+        "lock_ref" => "speedtest",
+        "url"      => "/speedtest/",
+        "logo"     => "img/brands/speedtest.png",
+    ], [
+        "name"     => "Syncthing",
+        "lock_ref" => "syncthing",
+        "url"      => "/{$username}.syncthing/",
+        "logo"     => "img/brands/syncthing.png",
+    ], [
+        "name"     => "ZNC",
+        "lock_ref" => "znc",
+        "url"      => "/znc/",
+        "logo"     => "img/brands/znc.png",
+    ],
+];
+
+$downloadList = [
+    [
+        "name"     => "rTorrent",
+        "lock_ref" => "rtorrent",
+        "url"      => "/{$username}.rtorrent.downloads",
+    ], [
+        "name"     => "Deluge",
+        "lock_ref" => "deluge",
+        "url"      => "/{$username}.deluge.downloads",
+    ], [
+        "name"     => "Transmission",
+        "lock_ref" => "transmission",
+        "url"      => "/{$username}.transmission.downloads",
+    ], [
+        "name"     => "qBittorrent",
+        "lock_ref" => "qbittorrent",
+        "url"      => "/{$username}.qbittorrent.downloads",
+    ], [
+        "name"     => "OpenVPN Config",
+        "lock_ref" => null,
+        "lock_url" => "/home/{$username}/openvpn/{$username}.zip",
+        "url"      => "/{$username}/ovpn.zip",
+    ],
+];
+
+function get_package_ref($package) {
+    global $packageMap;
+    if ($package === null) {
+        return null;
+    }
+    if (array_key_exists($package, $packageMap)) {
+        return $packageMap[$package];
+    }
+    error_log("package ref to '{$package}' not found!", 0);
+
+    return false;
+}
+
+function __check_package_config($package) {
+    assert(array_key_exists("package", $package));
+    assert(array_key_exists("name", $package));
+    $skip = array_key_exists("skip", $package) ? $package["skip"] : false;
+    if (!$skip) {
+        assert(array_key_exists("description", $package));
+        assert(array_key_exists("lockfile", $package));
+        assert(array_key_exists("boxonly", $package));
+        $boxonly = $package["boxonly"];
+        if ($boxonly) {
+            assert(array_key_exists("install", $package));
+        } else {
+            assert(array_key_exists("uninstall", $package));
+        }
+    } else {
+        assert(array_key_exists("services", $package));
+    }
+    if (array_key_exists("services", $package)) {
+        foreach ($package["services"] as $service) {
+            assert(array_key_exists("process", $service));
+            assert(array_key_exists("name", $service));
+            assert(array_key_exists("username", $service));
+        }
+    }
+}
+
+function __check_package() {
+    global $packageList;
+    foreach ($packageList as $package) {
+        echo "checking for package {$package['package']}\n";
+        __check_package_config($package);
+    }
+}
+
+function __check_menu_ref() {
+    global $menuList;
+    global $downloadList;
+    foreach ($menuList as $menu) {
+        /** @var bool $status */
+        $status = true;
+        if (array_key_exists("service_ref", $menu)) {
+            $status = $status && (get_package_ref($menu["service_ref"]) !== false);
+        }
+        if (array_key_exists("lock_ref", $menu)) {
+            $status = $status && (get_package_ref($menu["lock_ref"]) !== false);
+        }
+        if ($status === false) {
+            echo "menu item misconfigured: ";
+            print_r($menu);
+        }
+    }
+    foreach ($downloadList as $download) {
+        /** @var bool $status */
+        $status = true;
+        if (array_key_exists("lock_ref", $download)) {
+            $status = $status && (get_package_ref($download["lock_ref"]) !== false);
+        }
+        if ($status === false) {
+            echo "download item misconfigured: ";
+            print_r($download);
+        }
+    }
+}
+
+/*
+__check_package();
+__check_menu_ref();
+*/
