@@ -1,23 +1,9 @@
 <?php
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 assert(isset($packageList));
 
-/**
- * @param string $processName
- * @param string $username
- *
- * @return bool
- */
-function processExists($processName, $username) {
-    $exists = false;
-    exec("ps axo user:20,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,comm,cmd|grep {$username} | grep -iE {$processName} | grep -v grep", $pids);
-    if (count($pids) > 0) {
-        $exists = true;
-    }
-
-    return $exists;
-}
 $service = $_GET["service"];
 
 $packageWithService = array_filter($packageList, function ($package) {
@@ -42,10 +28,7 @@ foreach ($packageWithService as $package) {
     }
 }
 
-if ($status) {
-    $val = '<span class="badge badge-service-running-dot"></span><span class="badge badge-service-running-pulse"></span>';
-} else {
-    $val = '<span class="badge badge-service-disabled-dot"></span><span class="badge badge-service-disabled-pulse"></span>';
-}
+$val = $status ? 'running' : 'disabled';
+?>
 
-echo "{$val}";
+<span class="badge badge-service-<?php echo $val; ?>-dot"></span><span class="badge badge-service-<?php echo $val; ?>-pulse"></span>

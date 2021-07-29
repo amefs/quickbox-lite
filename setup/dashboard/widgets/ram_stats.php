@@ -1,57 +1,12 @@
 <?php
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-$username = getUser();
-$master   = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
-assert($master !== false);
-$master     = preg_replace('/\s+/', '', $master);
-$time_start = microtime_float();
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/system_info.php');
+$username  = getUser();
+$master    = getMaster();
+$is_master = $username === $master;
 
-// Information obtained depending on the system CPU
-switch (PHP_OS) {
-    case "Linux":
-        $sysMemInfo = sys_linux_mem();
-    break;
-
-    default:
-        $sysMemInfo = [];
-    break;
-}
-
-/**
- * linux system detects.
- *
- * @return array<string,mixed>
- */
-function sys_linux_mem() {
-    // MEMORY
-    if (false === ($str = @file("/proc/meminfo"))) {
-        return [];
-    }
-    $str = implode("", $str);
-    preg_match_all("/MemTotal\s{0,}\:+\s{0,}([\d\.]+).+?MemFree\s{0,}\:+\s{0,}([\d\.]+).+?Cached\s{0,}\:+\s{0,}([\d\.]+).+?SwapTotal\s{0,}\:+\s{0,}([\d\.]+).+?SwapFree\s{0,}\:+\s{0,}([\d\.]+)/s", $str, $buf);
-    preg_match_all("/Buffers\s{0,}\:+\s{0,}([\d\.]+)/s", $str, $buffers);
-
-    $res['memTotal']   = floatval($buf[1][0]);
-    $res['memFree']    = floatval($buf[2][0]);
-    $res['memBuffers'] = floatval($buffers[1][0]);
-    $res['memCached']  = floatval($buf[3][0]);
-    $res['memUsed']    = $res['memTotal'] - $res['memFree'];
-    $res['memPercent'] = ($res['memTotal'] > 1e-5) ? $res['memUsed'] / $res['memTotal'] * 100 : 0;
-
-    $res['memRealUsed']    = $res['memTotal'] - $res['memFree'] - $res['memCached'] - $res['memBuffers']; //Real memory usage
-    $res['memRealFree']    = $res['memTotal'] - $res['memRealUsed']; //Real idle
-    $res['memRealPercent'] = ($res['memTotal'] > 1e-5) ? $res['memRealUsed'] / $res['memTotal'] * 100 : 0; //Real memory usage
-
-    $res['memCachedPercent'] = ($res['memCached'] > 1e-5) ? $res['memCached'] / $res['memTotal'] * 100 : 0; //Cached memory usage
-
-    $res['swapTotal']   = floatval($buf[4][0]);
-    $res['swapFree']    = floatval($buf[5][0]);
-    $res['swapUsed']    = $res['swapTotal'] - $res['swapFree'];
-    $res['swapPercent'] = ($res['swapTotal'] > 1e-5) ? $res['swapUsed'] / $res['swapTotal'] * 100 : 0;
-
-    return $res;
-}
+$sysMemInfo = SystemInfo::meminfo();
 
 /**
  * @param int|float|string $percent
@@ -70,20 +25,20 @@ function get_ram_color($percent) {
     return "progress-bar-success";
 }
 
-$memTotal         = formatsize($sysMemInfo['memTotal']);
-$memUsed          = formatsize($sysMemInfo['memUsed']);
-$memFree          = formatsize($sysMemInfo['memFree']);
-$memCached        = formatsize($sysMemInfo['memCached']); //memory cache
-$memBuffers       = formatsize($sysMemInfo['memBuffers']); //buffer
-$swapTotal        = formatsize($sysMemInfo['swapTotal']);
-$swapUsed         = formatsize($sysMemInfo['swapUsed']);
-$swapFree         = formatsize($sysMemInfo['swapFree']);
-$swapPercent      = number_format($sysMemInfo['swapPercent'], 3);
-$memRealUsed      = formatsize($sysMemInfo['memRealUsed']); //Real memory usage
-$memRealFree      = formatsize($sysMemInfo['memRealFree']); //Real memory free
-$memRealPercent   = number_format($sysMemInfo['memRealPercent'], 3); //Real memory usage ratio
-$memPercent       = number_format($sysMemInfo['memPercent'], 3); //Total Memory Usage
-$memCachedPercent = number_format($sysMemInfo['memCachedPercent'], 3); //cache memory usage
+$memTotal         = formatsize($sysMemInfo['MemTotal']);
+$memUsed          = formatsize($sysMemInfo['MemUsed']);
+$memFree          = formatsize($sysMemInfo['MemFree']);
+$memCached        = formatsize($sysMemInfo['MemCached']); //memory cache
+$memBuffers       = formatsize($sysMemInfo['MemBuffers']); //buffer
+$swapTotal        = formatsize($sysMemInfo['SwapTotal']);
+$swapUsed         = formatsize($sysMemInfo['SwapUsed']);
+$swapFree         = formatsize($sysMemInfo['SwapFree']);
+$swapPercent      = number_format($sysMemInfo['SwapPercent'], 3);
+$memRealUsed      = formatsize($sysMemInfo['MemRealUsed']); //Real memory usage
+$memRealFree      = formatsize($sysMemInfo['MemRealFree']); //Real memory free
+$memRealPercent   = number_format($sysMemInfo['MemRealPercent'], 3); //Real memory usage ratio
+$memPercent       = number_format($sysMemInfo['MemPercent'], 3); //Total Memory Usage
+$memCachedPercent = number_format($sysMemInfo['CachedPercent'], 3); //cache memory usage
 ?>
 
 <div class="row">
@@ -158,7 +113,7 @@ $memCachedPercent = number_format($sysMemInfo['memCachedPercent'], 3); //cache m
 <hr />
 <h3><?php echo T('TOTAL_RAM'); ?></h3>
 <h4 class="nomargin"><?php echo $memTotal; ?>
-  <?php if ($username == "{$master}") { ?>
+  <?php if ($is_master) { ?>
     <button onclick="boxHandler(event)" data-package="mem" data-operation="clean" data-toggle="modal" data-target="#sysResponse" class="btn btn-xs btn-default pull-right"><?php echo T('CLEAR_CACHE'); ?></button>
   <?php } ?>
 </h4>

@@ -1,25 +1,8 @@
 <?php
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/widgets/class.php');
 
 $username = getUser();
-
-/**
- * @param string $processName
- * @param string $username
- *
- * @return bool
- */
-function processExists($processName, $username) {
-    $exists = false;
-    exec("ps axo user:20,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,comm|grep {$username} | grep -iE {$processName} | grep -v grep", $pids);
-    if (count($pids) > 0) {
-        $exists = true;
-    }
-
-    return $exists;
-}
 
 /**
  * @param int|float $percent

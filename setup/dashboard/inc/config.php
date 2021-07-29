@@ -6,16 +6,15 @@ if (isset($_SESSION)) {
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/widgets/class.php');
 
-$version  = "v1.4.6";
-$branch   = file_exists('/install/.developer.lock') ? "development" : "master";
-$username = getUser();
-$master   = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/db/master.txt');
-assert($master !== false);
-$master = preg_replace('/\s+/', '', $master);
-
-define('HTTP_HOST', preg_replace('~^www\.~i', '', $_SERVER['HTTP_HOST']));
+$version   = "v1.4.6";
+$branch    = file_exists('/install/.developer.lock') ? "development" : "master";
+$username  = getUser();
+$master    = getMaster();
+$is_master = $username == $master;
+if (!isset($locale)) {
+    $locale = "UTF8";
+}
 
 $panel = [
     'name'        => 'QuickBox Lite',
@@ -26,213 +25,34 @@ $panel = [
     'active_page' => basename($_SERVER['PHP_SELF']),
 ];
 
-$time_start = microtime_float();
-
-//NIC flow
-$strs = @file("/proc/net/dev");
-assert($strs !== false);
-// only index start from 0 will be encoded as an array
-$NetInputSpeed = [0 => null, 1 => null];
-$NetOutSpeed   = [0 => null, 1 => null];
-
-for ($i = 2; $i < count($strs); ++$i) {
-    preg_match_all("/(?<name>[^\s]+):[\s]{0,}(?<rx_bytes>\d+)\s+(?:\d+\s+){7}(?<tx_bytes>\d+)\s+/", $strs[$i], $info);
-    $NetInputSpeed[$i] = $info["rx_bytes"][0]; // Receive data in bytes
-    $NetOutSpeed[$i]   = $info["tx_bytes"][0]; // Transmit data in bytes
-}
-
-//Real-time refresh ajax calls
-if ($_GET["act"] == "rt") {
-    $arr = [
-        "NetOutSpeed"    => $NetOutSpeed,
-        "NetInputSpeed"  => $NetInputSpeed,
-        "NetTimeStamp"   => microtime(true),
-        "InterfaceIndex" => count($strs),
-    ];
-    $jarr = json_encode($arr);
-    echo htmlspecialchars($_GET["callback"])."(".$jarr.")";
-    exit;
-}
-
-/**
- * @return array<int,mixed>
- */
-function GetCoreInformation() {
-    $data = file('/proc/stat');
-    assert($data !== false);
-    $cores = [];
-    foreach ($data as $line) {
-        if (preg_match('/^cpu[0-9]/', $line)) {
-            $info    = explode(' ', $line);
-            $cores[] = ['user' => $info[1], 'nice' => $info[2], 'sys' => $info[3], 'idle' => $info[4], 'iowait' => $info[5], 'irq' => $info[6], 'softirq' => $info[7]];
-        }
-    }
-
-    return $cores;
-}
-
-/**
- * @param array<int,mixed> $stat1
- * @param array<int,mixed> $stat2
- *
- * @return array<string,mixed>
- */
-function GetCpuPercentages($stat1, $stat2) {
-    if (count($stat1) !== count($stat2)) {
-        return [];
-    }
-    $cpus = [];
-    for ($i = 0, $l = count($stat1); $i < $l; ++$i) {
-        $dif            = [];
-        $dif['user']    = $stat2[$i]['user'] - $stat1[$i]['user'];
-        $dif['nice']    = $stat2[$i]['nice'] - $stat1[$i]['nice'];
-        $dif['sys']     = $stat2[$i]['sys'] - $stat1[$i]['sys'];
-        $dif['idle']    = $stat2[$i]['idle'] - $stat1[$i]['idle'];
-        $dif['iowait']  = $stat2[$i]['iowait'] - $stat1[$i]['iowait'];
-        $dif['irq']     = $stat2[$i]['irq'] - $stat1[$i]['irq'];
-        $dif['softirq'] = $stat2[$i]['softirq'] - $stat1[$i]['softirq'];
-        $total          = array_sum($dif);
-        $cpu            = [];
-        foreach ($dif as $x => $y) {
-            $cpu[$x] = round($y / $total * 100, 2);
-        }
-        $cpus['cpu'.$i] = $cpu;
-    }
-
-    return $cpus;
-}
-
-// Information obtained depending on the system CPU
-switch (PHP_OS) {
-  case "Linux":
-    $sysCpuInfo = sys_linux_cpu();
-  break;
-
-  default:
-    $sysCpuInfo = [];
-  break;
-}
-
-/**
- * linux system detects.
- *
- * @return bool|array<string,mixed>
- */
-function sys_linux_cpu() {
-    // CPU
-    if (false === ($str = @file("/proc/cpuinfo"))) {
-        return false;
-    }
-    $str = implode("", $str);
-    @preg_match_all("/model\s+name\s{0,}\:+\s{0,}([^\:]+)[\r\n]+/s", $str, $model);
-    @preg_match_all("/cpu\s+MHz\s{0,}\:+\s{0,}([\d\.]+)[\r\n]+/", $str, $mhz);
-    @preg_match_all("/cache\s+size\s{0,}\:+\s{0,}([\d\.]+\s{0,}[A-Z]+[\r\n]+)/", $str, $cache);
-    $res = [];
-    if (is_array($model[1]) !== false) {
-        $cpu_count     = count($model[1]);
-        $cpu_model     = $model[1][0];
-        $cpu_frequency = $mhz[1][0];
-        $cpu_cache     = $cache[1][0];
-
-        $model_template      = "<h4>{$cpu_model}</h4>";
-        $frequency_template  = " <span style=\"color:#999;font-weight:600\">Frequency:</span> {$cpu_frequency}";
-        $cahce_template      = " <span style=\"color:#999;font-weight:600\">Secondary cache:</span> {$cpu_cache}";
-        $count_template      = $cpu_count > 1 ? " x{$cpu_count}" : "";
-        $res['cpu']['model'] = $model_template.$frequency_template."<br/>".$cahce_template.$count_template;
-        $res['cpu']['num']   = $cpu_count;
-    }
-
-    return $res;
-}
-
-/**
- * @param int    $timeout
- * @param int    $probability
- * @param string $cookie_domain
- *
- * @return void
- */
-function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain = '/') {
-    ini_set("session.gc_maxlifetime", strval($timeout));
-    ini_set("session.cookie_lifetime", strval($timeout));
-    $seperator = strstr(strtoupper(substr(PHP_OS, 0, 3)), "WIN") ? "\\" : "/";
-    $path      = ini_get("session.save_path").$seperator."session_".$timeout."sec";
-    if (!file_exists($path)) {
-        if (!mkdir($path, 600)) {
-            trigger_error("Failed to create session save path directory '{$path}'. Check permissions.", E_USER_ERROR);
-        }
-    }
-    ini_set("session.save_path", $path);
-    ini_set("session.gc_probability", strval($probability));
-    ini_set("session.gc_divisor", "100");
-    session_start();
-    $session_name = session_name();
-    assert($session_name !== false);
-    if (isset($_COOKIE[$session_name])) {
-        setcookie($session_name, $_COOKIE[$session_name], time() + $timeout, $cookie_domain);
-    }
-}
-
-session_start_timeout(5);
-$MSGFILE = session_id();
-
-/**
- * @param string $processName
- * @param string $username
- *
- * @return bool
- */
-function processExists($processName, $username) {
-    $exists = false;
-    exec("ps axo user:20,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,comm,cmd|grep {$username} | grep -iE {$processName} | grep -v grep", $pids);
-    if (count($pids) > 0) {
-        $exists = true;
-    }
-
-    return $exists;
-}
-
-/**
- * @param string $service
- * @param string $username
- *
- * @return string
- */
-function isEnabled($service, $username) {
-    if (file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'@'.$username.'.service') || file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'.service')) {
-        return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-en toggle-light primary" data-service="'.$service.'" data-operation="stop,disable"></div></div>';
-    } else {
-        return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-dis toggle-light primary" data-service="'.$service.'" data-operation="enable,restart"></div></div>';
-    }
-}
-
 if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php')) {
     // CUSTOM URL OVERRIDES //
     require($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php');
 } else {
-    $btsyncURL         = "https://".$_SERVER['HTTP_HOST']."/{$username}.btsync/";
-    $dwURL             = "https://".$_SERVER['HTTP_HOST']."/deluge/";
-    $delugedlURL       = "https://".$_SERVER['HTTP_HOST']."/{$username}.deluge.downloads";
-    $filebrowserURL    = "https://".$_SERVER['HTTP_HOST']."/filebrowser/";
-    $filebrowsereeURL  = "https://".$_SERVER['HTTP_HOST']."/filebrowser-ee/";
-    $flexgetURL        = "https://".$_SERVER['HTTP_HOST']."/flexget/";
-    $floodURL          = "https://".$_SERVER['HTTP_HOST']."/{$username}/flood/";
-    $netdataURL        = "https://".$_SERVER['HTTP_HOST']."/netdata/";
-    $novncURL          = "https://".$_SERVER['HTTP_HOST']."/vnc/";
-    $plexURL           = "https://".$_SERVER['HTTP_HOST']."/web/";
-    $qbittorrentURL    = "https://".$_SERVER['HTTP_HOST']."/qbittorrent/";
-    $qbittorrentdlURL  = "https://".$_SERVER['HTTP_HOST']."/{$username}.qbittorrent.downloads";
-    $rtorrentdlURL     = "https://".$_SERVER['HTTP_HOST']."/{$username}.rtorrent.downloads";
-    $rutorrentURL      = "https://".$_SERVER['HTTP_HOST']."/rutorrent/";
-    $speedtestURL      = "https://".$_SERVER['HTTP_HOST']."/speedtest/";
-    $syncthingURL      = "https://".$_SERVER['HTTP_HOST']."/{$username}.syncthing/";
-    $transmissionURL   = "https://".$_SERVER['HTTP_HOST']."/transmission";
-    $transmissiondlURL = "https://".$_SERVER['HTTP_HOST']."/{$username}.transmission.downloads";
-    $openvpndlURL      = "https://".$_SERVER['HTTP_HOST']."/{$username}/ovpn.zip";
-    $zncURL            = "https://".$_SERVER['HTTP_HOST']."/znc/";
+    $http_host         = $_SERVER['HTTP_HOST'];
+    $btsyncURL         = "https://{$http_host}/{$username}.btsync/";
+    $dwURL             = "https://{$http_host}/deluge/";
+    $delugedlURL       = "https://{$http_host}/{$username}.deluge.downloads";
+    $filebrowserURL    = "https://{$http_host}/filebrowser/";
+    $filebrowsereeURL  = "https://{$http_host}/filebrowser-ee/";
+    $flexgetURL        = "https://{$http_host}/flexget/";
+    $floodURL          = "https://{$http_host}/{$username}/flood/";
+    $netdataURL        = "https://{$http_host}/netdata/";
+    $novncURL          = "https://{$http_host}/vnc/";
+    $plexURL           = "https://{$http_host}/web/";
+    $qbittorrentURL    = "https://{$http_host}/qbittorrent/";
+    $qbittorrentdlURL  = "https://{$http_host}/{$username}.qbittorrent.downloads";
+    $rtorrentdlURL     = "https://{$http_host}/{$username}.rtorrent.downloads";
+    $rutorrentURL      = "https://{$http_host}/rutorrent/";
+    $speedtestURL      = "https://{$http_host}/speedtest/";
+    $syncthingURL      = "https://{$http_host}/{$username}.syncthing/";
+    $transmissionURL   = "https://{$http_host}/transmission";
+    $transmissiondlURL = "https://{$http_host}/{$username}.transmission.downloads";
+    $openvpndlURL      = "https://{$http_host}/{$username}/ovpn.zip";
+    $zncURL            = "https://{$http_host}/znc/";
 }
 
-require($_SERVER['DOCUMENT_ROOT'].'/widgets/plugin_data.php');
-require($_SERVER['DOCUMENT_ROOT'].'/widgets/theme_select.php');
-$base     = 1024;
-$location = "/home";
+setlocale(LC_CTYPE, $locale, "UTF-8", "en_US.UTF-8", "en_US.UTF8");
+setlocale(LC_COLLATE, $locale, "UTF-8", "en_US.UTF-8", "en_US.UTF8");
+
+session_start_timeout(5);

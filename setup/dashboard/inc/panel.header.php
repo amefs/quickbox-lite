@@ -1,7 +1,8 @@
 <?php
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/system_info.php');
 assert(isset($panel));
-assert(isset($NetOutSpeed));
-assert(isset($NetInputSpeed));
+
+$netinfo = SystemInfo::netinfo();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -38,8 +39,8 @@ assert(isset($NetInputSpeed));
   <script src="lib/jquery/jquery.min.js"></script>
 
   <script type="text/javascript">
-    window.NetOutSpeed = <?php echo json_encode($NetOutSpeed); ?>;
-    window.NetInputSpeed = <?php echo json_encode($NetInputSpeed); ?>;
+    window.NetOutSpeed = <?php echo json_encode($netinfo["Transmit"]); ?>;
+    window.NetInputSpeed = <?php echo json_encode($netinfo["Receive"]); ?>;
     window.NetTimeStamp = <?php echo json_encode(microtime(true)); ?>;
   </script>
 

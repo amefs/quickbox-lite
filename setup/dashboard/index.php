@@ -1,12 +1,17 @@
 <?php
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/plugin_data.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/theme_select.php');
+
   require($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/system_info.php');
   require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.header.php');
   require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.menu.php');
-  assert(isset($username));
-  assert(isset($master));
+
+  assert(isset($is_master));
   assert(isset($version));
   assert(isset($branch));
-  assert(isset($sysCpuInfo));
+
+  $sysCpuInfo = SystemInfo::cpuinfo();
 ?>
 
 <div class="mainpanel">
@@ -63,7 +68,7 @@
         <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/service_control.php'); ?>
         <!-- panel -->
 
-        <?php if ($username === $master) { ?>
+        <?php if ($is_master) { ?>
           <!--PACKAGE MANAGEMENT CENTER-->
           <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/pmc.php'); ?>
           <!-- panel -->
@@ -99,8 +104,8 @@
           </div>
           <div class="panel-body" style="overflow:hidden">
             <span class="nomargin" style="font-size:14px">
-              <?php echo $sysCpuInfo['cpu']['model']; ?><br/>
-              [<span style="color:#999;font-weight:600">x<?php echo $sysCpuInfo['cpu']['num']; ?></span> core]
+              <?php echo $sysCpuInfo['model']; ?><br/>
+              [<span style="color:#999;font-weight:600">x<?php echo $sysCpuInfo['count']; ?></span> core]
             </span>
           </div>
         </div><!-- CPU WIDGET -->
@@ -121,7 +126,7 @@
             <div id="meterram"></div>
           </div>
         </div><!-- RAM WIDGET -->
-        <?php if ($username === $master) { ?>
+        <?php if ($is_master) { ?>
           <div class="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
             <div class="panel-heading">
               <h4 class="panel-title text-success"><?php echo T('RECENT_UPDATES'); ?>
