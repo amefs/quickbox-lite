@@ -5,7 +5,8 @@ if (isset($_SESSION)) {
 }
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+
+session_start_timeout(5);
 
 $version   = "v1.4.6";
 $branch    = file_exists('/install/.developer.lock') ? "development" : "master";
@@ -54,5 +55,3 @@ if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php')) {
 
 setlocale(LC_CTYPE, $locale, "UTF-8", "en_US.UTF-8", "en_US.UTF8");
 setlocale(LC_COLLATE, $locale, "UTF-8", "en_US.UTF-8", "en_US.UTF8");
-
-session_start_timeout(5);

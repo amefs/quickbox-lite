@@ -52,7 +52,7 @@ function getMaster() {
 /**
  * @return string
  */
-function getLogin() {
+function getUser() {
     if ($_SERVER['REMOTE_ADDR'] === '127.0.0.1') {
         return getMaster();
     }
@@ -61,15 +61,6 @@ function getLogin() {
     }
 
     return '';
-}
-
-/**
- * @return string
- */
-function getUser() {
-    global $forbidUserSettings;
-
-    return !$forbidUserSettings ? getLogin() : '';
 }
 
 /**

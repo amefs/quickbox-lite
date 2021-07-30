@@ -24,8 +24,7 @@
     assert(isset($qbittorrentdlURL));
     assert(isset($openvpndlURL));
 
-    $current_vs = "<span id=\"version-result\"></span>";
-    $languages  = [
+    $languages = [
         ['file' => 'lang_zh', 'title' => 'Chinese'],
         ['file' => 'lang_dk', 'title' => 'Danish'],
         ['file' => 'lang_en', 'title' => 'English'],
@@ -296,7 +295,8 @@
               <ul class="children">
                 <li class="info-quote"><p class="info-quote"><?php echo T('PMENU_NOTICE_TXT'); ?></p></li>
                 <?php foreach ($plugins as $plugin) {
-    $action = file_exists("/srv/rutorrent/plugins/{$plugin}/plugin.info") ? "removeplugin-{$plugin}=true" : "installplugin-{$plugin}=true"; ?>
+    $installed = file_exists("/srv/rutorrent/plugins/{$plugin}/plugin.info");
+    $action    = $installed ? "removeplugin-{$plugin}=true" : "installplugin-{$plugin}=true"; ?>
                 <li>
                   <a href="javascript:void()"><?php echo $plugin; ?></a>
                   <div class="toggle-wrapper pull-right" style="margin-right: -10px; margin-top: 5px;">
