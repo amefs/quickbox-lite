@@ -50,7 +50,7 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
                 assert($vnstat_data !== false);
             }
         } else {
-            $fd = popen("{$vnstat_bin} --dumpdb -i {$iface}", "r");
+            $fd = popen("{$vnstat_bin} --dumpdb -i {$iface}", 'r');
             if (is_resource($fd)) {
                 $buffer = '';
                 while (!feof($fd)) {
@@ -76,7 +76,7 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
         foreach ($vnstat_data as $line) {
             $arr  = explode(';', trim($line));
             $type = $arr[0];
-            $d    = array_map("intval", $arr);
+            $d    = array_map('intval', $arr);
             if ($type == 'd') {
                 $day[$d[1]]['time'] = $d[2];
                 $day[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
@@ -90,8 +90,8 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
                     $day[$d[1]]['img_label'] = '';
                 }
 
-                $now     = strtotime("now");
-                $zerostr = strftime("%d %B %Y", $now);
+                $now     = strtotime('now');
+                $zerostr = strftime('%d %B %Y', $now);
                 assert($zerostr !== false);
                 $diff_time            = $now - strtotime($zerostr);
                 $day[$d[1]]['rx_avg'] = round($day[$d[1]]['rx'] / $diff_time) * 8;
@@ -108,8 +108,8 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
                     $month[$d[1]]['label']     = '';
                     $month[$d[1]]['img_label'] = '';
                 }
-                $now          = strtotime("now");
-                $lastmomthstr = strftime("1 %B %Y", $now);
+                $now          = strtotime('now');
+                $lastmomthstr = strftime('1 %B %Y', $now);
                 assert($lastmomthstr !== false);
                 $diff_time              = $now - strtotime($lastmomthstr);
                 $month[$d[1]]['rx_avg'] = round($month[$d[1]]['rx'] / $diff_time) * 8;
@@ -129,7 +129,7 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
                     $hour[$d[1]]['img_label'] = '';
                 }
                 $now         = intval($d[2]);
-                $lasthourstr = strftime("%d %B %Y %H:00:00", $now);
+                $lasthourstr = strftime('%d %B %Y %H:00:00', $now);
                 assert($lasthourstr !== false);
                 $diff_time = $now - strtotime($lasthourstr);
                 if ($diff_time === 0) {

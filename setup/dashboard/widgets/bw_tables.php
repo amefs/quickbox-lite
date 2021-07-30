@@ -30,7 +30,7 @@ function write_summary_s() {
 
     $trx     = $summary['totalrx'] * 1024 + $summary['totalrxk'];
     $ttx     = $summary['totaltx'] * 1024 + $summary['totaltxk'];
-    $ttime   = strtotime("now") - $summary['created'];
+    $ttime   = strtotime('now') - $summary['created'];
     $trx_avg = round($trx / $ttime) * 8;
     $ttx_avg = round($ttx / $ttime) * 8;
 
@@ -81,7 +81,7 @@ function write_summary_t() {
 
     $trx     = $summary['totalrx'] * 1024 + $summary['totalrxk'];
     $ttx     = $summary['totaltx'] * 1024 + $summary['totaltxk'];
-    $ttime   = strtotime("now") - $summary['created'];
+    $ttime   = strtotime('now') - $summary['created'];
     $trx_avg = round($trx / $ttime) * 8;
     $ttx_avg = round($ttx / $ttime) * 8;
     //
@@ -130,17 +130,17 @@ function write_summary_t() {
  * @return void
  */
 function write_data_table_s($caption, $tab) {
-    echo "<table class=\"table table-hover table-default nomargin\" width=\"100%\" cellspacing=\"0\">";
-    echo "<thead>";
-    echo "<tr>";
+    echo '<table class="table table-hover table-default nomargin" width="100%" cellspacing="0">';
+    echo '<thead>';
+    echo '<tr>';
     echo "<th class=\"text-right\" style=\"width:20%;\">{$caption}</th>";
-    echo "<th class=\"text-right\" style=\"width:15%;\">".T('Out')."</th>";
-    echo "<th class=\"text-left\" style=\"width:15%;\">".T('In')."</th>";
-    echo "<th class=\"text-right\" style=\"width:15%;\">".T('Out_AVG')."</th>";
-    echo "<th class=\"text-left\" style=\"width:15%;\">".T('In_AVG')."</th>";
-    echo "<th class=\"text-left\" style=\"width:18%;\">".T('Total')."</th>";
-    echo "</tr>";
-    echo "</thead>";
+    echo '<th class="text-right" style="width:15%;">'.T('Out').'</th>';
+    echo '<th class="text-left" style="width:15%;">'.T('In').'</th>';
+    echo '<th class="text-right" style="width:15%;">'.T('Out_AVG').'</th>';
+    echo '<th class="text-left" style="width:15%;">'.T('In_AVG').'</th>';
+    echo '<th class="text-left" style="width:18%;">'.T('Total').'</th>';
+    echo '</tr>';
+    echo '</thead>';
     echo "<tbody>\n";
 
     for ($i = 0; $i < count($tab); ++$i) {
@@ -152,7 +152,7 @@ function write_data_table_s($caption, $tab) {
             $tx_avg = formatspeed($tab[$i]['tx_avg'], 2);
             $total  = formatsize($tab[$i]['rx'] + $tab[$i]['tx'], 2);
             $id     = ($i & 1) ? 'odd' : 'even';
-            echo "<tr>";
+            echo '<tr>';
             echo "<td class=\"label_{$id}\" style=\"font-size:12px;text-align:right\"><b>{$t}</b></td>";
             echo "<td class=\"numeric_{$id} text-success\" style=\"font-size:12px;text-align:right\">{$tx}</td>";
             echo "<td class=\"numeric_{$id} text-primary\" style=\"font-size:12px;text-align:left\">{$rx}</td>";
@@ -163,8 +163,8 @@ function write_data_table_s($caption, $tab) {
         }
     }
 
-    echo "</tbody>";
-    echo "</table>";
+    echo '</tbody>';
+    echo '</table>';
 }
 
 /**
@@ -174,17 +174,17 @@ function write_data_table_s($caption, $tab) {
  * @return void
  */
 function write_data_table_t($caption, $tab) {
-    echo "<table class=\"table table-hover table-default nomargin\" width=\"100%\" cellspacing=\"0\">";
-    echo "<thead>";
-    echo "<tr>";
+    echo '<table class="table table-hover table-default nomargin" width="100%" cellspacing="0">';
+    echo '<thead>';
+    echo '<tr>';
     echo "<th class=\"text-right\" style=\"width:20%;\">{$caption}</th>";
-    echo "<th class=\"text-right\" style=\"width:15%;\">".T('Out')."</th>";
-    echo "<th class=\"text-left\" style=\"width:15%;\">".T('In')."</th>";
-    echo "<th class=\"text-right\" style=\"width:15%;\">".T('Out_AVG')."</th>";
-    echo "<th class=\"text-left\" style=\"width:15%;\">".T('In_AVG')."</th>";
-    echo "<th class=\"text-left\" style=\"width:18%;\">".T('Total')."</th>";
-    echo "</tr>";
-    echo "</thead>";
+    echo '<th class="text-right" style="width:15%;">'.T('Out').'</th>';
+    echo '<th class="text-left" style="width:15%;">'.T('In').'</th>';
+    echo '<th class="text-right" style="width:15%;">'.T('Out_AVG').'</th>';
+    echo '<th class="text-left" style="width:15%;">'.T('In_AVG').'</th>';
+    echo '<th class="text-left" style="width:18%;">'.T('Total').'</th>';
+    echo '</tr>';
+    echo '</thead>';
 
     echo "<tbody>\n";
 
@@ -197,7 +197,7 @@ function write_data_table_t($caption, $tab) {
             $tx_avg = formatspeed($tab[$i]['tx_avg'], 2);
             $total  = formatsize($tab[$i]['rx'] + $tab[$i]['tx'], 2);
             $id     = ($i & 1) ? 'odd' : 'even';
-            echo "<tr>";
+            echo '<tr>';
             echo "<td class=\"label_{$id}\" style=\"font-size:12px;;text-align:right\"><b>{$t}</b></td>";
             echo "<td class=\"numeric_{$id} text-success\" style=\"font-size:12px;text-align:right\">{$tx}</td>";
             echo "<td class=\"numeric_{$id} text-primary\" style=\"font-size:12px;text-align:left\">{$rx}</td>";
@@ -208,8 +208,8 @@ function write_data_table_t($caption, $tab) {
         }
     }
 
-    echo "</tbody>";
-    echo "</table>";
+    echo '</tbody>';
+    echo '</table>';
 }
 
 get_vnstat_data();

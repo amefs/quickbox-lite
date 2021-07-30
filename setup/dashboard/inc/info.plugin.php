@@ -59,12 +59,12 @@ $plugins = [
 if (count($_GET) > 0) {
     foreach ($plugins as $plugin) {
         if (isset($_GET["installplugin-{$plugin}"])) {
-            header("Location: /");
+            header('Location: /');
             shell_exec("sudo /usr/local/bin/quickbox/plugin/install/installplugin-{$plugin}");
             break;
         }
         if (isset($_GET["removeplugin-{$plugin}"])) {
-            header("Location: /");
+            header('Location: /');
             shell_exec("sudo /usr/local/bin/quickbox/plugin/remove/removeplugin-{$plugin}");
             break;
         }

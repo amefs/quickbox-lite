@@ -52,7 +52,7 @@ $rules = [
     // String Notation
     'explicit_string_variable' => true,
     'simple_to_complex_string_variable' => true,
-    'single_quote' => false,
+    'single_quote' => true,
     // Whitespace
     'array_indentation' => true,
 ];

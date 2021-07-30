@@ -17,13 +17,13 @@ $sysMemInfo = SystemInfo::meminfo();
 function get_ram_color($percent) {
     $percent = floatval($percent);
     if ($percent >= 90) {
-        return "progress-bar-danger";
+        return 'progress-bar-danger';
     }
     if ($percent >= 70) {
-        return "progress-bar-warning";
+        return 'progress-bar-warning';
     }
 
-    return "progress-bar-success";
+    return 'progress-bar-success';
 }
 
 $memTotal         = formatsize($sysMemInfo['MemTotal']);

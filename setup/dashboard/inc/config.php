@@ -8,13 +8,13 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 
 session_start_timeout(5);
 
-$version   = "v1.4.6";
-$branch    = file_exists('/install/.developer.lock') ? "development" : "master";
+$version   = 'v1.4.6';
+$branch    = file_exists('/install/.developer.lock') ? 'development' : 'master';
 $username  = getUser();
 $master    = getMaster();
 $is_master = $username == $master;
 if (!isset($locale)) {
-    $locale = "UTF8";
+    $locale = 'UTF8';
 }
 
 $panel = [
@@ -53,5 +53,5 @@ if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php')) {
     $zncURL            = "https://{$http_host}/znc/";
 }
 
-setlocale(LC_CTYPE, $locale, "UTF-8", "en_US.UTF-8", "en_US.UTF8");
-setlocale(LC_COLLATE, $locale, "UTF-8", "en_US.UTF-8", "en_US.UTF8");
+setlocale(LC_CTYPE, $locale, 'UTF-8', 'en_US.UTF-8', 'en_US.UTF8');
+setlocale(LC_COLLATE, $locale, 'UTF-8', 'en_US.UTF-8', 'en_US.UTF8');

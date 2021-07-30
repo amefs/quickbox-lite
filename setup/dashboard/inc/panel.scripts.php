@@ -6,21 +6,21 @@ assert(isset($packageList));
 
 <?php
 foreach ($packageList as &$package) {
-    if ((isset($package["boxonly"]) && $package["boxonly"]) || (isset($package["skip"]) && $package["skip"])) {
+    if ((isset($package['boxonly']) && $package['boxonly']) || (isset($package['skip']) && $package['skip'])) {
         continue;
     }
-    $packageLowercase = strtolower($package["package"]);
-    $packageUppercase = strtoupper($package["package"]); ?>
+    $packageLowercase = strtolower($package['package']);
+    $packageUppercase = strtoupper($package['package']); ?>
 <!-- <?php echo $packageUppercase; ?> UNINSTALL MODAL -->
 <div class="modal bounceIn animated" id="<?php echo $packageLowercase; ?>RemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="<?php echo $packageUppercase; ?>RemovalConfirm" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="<?php echo $packageUppercase; ?>RemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> <?php echo $package["name"]; ?>?</h4>
+        <h4 class="modal-title" id="<?php echo $packageUppercase; ?>RemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> <?php echo $package['name']; ?>?</h4>
       </div>
       <div class="modal-body">
-        <?php echo T($package["uninstall"]); ?>
+        <?php echo T($package['uninstall']); ?>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
@@ -243,11 +243,11 @@ $(function() {
   }
 <?php
   foreach ($packageList as &$package) {
-      if (isset($package["boxonly"]) && $package["boxonly"]) {
+      if (isset($package['boxonly']) && $package['boxonly']) {
           continue;
       }
-      $packageLowercase = strtolower($package["package"]); ?>
-  $('#<?php echo $packageLowercase; ?>Remove').click(gritterHandler('<?php echo $packageLowercase; ?>', '<?php echo $package["name"]; ?>'));
+      $packageLowercase = strtolower($package['package']); ?>
+  $('#<?php echo $packageLowercase; ?>Remove').click(gritterHandler('<?php echo $packageLowercase; ?>', '<?php echo $package['name']; ?>'));
 <?php
   } ?>
 });

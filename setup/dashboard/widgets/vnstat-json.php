@@ -53,7 +53,7 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
             }
         } else {
             // FIXME: use mode and limit parameter to reduce data that needs to be parsed
-            $fd = popen("{$vnstat_bin} --json -i {$iface}", "r");
+            $fd = popen("{$vnstat_bin} --json -i {$iface}", 'r');
             if (is_resource($fd)) {
                 $buffer = '';
                 while (!feof($fd)) {
@@ -113,8 +113,8 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
                 $day[$i]['img_label'] = strftime(T('datefmt_days_img'), $ts);
             }
 
-            $now     = strtotime("now");
-            $zerostr = strftime("%d %B %Y", $now);
+            $now     = strtotime('now');
+            $zerostr = strftime('%d %B %Y', $now);
             assert($zerostr !== false);
             $diff_time         = $now - strtotime($zerostr);
             $day[$i]['rx_avg'] = round($day[$i]['rx'] / $diff_time) * 8;
@@ -138,8 +138,8 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
                 $month[$i]['img_label'] = strftime(T('datefmt_months_img'), $ts);
             }
 
-            $now          = strtotime("now");
-            $lastmomthstr = strftime("1 %B %Y", $now);
+            $now          = strtotime('now');
+            $lastmomthstr = strftime('1 %B %Y', $now);
             assert($lastmomthstr !== false);
             $diff_time = $now - strtotime($lastmomthstr);
 
@@ -164,8 +164,8 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
                 $hour[$i]['img_label'] = strftime(T('datefmt_hours_img'), $ts);
             }
 
-            $now         = strtotime("now");
-            $lasthourstr = strftime("%d %B %Y %H:00:00", $now);
+            $now         = strtotime('now');
+            $lasthourstr = strftime('%d %B %Y %H:00:00', $now);
             assert($lasthourstr !== false);
             $diff_time = $now - strtotime($lasthourstr);
             if ($diff_time <= 300) {

@@ -1,21 +1,21 @@
 <?php
 
 error_reporting(E_ERROR);
-if (function_exists("ini_set")) {
-    ini_set("display_errors", "0");
-    ini_set("log_errors", "1");
-    if (file_exists("/install/.debug")) {
-        ini_set("display_errors", "1");
-        ini_set("display_startup_errors", "1");
+if (function_exists('ini_set')) {
+    ini_set('display_errors', '0');
+    ini_set('log_errors', '1');
+    if (file_exists('/install/.debug')) {
+        ini_set('display_errors', '1');
+        ini_set('display_startup_errors', '1');
         error_reporting(E_ALL | E_STRICT);
     }
 }
 
-if (!isset($_SERVER["REMOTE_USER"])) {
-    if (isset($_SERVER["PHP_AUTH_USER"])) {
-        $_SERVER["REMOTE_USER"] = $_SERVER["PHP_AUTH_USER"];
-    } elseif (isset($_SERVER["REDIRECT_REMOTE_USER"])) {
-        $_SERVER["REMOTE_USER"] = $_SERVER["REDIRECT_REMOTE_USER"];
+if (!isset($_SERVER['REMOTE_USER'])) {
+    if (isset($_SERVER['PHP_AUTH_USER'])) {
+        $_SERVER['REMOTE_USER'] = $_SERVER['PHP_AUTH_USER'];
+    } elseif (isset($_SERVER['REDIRECT_REMOTE_USER'])) {
+        $_SERVER['REMOTE_USER'] = $_SERVER['REDIRECT_REMOTE_USER'];
     }
 }
 
@@ -73,17 +73,17 @@ function getUser() {
  * @return void
  */
 function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain = '/') {
-    ini_set("session.gc_maxlifetime", strval($timeout));
-    ini_set("session.cookie_lifetime", strval($timeout));
-    $path = join(DIRECTORY_SEPARATOR, [ini_get("session.save_path"), "session_{$timeout}sec"]);
+    ini_set('session.gc_maxlifetime', strval($timeout));
+    ini_set('session.cookie_lifetime', strval($timeout));
+    $path = join(DIRECTORY_SEPARATOR, [ini_get('session.save_path'), "session_{$timeout}sec"]);
     if (!file_exists($path)) {
         if (!mkdir($path, 0700)) {
             trigger_error("Failed to create session save path directory '{$path}'. Check permissions.", E_USER_ERROR);
         }
     }
-    ini_set("session.save_path", $path);
-    ini_set("session.gc_probability", strval($probability));
-    ini_set("session.gc_divisor", "100");
+    ini_set('session.save_path', $path);
+    ini_set('session.gc_probability', strval($probability));
+    ini_set('session.gc_divisor', '100');
     session_start();
     $session_name = session_name();
     assert($session_name !== false);

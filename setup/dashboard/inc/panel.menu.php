@@ -34,7 +34,7 @@
 <header>
   <div class="headerpanel">
     <div class="logopanel">
-      <h2><?php require("db/branding-l.php"); ?></h2>
+      <h2><?php require('db/branding-l.php'); ?></h2>
     </div><!-- logopanel -->
     <div class="headerbar">
       <a id="menuToggle" class="menutoggle"><i class="fa fa-bars"></i></a>
@@ -143,42 +143,42 @@
           <ul class="nav nav-pills nav-stacked nav-quirk">
             <!--li class="active"><a href="index.php"><i class="fa fa-home"></i> <span>Dashboard</span></a></li-->
             <!-- // RUTORRENT // -->
-            <?php if (processExists("rtorrent", $username) && file_exists('/install/.rutorrent.lock')) { ?>
+            <?php if (processExists('rtorrent', $username) && file_exists('/install/.rutorrent.lock')) { ?>
               <li><a class="grayscale" href="<?php echo "{$rutorrentURL}"; ?>" target="_blank"><img data-src="img/brands/rtorrent.png" class="brand-ico lazyload"> <span>ruTorrent</span></a></li>
             <?php } ?>
             <!-- // FLOOD // -->
-            <?php if (processExists("flood", $username) && file_exists('/install/.flood.lock')) { ?>
+            <?php if (processExists('flood', $username) && file_exists('/install/.flood.lock')) { ?>
               <li><a class="grayscale" href="<?php echo "{$floodURL}"; ?>" target="_blank"><img data-src="img/brands/flood.png" class="brand-ico lazyload"> <span>Flood</span></a></li>
             <?php } ?>
             <!-- // DELUGE-WEB // -->
-            <?php if (processExists("deluge-web", $username) && file_exists('/install/.deluge.lock')) { ?>
+            <?php if (processExists('deluge-web', $username) && file_exists('/install/.deluge.lock')) { ?>
               <li><a class="grayscale" href="<?php echo "{$dwURL}"; ?>" target="_blank"><img data-src="img/brands/deluge.png" class="brand-ico lazyload"> <span>Deluge Web</span></a></li>
             <?php } ?>
             <!-- // TRANSMISSION // -->
-            <?php if (processExists("transmission-daemon", $username) && file_exists('/install/.transmission.lock')) { ?>
+            <?php if (processExists('transmission-daemon', $username) && file_exists('/install/.transmission.lock')) { ?>
               <li><a href="<?php echo "{$transmissionURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/transmission.png" class="brand-ico lazyload"> <span>Transmission Web Control</span></a></li>
             <?php } ?>
 			      <!-- // QBITTORRENT // -->
-            <?php if (processExists("qbittorrent-nox", $username) && file_exists('/install/.qbittorrent.lock')) { ?>
+            <?php if (processExists('qbittorrent-nox', $username) && file_exists('/install/.qbittorrent.lock')) { ?>
               <li><a href="<?php echo "{$qbittorrentURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/qbittorrent.png" class="brand-ico lazyload"> <span>qBittorrent</span></a></li>
             <?php } ?>
             <?php if ($is_master) { ?>
-              <?php if (processExists("rslsync", $username) && file_exists('/install/.btsync.lock')) { ?>
+              <?php if (processExists('rslsync', $username) && file_exists('/install/.btsync.lock')) { ?>
                 <li><a class="grayscale" href="<?php echo "{$btsyncURL}"; ?>" target="_blank"><img data-src="img/brands/btsync.png" class="brand-ico lazyload"> <span>BTSync</span></a></li>
               <?php } ?>
-              <?php if (processExists("filebrowser", $username) && file_exists('/install/.filebrowser.lock')) { ?>
+              <?php if (processExists('filebrowser', $username) && file_exists('/install/.filebrowser.lock')) { ?>
                 <li><a href="<?php echo "{$filebrowserURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/filebrowser.png" class="brand-ico lazyload"> <span>File Browser</span></a></li>
               <?php } ?>
-              <?php if (processExists("filebrowser-ee", $username) && file_exists('/install/.filebrowser-ee.lock')) { ?>
+              <?php if (processExists('filebrowser-ee', $username) && file_exists('/install/.filebrowser-ee.lock')) { ?>
                 <li><a href="<?php echo "{$filebrowsereeURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/filebrowser.png" class="brand-ico lazyload"> <span>File Browser Enhanced</span></a></li>
               <?php } ?>
-              <?php if (processExists("flexget", $username) && file_exists("/install/.{$username}.flexget.lock")) { ?>
+              <?php if (processExists('flexget', $username) && file_exists("/install/.{$username}.flexget.lock")) { ?>
                 <li><a href="<?php echo "{$flexgetURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/flexget.png" class="brand-ico lazyload"> <span>FlexGet</span></a></li>
               <?php } ?>
-              <?php if (processExists("netdata", "netdata") && file_exists("/install/.netdata.lock")) { ?>
+              <?php if (processExists('netdata', 'netdata') && file_exists('/install/.netdata.lock')) { ?>
                 <li><a href="<?php echo "{$netdataURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/netdata.png" class="brand-ico lazyload"> <span>NetData</span></a></li>
               <?php } ?>
-              <?php if (processExists("Xtightvnc", $username) && file_exists("/install/.novnc.lock")) { ?>
+              <?php if (processExists('Xtightvnc', $username) && file_exists('/install/.novnc.lock')) { ?>
                 <li><a href="<?php echo "{$novncURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/novnc.png" class="brand-ico lazyload"> <span>noVNC</span></a></li>
               <?php } ?>
               <?php if (file_exists('/install/.plex.lock')) { ?>
@@ -216,7 +216,7 @@
                 </ul>
               </li>
             <?php } ?>
-            <?php if ($is_master && processExists("shellinabox", "shellinabox")) { ?>
+            <?php if ($is_master && processExists('shellinabox', 'shellinabox')) { ?>
             <li><a href="/<?php echo $username; ?>.console" target="_blank"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
             <?php } ?>
             <!-- /// BEGIN INSERT CUSTOM MENU /// -->

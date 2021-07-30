@@ -11,13 +11,13 @@ $username = getUser();
  */
 function get_progress_color($percent) {
     if ($percent >= 90) {
-        return "progress-bar-danger";
+        return 'progress-bar-danger';
     }
     if ($percent >= 70) {
-        return "progress-bar-warning";
+        return 'progress-bar-warning';
     }
 
-    return "progress-bar-success";
+    return 'progress-bar-success';
 }
 
 /**
@@ -27,22 +27,22 @@ function get_progress_color($percent) {
  */
 function get_disk_class($percent) {
     if ($percent >= 90) {
-        return "disk-danger";
+        return 'disk-danger';
     }
     if ($percent >= 70) {
-        return "disk-warning";
+        return 'disk-warning';
     }
 
-    return "disk-good";
+    return 'disk-good';
 }
 
-$rtorrents     = shell_exec("ls /home/".$username."/.sessions/*.torrent|wc -l");
-$dtorrents     = shell_exec("ls /home/".$username."/.config/deluge/state/*.torrent|wc -l");
-$transtorrents = shell_exec("ls /home/".$username."/.config/transmission/torrents/*.torrent|wc -l");
+$rtorrents     = shell_exec('ls /home/'.$username.'/.sessions/*.torrent|wc -l');
+$dtorrents     = shell_exec('ls /home/'.$username.'/.config/deluge/state/*.torrent|wc -l');
+$transtorrents = shell_exec('ls /home/'.$username.'/.config/transmission/torrents/*.torrent|wc -l');
 if (file_exists('/home/'.$username.'/.local/share/data/qBittorrent')) {
-    $qtorrents = shell_exec("ls /home/".$username."/.local/share/data/qBittorrent/BT_backup/*.torrent|wc -l");
+    $qtorrents = shell_exec('ls /home/'.$username.'/.local/share/data/qBittorrent/BT_backup/*.torrent|wc -l');
 } else {
-    $qtorrents = shell_exec("ls /home/".$username."/.local/share/qBittorrent/BT_backup/*.torrent|wc -l");
+    $qtorrents = shell_exec('ls /home/'.$username.'/.local/share/qBittorrent/BT_backup/*.torrent|wc -l');
 }
 // $php_self = $_SERVER['PHP_SELF'];
 // $web_path = substr($php_self, 0, strrpos($php_self, '/') + 1);
@@ -53,7 +53,7 @@ foreach ($disk_info as $parts) {
     $splited = preg_split('/\s+/', $parts);
     assert($splited !== false);
     $parts_tmp = array_values($splited);
-    if (strstr($parts_tmp[1], "M")) {
+    if (strstr($parts_tmp[1], 'M')) {
         continue;
     }
     $perused = (int) substr($parts_tmp['4'], 0, -1); ?>
@@ -88,19 +88,19 @@ foreach ($disk_info as $parts) {
 }
 ?>
 
-<?php if (processExists("rtorrent", $username) && file_exists('/install/.rtorrent.lock')) { ?>
+<?php if (processExists('rtorrent', $username) && file_exists('/install/.rtorrent.lock')) { ?>
 <h4><?php echo T('RTORRENTS_TITLE'); ?></h4>
 <p class="nomargin"><?php echo T('TORRENTS_LOADED_1'); ?> <b><?php echo "{$rtorrents}"; ?></b> <?php echo T('TORRENTS_LOADED_2'); ?></p>
 <?php } ?>
-<?php if (processExists("deluged", $username) && file_exists('/install/.deluge.lock')) { ?>
+<?php if (processExists('deluged', $username) && file_exists('/install/.deluge.lock')) { ?>
 <h4><?php echo T('DTORRENTS_TITLE'); ?></h4>
 <p class="nomargin"><?php echo T('TORRENTS_LOADED_1'); ?> <b><?php echo "{$dtorrents}"; ?></b> <?php echo T('TORRENTS_LOADED_2'); ?></p>
 <?php } ?>
-<?php if (processExists("transmission", $username) && file_exists('/install/.transmission.lock')) { ?>
+<?php if (processExists('transmission', $username) && file_exists('/install/.transmission.lock')) { ?>
 <h4><?php echo T('TRTORRENTS_TITLE'); ?></h4>
 <p class="nomargin"><?php echo T('TORRENTS_LOADED_1'); ?> <b><?php echo "{$transtorrents}"; ?></b> <?php echo T('TORRENTS_LOADED_2'); ?></p>
 <?php } ?>
-<?php if (processExists("qbittorrent-nox", $username) && file_exists('/install/.qbittorrent.lock')) { ?>
+<?php if (processExists('qbittorrent-nox', $username) && file_exists('/install/.qbittorrent.lock')) { ?>
 <h4><?php echo T('QTORRENTS_TITLE'); ?></h4>
 <p class="nomargin"><?php echo T('TORRENTS_LOADED_1'); ?> <b><?php echo "{$qtorrents}"; ?></b> <?php echo T('TORRENTS_LOADED_2'); ?></p>
 <?php } ?>

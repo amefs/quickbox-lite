@@ -4,20 +4,20 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.package.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 assert(isset($packageList));
 
-$service = $_GET["service"];
+$service = $_GET['service'];
 
 $packageWithService = array_filter($packageList, function ($package) {
-    return isset($package["services"]);
+    return isset($package['services']);
 });
 
 $status = false;
 
 foreach ($packageWithService as $package) {
     $matched = false;
-    foreach ($package["services"] as $k => $info) {
+    foreach ($package['services'] as $k => $info) {
         if ($k === $service) {
-            $process  = $info["process"];
-            $username = $info["username"];
+            $process  = $info['process'];
+            $username = $info['username'];
             $status   = processExists($process, $username);
             $matched  = true;
             break;
