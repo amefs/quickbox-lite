@@ -1,7 +1,8 @@
 <?php
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/system_info.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.system.php');
+
 $username  = getUser();
 $master    = getMaster();
 $is_master = $username === $master;

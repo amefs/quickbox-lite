@@ -1,7 +1,8 @@
 <?php
-  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
-  assert(isset($username));
-  assert(isset($master));
+  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
+  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.package.php');
+
+  assert(isset($is_master));
   assert(isset($packageList));
 ?>
 
@@ -48,7 +49,7 @@
             } ?>
         </tbody>
       </table>
-      <?php if (($username == "{$master}") && file_exists('/install/.install.lock')) { ?>
+      <?php if ($is_master && file_exists('/install/.install.lock')) { ?>
         <p style="font-size:10px" style="padding-bottom:12px">
         <hr />
         <?php echo T('CLEAR_LOCK_TXT'); ?>&nbsp; &nbsp; &nbsp; &nbsp;<button onclick="boxHandler(event)" data-package="dpkg" data-operation="fix" data-toggle="modal" data-target="#sysResponse" class="btn btn-xs btn-default"><?php echo T('CLEAR_LOCK'); ?></button>

@@ -1,6 +1,12 @@
 <?php
+    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.lang.php');
+    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.theme.php');
+    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
+
+    assert(isset($languages));
+    assert(isset($themes));
     assert(isset($username));
-    assert(isset($master));
+    assert(isset($is_master));
     assert(isset($version));
     assert(isset($plugins));
     assert(isset($rutorrentURL));
@@ -23,20 +29,6 @@
     assert(isset($transmissiondlURL));
     assert(isset($qbittorrentdlURL));
     assert(isset($openvpndlURL));
-
-    $languages = [
-        ['file' => 'lang_zh', 'title' => 'Chinese'],
-        ['file' => 'lang_dk', 'title' => 'Danish'],
-        ['file' => 'lang_en', 'title' => 'English'],
-        ['file' => 'lang_fr', 'title' => 'French'],
-        ['file' => 'lang_de', 'title' => 'German'],
-        ['file' => 'lang_es', 'title' => 'Spanish'],
-    ];
-    $themes = [
-        ['file' => 'defaulted', 'title' => 'Defaulted'],
-        ['file' => 'smoked', 'title' => 'Smoked'],
-    ];
-    $is_master = $username === $master;
 ?>
 <body class="body">
 <header>

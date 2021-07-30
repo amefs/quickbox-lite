@@ -1,6 +1,6 @@
 <?php
 
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.package.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 assert(isset($packageList));
 
