@@ -56,8 +56,10 @@ function getUser() {
     if ($_SERVER['REMOTE_ADDR'] === '127.0.0.1') {
         return getMaster();
     }
-    if (isset($_SERVER['REMOTE_USER']) && !empty($_SERVER['REMOTE_USER'])) {
-        return $_SERVER['REMOTE_USER'];
+    foreach (['REMOTE_USER', 'PHP_AUTH_USER', 'REDIRECT_REMOTE_USER'] as $key) {
+        if (isset($_SERVER[$key]) && !empty($_SERVER[$key])) {
+            return $_SERVER[$key];
+        }
     }
 
     return '';
@@ -107,7 +109,7 @@ function formatsize($length, $decimals = 3, $startwith = 1) {
     $base      = 1024;
     $index     = floor(log($length, $base));
 
-    return number_format($length / pow($base, $index), $decimals).' '.$si_prefix[$index + 1];
+    return number_format($length / pow($base, $index), $decimals).' '.$si_prefix[$index + $startwith];
 }
 
 /**
@@ -125,7 +127,7 @@ function formatspeed($length, $decimals = 3, $startwith = 1) {
     $base      = 1024;
     $index     = floor(log($length, $base));
 
-    return number_format($length / pow($base, $index), $decimals).' '.$si_prefix[$index + 1];
+    return number_format($length / pow($base, $index), $decimals).' '.$si_prefix[$index + $startwith];
 }
 
 /**
@@ -189,38 +191,6 @@ function GetCpuPercentages($stat1, $stat2) {
 }
 
 /**
- * linux system detects.
- *
- * @return bool|array<string,mixed>
- */
-function sys_linux_cpu() {
-    // CPU
-    if (false === ($str = @file("/proc/cpuinfo"))) {
-        return false;
-    }
-    $str = implode("", $str);
-    @preg_match_all("/model\s+name\s{0,}\:+\s{0,}([^\:]+)[\r\n]+/s", $str, $model);
-    @preg_match_all("/cpu\s+MHz\s{0,}\:+\s{0,}([\d\.]+)[\r\n]+/", $str, $mhz);
-    @preg_match_all("/cache\s+size\s{0,}\:+\s{0,}([\d\.]+\s{0,}[A-Z]+[\r\n]+)/", $str, $cache);
-    $res = [];
-    if (is_array($model[1]) !== false) {
-        $cpu_count     = count($model[1]);
-        $cpu_model     = $model[1][0];
-        $cpu_frequency = $mhz[1][0];
-        $cpu_cache     = $cache[1][0];
-
-        $model_template      = "<h4>{$cpu_model}</h4>";
-        $frequency_template  = " <span style=\"color:#999;font-weight:600\">Frequency:</span> {$cpu_frequency}";
-        $cahce_template      = " <span style=\"color:#999;font-weight:600\">Secondary cache:</span> {$cpu_cache}";
-        $count_template      = $cpu_count > 1 ? " x{$cpu_count}" : "";
-        $res['cpu']['model'] = $model_template.$frequency_template."<br/>".$cahce_template.$count_template;
-        $res['cpu']['num']   = $cpu_count;
-    }
-
-    return $res;
-}
-
-/**
  * @param string $processName
  * @param string $username
  *
@@ -234,18 +204,4 @@ function processExists($processName, $username) {
     }
 
     return $exists;
-}
-
-/**
- * @param string $service
- * @param string $username
- *
- * @return string
- */
-function isEnabled($service, $username) {
-    if (file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'@'.$username.'.service') || file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'.service')) {
-        return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-en toggle-light primary" data-service="'.$service.'" data-operation="stop,disable"></div></div>';
-    } else {
-        return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-dis toggle-light primary" data-service="'.$service.'" data-operation="enable,restart"></div></div>';
-    }
 }

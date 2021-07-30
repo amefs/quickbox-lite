@@ -34,7 +34,11 @@ class SystemInfo {
             $cpu_frequency = $mhz[1][0];
             $cpu_cache     = $cache[1][0];
 
-            $res["model"]     = $cpu_model;
+            $model_template     = "<h4>{$cpu_model}</h4>";
+            $frequency_template = " <span style=\"color:#999;font-weight:600\">Frequency:</span> {$cpu_frequency}";
+            $cahce_template     = " <span style=\"color:#999;font-weight:600\">Secondary cache:</span> {$cpu_cache}";
+
+            $res["model"]     = $model_template.$frequency_template."<br/>".$cahce_template;
             $res["count"]     = $cpu_count;
             $res["frequency"] = $cpu_frequency;
             $res["cache"]     = $cpu_cache;
