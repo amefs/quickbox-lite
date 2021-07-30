@@ -49,6 +49,7 @@ $rules = [
     // Return Notation
     // Semicolon
     // Strict
+    'strict_param' => true,
     // String Notation
     'explicit_string_variable' => true,
     'simple_to_complex_string_variable' => true,
@@ -70,7 +71,7 @@ $finder = PhpCsFixer\Finder::create()
 
 $config = new PhpCsFixer\Config();
 return $config
-    ->setRiskyAllowed(false)
+    ->setRiskyAllowed(true)
     ->setRules($rules)
     ->setFinder($finder)
 ;

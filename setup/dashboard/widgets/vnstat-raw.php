@@ -26,11 +26,11 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
         $page  = $_GET['page'] ?? '';
         $iface = $_GET['if'] ?? '';
 
-        if (!in_array($page, $page_list)) {
+        if (!in_array($page, $page_list, true)) {
             $page = $page_list[0];
         }
 
-        if (!in_array($iface, $iface_list)) {
+        if (!in_array($iface, $iface_list, true)) {
             $iface = $iface_list[0];
         }
     }
