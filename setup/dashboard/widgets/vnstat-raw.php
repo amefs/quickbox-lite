@@ -1,5 +1,7 @@
 <?php
 
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+
 // Valid values for other parameters you can pass to the script.
 // Input parameters will always be limited to one of the values listed here.
 // If a parameter is not provided or invalid it will revert to the default,
@@ -72,8 +74,10 @@
         // extract data
         //
         foreach ($vnstat_data as $line) {
-            $d = array_map("intval", explode(';', trim($line)));
-            if ($d[0] == 'd') {
+            $arr  = explode(';', trim($line));
+            $type = $arr[0];
+            $d    = array_map("intval", $arr);
+            if ($type == 'd') {
                 $day[$d[1]]['time'] = $d[2];
                 $day[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
                 $day[$d[1]]['tx']   = $d[4] * 1024 + $d[6];
@@ -92,7 +96,7 @@
                 $diff_time            = $now - strtotime($zerostr);
                 $day[$d[1]]['rx_avg'] = round($day[$d[1]]['rx'] / $diff_time) * 8;
                 $day[$d[1]]['tx_avg'] = round($day[$d[1]]['tx'] / $diff_time) * 8;
-            } elseif ($d[0] == 'm') {
+            } elseif ($type == 'm') {
                 $month[$d[1]]['time'] = $d[2];
                 $month[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
                 $month[$d[1]]['tx']   = $d[4] * 1024 + $d[6];
@@ -110,7 +114,7 @@
                 $diff_time              = $now - strtotime($lastmomthstr);
                 $month[$d[1]]['rx_avg'] = round($month[$d[1]]['rx'] / $diff_time) * 8;
                 $month[$d[1]]['tx_avg'] = round($month[$d[1]]['tx'] / $diff_time) * 8;
-            } elseif ($d[0] == 'h') {
+            } elseif ($type == 'h') {
                 $hour[$d[1]]['time'] = $d[2];
                 $hour[$d[1]]['rx']   = $d[3];
                 $hour[$d[1]]['tx']   = $d[4];
@@ -124,13 +128,16 @@
                     $hour[$d[1]]['label']     = '';
                     $hour[$d[1]]['img_label'] = '';
                 }
-                $now         = $d[2];
+                $now         = intval($d[2]);
                 $lasthourstr = strftime("%d %B %Y %H:00:00", $now);
                 assert($lasthourstr !== false);
-                $diff_time             = $now - strtotime($lasthourstr);
+                $diff_time = $now - strtotime($lasthourstr);
+                if ($diff_time === 0) {
+                    $diff_time = INF;
+                }
                 $hour[$d[1]]['rx_avg'] = round($hour[$d[1]]['rx'] / $diff_time) * 8;
                 $hour[$d[1]]['tx_avg'] = round($hour[$d[1]]['tx'] / $diff_time) * 8;
-            } elseif ($d[0] == 't') {
+            } elseif ($type == 't') {
                 $top[$d[1]]['time'] = $d[2];
                 $top[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
                 $top[$d[1]]['tx']   = $d[4] * 1024 + $d[6];
@@ -142,7 +149,7 @@
                 $top[$d[1]]['rx_avg'] = round($top[$d[1]]['rx'] / 86400) * 8;
                 $top[$d[1]]['tx_avg'] = round($top[$d[1]]['tx'] / 86400) * 8;
             } else {
-                $summary[$d[0]] = $d[1] ?? '';
+                $summary[$type] = $arr[1] ?? '';
             }
         }
 

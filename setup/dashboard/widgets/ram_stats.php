@@ -29,8 +29,8 @@ function get_ram_color($percent) {
 $memTotal         = formatsize($sysMemInfo['MemTotal']);
 $memUsed          = formatsize($sysMemInfo['MemUsed']);
 $memFree          = formatsize($sysMemInfo['MemFree']);
-$memCached        = formatsize($sysMemInfo['MemCached']); //memory cache
-$memBuffers       = formatsize($sysMemInfo['MemBuffers']); //buffer
+$memCached        = formatsize($sysMemInfo['Cached']); //memory cache
+$memBuffers       = formatsize($sysMemInfo['Buffers']); //buffer
 $swapTotal        = formatsize($sysMemInfo['SwapTotal']);
 $swapUsed         = formatsize($sysMemInfo['SwapUsed']);
 $swapFree         = formatsize($sysMemInfo['SwapFree']);
@@ -43,16 +43,6 @@ $memCachedPercent = number_format($sysMemInfo['CachedPercent'], 3); //cache memo
 ?>
 
 <div class="row">
-  <?php
-  $tmp = [
-      'memTotal', 'memUsed', 'memFree', 'memPercent',
-      'memCached', 'memRealPercent',
-      'swapTotal', 'swapUsed', 'swapFree', 'swapPercent',
-  ];
-  foreach ($tmp as $v) {
-      $sysMemInfo[$v] = $sysMemInfo[$v] ? $sysMemInfo[$v] : 0;
-  }
-  ?>
   <!-- PHSYSICAL MEMORY USAGE -->
   <div class="col-sm-12">
     <!--div class="vertical-container"-->

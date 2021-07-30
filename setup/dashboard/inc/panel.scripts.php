@@ -6,7 +6,7 @@ assert(isset($packageList));
 
 <?php
 foreach ($packageList as &$package) {
-    if ($package["boxonly"] || (isset($package["skip"]) && $package["skip"])) {
+    if ((isset($package["boxonly"]) && $package["boxonly"]) || (isset($package["skip"]) && $package["skip"])) {
         continue;
     }
     $packageLowercase = strtolower($package["package"]);
@@ -243,7 +243,7 @@ $(function() {
   }
 <?php
   foreach ($packageList as &$package) {
-      if ($package["boxonly"]) {
+      if (isset($package["boxonly"]) && $package["boxonly"]) {
           continue;
       }
       $packageLowercase = strtolower($package["package"]); ?>

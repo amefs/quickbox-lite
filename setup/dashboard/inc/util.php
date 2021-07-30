@@ -75,7 +75,7 @@ function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain 
     ini_set("session.cookie_lifetime", strval($timeout));
     $path = join(DIRECTORY_SEPARATOR, [ini_get("session.save_path"), "session_{$timeout}sec"]);
     if (!file_exists($path)) {
-        if (!mkdir($path, 600)) {
+        if (!mkdir($path, 0700)) {
             trigger_error("Failed to create session save path directory '{$path}'. Check permissions.", E_USER_ERROR);
         }
     }

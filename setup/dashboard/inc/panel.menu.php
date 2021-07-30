@@ -220,7 +220,11 @@
             <li><a href="/<?php echo $username; ?>.console" target="_blank"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
             <?php } ?>
             <!-- /// BEGIN INSERT CUSTOM MENU /// -->
-            <?php include($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php'); ?>
+            <?php
+              if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php')) {
+                  include($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php');
+              }
+            ?>
             <!-- /// END INSERT CUSTOM MENU /// -->
           </ul>
         </div><!-- tab pane -->
@@ -287,8 +291,8 @@
               <ul class="children">
                 <li class="info-quote"><p class="info-quote"><?php echo T('PMENU_NOTICE_TXT'); ?></p></li>
                 <?php foreach ($plugins as $plugin) {
-    $installed = file_exists("/srv/rutorrent/plugins/{$plugin}/plugin.info");
-    $action    = $installed ? "removeplugin-{$plugin}=true" : "installplugin-{$plugin}=true"; ?>
+                $installed = file_exists("/srv/rutorrent/plugins/{$plugin}/plugin.info");
+                $action    = $installed ? "removeplugin-{$plugin}=true" : "installplugin-{$plugin}=true"; ?>
                 <li>
                   <a href="javascript:void()"><?php echo $plugin; ?></a>
                   <div class="toggle-wrapper pull-right" style="margin-right: -10px; margin-top: 5px;">
@@ -297,7 +301,7 @@
                   </div>
                 </li>
                 <?php
-} ?>
+            } ?>
               </ul>
             </li>
           </ul>

@@ -1,5 +1,7 @@
 <?php
 
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+
 // Valid values for other parameters you can pass to the script.
 // Input parameters will always be limited to one of the values listed here.
 // If a parameter is not provided or invalid it will revert to the default,
