@@ -59,7 +59,7 @@ class SystemInfo {
         foreach ($info as $line) {
             $ar_buf          = explode(':', $line);
             $ar_buf          = array_map('trim', $ar_buf);
-            $res[$ar_buf[0]] = floatval($ar_buf[1]);
+            $res[$ar_buf[0]] = (float) ($ar_buf[1]);
         }
         $res['MemUsed']    = $res['MemTotal'] - $res['MemFree'];
         $res['MemPercent'] = $res['MemUsed'] / $res['MemTotal'] * 100;

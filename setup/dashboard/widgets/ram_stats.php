@@ -15,7 +15,7 @@ $sysMemInfo = SystemInfo::meminfo();
  * @return string
  */
 function get_ram_color($percent) {
-    $percent = floatval($percent);
+    $percent = (float) $percent;
     if ($percent >= 90) {
         return 'progress-bar-danger';
     }

@@ -128,12 +128,12 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
                     $hour[$d[1]]['label']     = '';
                     $hour[$d[1]]['img_label'] = '';
                 }
-                $now         = intval($d[2]);
+                $now         = (int) ($d[2]);
                 $lasthourstr = strftime('%d %B %Y %H:00:00', $now);
                 assert($lasthourstr !== false);
                 $diff_time = $now - strtotime($lasthourstr);
                 if ($diff_time === 0) {
-                    $diff_time = INF;
+                    $diff_time = \INF;
                 }
                 $hour[$d[1]]['rx_avg'] = round($hour[$d[1]]['rx'] / $diff_time) * 8;
                 $hour[$d[1]]['tx_avg'] = round($hour[$d[1]]['tx'] / $diff_time) * 8;

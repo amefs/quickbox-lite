@@ -5,11 +5,14 @@ $rules = [
      * Rule sets
      */
     '@Symfony' => true,
+    '@Symfony:risky' => true,
     '@PHP74Migration' => true,
     /**
      * Rules
      */
     // Alias
+    'no_alias_functions' => true,
+    'pow_to_exponentiation' => true,
     // Array Notation
     // Basic
     'braces' => [
@@ -35,6 +38,7 @@ $rules = [
     // List Notation
     // Namespace Notation
     // Naming
+    'no_homoglyph_names' => true,
     // Operator
     'binary_operator_spaces' => [
         'operators' => [
@@ -54,6 +58,7 @@ $rules = [
     // String Notation
     'explicit_string_variable' => true,
     'simple_to_complex_string_variable' => true,
+    'no_trailing_whitespace_in_string' => false,
     'single_quote' => true,
     // Whitespace
     'array_indentation' => true,

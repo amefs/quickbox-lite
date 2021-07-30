@@ -53,5 +53,5 @@ if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php')) {
     $zncURL            = "https://{$http_host}/znc/";
 }
 
-setlocale(LC_CTYPE, $locale, 'UTF-8', 'en_US.UTF-8', 'en_US.UTF8');
-setlocale(LC_COLLATE, $locale, 'UTF-8', 'en_US.UTF-8', 'en_US.UTF8');
+setlocale(\LC_CTYPE, $locale, 'UTF-8', 'en_US.UTF-8', 'en_US.UTF8');
+setlocale(\LC_COLLATE, $locale, 'UTF-8', 'en_US.UTF-8', 'en_US.UTF8');

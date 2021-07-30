@@ -1,13 +1,13 @@
 <?php
 
-error_reporting(E_ERROR);
+error_reporting(\E_ERROR);
 if (function_exists('ini_set')) {
     ini_set('display_errors', '0');
     ini_set('log_errors', '1');
     if (file_exists('/install/.debug')) {
         ini_set('display_errors', '1');
         ini_set('display_startup_errors', '1');
-        error_reporting(E_ALL | E_STRICT);
+        error_reporting(\E_ALL | \E_STRICT);
     }
 }
 
@@ -73,16 +73,16 @@ function getUser() {
  * @return void
  */
 function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain = '/') {
-    ini_set('session.gc_maxlifetime', strval($timeout));
-    ini_set('session.cookie_lifetime', strval($timeout));
-    $path = join(DIRECTORY_SEPARATOR, [ini_get('session.save_path'), "session_{$timeout}sec"]);
+    ini_set('session.gc_maxlifetime', (string) $timeout);
+    ini_set('session.cookie_lifetime', (string) $timeout);
+    $path = implode(\DIRECTORY_SEPARATOR, [ini_get('session.save_path'), "session_{$timeout}sec"]);
     if (!file_exists($path)) {
         if (!mkdir($path, 0700)) {
-            trigger_error("Failed to create session save path directory '{$path}'. Check permissions.", E_USER_ERROR);
+            trigger_error("Failed to create session save path directory '{$path}'. Check permissions.", \E_USER_ERROR);
         }
     }
     ini_set('session.save_path', $path);
-    ini_set('session.gc_probability', strval($probability));
+    ini_set('session.gc_probability', (string) $probability);
     ini_set('session.gc_divisor', '100');
     session_start();
     $session_name = session_name();
@@ -109,7 +109,7 @@ function formatsize($length, $decimals = 3, $startwith = 1) {
     $base      = 1024;
     $index     = floor(log($length, $base));
 
-    return number_format($length / pow($base, $index), $decimals).' '.$si_prefix[$index + $startwith];
+    return number_format($length / $base ** $index, $decimals).' '.$si_prefix[$index + $startwith];
 }
 
 /**
@@ -127,7 +127,7 @@ function formatspeed($length, $decimals = 3, $startwith = 1) {
     $base      = 1024;
     $index     = floor(log($length, $base));
 
-    return number_format($length / pow($base, $index), $decimals).' '.$si_prefix[$index + $startwith];
+    return number_format($length / $base ** $index, $decimals).' '.$si_prefix[$index + $startwith];
 }
 
 /**
@@ -139,7 +139,7 @@ function microtime_float() {
     $mtime = microtime();
     $mtime = explode(' ', $mtime);
 
-    return floatval($mtime[1]) + floatval($mtime[0]);
+    return (float) ($mtime[1]) + (float) ($mtime[0]);
 }
 
 /**

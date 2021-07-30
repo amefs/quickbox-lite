@@ -7,7 +7,7 @@ $vnstat_bin              = '/usr/bin/vnstat';
 $data_dir                = './dumps';
 $byte_notation           = null;
 
-/** @var array<int,mixed> $page */
+/** @var string $page */
 $page = null;
 /** @var array<int,mixed> $day */
 $day = null;
