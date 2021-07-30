@@ -50,6 +50,7 @@ $rules = [
     // Semicolon
     // Strict
     'strict_param' => true,
+    'strict_comparison' => true,
     // String Notation
     'explicit_string_variable' => true,
     'simple_to_complex_string_variable' => true,

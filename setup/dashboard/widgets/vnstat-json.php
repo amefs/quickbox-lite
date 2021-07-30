@@ -45,7 +45,7 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
         global $hour,$day,$month,$top,$summary;
 
         $vnstat_data = [];
-        if (!isset($vnstat_bin) || $vnstat_bin == '') {
+        if (!isset($vnstat_bin) || $vnstat_bin === '') {
             if (file_exists("{$data_dir}/vnstat_dump_{$iface}")) {
                 $file_data = file_get_contents("{$data_dir}/vnstat_dump_{$iface}");
                 assert($file_data !== false);

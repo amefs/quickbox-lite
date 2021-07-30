@@ -44,7 +44,7 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
         global $iface, $vnstat_bin, $data_dir;
         global $hour,$day,$month,$top,$summary;
         $vnstat_data = [];
-        if (!isset($vnstat_bin) || $vnstat_bin == '') {
+        if (!isset($vnstat_bin) || $vnstat_bin === '') {
             if (file_exists("{$data_dir}/vnstat_dump_{$iface}")) {
                 $vnstat_data = file("{$data_dir}/vnstat_dump_{$iface}");
                 assert($vnstat_data !== false);
@@ -77,12 +77,12 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
             $arr  = explode(';', trim($line));
             $type = $arr[0];
             $d    = array_map('intval', $arr);
-            if ($type == 'd') {
+            if ($type === 'd') {
                 $day[$d[1]]['time'] = $d[2];
                 $day[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
                 $day[$d[1]]['tx']   = $d[4] * 1024 + $d[6];
                 $day[$d[1]]['act']  = $d[7];
-                if ($d[2] != 0 && $use_label) {
+                if ($d[2] !== 0 && $use_label) {
                     $day[$d[1]]['label']     = strftime(T('datefmt_days'), $d[2]);
                     $day[$d[1]]['img_label'] = strftime(T('datefmt_days_img'), $d[2]);
                 } elseif ($use_label) {
@@ -96,12 +96,12 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
                 $diff_time            = $now - strtotime($zerostr);
                 $day[$d[1]]['rx_avg'] = round($day[$d[1]]['rx'] / $diff_time) * 8;
                 $day[$d[1]]['tx_avg'] = round($day[$d[1]]['tx'] / $diff_time) * 8;
-            } elseif ($type == 'm') {
+            } elseif ($type === 'm') {
                 $month[$d[1]]['time'] = $d[2];
                 $month[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
                 $month[$d[1]]['tx']   = $d[4] * 1024 + $d[6];
                 $month[$d[1]]['act']  = $d[7];
-                if ($d[2] != 0 && $use_label) {
+                if ($d[2] !== 0 && $use_label) {
                     $month[$d[1]]['label']     = strftime(T('datefmt_months'), $d[2]);
                     $month[$d[1]]['img_label'] = strftime(T('datefmt_months_img'), $d[2]);
                 } elseif ($use_label) {
@@ -114,12 +114,12 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
                 $diff_time              = $now - strtotime($lastmomthstr);
                 $month[$d[1]]['rx_avg'] = round($month[$d[1]]['rx'] / $diff_time) * 8;
                 $month[$d[1]]['tx_avg'] = round($month[$d[1]]['tx'] / $diff_time) * 8;
-            } elseif ($type == 'h') {
+            } elseif ($type === 'h') {
                 $hour[$d[1]]['time'] = $d[2];
                 $hour[$d[1]]['rx']   = $d[3];
                 $hour[$d[1]]['tx']   = $d[4];
                 $hour[$d[1]]['act']  = 1;
-                if ($d[2] != 0 && $use_label) {
+                if ($d[2] !== 0 && $use_label) {
                     $st                       = $d[2] - ($d[2] % 3600);
                     $et                       = $st + 3600;
                     $hour[$d[1]]['label']     = strftime(T('datefmt_hours'), $st).' - '.strftime(T('datefmt_hours'), $et);
@@ -137,7 +137,7 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
                 }
                 $hour[$d[1]]['rx_avg'] = round($hour[$d[1]]['rx'] / $diff_time) * 8;
                 $hour[$d[1]]['tx_avg'] = round($hour[$d[1]]['tx'] / $diff_time) * 8;
-            } elseif ($type == 't') {
+            } elseif ($type === 't') {
                 $top[$d[1]]['time'] = $d[2];
                 $top[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
                 $top[$d[1]]['tx']   = $d[4] * 1024 + $d[6];

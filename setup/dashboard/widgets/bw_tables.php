@@ -144,7 +144,7 @@ function write_data_table_s($caption, $tab) {
     echo "<tbody>\n";
 
     for ($i = 0; $i < count($tab); ++$i) {
-        if ($tab[$i]['act'] == 1) {
+        if ($tab[$i]['act'] === 1) {
             $t      = $tab[$i]['label'];
             $rx     = formatsize($tab[$i]['rx'], 2);
             $tx     = formatsize($tab[$i]['tx'], 2);
@@ -189,7 +189,7 @@ function write_data_table_t($caption, $tab) {
     echo "<tbody>\n";
 
     for ($i = 0; $i < count($tab); ++$i) {
-        if ($tab[$i]['act'] == 1) {
+        if ($tab[$i]['act'] === 1) {
             $t      = $tab[$i]['label'];
             $rx     = formatsize($tab[$i]['rx'], 2);
             $tx     = formatsize($tab[$i]['tx'], 2);
@@ -218,13 +218,13 @@ get_vnstat_data();
 <div class="col-sm-12" style="padding-left:0;padding-right:0;">
   <div class="table-responsive">
     <?php
-      if ($page == 's') {
+      if ($page === 's') {
           write_summary_s();
-      } elseif ($page == 'h') {
+      } elseif ($page === 'h') {
           write_data_table_s(T('Last 24 hours'), $hour);
-      } elseif ($page == 'd') {
+      } elseif ($page === 'd') {
           write_data_table_s(T('Last 30 days'), $day);
-      } elseif ($page == 'm') {
+      } elseif ($page === 'm') {
           write_data_table_s(T('Last 12 months'), $month);
       }
     ?>
@@ -233,13 +233,13 @@ get_vnstat_data();
 <div class="col-sm-12" style="padding-left:0;padding-right:0;">
   <div class="table-responsive">
     <?php
-      if ($page == 's') {
+      if ($page === 's') {
           write_summary_t();
-      } elseif ($page == 'h') {
+      } elseif ($page === 'h') {
           write_data_table_t(T('Last 24 hours'), $hour);
-      } elseif ($page == 'd') {
+      } elseif ($page === 'd') {
           write_data_table_t(T('Last 30 days'), $day);
-      } elseif ($page == 'm') {
+      } elseif ($page === 'm') {
           write_data_table_t(T('Last 12 months'), $month);
       }
     ?>

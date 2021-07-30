@@ -12,7 +12,7 @@ $version   = 'v1.4.6';
 $branch    = file_exists('/install/.developer.lock') ? 'development' : 'master';
 $username  = getUser();
 $master    = getMaster();
-$is_master = $username == $master;
+$is_master = $username === $master;
 if (!isset($locale)) {
     $locale = 'UTF8';
 }
