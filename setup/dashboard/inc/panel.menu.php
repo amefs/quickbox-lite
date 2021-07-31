@@ -292,11 +292,15 @@
                 <li class="info-quote"><p class="info-quote"><?php echo T('PMENU_NOTICE_TXT'); ?></p></li>
                 <?php foreach ($plugins as $plugin) {
                 $installed = file_exists("/srv/rutorrent/plugins/{$plugin}/plugin.info");
-                $action    = $installed ? "removeplugin-{$plugin}=true" : "installplugin-{$plugin}=true"; ?>
+                $action    = $installed ? "?removeplugin-{$plugin}=true" : "?installplugin-{$plugin}=true"; ?>
                 <li>
-                  <a href="javascript:void()"><?php echo $plugin; ?></a>
+                  <a href="javascript:void(0)"><?php echo $plugin; ?></a>
                   <div class="toggle-wrapper pull-right" style="margin-right: -10px; margin-top: 5px;">
+                  <?php if ($installed) { ?>
                     <div class="toggle-pen toggle-modern" onclick="location.href='<?php echo $action; ?>'">
+                  <?php } else { ?>
+                    <div class="toggle-pdis toggle-modern" onclick="location.href='<?php echo $action; ?>'">
+                  <?php } ?>
                     </div>
                   </div>
                 </li>
