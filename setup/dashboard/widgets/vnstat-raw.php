@@ -1,17 +1,11 @@
 <?php
 
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+
 // Valid values for other parameters you can pass to the script.
 // Input parameters will always be limited to one of the values listed here.
 // If a parameter is not provided or invalid it will revert to the default,
 // the first parameter in the list.
-
-    if (isset($_SERVER['PHP_SELF'])) {
-        $script = $_SERVER['PHP_SELF'];
-    } elseif (isset($_SERVER['SCRIPT_NAME'])) {
-        $script = $_SERVER['SCRIPT_NAME'];
-    } else {
-        exit('can\'t determine script name!');
-    }
 
     $page_list = ['s', 'h', 'd', 'm'];
 
@@ -20,9 +14,9 @@
     $page_title['d'] = T('days');
     $page_title['m'] = T('months');
 
-    //
-    // functions
-    //
+    /**
+     * @return void
+     */
     function validate_input() {
         global $page,  $page_list;
         global $iface, $iface_list;
@@ -32,25 +26,31 @@
         $page  = $_GET['page'] ?? '';
         $iface = $_GET['if'] ?? '';
 
-        if (!in_array($page, $page_list)) {
+        if (!in_array($page, $page_list, true)) {
             $page = $page_list[0];
         }
 
-        if (!in_array($iface, $iface_list)) {
+        if (!in_array($iface, $iface_list, true)) {
             $iface = $iface_list[0];
         }
     }
 
+    /**
+     * @param bool $use_label
+     *
+     * @return void
+     */
     function get_vnstat_data($use_label = true) {
         global $iface, $vnstat_bin, $data_dir;
         global $hour,$day,$month,$top,$summary;
         $vnstat_data = [];
-        if (!isset($vnstat_bin) || $vnstat_bin == '') {
+        if (!isset($vnstat_bin) || $vnstat_bin === '') {
             if (file_exists("{$data_dir}/vnstat_dump_{$iface}")) {
                 $vnstat_data = file("{$data_dir}/vnstat_dump_{$iface}");
+                assert($vnstat_data !== false);
             }
         } else {
-            $fd = popen("{$vnstat_bin} --dumpdb -i {$iface}", "r");
+            $fd = popen("{$vnstat_bin} --dumpdb -i {$iface}", 'r');
             if (is_resource($fd)) {
                 $buffer = '';
                 while (!feof($fd)) {
@@ -74,43 +74,52 @@
         // extract data
         //
         foreach ($vnstat_data as $line) {
-            $d = explode(';', trim($line));
-            if ($d[0] == 'd') {
+            $arr  = explode(';', trim($line));
+            $type = $arr[0];
+            $d    = array_map('intval', $arr);
+            if ($type === 'd') {
                 $day[$d[1]]['time'] = $d[2];
                 $day[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
                 $day[$d[1]]['tx']   = $d[4] * 1024 + $d[6];
                 $day[$d[1]]['act']  = $d[7];
-                if ($d[2] != 0 && $use_label) {
+                if ($d[2] !== 0 && $use_label) {
                     $day[$d[1]]['label']     = strftime(T('datefmt_days'), $d[2]);
                     $day[$d[1]]['img_label'] = strftime(T('datefmt_days_img'), $d[2]);
                 } elseif ($use_label) {
                     $day[$d[1]]['label']     = '';
                     $day[$d[1]]['img_label'] = '';
                 }
-                $diff_time            = strtotime("now") - strtotime(strftime("%d %B %Y", strtotime("now")));
+
+                $now     = strtotime('now');
+                $zerostr = strftime('%d %B %Y', $now);
+                assert($zerostr !== false);
+                $diff_time            = $now - strtotime($zerostr);
                 $day[$d[1]]['rx_avg'] = round($day[$d[1]]['rx'] / $diff_time) * 8;
                 $day[$d[1]]['tx_avg'] = round($day[$d[1]]['tx'] / $diff_time) * 8;
-            } elseif ($d[0] == 'm') {
+            } elseif ($type === 'm') {
                 $month[$d[1]]['time'] = $d[2];
                 $month[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
                 $month[$d[1]]['tx']   = $d[4] * 1024 + $d[6];
                 $month[$d[1]]['act']  = $d[7];
-                if ($d[2] != 0 && $use_label) {
+                if ($d[2] !== 0 && $use_label) {
                     $month[$d[1]]['label']     = strftime(T('datefmt_months'), $d[2]);
                     $month[$d[1]]['img_label'] = strftime(T('datefmt_months_img'), $d[2]);
                 } elseif ($use_label) {
                     $month[$d[1]]['label']     = '';
                     $month[$d[1]]['img_label'] = '';
                 }
-                $diff_time              = strtotime("now") - strtotime(strftime("1 %B %Y", strtotime("now")));
+                $now          = strtotime('now');
+                $lastmomthstr = strftime('1 %B %Y', $now);
+                assert($lastmomthstr !== false);
+                $diff_time              = $now - strtotime($lastmomthstr);
                 $month[$d[1]]['rx_avg'] = round($month[$d[1]]['rx'] / $diff_time) * 8;
                 $month[$d[1]]['tx_avg'] = round($month[$d[1]]['tx'] / $diff_time) * 8;
-            } elseif ($d[0] == 'h') {
+            } elseif ($type === 'h') {
                 $hour[$d[1]]['time'] = $d[2];
                 $hour[$d[1]]['rx']   = $d[3];
                 $hour[$d[1]]['tx']   = $d[4];
                 $hour[$d[1]]['act']  = 1;
-                if ($d[2] != 0 && $use_label) {
+                if ($d[2] !== 0 && $use_label) {
                     $st                       = $d[2] - ($d[2] % 3600);
                     $et                       = $st + 3600;
                     $hour[$d[1]]['label']     = strftime(T('datefmt_hours'), $st).' - '.strftime(T('datefmt_hours'), $et);
@@ -119,10 +128,16 @@
                     $hour[$d[1]]['label']     = '';
                     $hour[$d[1]]['img_label'] = '';
                 }
-                $diff_time             = $d[2] - strtotime(strftime("%d %B %Y %H:00:00", $d[2]));
+                $now         = (int) ($d[2]);
+                $lasthourstr = strftime('%d %B %Y %H:00:00', $now);
+                assert($lasthourstr !== false);
+                $diff_time = $now - strtotime($lasthourstr);
+                if ($diff_time === 0) {
+                    $diff_time = \INF;
+                }
                 $hour[$d[1]]['rx_avg'] = round($hour[$d[1]]['rx'] / $diff_time) * 8;
                 $hour[$d[1]]['tx_avg'] = round($hour[$d[1]]['tx'] / $diff_time) * 8;
-            } elseif ($d[0] == 't') {
+            } elseif ($type === 't') {
                 $top[$d[1]]['time'] = $d[2];
                 $top[$d[1]]['rx']   = $d[3] * 1024 + $d[5];
                 $top[$d[1]]['tx']   = $d[4] * 1024 + $d[6];
@@ -134,7 +149,7 @@
                 $top[$d[1]]['rx_avg'] = round($top[$d[1]]['rx'] / 86400) * 8;
                 $top[$d[1]]['tx_avg'] = round($top[$d[1]]['tx'] / 86400) * 8;
             } else {
-                $summary[$d[0]] = $d[1] ?? '';
+                $summary[$type] = $arr[1] ?? '';
             }
         }
 

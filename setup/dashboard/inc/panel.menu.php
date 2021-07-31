@@ -1,11 +1,40 @@
 <?php
-  $current_vs = "<span id=\"version-result\"></span>";
+    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.lang.php');
+    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.theme.php');
+    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
+
+    assert(isset($languages));
+    assert(isset($themes));
+    assert(isset($username));
+    assert(isset($is_master));
+    assert(isset($version));
+    assert(isset($plugins));
+    assert(isset($rutorrentURL));
+    assert(isset($floodURL));
+    assert(isset($dwURL));
+    assert(isset($transmissionURL));
+    assert(isset($qbittorrentURL));
+    assert(isset($btsyncURL));
+    assert(isset($filebrowserURL));
+    assert(isset($filebrowsereeURL));
+    assert(isset($flexgetURL));
+    assert(isset($netdataURL));
+    assert(isset($novncURL));
+    assert(isset($plexURL));
+    assert(isset($speedtestURL));
+    assert(isset($syncthingURL));
+    assert(isset($zncURL));
+    assert(isset($rtorrentdlURL));
+    assert(isset($delugedlURL));
+    assert(isset($transmissiondlURL));
+    assert(isset($qbittorrentdlURL));
+    assert(isset($openvpndlURL));
 ?>
 <body class="body">
 <header>
   <div class="headerpanel">
     <div class="logopanel">
-      <h2><?php include("db/branding-l.php"); ?></h2>
+      <h2><?php require('db/branding-l.php'); ?></h2>
     </div><!-- logopanel -->
     <div class="headerbar">
       <a id="menuToggle" class="menutoggle"><i class="fa fa-bars"></i></a>
@@ -20,7 +49,7 @@
             </div>
           </li>
           <?php } ?>
-          <?php if ($username == "{$master}") { ?>
+          <?php if ($is_master) { ?>
           <li>
             <div id="noticePanel" class="btn-group">
               <button class="btn" data-toggle="dropdown">
@@ -60,28 +89,12 @@
                           <div class="row">
                             <div class="col-xs-12">
                               <div class="col-xs-12 col-md-6" style="padding: 0">
-                                <?php
-                                $languages = [
-                                    ['file' => 'lang_zh', 'title' => 'Chinese'],
-                                    ['file' => 'lang_dk', 'title' => 'Danish'],
-                                    ['file' => 'lang_en', 'title' => 'English'],
-                                    ['file' => 'lang_fr', 'title' => 'French'],
-                                    ['file' => 'lang_de', 'title' => 'German'],
-                                    ['file' => 'lang_es', 'title' => 'Spanish'],
-                                ];
-                                ?>
                                 <h5><?php echo T('LANG_SELECT'); ?></h5>
                                 <?php foreach ($languages as $lang) { ?>
                                   <small><div onclick="boxHandler(event)" data-package="<?php echo $lang['file']; ?>" data-operation="lang" style="cursor: pointer;"><img class="lang-flag lazyload" data-src="lang/flag_<?php echo $lang['file']; ?>.png" /><?php echo $lang['title']; ?></div></small>
                                 <?php } ?>
                               </div>
                               <div class="col-xs-12 col-md-6" style="padding: 0">
-                              <?php
-                              $themes = [
-                                  ['file' => 'defaulted', 'title' => 'Defaulted'],
-                                  ['file' => 'smoked', 'title' => 'Smoked'],
-                              ];
-                              ?>
                                 <h5><?php echo T('THEME_SELECT'); ?></h5>
                                 <?php foreach ($themes as $theme) { ?>
                                   <small><div data-toggle="modal" data-target="#themeSelect<?php echo $theme['file']; ?>Confirm" style="cursor: pointer;"><img class="lang-flag lazyload" data-src="img/themes/opt_<?php echo $theme['file']; ?>.png" /><?php echo $theme['title']; ?></div></small>
@@ -105,7 +118,7 @@
                 <?php echo "{$username}"; ?>
                 <span class="caret"></span>
               </button>
-              <?php include("db/branding-m.php"); ?>
+              <?php require($_SERVER['DOCUMENT_ROOT'].'/db/branding-m.php'); ?>
             </div>
           </li>
         </ul>
@@ -118,7 +131,7 @@
     <div class="leftpanelinner">
       <ul class="nav nav-tabs nav-justified nav-sidebar">
         <li class="tooltips active" data-toggle="tooltip" title="<?php echo T('MAIN_MENU'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#mainmenu"><i class="tooltips fa fa-ellipsis-h"></i></a></li>
-        <?php if (($username == "{$master}") && file_exists('/install/.rutorrent.lock')) { ?>
+        <?php if (($is_master) && file_exists('/install/.rutorrent.lock')) { ?>
           <li class="tooltips" data-toggle="tooltip" title="<?php echo T('RPLUGIN_MENU'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#plugins"><i class="tooltips fa fa-puzzle-piece"></i></a></li>
         <?php } ?>
         <li class="tooltips" data-toggle="tooltip" title="<?php echo T('HELP_COMMANDS'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#help"><i class="tooltips fa fa-question-circle"></i></a></li>
@@ -130,42 +143,42 @@
           <ul class="nav nav-pills nav-stacked nav-quirk">
             <!--li class="active"><a href="index.php"><i class="fa fa-home"></i> <span>Dashboard</span></a></li-->
             <!-- // RUTORRENT // -->
-            <?php if (processExists("rtorrent", $username) && file_exists('/install/.rutorrent.lock')) { ?>
+            <?php if (processExists('rtorrent', $username) && file_exists('/install/.rutorrent.lock')) { ?>
               <li><a class="grayscale" href="<?php echo "{$rutorrentURL}"; ?>" target="_blank"><img data-src="img/brands/rtorrent.png" class="brand-ico lazyload"> <span>ruTorrent</span></a></li>
             <?php } ?>
             <!-- // FLOOD // -->
-            <?php if (processExists("flood", $username) && file_exists('/install/.flood.lock')) { ?>
+            <?php if (processExists('flood', $username) && file_exists('/install/.flood.lock')) { ?>
               <li><a class="grayscale" href="<?php echo "{$floodURL}"; ?>" target="_blank"><img data-src="img/brands/flood.png" class="brand-ico lazyload"> <span>Flood</span></a></li>
             <?php } ?>
             <!-- // DELUGE-WEB // -->
-            <?php if (processExists("deluge-web", $username) && file_exists('/install/.deluge.lock')) { ?>
+            <?php if (processExists('deluge-web', $username) && file_exists('/install/.deluge.lock')) { ?>
               <li><a class="grayscale" href="<?php echo "{$dwURL}"; ?>" target="_blank"><img data-src="img/brands/deluge.png" class="brand-ico lazyload"> <span>Deluge Web</span></a></li>
             <?php } ?>
             <!-- // TRANSMISSION // -->
-            <?php if (processExists("transmission-daemon", $username) && file_exists('/install/.transmission.lock')) { ?>
+            <?php if (processExists('transmission-daemon', $username) && file_exists('/install/.transmission.lock')) { ?>
               <li><a href="<?php echo "{$transmissionURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/transmission.png" class="brand-ico lazyload"> <span>Transmission Web Control</span></a></li>
             <?php } ?>
 			      <!-- // QBITTORRENT // -->
-            <?php if (processExists("qbittorrent-nox", $username) && file_exists('/install/.qbittorrent.lock')) { ?>
+            <?php if (processExists('qbittorrent-nox', $username) && file_exists('/install/.qbittorrent.lock')) { ?>
               <li><a href="<?php echo "{$qbittorrentURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/qbittorrent.png" class="brand-ico lazyload"> <span>qBittorrent</span></a></li>
             <?php } ?>
-            <?php if ($username == "{$master}") { ?>
-              <?php if (processExists("rslsync", $username) && file_exists('/install/.btsync.lock')) { ?>
+            <?php if ($is_master) { ?>
+              <?php if (processExists('rslsync', $username) && file_exists('/install/.btsync.lock')) { ?>
                 <li><a class="grayscale" href="<?php echo "{$btsyncURL}"; ?>" target="_blank"><img data-src="img/brands/btsync.png" class="brand-ico lazyload"> <span>BTSync</span></a></li>
               <?php } ?>
-              <?php if (processExists("filebrowser", $username) && file_exists('/install/.filebrowser.lock')) { ?>
+              <?php if (processExists('filebrowser', $username) && file_exists('/install/.filebrowser.lock')) { ?>
                 <li><a href="<?php echo "{$filebrowserURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/filebrowser.png" class="brand-ico lazyload"> <span>File Browser</span></a></li>
               <?php } ?>
-              <?php if (processExists("filebrowser-ee", $username) && file_exists('/install/.filebrowser-ee.lock')) { ?>
+              <?php if (processExists('filebrowser-ee', $username) && file_exists('/install/.filebrowser-ee.lock')) { ?>
                 <li><a href="<?php echo "{$filebrowsereeURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/filebrowser.png" class="brand-ico lazyload"> <span>File Browser Enhanced</span></a></li>
               <?php } ?>
-              <?php if (processExists("flexget", $username) && file_exists("/install/.{$username}.flexget.lock")) { ?>
+              <?php if (processExists('flexget', $username) && file_exists("/install/.{$username}.flexget.lock")) { ?>
                 <li><a href="<?php echo "{$flexgetURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/flexget.png" class="brand-ico lazyload"> <span>FlexGet</span></a></li>
               <?php } ?>
-              <?php if (processExists("netdata", netdata) && file_exists("/install/.netdata.lock")) { ?>
+              <?php if (processExists('netdata', 'netdata') && file_exists('/install/.netdata.lock')) { ?>
                 <li><a href="<?php echo "{$netdataURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/netdata.png" class="brand-ico lazyload"> <span>NetData</span></a></li>
               <?php } ?>
-              <?php if (processExists("Xtightvnc", $username) && file_exists("/install/.novnc.lock")) { ?>
+              <?php if (processExists('Xtightvnc', $username) && file_exists('/install/.novnc.lock')) { ?>
                 <li><a href="<?php echo "{$novncURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/novnc.png" class="brand-ico lazyload"> <span>noVNC</span></a></li>
               <?php } ?>
               <?php if (file_exists('/install/.plex.lock')) { ?>
@@ -197,24 +210,28 @@
                   <?php if (file_exists('/install/.qbittorrent.lock')) { ?>
                     <li><a href="<?php echo "{$qbittorrentdlURL}"; ?>" target="_blank">qBittorrent</a></li>
                   <?php } ?>
-                  <?php if (file_exists('/home/'.$username.'/openvpn/'.$username.'.zip')) { ?>
+                  <?php if (file_exists("/home/{$username}/openvpn/{$username}.zip")) { ?>
                     <li><a href="<?php echo "{$openvpndlURL}"; ?>" target="_blank">OpenVPN Config</a></li>
                   <?php } ?>
                 </ul>
               </li>
             <?php } ?>
-            <?php if (processExists("shellinabox", shellinabox) && ($username == "{$master}")) { ?>
-            <li><a href="/<?php echo "{$username}"; ?>.console" target="_blank"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
+            <?php if ($is_master && processExists('shellinabox', 'shellinabox')) { ?>
+            <li><a href="/<?php echo $username; ?>.console" target="_blank"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
             <?php } ?>
             <!-- /// BEGIN INSERT CUSTOM MENU /// -->
-            <?php include($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php'); ?>
+            <?php
+              if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php')) {
+                  include($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php');
+              }
+            ?>
             <!-- /// END INSERT CUSTOM MENU /// -->
           </ul>
         </div><!-- tab pane -->
 
         <!-- ######################## HELP MENU TAB ##################### -->
         <div class="tab-pane" id="help">
-          <?php if ($username == "{$master}") { ?>
+          <?php if ($is_master) { ?>
           <h5 class="sidebar-title"><?php echo T('QUICK_SYSTEM_TIPS'); ?></h5>
           <ul class="nav nav-pills nav-stacked nav-quirk nav-mail">
             <li style="padding: 7px"><span style="font-size: 12px; color:#eee">box update quickbox</span><br/>
@@ -273,15 +290,22 @@
               <a href=""><i class="fa fa-puzzle-piece"></i> <span><?php echo T('PLUGINS'); ?></span></a>
               <ul class="children">
                 <li class="info-quote"><p class="info-quote"><?php echo T('PMENU_NOTICE_TXT'); ?></p></li>
-                <?php foreach ($plugins as $plugin) { ?>
-                  <li>
-                  <?php if (file_exists('/srv/rutorrent/plugins/'.$plugin.'/plugin.info')) {
-                                  echo "<a href=\"javascript:void()\">{$plugin}</a> <div class=\"toggle-wrapper pull-right\" style=\"margin-right: -10px; margin-top: 5px;\"> <div class=\"toggle-pen toggle-modern\" onclick=\"location.href='?removeplugin-{$plugin}=true'\"></div></div>";
-                              } else {
-                                  echo "<a href=\"javascript:void()\">{$plugin}</a> <div class=\"toggle-wrapper pull-right\" style=\"margin-right: -10px; margin-top: 5px;\"> <div class=\"toggle-pdis toggle-modern\" onclick=\"location.href='?installplugin-{$plugin}=true'\"></div></div>";
-                              } ?>
-                  </li>
-                <?php } ?>
+                <?php foreach ($plugins as $plugin) {
+                $installed = file_exists("/srv/rutorrent/plugins/{$plugin}/plugin.info");
+                $action    = $installed ? "?removeplugin-{$plugin}=true" : "?installplugin-{$plugin}=true"; ?>
+                <li>
+                  <a href="javascript:void(0)"><?php echo $plugin; ?></a>
+                  <div class="toggle-wrapper pull-right" style="margin-right: -10px; margin-top: 5px;">
+                  <?php if ($installed) { ?>
+                    <div class="toggle-pen toggle-modern" onclick="location.href='<?php echo $action; ?>'">
+                  <?php } else { ?>
+                    <div class="toggle-pdis toggle-modern" onclick="location.href='<?php echo $action; ?>'">
+                  <?php } ?>
+                    </div>
+                  </div>
+                </li>
+                <?php
+            } ?>
               </ul>
             </li>
           </ul>

@@ -1,7 +1,19 @@
 <?php
-  include('inc/config.php');
-  include('inc/panel.header.php');
-  include('inc/panel.menu.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/info.plugin.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/info.theme.php');
+
+  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.system.php');
+  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
+
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.header.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.menu.php');
+
+  assert(isset($is_master));
+  assert(isset($version));
+  assert(isset($branch));
+
+  $sysCpuInfo = SystemInfo::cpuinfo();
 ?>
 
 <div class="mainpanel">
@@ -29,7 +41,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <?php if (false !== ($strs = @file("/proc/net/dev"))) { ?>
+                    <?php if (false !== ($strs = @file('/proc/net/dev'))) { ?>
                     <?php for ($i = 2; $i < count($strs); ++$i) { ?>
                     <?php preg_match_all("/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info); ?>
                     <tr>
@@ -55,12 +67,12 @@
         </div>
 
         <!--SERVICE CONTROL CENTER-->
-        <?php include('widgets/service_control.php'); ?>
+        <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/service_control.php'); ?>
         <!-- panel -->
 
-        <?php if ($username == "{$master}") { ?>
+        <?php if ($is_master) { ?>
           <!--PACKAGE MANAGEMENT CENTER-->
-          <?php include('widgets/pmc.php'); ?>
+          <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/pmc.php'); ?>
           <!-- panel -->
         <?php } ?>
 
@@ -94,8 +106,8 @@
           </div>
           <div class="panel-body" style="overflow:hidden">
             <span class="nomargin" style="font-size:14px">
-              <?php echo $sysInfo['cpu']['model']; ?><br/>
-              [<span style="color:#999;font-weight:600">x<?php echo $sysInfo['cpu']['num']; ?></span> core]
+              <?php echo $sysCpuInfo['model']; ?><br/>
+              [<span style="color:#999;font-weight:600">x<?php echo $sysCpuInfo['count']; ?></span> core]
             </span>
           </div>
         </div><!-- CPU WIDGET -->
@@ -116,11 +128,11 @@
             <div id="meterram"></div>
           </div>
         </div><!-- RAM WIDGET -->
-        <?php if ($username == "{$master}") { ?>
+        <?php if ($is_master) { ?>
           <div class="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
             <div class="panel-heading">
               <h4 class="panel-title text-success"><?php echo T('RECENT_UPDATES'); ?>
-                <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $version."...".$branch; ?>" 
+                <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $version.'...'.$branch; ?>" 
                   title="<?php echo T('CURRENT_VERSIONS_CHANGELOG'); ?>"
                   data-placement="top" class="label label-primary tooltips"
                   style="font-size:10px; padding-top:0; padding-bottom:0px; top: -2px; position: relative;"
@@ -142,6 +154,6 @@
 </div><!-- mainpanel -->
 
 <?php
-  include('inc/panel.scripts.php');
-  include('inc/panel.end.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.scripts.php');
+  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.end.php');
 ?>

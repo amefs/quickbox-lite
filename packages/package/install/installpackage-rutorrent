@@ -251,6 +251,10 @@ EOF
 	sed -i 's/pathToCreatetorrent = '\'\''/pathToCreatetorrent = '\''\/usr\/bin\/mktorrent'\''/' /srv/rutorrent/plugins/create/conf.php
 	sed -i "s/\$pathToExternals\['sox'\] = ''/\$pathToExternals\['sox'\] = '\/usr\/bin\/sox'/g" /srv/rutorrent/plugins/spectrogram/conf.php
 
+	if [[ ! -d /srv/rutorrent/home/db/ ]]; then
+		mkdir -p /srv/rutorrent/home/db/
+	fi
+
 	if [[ ! -d /srv/rutorrent/plugins/theme/themes/club-QuickBox ]]; then
 		cd /srv/rutorrent/plugins/theme/themes || { _error "Can not install ruTorrent theme " && exit 1; }
 		_execute "sudo git clone https://lab.quickbox.io/QuickBox/club-QuickBox.git club-QuickBox"

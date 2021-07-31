@@ -1,17 +1,11 @@
 <?php
 
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+
 // Valid values for other parameters you can pass to the script.
 // Input parameters will always be limited to one of the values listed here.
 // If a parameter is not provided or invalid it will revert to the default,
 // the first parameter in the list.
-
-    if (isset($_SERVER['PHP_SELF'])) {
-        $script = $_SERVER['PHP_SELF'];
-    } elseif (isset($_SERVER['SCRIPT_NAME'])) {
-        $script = $_SERVER['SCRIPT_NAME'];
-    } else {
-        exit('can\'t determine script name!');
-    }
 
     $page_list = ['s', 'h', 'd', 'm'];
 
@@ -20,9 +14,9 @@
     $page_title['d'] = T('days');
     $page_title['m'] = T('months');
 
-    //
-    // functions
-    //
+    /**
+     * @return void
+     */
     function validate_input() {
         global $page,  $page_list;
         global $iface, $iface_list;
@@ -32,28 +26,34 @@
         $page  = $_GET['page'] ?? '';
         $iface = $_GET['if'] ?? '';
 
-        if (!in_array($page, $page_list)) {
+        if (!in_array($page, $page_list, true)) {
             $page = $page_list[0];
         }
 
-        if (!in_array($iface, $iface_list)) {
+        if (!in_array($iface, $iface_list, true)) {
             $iface = $iface_list[0];
         }
     }
 
+    /**
+     * @param bool $use_label
+     *
+     * @return void
+     */
     function get_vnstat_data($use_label = true) {
         global $iface, $vnstat_bin, $data_dir;
         global $hour,$day,$month,$top,$summary;
 
         $vnstat_data = [];
-        if (!isset($vnstat_bin) || $vnstat_bin == '') {
+        if (!isset($vnstat_bin) || $vnstat_bin === '') {
             if (file_exists("{$data_dir}/vnstat_dump_{$iface}")) {
-                $file_data   = file_get_contents("{$data_dir}/vnstat_dump_{$iface}");
+                $file_data = file_get_contents("{$data_dir}/vnstat_dump_{$iface}");
+                assert($file_data !== false);
                 $vnstat_data = json_decode($file_data, true);
             }
         } else {
             // FIXME: use mode and limit parameter to reduce data that needs to be parsed
-            $fd = popen("{$vnstat_bin} --json -i {$iface}", "r");
+            $fd = popen("{$vnstat_bin} --json -i {$iface}", 'r');
             if (is_resource($fd)) {
                 $buffer = '';
                 while (!feof($fd)) {
@@ -101,6 +101,7 @@
         for ($i = 0; $i < min(30, count($day_data)); ++$i) {
             $d  = $day_data[$i];
             $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+            assert($ts !== false);
 
             $day[$i]['time'] = $ts;
             $day[$i]['rx']   = $d['rx'] / 1024;
@@ -112,7 +113,10 @@
                 $day[$i]['img_label'] = strftime(T('datefmt_days_img'), $ts);
             }
 
-            $diff_time         = strtotime("now") - strtotime(strftime("%d %B %Y", strtotime("now")));
+            $now     = strtotime('now');
+            $zerostr = strftime('%d %B %Y', $now);
+            assert($zerostr !== false);
+            $diff_time         = $now - strtotime($zerostr);
             $day[$i]['rx_avg'] = round($day[$i]['rx'] / $diff_time) * 8;
             $day[$i]['tx_avg'] = round($day[$i]['tx'] / $diff_time) * 8;
         }
@@ -122,6 +126,7 @@
         for ($i = 0; $i < min(12, count($month_data)); ++$i) {
             $d  = $month_data[$i];
             $ts = mktime(0, 0, 0, $d['date']['month'] + 1, 0, $d['date']['year']);
+            assert($ts !== false);
 
             $month[$i]['time'] = $ts;
             $month[$i]['rx']   = $d['rx'] / 1024;
@@ -133,7 +138,10 @@
                 $month[$i]['img_label'] = strftime(T('datefmt_months_img'), $ts);
             }
 
-            $diff_time = strtotime("now") - strtotime(strftime("1 %B %Y", strtotime("now")));
+            $now          = strtotime('now');
+            $lastmomthstr = strftime('1 %B %Y', $now);
+            assert($lastmomthstr !== false);
+            $diff_time = $now - strtotime($lastmomthstr);
 
             $month[$i]['rx_avg'] = round($month[$i]['rx'] / $diff_time) * 8;
             $month[$i]['tx_avg'] = round($month[$i]['tx'] / $diff_time) * 8;
@@ -144,6 +152,7 @@
         for ($i = 0; $i < min(24, count($hour_data)); ++$i) {
             $d  = $hour_data[$i];
             $ts = mktime($d['time']['hour'], $d['time']['minute'], 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+            assert($ts !== false);
 
             $hour[$i]['time'] = $ts;
             $hour[$i]['rx']   = $d['rx'] / 1024;
@@ -155,7 +164,10 @@
                 $hour[$i]['img_label'] = strftime(T('datefmt_hours_img'), $ts);
             }
 
-            $diff_time = strtotime("now") - strtotime(strftime("%d %B %Y %H:00:00", strtotime("now")));
+            $now         = strtotime('now');
+            $lasthourstr = strftime('%d %B %Y %H:00:00', $now);
+            assert($lasthourstr !== false);
+            $diff_time = $now - strtotime($lasthourstr);
             if ($diff_time <= 300) {
                 $diff_time = 3600;
             }
@@ -168,6 +180,7 @@
         for ($i = 0; $i < min(10, count($top10_data)); ++$i) {
             $d  = $top10_data[$i];
             $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+            assert($ts !== false);
 
             $top[$i]['time'] = $ts;
             $top[$i]['rx']   = $d['rx'] / 1024;

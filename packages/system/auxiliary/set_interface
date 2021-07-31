@@ -17,8 +17,6 @@
 
 ADAPT=$(cat /srv/dashboard/db/interface.txt)
 
-sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/widgets/stat.php
-sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/widgets/data.php
 sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/widgets/bw_tables.php
 sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/inc/config.php
 

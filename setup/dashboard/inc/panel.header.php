@@ -1,3 +1,11 @@
+<?php
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.system.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
+
+assert(isset($panel));
+
+$netinfo = SystemInfo::netinfo();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,12 +41,15 @@
   <script src="lib/jquery/jquery.min.js"></script>
 
   <script type="text/javascript">
-    window.NetOutSpeed = <?php echo json_encode($NetOutSpeed); ?>;
-    window.NetInputSpeed = <?php echo json_encode($NetInputSpeed); ?>;
+    window.NetOutSpeed = <?php echo json_encode($netinfo['Transmit']); ?>;
+    window.NetInputSpeed = <?php echo json_encode($netinfo['Receive']); ?>;
     window.NetTimeStamp = <?php echo json_encode(microtime(true)); ?>;
   </script>
 
   <style>
-    <?php include('custom/custom.css'); ?>
+    <?php if (file_exists($_SERVER['DOCUMENT_ROOT'].'custom/custom.css')) {
+    include($_SERVER['DOCUMENT_ROOT'].'custom/custom.css');
+}
+    ?>
   </style>
 </head>
