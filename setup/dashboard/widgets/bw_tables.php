@@ -1,11 +1,9 @@
 <?php
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 
-// Network Interface
-$iface_list              = ['INETFACE'];
-$iface_title['INETFACE'] = 'External';
-$vnstat_bin              = '/usr/bin/vnstat';
-$data_dir                = './dumps';
-$byte_notation           = null;
+$vnstat_bin = '/usr/bin/vnstat';
+$data_dir   = './dumps';
 
 /** @var string $page */
 $page = null;
@@ -16,8 +14,6 @@ $hour = null;
 /** @var array<int,mixed> $month */
 $month = null;
 
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 require($_SERVER['DOCUMENT_ROOT'].'/widgets/vnstat.php');
 
 validate_input();

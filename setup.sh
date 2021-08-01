@@ -888,7 +888,6 @@ function _insdashboard() {
 	/usr/local/bin/quickbox/system/theme/themeSelect-"${dash_theme}"
 	IFACE=$(ip link show | grep -i broadcast | grep -m1 UP | cut -d: -f 2 | cut -d@ -f 1 | sed -e 's/ //g')
 	echo "${IFACE}" >/srv/dashboard/db/interface.txt
-	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/bw_tables.php
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/inc/config.php
 	echo "${username}" >/srv/dashboard/db/master.txt
 	chown -R www-data: /srv/dashboard

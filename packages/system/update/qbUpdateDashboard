@@ -35,7 +35,6 @@ function _updatedashboard() {
 	fi
 
 	IFACE=$(cat /srv/dashboard/db/interface.txt)
-	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/widgets/bw_tables.php
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/inc/config.php
 	if [[ -f /srv/dashboard/db/.smoked.lock ]]; then
 		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"

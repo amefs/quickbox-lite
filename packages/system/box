@@ -231,7 +231,6 @@ if [[ $resolver == "set" ]]; then
 	case $command in
 	"interface")
 		echo "$3" >/srv/dashboard/db/interface.txt
-		\cp -f /etc/QuickBox/setup/dashboard/widgets/bw_tables.php /srv/dashboard/widgets/bw_tables.php
 		\cp -f /etc/QuickBox/setup/dashboard/inc/config.php /srv/dashboard/inc/config.php
 		bash /usr/local/bin/quickbox/system/auxiliary/set_interface
 		chown -R www-data: /srv/dashboard
