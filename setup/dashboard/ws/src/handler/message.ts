@@ -4,6 +4,10 @@ import { Socket } from "socket.io";
 
 import Constant from "../constant";
 
+interface Payload {
+    key: string;
+    url: string;
+}
 
 const afetch = axios.create({
     baseURL: "http://127.0.0.1",
@@ -18,7 +22,7 @@ const parseUrl = (url: string) => {
     if (url.toLowerCase().startsWith("http")) {
         u = new URL(url);
     } else {
-        u = new URL(url, "place://holder");
+        u = new URL(url, "http://localhost");
     }
     const pathName = u.pathname;
     const args = {};
@@ -31,15 +35,16 @@ const parseUrl = (url: string) => {
     };
 };
 
-const messageHandler = async (payload: string, client: Socket) => {
+const messageHandler = async (payload: Payload, client: Socket) => {
     const ret = {
-        pathName: payload,
+        key: payload.key,
+        pathName: payload.url,
         success: true,
         message: "",
         response: "",
     };
     try {
-        const req = parseUrl(payload);
+        const req = parseUrl(payload.url);
         ret.response = (await afetch.get(req.pathName, { params: req.args })).data;
     } catch (error) {
         ret.message = error ? error.toString() : "Unknown error";
