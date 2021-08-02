@@ -75,7 +75,11 @@ function getUser() {
 function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain = '/') {
     ini_set('session.gc_maxlifetime', (string) $timeout);
     ini_set('session.cookie_lifetime', (string) $timeout);
-    $path = implode(\DIRECTORY_SEPARATOR, [ini_get('session.save_path'), "session_{$timeout}sec"]);
+    $save_path = ini_get('session.save_path');
+    if ($save_path === '') {
+        $save_path = $_SERVER['DOCUMENT_ROOT'].'/db';
+    }
+    $path = implode(\DIRECTORY_SEPARATOR, [$save_path, "session_{$timeout}sec"]);
     if (!file_exists($path)) {
         if (!mkdir($path, 0700)) {
             trigger_error("Failed to create session save path directory '{$path}'. Check permissions.", \E_USER_ERROR);
@@ -198,7 +202,7 @@ function GetCpuPercentages($stat1, $stat2) {
  */
 function processExists($processName, $username) {
     $exists = false;
-    exec("ps axo user:20,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,comm,cmd|grep {$username} | grep -iE {$processName} | grep -v grep", $pids);
+    exec("ps axo user:20,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,comm,cmd | grep {$username} | grep -iE {$processName} | grep -v grep", $pids);
     if (count($pids) > 0) {
         $exists = true;
     }
