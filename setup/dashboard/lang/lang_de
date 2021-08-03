@@ -342,6 +342,12 @@ $L['UNINSTALLING_TITLE'] = 'Deinstalliere';
 $L['UNINSTALLING_TXT_1'] = 'Bitte warte kurz, während';
 $L['UNINSTALLING_TXT_2'] = 'von deinem System deinstalliert wird.';
 
+//BANDWIDTH PAGE
+$L['BW_SELECT'] = 'Bandbreitensortierung';
+$L['BW_PAGE_SUMMARY'] = 'Top 10';
+$L['BW_PAGE_HOUR'] = 'Nach Stunden';
+$L['BW_PAGE_DAY'] = 'Nach Tagen';
+$L['BW_PAGE_MONTH'] = 'Nach Monaten';
 
 ////////////////////////////////////////////////////////////////////////////
 // SAMPLE

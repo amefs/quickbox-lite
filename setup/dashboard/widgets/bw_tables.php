@@ -19,9 +19,11 @@ require($_SERVER['DOCUMENT_ROOT'].'/widgets/vnstat.php');
 validate_input();
 
 /**
+ * Summary bandwidth for specified interface.
+ *
  * @return void
  */
-function write_summary_s() {
+function write_summary() {
     global $summary, $day, $hour, $month;
 
     $trx     = $summary['totalrx'] * 1024 + $summary['totalrxk'];
@@ -66,13 +68,15 @@ function write_summary_s() {
         $sum[3]['tx_avg'] = $ttx_avg;
     }
 
-    write_data_table_s(T('Summary'), $sum);
+    write_data_table(T('Summary'), $sum);
 }
 
 /**
+ * bandwidth info for top 10 days with the highest traffic.
+ *
  * @return void
  */
-function write_summary_t() {
+function write_top_10() {
     global $top, $summary, $hour, $day, $month;
 
     $trx     = $summary['totalrx'] * 1024 + $summary['totalrxk'];
@@ -116,16 +120,18 @@ function write_summary_t() {
         $sum[3]['tx_avg'] = $ttx_avg;
     }
 
-    write_data_table_t(T('Top 10 days'), $top);
+    write_data_table(T('Top 10 days'), $top);
 }
 
 /**
+ * Write details bandwidth info by given granularity.
+ *
  * @param string           $caption
  * @param array<int,mixed> $tab
  *
  * @return void
  */
-function write_data_table_s($caption, $tab) {
+function write_data_table($caption, $tab) {
     echo '<table class="table table-hover table-default nomargin" width="100%" cellspacing="0">';
     echo '<thead>';
     echo '<tr>';
@@ -163,80 +169,25 @@ function write_data_table_s($caption, $tab) {
     echo '</table>';
 }
 
-/**
- * @param string           $caption
- * @param array<int,mixed> $tab
- *
- * @return void
- */
-function write_data_table_t($caption, $tab) {
-    echo '<table class="table table-hover table-default nomargin" width="100%" cellspacing="0">';
-    echo '<thead>';
-    echo '<tr>';
-    echo "<th class=\"text-right\" style=\"width:20%;\">{$caption}</th>";
-    echo '<th class="text-right" style="width:15%;">'.T('Out').'</th>';
-    echo '<th class="text-left" style="width:15%;">'.T('In').'</th>';
-    echo '<th class="text-right" style="width:15%;">'.T('Out_AVG').'</th>';
-    echo '<th class="text-left" style="width:15%;">'.T('In_AVG').'</th>';
-    echo '<th class="text-left" style="width:18%;">'.T('Total').'</th>';
-    echo '</tr>';
-    echo '</thead>';
-
-    echo "<tbody>\n";
-
-    for ($i = 0; $i < count($tab); ++$i) {
-        if ($tab[$i]['act'] === 1) {
-            $t      = $tab[$i]['label'];
-            $rx     = formatsize($tab[$i]['rx'], 2);
-            $tx     = formatsize($tab[$i]['tx'], 2);
-            $rx_avg = formatspeed($tab[$i]['rx_avg'], 2);
-            $tx_avg = formatspeed($tab[$i]['tx_avg'], 2);
-            $total  = formatsize($tab[$i]['rx'] + $tab[$i]['tx'], 2);
-            $id     = ($i & 1) ? 'odd' : 'even';
-            echo '<tr>';
-            echo "<td class=\"label_{$id}\" style=\"font-size:12px;;text-align:right\"><b>{$t}</b></td>";
-            echo "<td class=\"numeric_{$id} text-success\" style=\"font-size:12px;text-align:right\">{$tx}</td>";
-            echo "<td class=\"numeric_{$id} text-primary\" style=\"font-size:12px;text-align:left\">{$rx}</td>";
-            echo "<td class=\"numeric_{$id} text-success\" style=\"font-size:12px;text-align:right\">{$tx_avg}</td>";
-            echo "<td class=\"numeric_{$id} text-primary\" style=\"font-size:12px;text-align:left\">{$rx_avg}</td>";
-            echo "<td class=\"numeric_{$id}\" style=\"font-size:12px;text-align:left\">{$total}</td>";
-            echo "</tr>\n";
-        }
-    }
-
-    echo '</tbody>';
-    echo '</table>';
-}
-
 get_vnstat_data();
 ?>
 
 <div class="col-sm-12" style="padding-left:0;padding-right:0;">
   <div class="table-responsive">
-    <?php
-      if ($page === 's') {
-          write_summary_s();
-      } elseif ($page === 'h') {
-          write_data_table_s(T('Last 24 hours'), $hour);
-      } elseif ($page === 'd') {
-          write_data_table_s(T('Last 30 days'), $day);
-      } elseif ($page === 'm') {
-          write_data_table_s(T('Last 12 months'), $month);
-      }
-    ?>
+    <?php write_summary(); ?>
   </div>
 </div>
 <div class="col-sm-12" style="padding-left:0;padding-right:0;">
   <div class="table-responsive">
     <?php
       if ($page === 's') {
-          write_summary_t();
+          write_top_10();
       } elseif ($page === 'h') {
-          write_data_table_t(T('Last 24 hours'), $hour);
+          write_data_table(T('Last 24 hours'), $hour);
       } elseif ($page === 'd') {
-          write_data_table_t(T('Last 30 days'), $day);
+          write_data_table(T('Last 30 days'), $day);
       } elseif ($page === 'm') {
-          write_data_table_t(T('Last 12 months'), $month);
+          write_data_table(T('Last 12 months'), $month);
       }
     ?>
   </div>

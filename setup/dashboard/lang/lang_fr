@@ -344,6 +344,11 @@ $L['UNINSTALLING_TITLE'] = 'Désinstallation';
 $L['UNINSTALLING_TXT_1'] = 'Patientez pendant que';
 $L['UNINSTALLING_TXT_2'] = 'soit désinstallé de votre système.';
 
+$L['BW_SELECT'] = 'Tri de la bande passante';
+$L['BW_PAGE_SUMMARY'] = 'Top 10';
+$L['BW_PAGE_HOUR'] = 'Par heures';
+$L['BW_PAGE_DAY'] = 'Par jours';
+$L['BW_PAGE_MONTH'] = 'Par mois';
 
 ////////////////////////////////////////////////////////////////////////////
 // SAMPLE

@@ -1,128 +1,128 @@
 (function($) {
   const service_status_list = [{
-    name: "BTSYNC",
+    key: "BTSYNC",
     url: "/widgets/service_status.php?service=resilio-sync",
     id: "#appstat_resilio-sync",
     time: 5000
   }, {
-    name: "CIFS",
+    key: "CIFS",
     url: "/widgets/service_status.php?service=smbd",
     id: "#appstat_smbd",
     time: 5000
   }, {
-    name: "DELUGED",
+    key: "DELUGED",
     url: "/widgets/service_status.php?service=deluged",
     id: "#appstat_deluged",
     time: 5000
   }, {
-    name: "DELUGE WEB",
+    key: "DELUGE_WEB",
     url: "/widgets/service_status.php?service=deluge-web",
     id: "#appstat_deluge-web",
     time: 5000
   }, {
-    name: "DENYHOSTS",
+    key: "DENYHOSTS",
     url: "/widgets/service_status.php?service=denyhosts",
     id: "#appstat_denyhosts",
     time: 5000
   }, {
-    name: "FAIL2BAN",
+    key: "FAIL2BAN",
     url: "/widgets/service_status.php?service=fail2ban",
     id: "#appstat_fail2ban",
     time: 5000
   }, {
-    name: "FILEBROWSER",
+    key: "FILEBROWSER",
     url: "/widgets/service_status.php?service=filebrowser",
     id: "#appstat_filebrowser",
     time: 5000
   }, {
-    name: "FILEBROWSEREE",
+    key: "FILEBROWSEREE",
     url: "/widgets/service_status.php?service=filebrowser-ee",
     id: "#appstat_filebrowser-ee",
     time: 5000
   }, {
-    name: "FLEXGET",
+    key: "FLEXGET",
     url: "/widgets/service_status.php?service=flexget",
     id: "#appstat_flexget",
     time: 5000
   }, {
-    name: "FLOOD",
+    key: "FLOOD",
     url: "/widgets/service_status.php?service=flood",
     id: "#appstat_flood",
     time: 5000
   }, {
-    name: "IRSSI",
+    key: "IRSSI",
     url: "/widgets/service_status.php?service=irssi",
     id: "#appstat_irssi",
     time: 5000
   }, {
-    name: "NETDATA",
+    key: "NETDATA",
     url: "/widgets/service_status.php?service=netdata",
     id: "#appstat_netdata",
     time: 5000
   }, {
-    name: "NFS",
+    key: "NFS",
     url: "/widgets/service_status.php?service=nfs-server",
     id: "#appstat_nfs-server",
     time: 5000
   }, {
-    name: "NOVNC",
+    key: "NOVNC",
     url: "/widgets/service_status.php?service=tightvnc",
     id: "#appstat_tightvnc",
     time: 5000
   }, {
-    name: "OPENVPN",
+    key: "OPENVPN",
     url: "/widgets/service_status.php?service=openvpn",
     id: "#appstat_openvpn",
     time: 5000
   }, {
-    name: "PLEX",
+    key: "PLEX",
     url: "/widgets/service_status.php?service=plexmediaserver",
     id: "#appstat_plexmediaserver",
     time: 5000
   }, {
-    name: "RTORRENT",
+    key: "RTORRENT",
     url: "/widgets/service_status.php?service=rtorrent",
     id: "#appstat_rtorrent",
     time: 5000
   }, {
-    name: "SYNCTHING",
+    key: "SYNCTHING",
     url: "/widgets/service_status.php?service=syncthing",
     id: "#appstat_syncthing",
     time: 5000
   }, {
-    name: "TRANSMISSION",
+    key: "TRANSMISSION",
     url: "/widgets/service_status.php?service=transmission",
     id: "#appstat_transmission",
     time: 5000
   }, {
-    name: "QBITTORRENT",
+    key: "QBITTORRENT",
     url: "/widgets/service_status.php?service=qbittorrent",
     id: "#appstat_qbittorrent",
     time: 5000
   }, {
-    name: "VSFTPD",
+    key: "VSFTPD",
     url: "/widgets/service_status.php?service=vsftpd",
     id: "#appstat_vsftpd",
     time: 5000
   }, {
-    name: "WEB CONSOLE",
+    key: "WEB_CONSOLE",
     url: "/widgets/service_status.php?service=shellinabox",
     id: "#appstat_shellinabox",
     time: 5000
   }, {
-    name: "X2GO",
+    key: "X2GO",
     url: "/widgets/service_status.php?service=x2go",
     id: "#appstat_x2go",
     time: 5000
   }, {
-    name: "ZNC",
+    key: "ZNC",
     url: "/widgets/service_status.php?service=znc",
     id: "#appstat_znc",
     time: 5000
   }];
 
   const system_status_list = [{
-    name: "NETWORK",
+    key: "NETWORK",
     url: "/widgets/net_status.php",
     id: undefined,
     override: function (dataJSON) {
@@ -164,32 +164,40 @@
     },
     time: 1000
   }, {
-    name: "UPTIME",
+    key: "UPTIME",
     url: "/widgets/up.php",
     id: "#uptime",
     time: 60000
   }, {
-    name: "TOP",
+    key: "TOP",
     url: "/widgets/load.php",
     id: "#cpuload",
     time: 60000
   }, {
-    name: "BANDWIDTH",
+    key: "BANDWIDTH",
     url: "/widgets/bw_tables.php",
+    url_template: "/widgets/bw_tables.php?page={0}",
     id: "#bw_tables",
+    before: function () {
+      const page = localStorage.getItem("bw_tables:page");
+      if (page && page.length === 1 && "shdm".includes(page)) {
+        this.url = this.url_template.replace("{0}", page);
+      }
+      return true;
+    },
     time: 60000
   }, {
-    name: "DISK USAGE",
+    key: "DISK_USAGE",
     url: "/widgets/disk_data.php",
     id: "#disk_data",
     time: 15000
   }, {
-    name: "RAM USAGE",
+    key: "RAM_USAGE",
     url: "/widgets/ram_stats.php",
     id: "#meterram",
     time: 10000
   }, {
-    name: "SSH OUTPUT",
+    key: "SSH_OUTPUT",
     url: "/db/output.log",
     id: "#sshoutput",
     time: 2500,
@@ -210,29 +218,47 @@
   }
 
   let first_request = true;
+  let error_count = 0;
 
   function start_status_update() {
     const task_mapping = {};
     const status_list = [].concat(service_status_list, system_status_list);
-    status_list.forEach(function(item) {
-      task_mapping[item.url] = item;
-    });
+    for (let i = 0; i < status_list.length; ++i) {
+      const status = status_list[i];
+      if (status.key in task_mapping) {
+        console.warn(`[ws] status config key: ${status.key} duplicated,`, status);
+        continue;
+      }
+      task_mapping[status.key] = status;
+    }
     const socket = io(location.origin, { path: "/ws/socket.io" });
-    socket.on("message", function(message) {
-      if (message.success) {
-        const task = task_mapping[message.pathName];
-        if (task.override) {
-          task.override(message.response);
-        } else if (task.id !== undefined) {
-          $(task.id).html(message.response);
-          if (task.after) {
+    // add event listener
+    socket.on("message", function(response) {
+      if (response.success) {
+        const task = task_mapping[response.key];
+        if (task === undefined) {
+          console.warn("[ws] task config not found,", response);
+          return;
+        }
+        if (task.override && typeof(task.override) === "function") {
+          task.override(response.response);
+          return;
+        }
+        if (task.id !== undefined) {
+          $(task.id).html(response.response);
+          if (task.after && typeof(task.after) === "function") {
             task.after(task);
           }
         } else {
-          console.warn("ID not found, status won't update.");
+          console.warn("[ws] DOM id not found, status won't update,", response);
         }
       } else {
-        console.error(message);
+        ++error_count;
+        console.error("[ws] request failed,", response);
+      }
+      if (error_count > 256) {
+        console.warn("[ws] too many errors, stop status update");
+        socket.close();
       }
     });
 
@@ -242,15 +268,15 @@
       if (task_info.hasOwnProperty(time_str) === false) {
         continue;
       }
-      const time_number = parseInt(time_str);
+      const time_interval = parseInt(time_str);
       const task_list = task_info[time_str];
-      const task_entity = function () {
+      const task_entity = function() {
         let delay = 0;
         for (let i = 0; i < task_list.length; ++i) {
           const task = task_list[i];
           // set a delay for each task.
           setTimeout(function() {
-            if (task.before) {
+            if (task.before && typeof(task.before) === "function") {
               // skip if before task failed
               if (task.before(task) === false) {
                 return;
@@ -258,16 +284,16 @@
             }
             // only displayed element or override will be updated
             if ((task.id && $(task.id).length > 0) || task.override) {
-              socket.send(task.url);
+              socket.send(task);
             }
           }, delay);
           // let all requests sent in half cycle evenly except first round.
           if (first_request === false) {
-            delay += time_number / (task_list.length * 2);
+            delay += time_interval / (task_list.length * 2);
           }
         }
       };
-      Visibility.every(time_number, 10 * time_number, task_entity);
+      Visibility.every(time_interval, 10 * time_interval, task_entity);
       // trigger for first time.
       task_entity();
     }
