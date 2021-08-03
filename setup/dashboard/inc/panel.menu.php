@@ -1,10 +1,12 @@
 <?php
     require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.lang.php');
     require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.theme.php');
+    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.bw_page.php');
     require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
 
     assert(isset($languages));
     assert(isset($themes));
+    assert(isset($bw_pages));
     assert(isset($username));
     assert(isset($is_master));
     assert(isset($version));
@@ -98,6 +100,12 @@
                                 <h5><?php echo T('THEME_SELECT'); ?></h5>
                                 <?php foreach ($themes as $theme) { ?>
                                   <small><div data-toggle="modal" data-target="#themeSelect<?php echo $theme['file']; ?>Confirm" style="cursor: pointer;"><img class="lang-flag lazyload" data-src="img/themes/opt_<?php echo $theme['file']; ?>.png" /><?php echo $theme['title']; ?></div></small>
+                                <?php } ?>
+                              </div>
+                              <div class="col-xs-12 col-md-6" style="padding: 0">
+                                <h5><?php echo T('BW_SELECT'); ?></h5>
+                                <?php foreach ($bw_pages as $page) { ?>
+                                  <small><div onclick="localStorage.setItem('bw_tables:page', '<?php echo $page['key']; ?>')" style="cursor: pointer;"><?php echo T($page['title']); ?></div></small>
                                 <?php } ?>
                               </div>
                             </div>

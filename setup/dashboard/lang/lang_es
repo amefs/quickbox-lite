@@ -344,6 +344,12 @@ $L['UNINSTALLING_TITLE'] = 'Desinstalando';
 $L['UNINSTALLING_TXT_1'] = 'Por favor, espera,';
 $L['UNINSTALLING_TXT_2'] = 'está siendo desinstalado de tu sistema.';
 
+//BANDWIDTH PAGE
+$L['BW_SELECT'] = 'Clasificación del ancho de banda';
+$L['BW_PAGE_SUMMARY'] = 'Top 10';
+$L['BW_PAGE_HOUR'] = 'por horas';
+$L['BW_PAGE_DAY'] = 'por dias';
+$L['BW_PAGE_MONTH'] = 'Por meses';
 
 ////////////////////////////////////////////////////////////////////////////
 // SAMPLE

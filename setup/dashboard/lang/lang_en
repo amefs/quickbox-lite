@@ -346,6 +346,12 @@ $L['UNINSTALLING_TITLE'] = 'Uninstalling';
 $L['UNINSTALLING_TXT_1'] = 'Please wait while';
 $L['UNINSTALLING_TXT_2'] = 'is being uninstalled from your system.';
 
+//BANDWIDTH PAGE
+$L['BW_SELECT'] = 'Bandwidth Sorting';
+$L['BW_PAGE_SUMMARY'] = 'Top 10';
+$L['BW_PAGE_HOUR'] = 'By hours';
+$L['BW_PAGE_DAY'] = 'By days';
+$L['BW_PAGE_MONTH'] = 'By months';
 
 ////////////////////////////////////////////////////////////////////////////
 // SAMPLE

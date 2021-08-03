@@ -346,6 +346,12 @@ $L['UNINSTALLING_TITLE'] = '卸载中';
 $L['UNINSTALLING_TXT_1'] = '请稍候';
 $L['UNINSTALLING_TXT_2'] = '正在从你的系统中卸载。';
 
+//BANDWIDTH PAGE
+$L['BW_SELECT'] = '流量排序';
+$L['BW_PAGE_SUMMARY'] = '最高10天';
+$L['BW_PAGE_HOUR'] = '以小时计';
+$L['BW_PAGE_DAY'] = '以天计';
+$L['BW_PAGE_MONTH'] = '以月计';
 
 ////////////////////////////////////////////////////////////////////////////
 // SAMPLE

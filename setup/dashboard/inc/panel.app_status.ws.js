@@ -218,6 +218,7 @@
   }
 
   let first_request = true;
+  let error_count = 0;
 
   function start_status_update() {
     const task_mapping = {};
@@ -231,21 +232,33 @@
       task_mapping[status.key] = status;
     }
     const socket = io(location.origin, { path: "/ws/socket.io" });
+    // add event listener
     socket.on("message", function(response) {
       if (response.success) {
         const task = task_mapping[response.key];
-        if (task.override) {
+        if (task === undefined) {
+          console.warn("[ws] task config not found,", response);
+          return;
+        }
+        if (task.override && typeof(task.override) === "function") {
           task.override(response.response);
-        } else if (task.id !== undefined) {
+          return;
+        }
+        if (task.id !== undefined) {
           $(task.id).html(response.response);
-          if (task.after) {
+          if (task.after && typeof(task.after) === "function") {
             task.after(task);
           }
         } else {
           console.warn("[ws] DOM id not found, status won't update,", response);
         }
       } else {
+        ++error_count;
         console.error("[ws] request failed,", response);
+      }
+      if (error_count > 256) {
+        console.warn("[ws] too many errors, stop status update");
+        socket.close();
       }
     });
 
@@ -255,15 +268,15 @@
       if (task_info.hasOwnProperty(time_str) === false) {
         continue;
       }
-      const time_number = parseInt(time_str);
+      const time_interval = parseInt(time_str);
       const task_list = task_info[time_str];
-      const task_entity = function () {
+      const task_entity = function() {
         let delay = 0;
         for (let i = 0; i < task_list.length; ++i) {
           const task = task_list[i];
           // set a delay for each task.
           setTimeout(function() {
-            if (task.before) {
+            if (task.before && typeof(task.before) === "function") {
               // skip if before task failed
               if (task.before(task) === false) {
                 return;
@@ -271,16 +284,16 @@
             }
             // only displayed element or override will be updated
             if ((task.id && $(task.id).length > 0) || task.override) {
-              socket.send(task.url);
+              socket.send(task);
             }
           }, delay);
           // let all requests sent in half cycle evenly except first round.
           if (first_request === false) {
-            delay += time_number / (task_list.length * 2);
+            delay += time_interval / (task_list.length * 2);
           }
         }
       };
-      Visibility.every(time_number, 10 * time_number, task_entity);
+      Visibility.every(time_interval, 10 * time_interval, task_entity);
       // trigger for first time.
       task_entity();
     }
