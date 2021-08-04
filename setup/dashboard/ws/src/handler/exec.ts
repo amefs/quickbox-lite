@@ -6,7 +6,7 @@ import { Socket } from "socket.io";
 
 import Constant from "../constant";
 import { WatchedConfig } from "../watchedConfig";
-import { CommandType,getFiles, buildCommand } from "./utils/command";
+import { CommandType, buildCommand } from "./utils/command";
 
 
 let baseDir = __dirname;
@@ -25,8 +25,13 @@ if (!configPath) {
 }
 
 const config = new WatchedConfig<CommandType>(configPath);
-const quickboxUsers = getFiles("/root/.qbuser/");
-const username = quickboxUsers.map(user => user.replace(".info", ""))[0];
+let username = "";
+try {
+    const content = fs.readFileSync("/srv/dashboard/db/master.txt", { encoding: "utf8" });
+    username = content.split("\n")[0].trim();
+} catch (err) {
+    console.error("Failed to read user info", err);
+}
 
 const execOption = {
     env: { TERM: "xterm", ...process.env },
