@@ -105,7 +105,7 @@
                               <div class="col-xs-12 col-md-6" style="padding: 0">
                                 <h5><?php echo T('BW_SELECT'); ?></h5>
                                 <?php foreach ($bw_pages as $page) { ?>
-                                  <small><div onclick="localStorage.setItem('bw_tables:page', '<?php echo $page['key']; ?>')" style="cursor: pointer;"><?php echo T($page['title']); ?></div></small>
+                                  <small><div onclick="localStorage.setItem('bw_tables:page', '<?php echo $page['key']; ?>');location.reload()" style="cursor: pointer;"><?php echo T($page['title']); ?></div></small>
                                 <?php } ?>
                               </div>
                             </div>
