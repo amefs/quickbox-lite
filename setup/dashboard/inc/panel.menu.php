@@ -4,12 +4,13 @@
     require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.bw_page.php');
     require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
 
+    $username = getMaster();
+
     assert(isset($languages));
     assert(isset($themes));
     assert(isset($bw_pages));
-    assert(isset($username));
-    assert(isset($is_master));
     assert(isset($version));
+    assert(isset($branch));
     assert(isset($plugins));
     assert(isset($rutorrentURL));
     assert(isset($floodURL));
@@ -46,12 +47,11 @@
           <li>
             <div class="btn-group">
               <button type="button" class="btn btn-logged">
-                <a href="#" class="label label-warning" style="">You are on the QuickBox Development Repo</a>
+                <a href="#" class="label label-warning" style="">You are on the QuickBox <?php echo $branch; ?> branch</a>
               </button>
             </div>
           </li>
           <?php } ?>
-          <?php if ($is_master) { ?>
           <li>
             <div id="noticePanel" class="btn-group">
               <button class="btn" data-toggle="dropdown">
@@ -119,7 +119,6 @@
               </div>
             </div>
           </li>
-          <?php } ?>
           <li>
             <div class="btn-group">
               <button type="button" class="btn btn-logged" data-toggle="dropdown">
@@ -139,7 +138,7 @@
     <div class="leftpanelinner">
       <ul class="nav nav-tabs nav-justified nav-sidebar">
         <li class="tooltips active" data-toggle="tooltip" title="<?php echo T('MAIN_MENU'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#mainmenu"><i class="tooltips fa fa-ellipsis-h"></i></a></li>
-        <?php if (($is_master) && file_exists('/install/.rutorrent.lock')) { ?>
+        <?php if (file_exists('/install/.rutorrent.lock')) { ?>
           <li class="tooltips" data-toggle="tooltip" title="<?php echo T('RPLUGIN_MENU'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#plugins"><i class="tooltips fa fa-puzzle-piece"></i></a></li>
         <?php } ?>
         <li class="tooltips" data-toggle="tooltip" title="<?php echo T('HELP_COMMANDS'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#help"><i class="tooltips fa fa-question-circle"></i></a></li>
@@ -170,37 +169,35 @@
             <?php if (processExists('qbittorrent-nox', $username) && file_exists('/install/.qbittorrent.lock')) { ?>
               <li><a href="<?php echo "{$qbittorrentURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/qbittorrent.png" class="brand-ico lazyload"> <span>qBittorrent</span></a></li>
             <?php } ?>
-            <?php if ($is_master) { ?>
-              <?php if (processExists('rslsync', $username) && file_exists('/install/.btsync.lock')) { ?>
-                <li><a class="grayscale" href="<?php echo "{$btsyncURL}"; ?>" target="_blank"><img data-src="img/brands/btsync.png" class="brand-ico lazyload"> <span>BTSync</span></a></li>
-              <?php } ?>
-              <?php if (processExists('filebrowser', $username) && file_exists('/install/.filebrowser.lock')) { ?>
-                <li><a href="<?php echo "{$filebrowserURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/filebrowser.png" class="brand-ico lazyload"> <span>File Browser</span></a></li>
-              <?php } ?>
-              <?php if (processExists('filebrowser-ee', $username) && file_exists('/install/.filebrowser-ee.lock')) { ?>
-                <li><a href="<?php echo "{$filebrowsereeURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/filebrowser.png" class="brand-ico lazyload"> <span>File Browser Enhanced</span></a></li>
-              <?php } ?>
-              <?php if (processExists('flexget', $username) && file_exists("/install/.{$username}.flexget.lock")) { ?>
-                <li><a href="<?php echo "{$flexgetURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/flexget.png" class="brand-ico lazyload"> <span>FlexGet</span></a></li>
-              <?php } ?>
-              <?php if (processExists('netdata', 'netdata') && file_exists('/install/.netdata.lock')) { ?>
-                <li><a href="<?php echo "{$netdataURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/netdata.png" class="brand-ico lazyload"> <span>NetData</span></a></li>
-              <?php } ?>
-              <?php if (processExists('Xtightvnc', $username) && file_exists('/install/.novnc.lock')) { ?>
-                <li><a href="<?php echo "{$novncURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/novnc.png" class="brand-ico lazyload"> <span>noVNC</span></a></li>
-              <?php } ?>
-              <?php if (file_exists('/install/.plex.lock')) { ?>
-                <li><a class="grayscale" href="<?php echo "{$plexURL}"; ?>" target="_blank"><img data-src="img/brands/plex.png" class="brand-ico lazyload"> <span>Plex</span></a></li>
-              <?php } ?>
-              <?php if (file_exists('/install/.speedtest.lock')) { ?>
-                <li><a class="grayscale" href="<?php echo "{$speedtestURL}"; ?>" target="_blank"><img data-src="img/brands/speedtest.png" class="brand-ico lazyload"> <span>SpeedTest</span></a></li>
-              <?php } ?>
-              <?php if (file_exists('/install/.syncthing.lock')) { ?>
-                <li><a class="grayscale" href="<?php echo "{$syncthingURL}"; ?>" target="_blank"><img data-src="img/brands/syncthing.png" class="brand-ico lazyload"> <span>Syncthing</span></a></li>
-              <?php } ?>
-              <?php if (file_exists('/install/.znc.lock')) { ?>
-                <li><a class="grayscale" href="<?php echo "{$zncURL}"; ?>" target="_blank"><img data-src="img/brands/znc.png" class="brand-ico lazyload"> <span>ZNC</span></a></li>
-              <?php } ?>
+            <?php if (processExists('rslsync', $username) && file_exists('/install/.btsync.lock')) { ?>
+              <li><a class="grayscale" href="<?php echo "{$btsyncURL}"; ?>" target="_blank"><img data-src="img/brands/btsync.png" class="brand-ico lazyload"> <span>BTSync</span></a></li>
+            <?php } ?>
+            <?php if (processExists('filebrowser', $username) && file_exists('/install/.filebrowser.lock')) { ?>
+              <li><a href="<?php echo "{$filebrowserURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/filebrowser.png" class="brand-ico lazyload"> <span>File Browser</span></a></li>
+            <?php } ?>
+            <?php if (processExists('filebrowser-ee', $username) && file_exists('/install/.filebrowser-ee.lock')) { ?>
+              <li><a href="<?php echo "{$filebrowsereeURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/filebrowser.png" class="brand-ico lazyload"> <span>File Browser Enhanced</span></a></li>
+            <?php } ?>
+            <?php if (processExists('flexget', $username) && file_exists("/install/.{$username}.flexget.lock")) { ?>
+              <li><a href="<?php echo "{$flexgetURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/flexget.png" class="brand-ico lazyload"> <span>FlexGet</span></a></li>
+            <?php } ?>
+            <?php if (processExists('netdata', 'netdata') && file_exists('/install/.netdata.lock')) { ?>
+              <li><a href="<?php echo "{$netdataURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/netdata.png" class="brand-ico lazyload"> <span>NetData</span></a></li>
+            <?php } ?>
+            <?php if (processExists('Xtightvnc', $username) && file_exists('/install/.novnc.lock')) { ?>
+              <li><a href="<?php echo "{$novncURL}"; ?>" class="grayscale" target="_blank"><img data-src="img/brands/novnc.png" class="brand-ico lazyload"> <span>noVNC</span></a></li>
+            <?php } ?>
+            <?php if (file_exists('/install/.plex.lock')) { ?>
+              <li><a class="grayscale" href="<?php echo "{$plexURL}"; ?>" target="_blank"><img data-src="img/brands/plex.png" class="brand-ico lazyload"> <span>Plex</span></a></li>
+            <?php } ?>
+            <?php if (file_exists('/install/.speedtest.lock')) { ?>
+              <li><a class="grayscale" href="<?php echo "{$speedtestURL}"; ?>" target="_blank"><img data-src="img/brands/speedtest.png" class="brand-ico lazyload"> <span>SpeedTest</span></a></li>
+            <?php } ?>
+            <?php if (file_exists('/install/.syncthing.lock')) { ?>
+              <li><a class="grayscale" href="<?php echo "{$syncthingURL}"; ?>" target="_blank"><img data-src="img/brands/syncthing.png" class="brand-ico lazyload"> <span>Syncthing</span></a></li>
+            <?php } ?>
+            <?php if (file_exists('/install/.znc.lock')) { ?>
+              <li><a class="grayscale" href="<?php echo "{$zncURL}"; ?>" target="_blank"><img data-src="img/brands/znc.png" class="brand-ico lazyload"> <span>ZNC</span></a></li>
             <?php } ?>
             <?php if (file_exists('/install/.rtorrent.lock') || file_exists('/install/.deluge.lock') || file_exists('/install/.transmission.lock') || file_exists('/install/.qbittorrent.lock') || file_exists('/home/'.$username.'/openvpn/'.$username.'.zip')) { ?>
               <li class="nav-parent">
@@ -224,7 +221,7 @@
                 </ul>
               </li>
             <?php } ?>
-            <?php if ($is_master && processExists('shellinabox', 'shellinabox')) { ?>
+            <?php if (processExists('shellinabox', 'shellinabox')) { ?>
             <li><a href="/<?php echo $username; ?>.console" target="_blank"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
             <?php } ?>
             <!-- /// BEGIN INSERT CUSTOM MENU /// -->
@@ -239,7 +236,6 @@
 
         <!-- ######################## HELP MENU TAB ##################### -->
         <div class="tab-pane" id="help">
-          <?php if ($is_master) { ?>
           <h5 class="sidebar-title"><?php echo T('QUICK_SYSTEM_TIPS'); ?></h5>
           <ul class="nav nav-pills nav-stacked nav-quirk nav-mail">
             <li style="padding: 7px"><span style="font-size: 12px; color:#eee">box update quickbox</span><br/>
@@ -282,7 +278,6 @@
               <small><?php echo T('TROUBLESHOOT_TXT'); ?></small>
             </li>
           </ul>
-          <?php } ?>
           <h5 class="sidebar-title"><?php echo T('ESSENTIAL_USER_COMMANDS'); ?></h5>
           <ul class="nav nav-pills nav-stacked nav-quirk nav-mail">
             <li style="padding: 7px"><span style="font-size: 12px; color:#eee">systemctl restart rtorrent@<?php echo $username; ?>.service</span><br/>

@@ -9,7 +9,6 @@
   require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.header.php');
   require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.menu.php');
 
-  assert(isset($is_master));
   assert(isset($version));
   assert(isset($branch));
 
@@ -68,11 +67,9 @@
         <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/service_control.php'); ?>
         <!-- panel -->
 
-        <?php if ($is_master) { ?>
-          <!--PACKAGE MANAGEMENT CENTER-->
-          <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/pmc.php'); ?>
-          <!-- panel -->
-        <?php } ?>
+        <!--PACKAGE MANAGEMENT CENTER-->
+        <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/pmc.php'); ?>
+        <!-- panel -->
 
       </div>
 
@@ -126,26 +123,24 @@
             <div id="meterram"></div>
           </div>
         </div><!-- RAM WIDGET -->
-        <?php if ($is_master) { ?>
-          <div class="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
-            <div class="panel-heading">
-              <h4 class="panel-title text-success"><?php echo T('RECENT_UPDATES'); ?>
-                <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $version.'...'.$branch; ?>" 
-                  title="<?php echo T('CURRENT_VERSIONS_CHANGELOG'); ?>"
-                  data-placement="top" class="label label-primary tooltips"
-                  style="font-size:10px; padding-top:0; padding-bottom:0px; top: -2px; position: relative;"
-                  target="_blank" rel="noopener">
-                    QuickBox :: <span style="color: #fff;text-shadow: 0px 0px 6px #fff;"><?php echo "{$version}"; ?></span>
-                </a>
-              </h4>
-            </div>
-            <div class="panel-footer">
-            <button onclick="boxHandler(event)" data-package="quickbox --only-core" data-operation="update" data-toggle="modal" data-target="#sysResponse" class="btn btn-success btn-quirk btn-block">
-              <i class="fa fa-bell text-success"></i> <?php echo T('UPDATE'); ?>
-            </button>
-            </div>
-          </div><!-- QUICKBOX UPDATE WIDGET -->
-        <?php } ?>
+        <div class="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
+          <div class="panel-heading">
+            <h4 class="panel-title text-success"><?php echo T('RECENT_UPDATES'); ?>
+              <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $version.'...'.$branch; ?>" 
+                title="<?php echo T('CURRENT_VERSIONS_CHANGELOG'); ?>"
+                data-placement="top" class="label label-primary tooltips"
+                style="font-size:10px; padding-top:0; padding-bottom:0px; top: -2px; position: relative;"
+                target="_blank" rel="noopener">
+                  QuickBox :: <span style="color: #fff;text-shadow: 0px 0px 6px #fff;"><?php echo "{$version}"; ?></span>
+              </a>
+            </h4>
+          </div>
+          <div class="panel-footer">
+          <button onclick="boxHandler(event)" data-package="quickbox --only-core" data-operation="update" data-toggle="modal" data-target="#sysResponse" class="btn btn-success btn-quirk btn-block">
+            <i class="fa fa-bell text-success"></i> <?php echo T('UPDATE'); ?>
+          </button>
+          </div>
+        </div><!-- QUICKBOX UPDATE WIDGET -->
       </div>
     </div>
   </div><!-- contentpanel -->

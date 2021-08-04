@@ -3,10 +3,6 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.system.php');
 
-$username  = getUser();
-$master    = getMaster();
-$is_master = $username === $master;
-
 $sysMemInfo = SystemInfo::meminfo();
 
 /**
@@ -104,7 +100,5 @@ $memCachedPercent = number_format($sysMemInfo['CachedPercent'], 3); //cache memo
 <hr />
 <h3><?php echo T('TOTAL_RAM'); ?></h3>
 <h4 class="nomargin"><?php echo $memTotal; ?>
-  <?php if ($is_master) { ?>
-    <button onclick="boxHandler(event)" data-package="mem" data-operation="clean" data-toggle="modal" data-target="#sysResponse" class="btn btn-xs btn-default pull-right"><?php echo T('CLEAR_CACHE'); ?></button>
-  <?php } ?>
+  <button onclick="boxHandler(event)" data-package="mem" data-operation="clean" data-toggle="modal" data-target="#sysResponse" class="btn btn-xs btn-default pull-right"><?php echo T('CLEAR_CACHE'); ?></button>
 </h4>

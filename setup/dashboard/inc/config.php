@@ -9,7 +9,6 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 session_start_timeout(5);
 
 $version = 'v1.4.6';
-$branch  = file_exists('/install/.developer.lock') ? 'development' : 'master';
 $panel   = [
     'name'        => 'QuickBox Lite',
     'author'      => 'Everyone that contributes to the open QuickBox project!',
@@ -18,12 +17,19 @@ $panel   = [
     'description' => 'QuickBox is an open-source seedbox project that is developed and maintained by anyone who so choses to provide time and energy.',
     'active_page' => basename($_SERVER['PHP_SELF']),
 ];
-$username  = getUser();
-$master    = getMaster();
-$is_master = $username === $master;
-
-// Network Interface
+$username   = getMaster();
 $iface_list = ['INETFACE'];
+$branch     = 'master';
+
+if (file_exists('/install/.developer.lock')) {
+    $branch = 'developer';
+    if (file_exists('/install/.debug.lock')) {
+        $branch_info = @file('/install/.debug.lock');
+        if ($branch_info !== false) {
+            $branch = trim($branch_info[0]);
+        }
+    }
+}
 
 if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php')) {
     // CUSTOM URL OVERRIDES //

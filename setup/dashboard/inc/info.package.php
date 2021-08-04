@@ -2,7 +2,7 @@
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 
-$username = getUser();
+$username = getMaster();
 
 /*
 $sample = [

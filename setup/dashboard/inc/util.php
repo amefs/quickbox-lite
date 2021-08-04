@@ -4,7 +4,7 @@ error_reporting(\E_ERROR);
 if (function_exists('ini_set')) {
     ini_set('display_errors', '0');
     ini_set('log_errors', '1');
-    if (file_exists('/install/.debug')) {
+    if (file_exists('/install/.debug.lock')) {
         ini_set('display_errors', '1');
         ini_set('display_startup_errors', '1');
         error_reporting(\E_ALL | \E_STRICT);
