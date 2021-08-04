@@ -50,3 +50,6 @@ assets
 # Directories created by composer
 vendor/
 *.cache
+
+# Directories created by npm
+node_modules/

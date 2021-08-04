@@ -1,4 +1,7 @@
-(function($) {
+/* global io,Visibility */
+"use strict";
+
+(function ($) {
   const service_status_list = [{
     key: "BTSYNC",
     url: "/widgets/service_status.php?service=resilio-sync",
@@ -126,11 +129,11 @@
     url: "/widgets/net_status.php",
     id: undefined,
     override: function (dataJSON) {
-      function format(length, factor, tail, fractionDigits) {
+      function format (length, factor, tail, fractionDigits) {
         return (length / Math.pow(2, factor)).toFixed(fractionDigits).toString() + " " + tail;
       }
 
-      function formatsize(length) {
+      function formatsize (length) {
         if (length >= Math.pow(2, 40)) {
           return format(length, 40, "TB/s", 2);
         } else if (length >= Math.pow(2, 30)) {
@@ -201,8 +204,8 @@
     url: "/db/output.log",
     id: "#sshoutput",
     time: 2500,
-    before: function(task) {
-      return $('#sysResponse').is(":visible");
+    before: function (task) {
+      return $("#sysResponse").is(":visible");
     },
     after: function () {
       const element = $("#sysPre");
@@ -210,8 +213,8 @@
     }
   }];
 
-  function groupBy(xs, key) {
-    return xs.reduce(function(rv, x) {
+  function groupBy (xs, key) {
+    return xs.reduce(function (rv, x) {
       (rv[x[key]] = rv[x[key]] || []).push(x);
       return rv;
     }, {});
@@ -220,7 +223,7 @@
   let first_request = true;
   let error_count = 0;
 
-  function start_status_update() {
+  function start_status_update () {
     const task_mapping = {};
     const status_list = [].concat(service_status_list, system_status_list);
     for (let i = 0; i < status_list.length; ++i) {
@@ -233,20 +236,20 @@
     }
     const socket = io(location.origin, { path: "/ws/socket.io" });
     // add event listener
-    socket.on("message", function(response) {
+    socket.on("message", function (response) {
       if (response.success) {
         const task = task_mapping[response.key];
         if (task === undefined) {
           console.warn("[ws] task config not found,", response);
           return;
         }
-        if (task.override && typeof(task.override) === "function") {
+        if (task.override && typeof (task.override) === "function") {
           task.override(response.response);
           return;
         }
         if (task.id !== undefined) {
           $(task.id).html(response.response);
-          if (task.after && typeof(task.after) === "function") {
+          if (task.after && typeof (task.after) === "function") {
             task.after(task);
           }
         } else {
@@ -264,19 +267,16 @@
 
     // group task with time
     const task_info = groupBy(status_list, "time");
-    for (let time_str in task_info) {
-      if (task_info.hasOwnProperty(time_str) === false) {
-        continue;
-      }
+    for (const time_str in task_info) {
       const time_interval = parseInt(time_str);
       const task_list = task_info[time_str];
-      const task_entity = function() {
+      const task_entity = function () {
         let delay = 0;
         for (let i = 0; i < task_list.length; ++i) {
           const task = task_list[i];
           // set a delay for each task.
-          setTimeout(function() {
-            if (task.before && typeof(task.before) === "function") {
+          setTimeout(function () {
+            if (task.before && typeof (task.before) === "function") {
               // skip if before task failed
               if (task.before(task) === false) {
                 return;
@@ -300,8 +300,7 @@
     first_request = false;
   }
 
-  document.addEventListener("DOMContentLoaded", function() {
+  document.addEventListener("DOMContentLoaded", function () {
     Visibility.afterPrerendering(start_status_update);
   });
-
 })(window.jQuery);
