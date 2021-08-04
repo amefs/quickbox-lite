@@ -53,7 +53,8 @@ function getMaster() {
  * @return string
  */
 function getUser() {
-    if ($_SERVER['REMOTE_ADDR'] === '127.0.0.1') {
+    $remote_addr = $_SERVER['REMOTE_ADDR'];
+    if ($remote_addr === '127.0.0.1' || $remote_addr === '::1' || $remote_addr === '::ffff:127.0.0.1') {
         return getMaster();
     }
     foreach (['REMOTE_USER', 'PHP_AUTH_USER', 'REDIRECT_REMOTE_USER'] as $key) {
