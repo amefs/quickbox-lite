@@ -146,7 +146,7 @@
 
       const duration = (dataJSON.NetTimeStamp - window.NetTimeStamp);
       const length = dataJSON.NetOutSpeed.length;
-      for (let i = 2; i < length; ++i) {
+      for (let i = 0; i < length; ++i) {
         if (window.NetOutSpeed[i] !== undefined) {
           const speed = (dataJSON.NetOutSpeed[i] - window.NetOutSpeed[i]) / duration;
           const speed_str = formatsize(speed);

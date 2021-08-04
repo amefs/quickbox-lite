@@ -85,17 +85,33 @@ class SystemInfo {
             return $res;
         }
 
-        // only index start from 0 will be encoded as an array
-        $Receive  = [0 => null, 1 => null];
-        $Transmit = [0 => null, 1 => null];
+        $Receive  = [];
+        $Transmit = [];
 
         for ($i = 2; $i < count($info); ++$i) {
             preg_match_all("/(?<name>[^\s]+):[\s]{0,}(?<rx_bytes>\d+)\s+(?:\d+\s+){7}(?<tx_bytes>\d+)\s+/", $info[$i], $group);
-            $Receive[$i]  = $group['rx_bytes'][0]; // Receive data in bytes
-            $Transmit[$i] = $group['tx_bytes'][0]; // Transmit data in bytes
+            $Receive[$i - 2]  = (int) $group['rx_bytes'][0]; // Receive data in bytes
+            $Transmit[$i - 2] = (int) $group['tx_bytes'][0]; // Transmit data in bytes
         }
         $res['Receive']  = $Receive;
         $res['Transmit'] = $Transmit;
+
+        return $res;
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    public static function enuminterface() {
+        $info = @file('/proc/net/dev');
+        $res  = [];
+        if (!$info) {
+            return $res;
+        }
+        for ($i = 2; $i < count($info); ++$i) {
+            preg_match_all("/(?<name>[^\s]+):[\s]{0,}(?<rx_bytes>\d+)\s+(?:\d+\s+){7}(?<tx_bytes>\d+)\s+/", $info[$i], $group);
+            $res[$i - 2] = $group['name'][0];
+        }
 
         return $res;
     }

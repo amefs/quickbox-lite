@@ -47,8 +47,8 @@ $netinfo = SystemInfo::netinfo();
   </script>
 
   <style>
-    <?php if (file_exists($_SERVER['DOCUMENT_ROOT'].'custom/custom.css')) {
-    include($_SERVER['DOCUMENT_ROOT'].'custom/custom.css');
+    <?php if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/custom.css')) {
+    include($_SERVER['DOCUMENT_ROOT'].'/custom/custom.css');
 }
     ?>
   </style>

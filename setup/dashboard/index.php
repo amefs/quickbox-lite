@@ -13,7 +13,8 @@
   assert(isset($version));
   assert(isset($branch));
 
-  $sysCpuInfo = SystemInfo::cpuinfo();
+  $sysCpuInfo       = SystemInfo::cpuinfo();
+  $sysInterfaceInfo = SystemInfo::enuminterface();
 ?>
 
 <div class="mainpanel">
@@ -41,15 +42,12 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <?php if (false !== ($strs = @file('/proc/net/dev'))) { ?>
-                    <?php for ($i = 2; $i < count($strs); ++$i) { ?>
-                    <?php preg_match_all("/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info); ?>
+                    <?php for ($i = 0; $i < count($sysInterfaceInfo); ++$i) { ?>
                     <tr>
-                      <td style="font-size:14px;font-weight:bold;padding: 2px 2px 2px 12px"><?php echo $info[1][0]; ?></td>
+                      <td style="font-size:14px;font-weight:bold;padding: 2px 2px 2px 12px"><?php echo $sysInterfaceInfo[$i]; ?></td>
                       <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-success"><span id="NetOutSpeed<?php echo $i; ?>">0B/s</span></span></td>
                       <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-primary"><span id="NetInputSpeed<?php echo $i; ?>">0B/s</span></span></td>
                     </tr>
-                    <?php } ?>
                     <?php } ?>
                   </tbody>
                 </table>
