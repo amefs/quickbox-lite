@@ -6,4 +6,4 @@ export default class Constant {
     public static TEMPLATE_OPERATION = "$operation$";
     public static TEMPLATE_TARGET = "$target$";
     public static TEMPLATE_USERNAME = "$username$";
-};
+}
