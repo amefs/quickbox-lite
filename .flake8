@@ -1,0 +1,8 @@
+[flake8]
+ignore          = E501,E731,W503
+max-line-length = 120
+max-complexity  = 32
+statistics      = yes
+show-source     = yes
+show-pep8       = yes
+exclude         =.git,__pycache__,node_modules

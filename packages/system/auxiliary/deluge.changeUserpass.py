@@ -1,4 +1,4 @@
-#!/usr/bin/env python                                                                                                                                                                         
+#!/usr/bin/env python
 # Changes the password for Deluge's Web UI
 
 from __future__ import print_function

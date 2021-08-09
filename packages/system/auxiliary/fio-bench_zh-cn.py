@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+from __future__ import print_function
 import os
-import sys
 import shlex
 import subprocess
 import json
@@ -12,8 +12,8 @@ from argparse import RawTextHelpFormatter
 
 # Init ENV
 rwResult = {}
-#Color
-R = "\033[0;31;40m"  #RED
+# Color
+R = "\033[0;31;40m"  # RED
 G = "\033[0;32;40m"  # GREEN
 Y = "\033[0;33;40m"  # Yellow
 B = "\033[0;34;40m"  # Blue
@@ -45,11 +45,12 @@ def printResult():
     print(G + "\n测试结果:" + N)
     table = PrettyTable(["Test Item", "读取 IOPS", "读取速度", "写入 IOPS", "写入速度"])
     for k, v in rwResult.items():
-        list = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
-        table.add_row(list)
+        lst = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
+        table.add_row(lst)
     table.align = "r"
     table.align["Test Item"] = "l"
     print(table.get_string(sortby="Test Item", reversesort=True))
+
 
 def outputResult(filename=None):
     if os.path.exists(filename):
@@ -58,14 +59,14 @@ def outputResult(filename=None):
     fo.write((u"测试结果:\n").encode('utf-8'))
     table = PrettyTable(["Test Item", u"读取 IOPS", u"读取速度", u"写入 IOPS", u"写入速度"])
     for k, v in rwResult.items():
-        list = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
-        table.add_row(list)
+        lst = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
+        table.add_row(lst)
     table.align = "r"
     table.align["Test Item"] = "l"
     fo.write(table.get_string(sortby="Test Item", reversesort=True).encode('utf-8'))
     fo.write("\n")
     fo.close()
-    print(G + "\n保存在 {}" + N).format(filename)
+    print((G + "\n保存在 {}" + N).format(filename))
 
 
 class FioTest(object):
@@ -239,10 +240,14 @@ if __name__ == '__main__':
         if not all(elem in range(1, 4) for elem in args.test_num):
             raise ValueError('无效测试选项')
         else:
-            if 1 in args.test_num: test1 = True
-            if 2 in args.test_num: test2 = True
-            if 3 in args.test_num: test3 = True
-            if 4 in args.test_num: test4 = True
+            if 1 in args.test_num:
+                test1 = True
+            if 2 in args.test_num:
+                test2 = True
+            if 3 in args.test_num:
+                test3 = True
+            if 4 in args.test_num:
+                test4 = True
     if args.test_size is None:
         test_size = '2g'
     else:
@@ -252,18 +257,21 @@ if __name__ == '__main__':
     else:
         test_file = "".join(args.test_file)
     if args.output_file is None:
-        to_file=False
+        to_file = False
     else:
-        to_file=True
+        to_file = True
         output_file = "".join(args.output_file)
 
-
     print(R + '开始进行下列测试:\n' + N)
-    if test1: print('- Seq Q32T1')
-    if test2: print('- 4K Q32T1')
-    if test3: print('- Seq')
-    if test4: print('- 4K')
-    print
+    if test1:
+        print('- Seq Q32T1')
+    if test2:
+        print('- 4K Q32T1')
+    if test3:
+        print('- Seq')
+    if test4:
+        print('- 4K')
+    print()
 
     if test1:
         print(Y + '测试顺序读取 - 块大小 128KiB 队列深度 32 线程数 1' + N)
