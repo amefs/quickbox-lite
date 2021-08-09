@@ -84,10 +84,22 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.9
-      - name: Install dependencies
+      - name: Install pipenv
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install flake8
+          python -m pip install --upgrade pipenv wheel
+      - id: env-version
+        run: |
+          echo "::set-output name=python::$(python -c 'import platform;print(platform.python_version())')"
+          echo "::set-output name=ubuntu::$(lsb_release -cs)"
+      - id: cache-pipenv
+        uses: actions/cache@v2
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ steps.env-version.outputs.ubuntu }}-${{ steps.env-version.outputs.python }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
+      - name: Install dependencies
+        if: steps.cache-pipenv.outputs.cache-hit != 'true'
+        run: |
+          pipenv install --deploy --dev
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
