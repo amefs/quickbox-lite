@@ -1,11 +1,11 @@
 #!/usr/bin/env python                                                                                                                                                                         
 # Changes the password for Deluge's Web UI
 
+from __future__ import print_function
 from deluge.config import Config
 import hashlib
 import os.path
 import sys
-from __future__ import print_function
 
 try:
     input = raw_input

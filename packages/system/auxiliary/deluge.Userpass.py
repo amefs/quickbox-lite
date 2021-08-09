@@ -6,9 +6,9 @@
 #
 #
 
+from __future__ import print_function
 import hashlib
 import sys
-from __future__ import print_function
 
 password = sys.argv[1]
 salt = sys.argv[2]
