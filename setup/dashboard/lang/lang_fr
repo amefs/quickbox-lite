@@ -162,6 +162,7 @@ $L['VIEW_ADDITIONAL_BANDWIDTH_DETAILS'] = 'Voir les détails additionnels';
 
 // main table headers
 $L['Summary'] = 'Sommaire';
+$L['BW_SELECT'] = 'Option de bande passante';
 $L['Top 10 days'] = 'Les 10 meilleurs jours';
 $L['Last 24 hours'] = 'Les dernières 24 heures';
 $L['Last 30 days'] = 'Les 30 derniers jours';
@@ -343,12 +344,6 @@ $L['UNINSTALLING_TITLE'] = 'Désinstallation';
 //GRITTER TEXT
 $L['UNINSTALLING_TXT_1'] = 'Patientez pendant que';
 $L['UNINSTALLING_TXT_2'] = 'soit désinstallé de votre système.';
-
-$L['BW_SELECT'] = 'Tri de la bande passante';
-$L['BW_PAGE_SUMMARY'] = 'Top 10';
-$L['BW_PAGE_HOUR'] = 'Par heures';
-$L['BW_PAGE_DAY'] = 'Par jours';
-$L['BW_PAGE_MONTH'] = 'Par mois';
 
 ////////////////////////////////////////////////////////////////////////////
 // SAMPLE

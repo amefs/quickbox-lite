@@ -164,6 +164,7 @@ $L['VIEW_ADDITIONAL_BANDWIDTH_DETAILS'] = 'Båndbreddedetaljer';
 
 // main table headers
 $L['Summary'] = 'Oversigt';
+$L['BW_SELECT'] = 'Båndbredde mulighed';
 $L['Top 10 days'] = 'Top 10 dage';
 $L['Last 24 hours'] = 'Seneste 24 timer';
 $L['Last 30 days'] = 'Seneste 30 dage';
@@ -345,13 +346,6 @@ $L['UNINSTALLING_TITLE'] = 'Afinstallerer';
 //GRITTER TEXT
 $L['UNINSTALLING_TXT_1'] = 'Vent venligst et øjeblik';
 $L['UNINSTALLING_TXT_2'] = 'bliver afinstalleret fra dit system.';
-
-//BANDWIDTH PAGE
-$L['BW_SELECT'] = 'Sortering af båndbredde';
-$L['BW_PAGE_SUMMARY'] = 'Top 10';
-$L['BW_PAGE_HOUR'] = 'Efter timer';
-$L['BW_PAGE_DAY'] = 'Efter dage';
-$L['BW_PAGE_MONTH'] = 'Efter måneder';
 
 ////////////////////////////////////////////////////////////////////////////
 // SAMPLE
