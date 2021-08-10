@@ -386,138 +386,165 @@ foreach ($packageList as $package) {
 
 $menuList = [
     [
-        'name'        => 'ruTorrent',
-        'service_ref' => 'rtorrent',
-        'lock_ref'    => 'rutorrent',
-        'url'         => '/rutorrent/',
-        'logo'        => 'img/brands/rtorrent.png',
+        'name'    => 'ruTorrent',
+        'service' => true,
+        'ref'     => $packageMap['rutorrent'],
+        'url'     => '/rutorrent/',
+        'logo'    => 'img/brands/rtorrent.png',
     ], [
-        'name'        => 'Flood',
-        'service_ref' => 'flood',
-        'lock_ref'    => 'flood',
-        'url'         => "/{$username}/flood/",
-        'logo'        => 'img/brands/flood.png',
+        'name'    => 'Flood',
+        'service' => true,
+        'ref'     => $packageMap['flood'],
+        'url'     => "/{$username}/flood/",
+        'logo'    => 'img/brands/flood.png',
     ], [
-        'name'        => 'Deluge Web',
-        'service_ref' => 'deluge',
-        'lock_ref'    => 'deluge',
-        'url'         => '/deluge/',
-        'logo'        => 'img/brands/deluge.png',
+        'name'    => 'Deluge Web',
+        'service' => true,
+        'ref'     => $packageMap['deluge'],
+        'url'     => '/deluge/',
+        'logo'    => 'img/brands/deluge.png',
     ], [
-        'name'        => 'Transmission Web Control',
-        'service_ref' => 'transmission',
-        'lock_ref'    => 'transmission',
-        'url'         => '/transmission',
-        'logo'        => 'img/brands/transmission.png',
+        'name'    => 'Transmission Web Control',
+        'service' => true,
+        'ref'     => $packageMap['transmission'],
+        'url'     => '/transmission',
+        'logo'    => 'img/brands/transmission.png',
     ], [
-        'name'        => 'qBittorrent',
-        'service_ref' => 'qbittorrent',
-        'lock_ref'    => 'qbittorrent',
-        'url'         => '/qbittorrent/',
-        'logo'        => 'img/brands/qbittorrent.png',
+        'name'    => 'qBittorrent',
+        'service' => true,
+        'ref'     => $packageMap['qbittorrent'],
+        'url'     => '/qbittorrent/',
+        'logo'    => 'img/brands/qbittorrent.png',
     ], [
-        'name'        => 'BTSync',
-        'service_ref' => 'btsync',
-        'lock_ref'    => 'btsync',
-        'url'         => "/{$username}.btsync/",
-        'logo'        => 'img/brands/btsync.png',
+        'name'    => 'BTSync',
+        'service' => true,
+        'ref'     => $packageMap['btsync'],
+        'url'     => "/{$username}.btsync/",
+        'logo'    => 'img/brands/btsync.png',
     ], [
-        'name'        => 'File Browser',
-        'service_ref' => 'filebrowser',
-        'lock_ref'    => 'filebrowser',
-        'url'         => '/filebrowser/',
-        'logo'        => 'img/brands/filebrowser.png',
+        'name'    => 'File Browser',
+        'service' => true,
+        'ref'     => $packageMap['filebrowser'],
+        'url'     => '/filebrowser/',
+        'logo'    => 'img/brands/filebrowser.png',
     ], [
-        'name'        => 'File Browser Enhanced',
-        'service_ref' => 'filebrowser-ee',
-        'lock_ref'    => 'filebrowser-ee',
-        'url'         => '/filebrowser-ee/',
-        'logo'        => 'img/brands/filebrowser.png',
+        'name'    => 'File Browser Enhanced',
+        'service' => true,
+        'ref'     => $packageMap['filebrowser-ee'],
+        'url'     => '/filebrowser-ee/',
+        'logo'    => 'img/brands/filebrowser.png',
     ], [
-        'name'        => 'FlexGet',
-        'service_ref' => 'flexget',
-        'lock_ref'    => 'flexget',
-        'url'         => '/flexget/',
-        'logo'        => 'img/brands/flexget.png',
+        'name'    => 'FlexGet',
+        'service' => true,
+        'ref'     => $packageMap['flexget'],
+        'url'     => '/flexget/',
+        'logo'    => 'img/brands/flexget.png',
     ], [
-        'name'        => 'NetData',
-        'service_ref' => 'netdata',
-        'lock_ref'    => 'netdata',
-        'url'         => '/netdata/',
-        'logo'        => 'img/brands/netdata.png',
+        'name'    => 'NetData',
+        'service' => true,
+        'ref'     => $packageMap['netdata'],
+        'url'     => '/netdata/',
+        'logo'    => 'img/brands/netdata.png',
     ], [
-        'name'        => 'noVNC',
-        'service_ref' => 'novnc',
-        'lock_ref'    => 'novnc',
-        'url'         => '/vnc/',
-        'logo'        => 'img/brands/novnc.png',
+        'name'    => 'noVNC',
+        'service' => true,
+        'ref'     => $packageMap['novnc'],
+        'url'     => '/vnc/',
+        'logo'    => 'img/brands/novnc.png',
     ], [
-        'name'        => 'Plex',
-        'service_ref' => 'plex',
-        'lock_ref'    => 'plex',
-        'url'         => '/web/',
-        'logo'        => 'img/brands/plex.png',
+        'name'    => 'Plex',
+        'service' => true,
+        'ref'     => $packageMap['plex'],
+        'url'     => '/web/',
+        'logo'    => 'img/brands/plex.png',
     ], [
-        'name'     => 'SpeedTest',
-        'lock_ref' => 'speedtest',
-        'url'      => '/speedtest/',
-        'logo'     => 'img/brands/speedtest.png',
+        'name'    => 'SpeedTest',
+        'service' => false,
+        'ref'     => $packageMap['speedtest'],
+        'url'     => '/speedtest/',
+        'logo'    => 'img/brands/speedtest.png',
     ], [
-        'name'     => 'Syncthing',
-        'lock_ref' => 'syncthing',
-        'url'      => "/{$username}.syncthing/",
-        'logo'     => 'img/brands/syncthing.png',
+        'name'    => 'Syncthing',
+        'service' => true,
+        'ref'     => $packageMap['syncthing'],
+        'url'     => "/{$username}.syncthing/",
+        'logo'    => 'img/brands/syncthing.png',
     ], [
-        'name'     => 'ZNC',
-        'lock_ref' => 'znc',
-        'url'      => '/znc/',
-        'logo'     => 'img/brands/znc.png',
+        'name'    => 'ZNC',
+        'service' => true,
+        'ref'     => $packageMap['znc'],
+        'url'     => '/znc/',
+        'logo'    => 'img/brands/znc.png',
     ],
 ];
 
 $downloadList = [
     [
-        'name'     => 'rTorrent',
-        'lock_ref' => 'rtorrent',
-        'url'      => "/{$username}.rtorrent.downloads",
+        'name' => 'rTorrent',
+        'ref'  => $packageMap['rtorrent'],
+        'url'  => "/{$username}.rtorrent.downloads",
     ], [
-        'name'     => 'Deluge',
-        'lock_ref' => 'deluge',
-        'url'      => "/{$username}.deluge.downloads",
+        'name' => 'Deluge',
+        'ref'  => $packageMap['deluge'],
+        'url'  => "/{$username}.deluge.downloads",
     ], [
-        'name'     => 'Transmission',
-        'lock_ref' => 'transmission',
-        'url'      => "/{$username}.transmission.downloads",
+        'name' => 'Transmission',
+        'ref'  => $packageMap['transmission'],
+        'url'  => "/{$username}.transmission.downloads",
     ], [
-        'name'     => 'qBittorrent',
-        'lock_ref' => 'qbittorrent',
-        'url'      => "/{$username}.qbittorrent.downloads",
+        'name' => 'qBittorrent',
+        'ref'  => $packageMap['qbittorrent'],
+        'url'  => "/{$username}.qbittorrent.downloads",
     ], [
         'name'     => 'OpenVPN Config',
-        'lock_ref' => null,
-        'lock_url' => "/home/{$username}/openvpn/{$username}.zip",
+        'ref'      => null,
+        'lockfile' => "/home/{$username}/openvpn/{$username}.zip",
         'url'      => "/{$username}/ovpn.zip",
     ],
 ];
 
 /**
- * @param string|null $package
+ * @param array<string,mixed> $menu_or_package
  *
- * @return array<string,mixed>|false|null
+ * @return bool
  */
-function get_package_ref($package) {
-    global $packageMap;
-    if ($package === null) {
-        error_log('Parameter #1 $package of function get_package_ref expects string, null given', 0);
-
-        return null;
+function is_package_installed($menu_or_package) {
+    $lockfile = null;
+    if (array_key_exists('lockfile', $menu_or_package)) {
+        $lockfile = $menu_or_package['lockfile'];
+    } else {
+        if (array_key_exists('ref', $menu_or_package)) {
+            $ref = $menu_or_package['ref'];
+            if (array_key_exists('lockfile', $ref)) {
+                $lockfile = $ref['lockfile'];
+            }
+        }
     }
-    if (array_key_exists($package, $packageMap)) {
-        return $packageMap[$package];
+    if ($lockfile !== null) {
+        return file_exists($lockfile);
     }
-    error_log("package ref to '{$package}' not found in package map!", 0);
 
     return false;
+}
+
+/**
+ * @param array<string,mixed> $package
+ *
+ * @return bool
+ */
+function is_package_running($package) {
+    if (!is_package_installed($package)) {
+        return false;
+    }
+    $valid = true;
+    if (array_key_exists('services', $package)) {
+        $services = $package['services'];
+        foreach ($services as $service) {
+            $valid = $valid && processExists($service['process'], $service['username']);
+        }
+    }
+
+    return $valid;
 }
 
 /**
@@ -571,12 +598,7 @@ function __check_menu_ref() {
     foreach ($menuList as $menu) {
         /** @var bool $status */
         $status = true;
-        if (array_key_exists('service_ref', $menu)) {
-            $status = $status && (get_package_ref($menu['service_ref']) !== false);
-        }
-        if (array_key_exists('lock_ref', $menu)) {
-            $status = $status && (get_package_ref($menu['lock_ref']) !== false);
-        }
+        $status = $status && $menu['ref'] !== null;
         if ($status === false) {
             echo 'menu item misconfigured: ';
             print_r($menu);
@@ -585,8 +607,8 @@ function __check_menu_ref() {
     foreach ($downloadList as $download) {
         /** @var bool $status */
         $status = true;
-        if (array_key_exists('lock_ref', $download)) {
-            $status = $status && (get_package_ref($download['lock_ref']) !== false);
+        if (array_key_exists('ref', $download)) {
+            $status = $status && ($download['ref'] !== null || $download['lockfile'] !== null);
         }
         if ($status === false) {
             echo 'download item misconfigured: ';

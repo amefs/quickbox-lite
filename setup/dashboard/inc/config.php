@@ -31,33 +31,6 @@ if (file_exists('/install/.developer.lock')) {
     }
 }
 
-if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php')) {
-    // CUSTOM URL OVERRIDES //
-    require($_SERVER['DOCUMENT_ROOT'].'/custom/url.override.php');
-} else {
-    $http_host         = $_SERVER['HTTP_HOST'];
-    $btsyncURL         = "https://{$http_host}/{$username}.btsync/";
-    $dwURL             = "https://{$http_host}/deluge/";
-    $delugedlURL       = "https://{$http_host}/{$username}.deluge.downloads";
-    $filebrowserURL    = "https://{$http_host}/filebrowser/";
-    $filebrowsereeURL  = "https://{$http_host}/filebrowser-ee/";
-    $flexgetURL        = "https://{$http_host}/flexget/";
-    $floodURL          = "https://{$http_host}/{$username}/flood/";
-    $netdataURL        = "https://{$http_host}/netdata/";
-    $novncURL          = "https://{$http_host}/vnc/";
-    $plexURL           = "https://{$http_host}/web/";
-    $qbittorrentURL    = "https://{$http_host}/qbittorrent/";
-    $qbittorrentdlURL  = "https://{$http_host}/{$username}.qbittorrent.downloads";
-    $rtorrentdlURL     = "https://{$http_host}/{$username}.rtorrent.downloads";
-    $rutorrentURL      = "https://{$http_host}/rutorrent/";
-    $speedtestURL      = "https://{$http_host}/speedtest/";
-    $syncthingURL      = "https://{$http_host}/{$username}.syncthing/";
-    $transmissionURL   = "https://{$http_host}/transmission";
-    $transmissiondlURL = "https://{$http_host}/{$username}.transmission.downloads";
-    $openvpndlURL      = "https://{$http_host}/{$username}/ovpn.zip";
-    $zncURL            = "https://{$http_host}/znc/";
-}
-
 if (!isset($locale)) {
     $locale = 'UTF8';
 }
