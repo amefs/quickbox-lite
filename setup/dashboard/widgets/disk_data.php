@@ -2,7 +2,7 @@
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 
-$username = getUser();
+$username = getMaster();
 
 /**
  * @param int|float $percent
