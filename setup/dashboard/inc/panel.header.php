@@ -41,8 +41,8 @@ $netinfo = SystemInfo::netinfo();
   <script src="lib/jquery/jquery.min.js"></script>
 
   <script type="text/javascript">
-    window.NetOutSpeed = <?php echo json_encode($netinfo['Transmit']); ?>;
-    window.NetInputSpeed = <?php echo json_encode($netinfo['Receive']); ?>;
+    window.NetOutSpeed = <?php echo json_encode($netinfo['Transmit'] ?? []); ?>;
+    window.NetInputSpeed = <?php echo json_encode($netinfo['Receive'] ?? []); ?>;
     window.NetTimeStamp = <?php echo json_encode(microtime(true)); ?>;
   </script>
 

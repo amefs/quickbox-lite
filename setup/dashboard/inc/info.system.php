@@ -11,7 +11,7 @@ class SystemInfo {
             return '';
         }
 
-        return trim($loadavg).' '.$process_count;
+        return trim($loadavg).' '.trim($process_count);
     }
 
     /**
@@ -19,7 +19,10 @@ class SystemInfo {
      */
     public static function cpuinfo() {
         $info = @file('/proc/cpuinfo');
-        $res  = [];
+        $res  = [
+            'model' => '<h4>Unknown</h4>',
+            'count' => '-',
+        ];
         if (!$info) {
             return $res;
         }

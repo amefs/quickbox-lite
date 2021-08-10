@@ -1,10 +1,7 @@
 <?php
-  require($_SERVER['DOCUMENT_ROOT'].'/inc/info.plugin.php');
-  require($_SERVER['DOCUMENT_ROOT'].'/inc/info.theme.php');
-
-  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.system.php');
-  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
   require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
+  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.system.php');
 
   require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.header.php');
   require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.menu.php');
