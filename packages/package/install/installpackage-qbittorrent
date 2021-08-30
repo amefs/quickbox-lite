@@ -564,7 +564,15 @@ function _installApp() {
 		qbitversion=${qbitversion_default}
 	fi
 	if [ -z "${libtversion}" ]; then
-		libtversion=${libtversion_default}
+		if (_version_gt ${qbitversion} "4.3.1"); then
+			_info "Fetching package list..."
+			cd /tmp || exit 1
+			wget -t3 -T20 -q -O file.lst https://qbit-static.ezapi.net/file.lst
+			libtversion=$(cat file.lst | grep -wE "qbittorrent-nox\.qbit${qbitversion}_lt.*\.amd64" | awk '{ print $3}' | sort -r | head -n 1)
+			_warning "Use Libtorrent ${libtversion} for ${qbit_major_version}x"
+		else
+			libtversion=${libtversion_default}
+		fi
 	fi
 	qbit_major_version=$(echo ${qbitversion}| cut -d. -f1,2)
 	libt_major_version=$(echo ${libtversion}| cut -d. -f1,2)
