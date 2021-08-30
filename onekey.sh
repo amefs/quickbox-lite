@@ -96,9 +96,9 @@ if [[ -d /etc/QuickBox ]]; then
     rm -rf /etc/QuickBox
 fi
 URL="https://github.com/amefs/quickbox-lite.git"
-git clone --recursive ${branch} ${URL} /etc/QuickBox
+git clone --recursive "${branch}" "${URL}" /etc/QuickBox
 dos2unix /etc/QuickBox/setup.sh
-cd /etc/QuickBox
+cd /etc/QuickBox || exit
 screen -dmS qbox-install -T xterm 
 screen -S qbox-install -X stuff "sleep 3; bash /etc/QuickBox/setup.sh $ExtraArgs;\n"
 screen -rA qbox-install
