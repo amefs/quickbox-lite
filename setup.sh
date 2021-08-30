@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.6
+# Current version:  v1.5.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -108,9 +108,7 @@ function _init() {
 		# install base packages
 		DEBIAN_FRONTEND=noninteractive apt-get -qq -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 		echo -e "XXX\n10\nPreparing scripts... \nXXX"
-		if [[ $DISTRO == Ubuntu && $CODENAME == xenial ]]; then
-			apt-get -y install git curl wget dos2unix python-minimal apt-transport-https software-properties-common dnsutils unzip >/dev/null 2>&1
-		elif [[ $DISTRO == Ubuntu && $CODENAME =~ ("bionic"|"focal") ]]; then
+		if [[ $DISTRO == Ubuntu && $CODENAME =~ ("bionic"|"focal") ]]; then
 			apt-get -y install git curl wget dos2unix python apt-transport-https software-properties-common dnsutils unzip >/dev/null 2>&1
 		elif [[ $DISTRO == Debian ]]; then
 			apt-get -y install git curl wget dos2unix python apt-transport-https software-properties-common gnupg2 ca-certificates dnsutils unzip >/dev/null 2>&1
@@ -204,7 +202,7 @@ function _checkdistro() {
 		whiptail --title "$ERROR_TITLE_OS" --msgbox "${ERROR_TEXT_DESTRO_1}${DISTRO}${ERROR_TEXT_DESTRO_2}" --ok-button "$BUTTON_OK" 8 72
 		_defaultcolor
 		exit 1
-	elif [[ ! "$CODENAME" =~ ("xenial"|"bionic"|"stretch"|"buster"|"focal") ]]; then
+	elif [[ ! "$CODENAME" =~ ("bionic"|"buster"|"focal") ]]; then
 		_errorcolor
 		whiptail --title "$ERROR_TITLE_OS" --msgbox "${ERROR_TEXT_CODENAME_1}${DISTRO}${ERROR_TEXT_CODENAME_2}" --ok-button "$BUTTON_OK" 8 72
 		_defaultcolor
@@ -523,11 +521,7 @@ function _genadmin() {
 	# save account info to file
 	local passphrase
 	passphrase=$(openssl rand -hex 64)
-	if [[ $CODENAME == xenial ]]; then
-		echo "${username}:$(echo "${password}" | openssl enc -aes-128-ecb -a -e -pass pass:"${passphrase}" -nosalt)" >/root/.admin.info
-	else
-		echo "${username}:$(echo "${password}" | openssl enc -aes-128-ecb -pbkdf2 -a -e -pass pass:"${passphrase}" -nosalt)" >/root/.admin.info
-	fi
+	echo "${username}:$(echo "${password}" | openssl enc -aes-128-ecb -pbkdf2 -a -e -pass pass:"${passphrase}" -nosalt)" >/root/.admin.info
 	mkdir -p /root/.qbuser
 	cp /root/.admin.info /root/.qbuser/"${username}".info
 	mkdir -p /root/.ssh
@@ -823,6 +817,21 @@ function _insnodejs() {
 	cd /tmp || exit 1
 	curl -sL https://deb.nodesource.com/setup_14.x -o nodesource_setup.sh
 	bash nodesource_setup.sh >>"${OUTTO}" 2>&1
+	exitstatus=$?
+	counter=0
+	while [[ ${exitstatus} -eq 1 ]]; do
+		if [[ ${counter} -gt 2 ]]; then
+			_errorcolor
+			echo -e "XXX\n00\n${ERROR_TEXT_NODEJS}\nXXX"
+			_defaultcolor
+			echo ">> ${ERROR_TEXT_NODEJS}" >>"${OUTTO}" 2>&1
+			exit 1
+		else
+			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
+			exitstatus=$?
+			((counter++))
+		fi
+	done
 	apt-get install -y nodejs >>"${OUTTO}" 2>&1
 	if [[ -f /tmp/nodesource_setup.sh ]]; then
 		rm nodesource_setup.sh
@@ -950,13 +959,6 @@ function _askbbr() {
 				3>&1 1>&2 2>&3
 		)
 	done
-	if [[ $enable_bbr == 1 && $CODENAME == xenial ]]; then
-		if (whiptail --title "$INFO_TITLE_XENIAL_BBR" --yesno "$INFO_TEXT_XENIAL_BBR" --yes-button "$BUTTON_YES" --no-button "$BUTTON_NO" 8 72); then
-			enable_bbr=1
-		else
-			enable_bbr=0
-		fi
-	fi
 }
 
 function _insbbr() {
@@ -1522,10 +1524,6 @@ done
 _init
 if [[ $onekey == 1 ]]; then
 	if [[ -n $username && -n $password ]]; then
-		_checkroot
-		_checkdistro
-		_checkkernel
-		_checkovz
 		if [[ $uilang == "zh" ]]; then
 			source ${local_lang}zh-cn.lang
 			echo 'LANGUAGE="zh_CN.UTF-8"' >>/etc/default/locale
@@ -1533,6 +1531,10 @@ if [[ $onekey == 1 ]]; then
 		else
 			source ${local_lang}en.lang
 		fi
+		_checkroot
+		_checkdistro
+		_checkkernel
+		_checkovz
 		if [[ $domain != "" ]]; then
 			_get_ip
 			test_domain=$(curl -sH 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$domain&type=A" | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}" | head -1)

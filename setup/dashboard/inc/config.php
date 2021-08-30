@@ -8,7 +8,7 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/util.php');
 
 session_start_timeout(5);
 
-$version = 'v1.4.6';
+$version = 'v1.5.0';
 $panel   = [
     'name'        => 'QuickBox Lite',
     'author'      => 'Everyone that contributes to the open QuickBox project!',

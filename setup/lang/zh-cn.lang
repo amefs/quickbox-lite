@@ -236,6 +236,8 @@ INFO_TEXT_FIN_2="是否立即重启?"
 INFO_TEXT_FIN_MIN=" 分钟"
 ERROR_TITLE_INSTALL="意外的错误"
 ERROR_TEXT_INSTALL_1="无法安装 "
+ERROR_TITLE_NODEJS="Node.js 错误"
+ERROR_TEXT_NODEJS="无法更新 node.js 软件源"
 
 # 3rd-part apps
 INFO_TEXT_INSTALLAPP_1="正在安装 rTorrent... "
