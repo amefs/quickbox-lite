@@ -524,6 +524,7 @@ function _genadmin() {
 	# save account info to file
 	local passphrase
 	passphrase=$(openssl rand -hex 64)
+	# shellcheck disable=SC2091
 	if ! $(openssl version | awk '$2 ~ /(^0\.)|(^1\.(0\.|1\.0))/ { exit 1 }'); then
 		echo "${username}:$(echo "${password}" | openssl enc -aes-128-ecb -a -e -pass pass:"${passphrase}" -nosalt)" >/root/.admin.info
 	else

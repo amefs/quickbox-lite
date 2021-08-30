@@ -16,7 +16,6 @@
 #   including (via compiler) GPL-licensed code must also be made available
 #   under the GPL along with build & install instructions.
 #
-# shellcheck disable=SC2091
 #################################################################################
 if [[ $1 == "--dev" ]]; then
     if [[ ! -d /install ]]; then

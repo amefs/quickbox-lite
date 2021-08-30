@@ -137,12 +137,14 @@ function _chPasswd() {
 		chmod 600 /root/.ssh/local_user && chmod 700 /root/.ssh
 	fi
 	if [[ $username == "$(cat /root/.admin.info | cut -d: -f1)" ]]; then
+		# shellcheck disable=SC2091
 		if ! $(openssl version | awk '$2 ~ /(^0\.)|(^1\.(0\.|1\.0))/ { exit 1 }'); then
 			echo "${username}:$(echo ${password} | openssl enc -aes-128-ecb -a -e -pass pass:${passphrase} -nosalt)" >/root/.admin.info
 		else
 			echo "${username}:$(echo ${password} | openssl enc -aes-128-ecb -pbkdf2 -a -e -pass pass:${passphrase} -nosalt)" >/root/.admin.info
 		fi
 	fi
+	# shellcheck disable=SC2091
 	if ! $(openssl version | awk '$2 ~ /(^0\.)|(^1\.(0\.|1\.0))/ { exit 1 }'); then
 		echo "${username}:$(echo ${password} | openssl enc -aes-128-ecb -a -e -pass pass:${passphrase} -nosalt)" >/root/.qbuser/${username}.info
 	else
