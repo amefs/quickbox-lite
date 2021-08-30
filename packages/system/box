@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.6
+# Current version:  v1.5.0-legacy
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -141,7 +141,7 @@ if [[ $resolver == "install" ]]; then
 		bash /usr/local/bin/quickbox/system/auxiliary/install-BBR.sh "${*:3}"
 	else
 		if [[ -f /usr/local/bin/quickbox/package/install/installpackage-"${appname}" ]]; then
-			bash /usr/local/bin/quickbox/package/install/installpackage-"${appname}" "${*:3}"
+			bash /usr/local/bin/quickbox/package/install/installpackage-"${appname}" ${*:3}
 		else
 			locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
 			_error "${appname} Installer not exist"

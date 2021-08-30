@@ -1,3 +1,32 @@
+## CHANGELOG v1.5.0
+
+*Changelog update Monday, Aug 30, 2021*
+
+### Notice
+
+- Xenial and Stretch have been removed from the master branch, please install through legacy branch
+- if quickbox lite was installed, it will automatically switch to the legacy branch after the upgrade
+
+### General additions
+
+- add sorting options for traffic statistics in panel (by Tautcony)
+
+### Function improved
+
+- update code style (by Tautcony)
+
+### Function updated
+
+- upgrade dependencies for dashboard, update panel
+
+### Bug fixed
+
+- fix pyenv warning
+- adapt to the latest code of acme.sh
+- fix noVNC failed to connect
+
+---
+
 ## CHANGELOG v1.4.6
 
 *Changelog update Sunday, Apr 11, 2021*

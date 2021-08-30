@@ -25,7 +25,16 @@ function _error() {
 function _updateRepo() {
 	_info "Updating QuickBox local repository..."
 	BRANCH="https://github.com/amefs/quickbox-lite.git"
-	if [[ ! -f /install/.developer.lock ]]; then
+	if [[ -f /install/.legacy.lock ]]; then
+		if $(grep -qv "branch \"legacy\"" /etc/QuickBox/.git/config); then
+			rm -rf "/etc/QuickBox"
+			_execute "git clone --recursive ${BRANCH} --branch legacy /etc/QuickBox"
+		else
+			_execute "git checkout legacy"
+			_execute "git reset --hard origin/legacy"
+			_execute "git pull --ff-only"
+		fi
+	elif [[ ! -f /install/.developer.lock ]]; then
 		# update to dev branch
 		if [[ -d /etc/QuickBox ]]; then
 			cd /etc/QuickBox

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.6
+# Current version:  v1.5.0-legacy
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -24,7 +24,16 @@ if [[ $1 == "--dev" ]]; then
     if [[ ! -f /install/.developer.lock ]]; then
         touch /install/.developer.lock
     fi
-    dev="--branch development"
+    branch="--branch development"
+    ExtraArgs=${*:2}
+elif [[ $1 == "--legacy" ]]; then
+    if [[ ! -d /install ]]; then
+        mkdir /install/
+    fi
+    if [[ ! -f /install/.legacy.lock ]]; then
+        touch /install/.legacy.lock
+    fi
+    branch="--branch legacy"
     ExtraArgs=${*:2}
 else
     ExtraArgs=${*:1}
@@ -86,8 +95,10 @@ apt-get -yqq install git lsb-release dos2unix screen
 if [[ -d /etc/QuickBox ]]; then
     rm -rf /etc/QuickBox
 fi
-git clone "${dev}" https://github.com/amefs/quickbox-lite.git /etc/QuickBox
+URL="https://github.com/amefs/quickbox-lite.git"
+git clone --recursive "${branch}" "${URL}" /etc/QuickBox
 dos2unix /etc/QuickBox/setup.sh
+cd /etc/QuickBox || exit
 screen -dmS qbox-install -T xterm 
 screen -S qbox-install -X stuff "sleep 3; bash /etc/QuickBox/setup.sh $ExtraArgs;\n"
 screen -rA qbox-install
