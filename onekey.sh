@@ -96,7 +96,8 @@ if [[ -d /etc/QuickBox ]]; then
     rm -rf /etc/QuickBox
 fi
 URL="https://github.com/amefs/quickbox-lite.git"
-git clone --recursive "${branch}" "${URL}" /etc/QuickBox
+# shellcheck disable=SC2086
+git clone --recursive ${branch} "${URL}" /etc/QuickBox
 dos2unix /etc/QuickBox/setup.sh
 cd /etc/QuickBox || exit
 screen -dmS qbox-install -T xterm 
