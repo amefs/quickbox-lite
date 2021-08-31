@@ -577,6 +577,7 @@ function _installDeluge() {
 		else
 			APP_BASEDEPS="python python-dev python-pip"
 			_installDepends
+			_execute "pip2 install --upgrade wheel"
 			_execute "pip2 install --upgrade twisted[tls]"
 			_execute "pip2 install --upgrade future"
 			DEBASE="deluge-common_1.3.15-1build1_all.deb deluge-console_1.3.15-1build1_all.deb deluge-gtk_1.3.15-1build1_all.deb deluge-web_1.3.15-1build1_all.deb deluged_1.3.15-1build1_all.deb"
