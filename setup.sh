@@ -851,38 +851,32 @@ else
 fi
 echo ""
 EOF
-	# install shellinabox and service config
-	apt-get -y install shellinabox >>"${OUTTO}" 2>&1
-	service shellinabox stop >/dev/null 2>&1
-	rm -rf /etc/init.d/shellinabox
+	# install ttyd and service config
+	apt-get -y install ttyd >>"${OUTTO}" 2>&1
+	service ttyd stop >/dev/null 2>&1
+	rm -rf /etc/init.d/ttyd
 
 	if [[ ! -f /etc/nginx/apps/"${username}".console.conf ]]; then
 		cat > /etc/nginx/apps/"${username}".console.conf <<WEBC
 location /${username}.console/ {
     proxy_pass        http://127.0.0.1:4200;
-    #auth_basic "What's the password?";
-    #auth_basic_user_file /etc/htpasswd.d/htpasswd.${username};
+    auth_basic "password Required";
+    auth_basic_user_file /etc/htpasswd;
+	proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
 }
 WEBC
 	fi
-	if (grep -q "disable-ssl" /etc/default/shellinabox); then
-		sed -i 's/SHELLINABOX_ARGS="/SHELLINABOX_ARGS="--disable-ssl /g' /etc/default/shellinabox
-	fi
-	if (grep -q "localhost-only" /etc/default/shellinabox); then
-		sed -i 's/SHELLINABOX_ARGS="/SHELLINABOX_ARGS="--localhost-only /g' /etc/default/shellinabox
-	fi
 
-	cp ${local_setup_template}systemd/shellinabox.service.template /etc/systemd/system/shellinabox.service
-	cp ${local_setup_template}webconsole/00_QuickConsole.css.template /etc/shellinabox/options-enabled/00_QuickConsole.css
-	chmod +x /etc/shellinabox/options-enabled/00_QuickConsole.css
-	chmod 777 /etc/shellinabox/options-enabled/00_QuickConsole.css
+	cp ${local_setup_template}systemd/ttyd.service.template /etc/systemd/system/ttyd.service
+	sed -i "s/USERNAME/${username}/g" /etc/systemd/system/ttyd.service
 
-	# enable shellinabox service
+	# enable ttyd service
 	systemctl daemon-reload >/dev/null 2>&1
-	systemctl enable shellinabox.service >/dev/null 2>&1
-	systemctl start shellinabox.service >/dev/null 2>&1
+	systemctl enable ttyd.service >/dev/null 2>&1
+	systemctl start ttyd.service >/dev/null 2>&1
 	# create lock
-	touch /install/.shellinabox.lock
+	touch /install/.ttyd.lock
 }
 
 function _insdashboard() {

@@ -363,14 +363,14 @@ $packageList = [
         ],
     ], [
         'skip'     => true,
-        'package'  => 'shellinabox',
+        'package'  => 'ttyd',
         'name'     => 'Web Console',
-        'lockfile' => '/install/.shellinabox.lock',
+        'lockfile' => '/install/.ttyd.lock',
         'services' => [
-            'shellinabox' => [
-                'process'  => 'shellinabox',
+            'ttyd' => [
+                'process'  => 'ttyd',
                 'name'     => 'Web Console',
-                'username' => 'shellinabox',
+                'username' => $username,
             ],
         ],
     ],

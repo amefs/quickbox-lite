@@ -109,8 +109,8 @@
     time: 5000
   }, {
     key: "WEB_CONSOLE",
-    url: "/widgets/service_status.php?service=shellinabox",
-    id: "#appstat_shellinabox",
+    url: "/widgets/service_status.php?service=ttyd",
+    id: "#appstat_ttyd",
     time: 5000
   }, {
     key: "X2GO",
