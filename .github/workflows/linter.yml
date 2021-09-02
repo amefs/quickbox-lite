@@ -1,0 +1,107 @@
+name: Linter
+
+on: [push, pull_request]
+
+jobs:
+  es-linter-for-ts:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install nodejs
+      uses: actions/setup-node@v1
+      with:
+        node-version: 14
+  
+    - name: Install dependencies
+      run: |
+        cd setup/dashboard/ws || exit 1
+        npm ci
+
+    - name: Run linter
+      run: |
+          cd setup/dashboard/ws || exit 1
+          npm run lint
+
+  es-linter-for-js:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install nodejs
+      uses: actions/setup-node@v1
+      with:
+        node-version: 14
+  
+    - name: Install dependencies
+      run: |
+        cd setup/dashboard || exit 1
+        npm ci
+
+    - name: Run linter
+      run: |
+          cd setup/dashboard || exit 1
+          npm run lint
+
+  php-linter:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      uses: php-actions/composer@v6
+      with:
+        php_version: 7.4
+
+    - name: Run linter
+      run: |
+          composer run-script lint
+    - name: Run PHPStan
+      run: |
+          composer run-script analyse
+
+  shell-linter:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Run linter
+      uses: azohra/shell-linter@latest
+      with:
+        # todo: scripts in packages
+        path: "onekey.sh,setup.sh"
+
+  python-linter:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install pipenv
+        run: |
+          python -m pip install --upgrade pipenv wheel
+      - id: env-version
+        run: |
+          echo "::set-output name=python::$(python -c 'import platform;print(platform.python_version())')"
+          echo "::set-output name=ubuntu::$(lsb_release -cs)"
+      - id: cache-pipenv
+        uses: actions/cache@v2
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ steps.env-version.outputs.ubuntu }}-${{ steps.env-version.outputs.python }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
+      - name: Install dependencies
+        if: steps.cache-pipenv.outputs.cache-hit != 'true'
+        run: |
+          pipenv install --deploy --dev
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          pipenv run flake8
+          pipenv run futurize

@@ -25,22 +25,37 @@ function _error() {
 function _updateRepo() {
 	_info "Updating QuickBox local repository..."
 	BRANCH="https://github.com/amefs/quickbox-lite.git"
-	if [[ ! -f /install/.developer.lock ]]; then
+	if [[ -f /install/.legacy.lock ]]; then
+		if $(grep -qv "branch \"legacy\"" /etc/QuickBox/.git/config); then
+			rm -rf "/etc/QuickBox"
+			_execute "git clone --recursive ${BRANCH} --branch legacy /etc/QuickBox"
+		else
+			_execute "git checkout legacy"
+			_execute "git reset --hard origin/legacy"
+			_execute "git pull --ff-only"
+		fi
+	elif [[ ! -f /install/.developer.lock ]]; then
 		# update to dev branch
 		if [[ -d /etc/QuickBox ]]; then
 			cd /etc/QuickBox
 			_execute "git checkout master"
 			_execute "git reset --hard origin/master"
-			_execute "git pull"
+			_execute "git pull --ff-only"
 		else
 			_execute "git clone --recursive ${BRANCH} /etc/QuickBox"
 		fi
 	else
 		if [[ -d /etc/QuickBox ]]; then
 			cd /etc/QuickBox
-			_execute "git checkout development"
-			_execute "git reset --hard origin/development"
-			_execute "git pull"
+			if [[ ! -f /install/.debug.lock ]]; then
+				_execute "git checkout development"
+				_execute "git reset --hard origin/development"
+				_execute "git pull --ff-only"
+			else
+				_execute "git reset --hard $(git rev-parse --abbrev-ref --symbolic-full-name @{u})"
+				_execute "git pull --ff-only"
+				echo "$(git rev-parse --abbrev-ref --symbolic-full-name @)($(git rev-parse --short HEAD))" > /install/.debug.lock
+			fi
 		else
 			_execute "git clone --recursive --branch development ${BRANCH} /etc/QuickBox"
 		fi

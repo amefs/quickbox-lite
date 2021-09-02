@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034
 ################################################################################
 #                                                                              #
 #                               English	                                       #
@@ -237,6 +238,8 @@ INFO_TEXT_FIN_2="Reboot now?"
 INFO_TEXT_FIN_MIN=" min"
 ERROR_TITLE_INSTALL="Unexpected Error"
 ERROR_TEXT_INSTALL_1="Can not install "
+ERROR_TITLE_NODEJS="Node.js ERROR"
+ERROR_TEXT_NODEJS="Fail to update node.js source list! exit"
 
 # 3rd-part apps
 INFO_TEXT_INSTALLAPP_1="Installing rTorrent... "

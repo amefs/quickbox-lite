@@ -14,7 +14,7 @@ export class WatchedConfig<T> {
         this.watch();
     }
 
-    public get Value() {
+    public get Value(): T {
         return this.config;
     }
 

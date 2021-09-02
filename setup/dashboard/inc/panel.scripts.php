@@ -1,60 +1,62 @@
 </section>
 <?php
-require_once ($_SERVER['DOCUMENT_ROOT'].'/inc/package_info.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.package.php');
+assert(isset($packageList));
 ?>
 
 <?php
 foreach ($packageList as &$package) {
-  if ($package["boxonly"] || (isset($package["skip"]) && $package["skip"])) {
-    continue;
-  }
-  $packageLowercase = strtolower($package["package"]);
-  $packageUppercase = strtoupper($package["package"]);
-?>
+    if ((isset($package['boxonly']) && $package['boxonly']) || (isset($package['skip']) && $package['skip'])) {
+        continue;
+    }
+    $packageLowercase = strtolower($package['package']);
+    $packageUppercase = strtoupper($package['package']); ?>
 <!-- <?php echo $packageUppercase; ?> UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="<?php echo $packageLowercase;?>RemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="<?php echo $packageUppercase;?>RemovalConfirm" aria-hidden="true">
+<div class="modal bounceIn animated" id="<?php echo $packageLowercase; ?>RemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="<?php echo $packageUppercase; ?>RemovalConfirm" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="<?php echo $packageUppercase;?>RemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> <?php echo $package["name"] ?>?</h4>
+        <h4 class="modal-title" id="<?php echo $packageUppercase; ?>RemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> <?php echo $package['name']; ?>?</h4>
       </div>
       <div class="modal-body">
-        <?php echo T($package["uninstall"]); ?>
+        <?php echo T($package['uninstall']); ?>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="<?php echo $packageLowercase;?>" id="<?php echo $packageLowercase;?>Remove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
+        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="<?php echo $packageLowercase; ?>" id="<?php echo $packageLowercase; ?>Remove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
 </div><!-- modal -->
-<?php } ?>
+<?php
+} ?>
 
 <!-- THEME SELECT MODAL -->
-<?php $option = array();
-              $option[] = array('file' => 'defaulted', 'title' =>'Defaulted');
-              $option[] = array('file' => 'smoked', 'title' =>'Smoked'); { ?>
-<?php foreach($option as $theme) { ?>
-<div class="modal bounceIn animated" id="themeSelect<?php echo $theme['file'] ?>Confirm" tabindex="-1" role="dialog" aria-labelledby="ThemeSelect<?php echo $theme['file'] ?>Confirm" aria-hidden="true">
+<?php $option           = [];
+              $option[] = ['file' => 'defaulted', 'title' => 'Defaulted'];
+              $option[] = ['file' => 'smoked', 'title' => 'Smoked']; ?>
+<?php foreach ($option as $theme) { ?>
+<div class="modal bounceIn animated" id="themeSelect<?php echo $theme['file']; ?>Confirm" tabindex="-1" role="dialog" aria-labelledby="ThemeSelect<?php echo $theme['file']; ?>Confirm" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="ThemeSelect<?php echo $theme['file'] ?>Confirm"><?php echo $theme['title'] ?></h4>
+        <h4 class="modal-title" id="ThemeSelect<?php echo $theme['file']; ?>Confirm"><?php echo $theme['title']; ?></h4>
       </div>
       <div class="modal-body">
         <?php echo T('THEME_CHANGE_TXT'); ?>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?themeSelect-<?php echo $theme['file'] ?>=true" id="themeSelect<?php echo $theme['file'] ?>Go" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <a href="?themeSelect-<?php echo $theme['file']; ?>=true" id="themeSelect<?php echo $theme['file']; ?>Go" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->
 </div><!-- modal -->
 <?php } ?>
-<?php } ?>
+<?php ?>
 <!-- SYSTEM RESPONSE MODAL -->
 <div class="modal bounceIn animated" id="sysResponse" tabindex="-1" role="dialog" aria-labelledby="sysResponse" aria-hidden="true">
   <div class="modal-dialog" style="width: 600px">
@@ -87,30 +89,6 @@ foreach ($packageList as &$package) {
         <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Close</button>
         <a href="?updatetestingQuickBox=true" class="btn btn-primary" data-toggle="modal" data-target="#sysResponse" data-dismiss="modal" aria-label="Close">TESTING</a>
         <a href="?updateQuickBox=true" class="btn btn-success" data-toggle="modal" data-target="#sysResponse" data-dismiss="modal" aria-label="Close">STABLE</a>
-      </div>
-    </div><!- modal-content ->
-  </div><!- modal-dialog ->
-</div><!- modal -->
-
-<!-- COMMIT COMPARISON MODAL >
-<div class="modal bounceIn animated" id="commitComparison" tabindex="-1" role="dialog" aria-labelledby="CommitComparison" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="CommitComparison">Choose A Module For Comparison</h4>
-      </div>
-      <div class="modal-body">
-        Dashboard - <a href="https://github.com/QuickBox/quickbox_dashboard/compare/<?php echo $version ?>...master" target="blank"><?php echo $version ?> ... latest commit</a><br/>
-        Packages - <a href="https://github.com/QuickBox/quickbox_packages/compare/<?php echo $version ?>...master" target="blank"><?php echo $version ?> ... latest commit</a><br/>
-        Setup - <a href="https://github.com/QuickBox/quickbox_setup/compare/<?php echo $version ?>...master" target="blank"><?php echo $version ?> ... latest commit</a><br/>
-        Themes - <a href="https://github.com/QuickBox/quickbox_themes/compare/<?php echo $version ?>...master" target="blank"><?php echo $version ?> ... latest commit</a><br/>
-        RUTorrent - <a href="https://github.com/QuickBox/quickbox_rutorrent/compare/<?php echo $version ?>...master" target="blank"><?php echo $version ?> ... latest commit</a><br/>
-        RUTorrent Plugins - <a href="https://github.com/QuickBox/quickbox_rutorrent-plugins/compare/<?php echo $version ?>...master" target="blank"><?php echo $version ?> ... latest commit</a><br/>
-        club-QuickBox - <a href="https://github.com/QuickBox/club-QuickBox/compare/<?php echo $version ?>...master" target="blank"><?php echo $version ?> ... latest commit</a><br/>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
       </div>
     </div><!- modal-content ->
   </div><!- modal-dialog ->
@@ -149,9 +127,7 @@ $(function() {
       reload: {
         icon: 'fa fa-refresh'
       },
-      unpin: {
-        icon: 'fa fa-arrows'
-      },
+      unpin: false,
       minimize: {
         icon: 'fa fa-chevron-up',
         icon2: 'fa fa-chevron-down'
@@ -200,7 +176,7 @@ $(function() {
     height: 26,
     width: 100,
     text: {
-      on: "<?php echo T('ENABLED') ?>",
+      on: "<?php echo T('ENABLED'); ?>",
     },
   });
   $(".toggle-dis").toggles({
@@ -208,7 +184,7 @@ $(function() {
     height: 26,
     width: 100,
     text: {
-      off: "<?php echo T('DISABLED') ?>",
+      off: "<?php echo T('DISABLED'); ?>",
     },
   });
   $(".toggle-pen").toggles({
@@ -216,8 +192,8 @@ $(function() {
     height: 16,
     width: 90,
     text: {
-      on: "<?php echo T('INSTALLED') ?>",
-      off: "<?php echo T('UNINSTALLING') ?>",
+      on: "<?php echo T('INSTALLED'); ?>",
+      off: "<?php echo T('UNINSTALLING'); ?>",
     },
   });
   $(".toggle-pdis").toggles({
@@ -225,8 +201,8 @@ $(function() {
     height: 16,
     width: 90,
     text: {
-      off: "<?php echo T('UNINSTALLED') ?>",
-      on: "<?php echo T('INSTALLING') ?>",
+      off: "<?php echo T('UNINSTALLED'); ?>",
+      on: "<?php echo T('INSTALLING'); ?>",
     },
   });
 });
@@ -268,13 +244,13 @@ $(function() {
   }
 <?php
   foreach ($packageList as &$package) {
-  if ($package["boxonly"]) {
-    continue;
-  }
-  $packageLowercase = strtolower($package["package"]);
-?>
-  $('#<?php echo $packageLowercase; ?>Remove').click(gritterHandler('<?php echo $packageLowercase ?>', '<?php echo $package["name"]?>'));
-<?php } ?>
+      if (isset($package['boxonly']) && $package['boxonly']) {
+          continue;
+      }
+      $packageLowercase = strtolower($package['package']); ?>
+  $('#<?php echo $packageLowercase; ?>Remove').click(gritterHandler('<?php echo $packageLowercase; ?>', '<?php echo $package['name']; ?>'));
+<?php
+  } ?>
 });
 // });
 </script>

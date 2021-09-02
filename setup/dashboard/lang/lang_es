@@ -162,6 +162,7 @@ $L['VIEW_ADDITIONAL_BANDWIDTH_DETAILS'] = 'Detalles adicionales de la red';
 
 // main table headers
 $L['Summary'] = 'Resumen';
+$L['BW_SELECT'] = 'Opción de ancho de banda';
 $L['Top 10 days'] = 'Mejores 10 días';
 $L['Last 24 hours'] = 'Últimas 24 horas';
 $L['Last 30 days'] = 'Últimos 30 días';
@@ -343,7 +344,6 @@ $L['UNINSTALLING_TITLE'] = 'Desinstalando';
 //GRITTER TEXT
 $L['UNINSTALLING_TXT_1'] = 'Por favor, espera,';
 $L['UNINSTALLING_TXT_2'] = 'está siendo desinstalado de tu sistema.';
-
 
 ////////////////////////////////////////////////////////////////////////////
 // SAMPLE

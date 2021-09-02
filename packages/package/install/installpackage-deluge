@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.6
+# Current version:  v1.5.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -385,6 +385,8 @@ function _installLibt() {
 				1.2.10) LTCIMMIT="70f1de3" ;;
 				1.2.11) LTCIMMIT="471e772" ;;
 				1.2.12) LTCIMMIT="e3f2b01" ;;
+				1.2.13) LTCIMMIT="e00a152" ;;
+				1.2.14) LTCIMMIT="33a10d5" ;;
 				*) LTCIMMIT="." ;;
 				esac
 			elif [[ ${libt_major_version} == "1.1" ]]; then
@@ -575,7 +577,9 @@ function _installDeluge() {
 		else
 			APP_BASEDEPS="python python-dev python-pip"
 			_installDepends
+			_execute "pip2 install --upgrade wheel"
 			_execute "pip2 install --upgrade twisted[tls]"
+			_execute "pip2 install --upgrade future"
 			DEBASE="deluge-common_1.3.15-1build1_all.deb deluge-console_1.3.15-1build1_all.deb deluge-gtk_1.3.15-1build1_all.deb deluge-web_1.3.15-1build1_all.deb deluged_1.3.15-1build1_all.deb"
 			for DEB in $DEBASE; do
 				_download ${PACKAGE} ${DEB}
@@ -762,11 +766,8 @@ function _configureApp() {
 		echo "$DWPORT" >/install/$username.deluge-web.port
 		passphrase=$(cat /root/.ssh/local_user)
 		passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
-		if [[ $CODENAME == xenial ]]; then
-			password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:${passphrase} -nosalt)
-		else
-			password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
-		fi
+		password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
+
 		DWSALT=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)
 		DWP=$(python2 /usr/local/bin/quickbox/system/auxiliary/deluge.Userpass.py ${password} ${DWSALT})
 		DUDID=$(python2 /usr/local/bin/quickbox/system/auxiliary/deluge.addHost.py)

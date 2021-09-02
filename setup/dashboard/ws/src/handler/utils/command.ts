@@ -10,7 +10,7 @@ export interface CommandType {
         operations: string[];
         targets: string[];
     };
-};
+}
 
 /**
  * get file list from given directory
@@ -23,7 +23,7 @@ export function getFiles(dir: string): string[] {
     }
     return fs.readdirSync(dir, { withFileTypes: true })
         .filter(file => file.isFile()).map(file => file.name);
-};
+}
 
 /**
  * validate and build command

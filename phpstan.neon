@@ -1,0 +1,8 @@
+parameters:
+    level: 8
+    paths:
+        - setup/dashboard
+    excludePaths:
+        - setup/dashboard/node_modules
+        - setup/dashboard/ws/node_modules
+        - setup/dashboard/lib/node_modules

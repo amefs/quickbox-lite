@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+from __future__ import print_function
 import os
-import sys
 import shlex
 import subprocess
 import json
@@ -12,8 +12,8 @@ from argparse import RawTextHelpFormatter
 
 # Init ENV
 rwResult = {}
-#Color
-R = "\033[0;31;40m"  #RED
+# Color
+R = "\033[0;31;40m"  # RED
 G = "\033[0;32;40m"  # GREEN
 Y = "\033[0;33;40m"  # Yellow
 B = "\033[0;34;40m"  # Blue
@@ -26,7 +26,7 @@ def bash(cmd):
 
 def format_bytes(size):
     size = float(size)
-    power = 2**10
+    power = 2 ** 10
     n = 1
     power_labels = {0: 'B/s', 1: 'KB/s', 2: 'MB/s', 3: 'GB/s', 4: 'TB/s'}
     while size > power:
@@ -46,14 +46,15 @@ def printResult():
     table = PrettyTable(
         ["Test Item", "Read IOPS", "Read Speed", "Write IOPS", "Write Speed"])
     for k, v in rwResult.items():
-        list = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
-        table.add_row(list)
+        lst = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
+        table.add_row(lst)
     table.align["Test Item"] = "l"
     table.align["Write IOPS"] = "r"
     table.align["Write Speed"] = "r"
     table.align["Read IOPS"] = "r"
     table.align["Read Speed"] = "r"
     print(table.get_string(sortby="Test Item", reversesort=True))
+
 
 def outputResult(filename=None):
     if os.path.exists(filename):
@@ -63,8 +64,8 @@ def outputResult(filename=None):
     table = PrettyTable(
         ["Test Item", "Read IOPS", "Read Speed", "Write IOPS", "Write Speed"])
     for k, v in rwResult.items():
-        list = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
-        table.add_row(list)
+        lst = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
+        table.add_row(lst)
     table.align["Test Item"] = "l"
     table.align["Write IOPS"] = "r"
     table.align["Write Speed"] = "r"
@@ -73,7 +74,7 @@ def outputResult(filename=None):
     fo.write(table.get_string(sortby="Test Item", reversesort=True))
     fo.write("\n")
     fo.close()
-    print(G + "\nThe test results saved in: {}" + N).format(filename)
+    print((G + "\nThe test results saved in: {}" + N).format(filename))
 
 
 class FioTest(object):
@@ -165,13 +166,13 @@ class FioTest(object):
             rwResult[name][rw_iops] = "{:d}".format(int(iops))
             rwResult[name][rw_bw] = "{:.2f} {}".format(io_speed, unit) if (
                 unit == "GB/s" or unit == "TB/s") else "{:d} {}".format(
-                    int(io_speed), unit)
+                int(io_speed), unit)
         else:
             rwResult[name] = {}
             rwResult[name][rw_iops] = "{:d}".format(int(iops))
             rwResult[name][rw_bw] = "{:.2f} {}".format(io_speed, unit) if (
                 unit == "GB/s" or unit == "TB/s") else "{:d} {}".format(
-                    int(io_speed), unit)
+                int(io_speed), unit)
 
     def saveResult(self):
         cmd = self.exprCmd()
@@ -194,8 +195,7 @@ if __name__ == '__main__':
         dest='alltest',
         action='store_true',
         required=False,
-        help=
-        'Perform a full test [R/W in Seq Q32T1, 4K Q32T1, Seq, 4K] (Default).')
+        help='Perform a full test [R/W in Seq Q32T1, 4K Q32T1, Seq, 4K] (Default).')
     parser.add_argument(
         '-t',
         '--test',
@@ -251,10 +251,14 @@ if __name__ == '__main__':
         if not all(elem in range(1, 4) for elem in args.test_num):
             raise ValueError('invalid test number')
         else:
-            if 1 in args.test_num: test1 = True
-            if 2 in args.test_num: test2 = True
-            if 3 in args.test_num: test3 = True
-            if 4 in args.test_num: test4 = True
+            if 1 in args.test_num:
+                test1 = True
+            if 2 in args.test_num:
+                test2 = True
+            if 3 in args.test_num:
+                test3 = True
+            if 4 in args.test_num:
+                test4 = True
     if args.test_size is None:
         test_size = '2g'
     else:
@@ -264,23 +268,24 @@ if __name__ == '__main__':
     else:
         test_file = "".join(args.test_file)
     if args.output_file is None:
-        to_file=False
+        to_file = False
     else:
-        to_file=True
+        to_file = True
         output_file = "".join(args.output_file)
 
     print(R + 'Following item will be test:\n' + N)
-    if test1: print('- Seq Q32T1')
-    if test2: print('- 4K Q32T1')
-    if test3: print('- Seq')
-    if test4: print('- 4K')
-    print
+    if test1:
+        print('- Seq Q32T1')
+    if test2:
+        print('- 4K Q32T1')
+    if test3:
+        print('- Seq')
+    if test4:
+        print('- 4K')
+    print()
 
     if test1:
-        print(
-            Y +
-            'Test Sequential (Block Size=128KiB) Read with Queuedepth=32 Thread=1'
-            + N)
+        print(Y + 'Test Sequential (Block Size=128KiB) Read with Queuedepth=32 Thread=1' + N)
         cmd = FioTest(name="Seq-Q32T1",
                       rw="read",
                       iodepth=32,
@@ -291,10 +296,7 @@ if __name__ == '__main__':
                       runtime=60,
                       filename=test_file)
         cmd.saveResult()
-        print(
-            Y +
-            'Test Sequential (Block Size=128KiB) Write with Queuedepth=32 Thread=1'
-            + N)
+        print(Y + 'Test Sequential (Block Size=128KiB) Write with Queuedepth=32 Thread=1' + N)
         cmd = FioTest(name="Seq-Q32T1",
                       rw="write",
                       iodepth=32,
@@ -331,10 +333,7 @@ if __name__ == '__main__':
         cmd.saveResult()
 
     if test3:
-        print(
-            Y +
-            'Test Sequential (Block Size=1MiB) Read with Queuedepth=1 Thread=1'
-            + N)
+        print(Y + 'Test Sequential (Block Size=1MiB) Read with Queuedepth=1 Thread=1' + N)
         cmd = FioTest(name="Seq",
                       rw="read",
                       iodepth=1,
@@ -345,10 +344,7 @@ if __name__ == '__main__':
                       runtime=60,
                       filename=test_file)
         cmd.saveResult()
-        print(
-            Y +
-            'Test Sequential (Block Size=1MiB) Write with Queuedepth=1 Thread=1'
-            + N)
+        print(Y + 'Test Sequential (Block Size=1MiB) Write with Queuedepth=1 Thread=1' + N)
         cmd = FioTest(name="Seq",
                       rw="write",
                       iodepth=1,

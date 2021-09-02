@@ -6,6 +6,7 @@
 #
 #
 
+from __future__ import print_function
 import hashlib
 import sys
 
@@ -16,4 +17,4 @@ s = hashlib.sha1()
 s.update(salt)
 s.update(password)
 
-print s.hexdigest()
+print(s.hexdigest())

@@ -1,4 +1,5 @@
 module.exports = {
+    "root": true,
     "env": {
         "browser": true,
         "es6": true,
@@ -18,6 +19,11 @@ module.exports = {
     },
     "plugins": [
         "@typescript-eslint"
+    ],
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended"
     ],
     "rules": {
         "@typescript-eslint/adjacent-overload-signatures": "error",
@@ -85,7 +91,6 @@ module.exports = {
         ],
         "camelcase": "error",
         "class-methods-use-this": "error",
-        "comma-dangle": "error",
         "complexity": "error",
         "constructor-super": "error",
         "curly": "error",
@@ -172,10 +177,6 @@ module.exports = {
                 "asyncArrow": "always",
                 "named": "never"
             }
-        ],
-        "space-in-parens": [
-            "error",
-            "always"
         ],
         "spaced-comment": [
             "error",

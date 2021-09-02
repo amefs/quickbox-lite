@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.4.6
+# Current version:  v1.5.0
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -197,7 +197,7 @@ function _installApp() {
 	_info "Generating self-signed certificate for noVNC security..."
 	_execute "openssl req -config /root/.openssl.cnf -newkey rsa:1024 -x509 -days 1095 -nodes -out /srv/novnc/utils/self.pem -keyout /srv/novnc/utils/self.pem"
 	chown www-data:www-data -R /srv/novnc/
-	chmod +rx /srv/novnc/utils/launch.sh
+	chmod +rx /srv/novnc/utils/novnc_proxy
 	_success "${APP_TITLE} Built."
 }
 
@@ -206,11 +206,7 @@ function _configureApp() {
 	username=$(cat /root/.admin.info | cut -d: -f1)
 	passphrase=$(cat /root/.ssh/local_user)
 	passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
-	if [[ $CODENAME == xenial ]]; then
-		password=$(echo "${passtext}" | openssl enc -aes-128-ecb -a -d -pass pass:"${passphrase}" -nosalt)
-	else
-		password=$(echo "${passtext}" | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:"${passphrase}" -nosalt)
-	fi
+	password=$(echo "${passtext}" | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:"${passphrase}" -nosalt)
 
 	_success "${APP_TITLE} configured."
 	cat >/etc/systemd/system/tightvnc.service <<EOF
@@ -242,7 +238,7 @@ After=network.target
 Type=simple
 User=root
 PIDFile=/srv/novnc/utils/%H:%i.pid
-ExecStart=/srv/novnc/utils/launch.sh --vnc 127.0.0.1:${APP_DAEMON_PORT} &
+ExecStart=/srv/novnc/utils/novnc_proxy --vnc 127.0.0.1:${APP_DAEMON_PORT} &
 KillMode=process
 Restart=on-failure
 

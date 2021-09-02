@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.6
+# Current version:  v1.5.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -568,11 +568,7 @@ function _reconfigureAppv1() {
 	for username in $userlist; do
 		passphrase=$(cat /root/.ssh/local_user)
 		passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
-		if [[ $CODENAME == xenial ]]; then
-			password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:"${passphrase}" -nosalt)
-		else
 			password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:"${passphrase}" -nosalt)
-		fi
 
 		ha1pass=$(echo -n "${password}" | md5sum | cut -f1 -d' ')
 		sed -i "s|Password_PBKDF2.*|Password_ha1=@ByteArray(${ha1pass})|g" /home/${username}/.config/qBittorrent/qBittorrent.conf
@@ -599,11 +595,7 @@ function _reconfigureAppv2() {
 	for username in $userlist; do
 		passphrase=$(cat /root/.ssh/local_user)
 		passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
-		if [[ $CODENAME == xenial ]]; then
-			password=$(echo ${passtext} | openssl enc -aes-128-ecb -a -d -pass pass:"${passphrase}" -nosalt)
-		else
-			password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:"${passphrase}" -nosalt)
-		fi
+		password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:"${passphrase}" -nosalt)
 
 		pbkdf2pass=$(/usr/local/bin/quickbox/system/auxiliary/qb_password_gen ${password})
 		sed -i "s|Password_ha1.*|Password_PBKDF2=\"@ByteArray(${pbkdf2pass})\"|g" /home/${username}/.config/qBittorrent/qBittorrent.conf

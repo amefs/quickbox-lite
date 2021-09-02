@@ -1,0 +1,18 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+prettytable = "*"
+
+[dev-packages]
+future = "*"
+flake8 = "*"
+
+[requires]
+python_version = "3.9"
+
+[scripts]
+futurize = "futurize --stage1 -w packages/system/auxiliary/"
+flake8 = "flake8 packages/system/auxiliary/"

@@ -160,6 +160,7 @@ $L['VIEW_ADDITIONAL_BANDWIDTH_DETAILS'] = 'Zeige weitere Bandbreiten-Details';
 
 // main table headers
 $L['Summary'] = 'Zusammenfassung';
+$L['BW_SELECT'] = 'Bandbreitenoption';
 $L['Top 10 days'] = 'Top 10 Tage';
 $L['Last 24 hours'] = 'Letzte 24 Stunden';
 $L['Last 30 days'] = 'Letzte 30 Tage';
@@ -341,7 +342,6 @@ $L['UNINSTALLING_TITLE'] = 'Deinstalliere';
 //GRITTER TEXT
 $L['UNINSTALLING_TXT_1'] = 'Bitte warte kurz, während';
 $L['UNINSTALLING_TXT_2'] = 'von deinem System deinstalliert wird.';
-
 
 ////////////////////////////////////////////////////////////////////////////
 // SAMPLE

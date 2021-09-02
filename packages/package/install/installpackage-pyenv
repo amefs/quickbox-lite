@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.4.6
+# Current version:  v1.5.0
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -187,7 +187,7 @@ function _installApp() {
 # pyenv
 export PYENV_ROOT="/opt/pyenv"
 export PATH="/opt/pyenv/bin:\$PATH"
-eval "\$(pyenv init -)"
+eval "\$(pyenv init --path)"
 eval "\$(pyenv virtualenv-init -)"
 EOF
     source /root/.bash_pyenv

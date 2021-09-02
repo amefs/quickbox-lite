@@ -162,7 +162,8 @@ $L['VIEW_ADDITIONAL_BANDWIDTH_DETAILS'] = '查看额外的带宽详情';
 
 // main table headers
 $L['Summary'] = '概要';
-$L['Top 10 days'] = '前10天';
+$L['BW_SELECT'] = '流量排序';
+$L['Top 10 days'] = '最高10天';
 $L['Last 24 hours'] = '过去24小时';
 $L['Last 30 days'] = '过去30天';
 $L['Last 12 months'] = '过去12个月';
@@ -345,7 +346,6 @@ $L['UNINSTALLING_TITLE'] = '卸载中';
 //GRITTER TEXT
 $L['UNINSTALLING_TXT_1'] = '请稍候';
 $L['UNINSTALLING_TXT_2'] = '正在从你的系统中卸载。';
-
 
 ////////////////////////////////////////////////////////////////////////////
 // SAMPLE
