@@ -1,0 +1,15 @@
+[Unit]
+Description=Terminal over HTTP
+Required=sshd.service
+After=sshd.service
+
+[Service]
+User=USERNAME
+Type=forking
+ExecStart=/usr/local/bin/ttyd -p 4200 bash
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

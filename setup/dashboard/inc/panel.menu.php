@@ -193,7 +193,7 @@
                 </ul>
               </li>
             <?php } ?>
-            <?php if (is_package_running($packageMap['shellinabox'])) { ?>
+            <?php if (is_package_running($packageMap['ttyd'])) { ?>
             <li><a href="/<?php echo $username; ?>.console" target="_blank"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
             <?php } ?>
             <!-- /// BEGIN INSERT CUSTOM MENU /// -->

@@ -3,7 +3,7 @@
     "systemctl": {
         "template": "systemctl $operation$ $target$",
         "operations": ["enable", "start", "stop" , "disable", "restart", "status"],
-        "targets": ["deluge-web@$username$", "deluged@$username$", "denyhosts", "fail2ban", "filebrowser@$username$", "filebrowser-ee@$username$", "flexget@$username$", "flood@$username$", "irssi@$username$", "netdata", "nfs-server", "openvpn", "plexmediaserver", "qbittorrent@$username$", "resilio-sync@$username$", "rtorrent@$username$", "smbd", "shellinabox", "syncthing@$username$", "tightvnc", "transmission@$username$", "novnc@$username$", "vsftpd", "znc"]
+        "targets": ["deluge-web@$username$", "deluged@$username$", "denyhosts", "fail2ban", "filebrowser@$username$", "filebrowser-ee@$username$", "flexget@$username$", "flood@$username$", "irssi@$username$", "netdata", "nfs-server", "openvpn", "plexmediaserver", "qbittorrent@$username$", "resilio-sync@$username$", "rtorrent@$username$", "smbd", "ttyd", "syncthing@$username$", "tightvnc", "transmission@$username$", "novnc@$username$", "vsftpd", "znc"]
     },
     "installpackage": {
         "template": "bash /usr/local/bin/quickbox/package/install/installpackage-$target$",
