@@ -6,7 +6,9 @@
   "scripts": {
     "build": "webpack --config build/webpack.config.js",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
-    "lint": "eslint . --ext .ts",
+    "check-type": "tsc --noemit",
+    "eslint": "eslint . --ext .ts",
+    "lint": "npm run check-type && npm run eslint",
     "test/server": "ts-node src/server.ts",
     "test/client": "ts-node tests/client.js",
     "audit": "npm audit --registry=https://registry.npmjs.org",
@@ -31,6 +33,7 @@
     "chai": "^4.3.4",
     "eslint": "^7.32.0",
     "eslint-loader": "^4.0.2",
+    "http-proxy-middleware": "^2.0.1",
     "mocha": "^9.0.3",
     "npm-check": "^5.9.2",
     "socket.io-client": "^4.1.3",

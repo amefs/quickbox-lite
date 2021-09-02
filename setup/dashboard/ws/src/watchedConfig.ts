@@ -10,6 +10,9 @@ export class WatchedConfig<T> {
     public constructor(path: string, encoding: BufferEncoding = "utf-8") {
         this.path = path;
         this.encoding = encoding;
+        this.timestamp = new Date();
+        this.config = {} as T;
+
         this.loadConfig();
         this.watch();
     }

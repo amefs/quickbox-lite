@@ -105,6 +105,7 @@ foreach ($packageList as &$package) {
 <script src="lib/lazysizes/lazysizes.min.js" async></script>
 <script src="lib/bootbox/bootbox.all.min.js" async></script>
 <script src="js/quick.js"></script>
+<script>const socket = io(location.origin, { path: "/ws/socket.io" });</script>
 <script src="inc/panel.app_status.ws.js"></script>
 <script src="inc/panel.app_service.ws.js"></script>
 
