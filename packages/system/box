@@ -162,7 +162,7 @@ if [[ $resolver == "remove" ]]; then
 		_error "Nothing will be removed"
 	else
 		if [[ -f /usr/local/bin/quickbox/package/remove/removepackage-"${appname}" ]]; then
-			bash /usr/local/bin/quickbox/package/remove/removepackage-"${appname}" "${*:3}"
+			bash /usr/local/bin/quickbox/package/remove/removepackage-"${appname}" ${*:3}
 		else
 			locks=$(find /usr/local/bin/quickbox/package/remove -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
 			_error "${appname} Remover not exist"
@@ -183,7 +183,7 @@ if [[ $resolver == "update" ]]; then
 		bash /usr/local/bin/quickbox/system/qbUpdate "${*:3}"
 	elif [[ -n $extraarg ]]; then
 		if [[ -f /usr/local/bin/quickbox/package/update/updatepackage-"${appname}" ]]; then
-			bash /usr/local/bin/quickbox/package/update/updatepackage-"${appname}" "${*:3}"
+			bash /usr/local/bin/quickbox/package/update/updatepackage-"${appname}" ${*:3}
 		else
 			locks=$(find /usr/local/bin/quickbox/package/update -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
 			_error "${appname} Updater not exist"
