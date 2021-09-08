@@ -171,6 +171,46 @@ NGX
 			_success "rutorrent config updated..."
 		fi
 	fi
+	# Replace webshell
+	if ! (which ttyd && which jq); then
+		# stop shellinabox
+		systemctl stop shellinabox.service
+		systemctl disable shellinabox.service
+		rm -f /install/.shellinabox.lock >/dev/null 2>&1
+		apt-get remove -y shellinabox
+
+		# install ttyd and service config
+		apt-get -y jq >>"${OUTTO}" 2>&1
+		ttyd_binary_url=$(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | jq -r ".assets[] | select(.name | contains(\"$(arch)\")) | .browser_download_url") >>"${OUTTO}" 2>&1
+		if wget -qO /usr/local/bin/ttyd "${ttyd_binary_url}"; then
+			echo "ttyd binary download success" >>"${OUTTO}" 2>&1
+			chmod +x /usr/local/bin/ttyd
+		else
+			echo "ttyd binary download failed" >>"${OUTTO}" 2>&1
+		fi
+		service ttyd stop >/dev/null 2>&1
+		rm -f /etc/init.d/ttyd >/dev/null 2>&1
+
+		cat > /etc/nginx/apps/"${username}".console.conf <<WEBC
+location /${username}.console/ {
+    proxy_pass http://127.0.0.1:4200;
+    auth_basic "password Required";
+    auth_basic_user_file /etc/htpasswd;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
+}
+WEBC
+
+		cp ${local_setup_template}systemd/ttyd.service.template /etc/systemd/system/ttyd.service
+		sed -i "s/USERNAME/${username}/g" /etc/systemd/system/ttyd.service
+
+		# enable ttyd service
+		systemctl daemon-reload >/dev/null 2>&1
+		systemctl enable ttyd.service >/dev/null 2>&1
+		systemctl start ttyd.service >/dev/null 2>&1
+		# create lock
+		touch /install/.ttyd.lock
+	fi
 }
 
 function _startservice() {

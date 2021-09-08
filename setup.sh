@@ -109,9 +109,9 @@ function _init() {
 		DEBIAN_FRONTEND=noninteractive apt-get -qq -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 		echo -e "XXX\n10\nPreparing scripts... \nXXX"
 		if [[ $DISTRO == Ubuntu && $CODENAME =~ ("bionic"|"focal") ]]; then
-			apt-get -y install git curl wget dos2unix python apt-transport-https software-properties-common dnsutils unzip >/dev/null 2>&1
+			apt-get -y install git curl wget dos2unix python apt-transport-https software-properties-common dnsutils unzip jq >/dev/null 2>&1
 		elif [[ $DISTRO == Debian ]]; then
-			apt-get -y install git curl wget dos2unix python apt-transport-https software-properties-common gnupg2 ca-certificates dnsutils unzip >/dev/null 2>&1
+			apt-get -y install git curl wget dos2unix python apt-transport-https software-properties-common gnupg2 ca-certificates dnsutils unzip jq >/dev/null 2>&1
 		fi
 		echo -e "XXX\n20\nPreparing scripts... \nXXX"
 		dos2unix $(find ${local_prefix} -type f) >/dev/null 2>&1
@@ -852,17 +852,23 @@ fi
 echo ""
 EOF
 	# install ttyd and service config
-	apt-get -y install ttyd >>"${OUTTO}" 2>&1
+	ttyd_binary_url=$(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | jq -r ".assets[] | select(.name | contains(\"$(arch)\")) | .browser_download_url") >>"${OUTTO}" 2>&1
+	if wget -qO /usr/local/bin/ttyd "${ttyd_binary_url}"; then
+		echo "ttyd binary download success" >>"${OUTTO}" 2>&1
+		chmod +x /usr/local/bin/ttyd
+	else
+		echo "ttyd binary download failed" >>"${OUTTO}" 2>&1
+	fi
 	service ttyd stop >/dev/null 2>&1
-	rm -rf /etc/init.d/ttyd
+	rm -f /etc/init.d/ttyd >/dev/null 2>&1
 
 	if [[ ! -f /etc/nginx/apps/"${username}".console.conf ]]; then
 		cat > /etc/nginx/apps/"${username}".console.conf <<WEBC
 location /${username}.console/ {
-    proxy_pass        http://127.0.0.1:4200;
+    proxy_pass http://127.0.0.1:4200;
     auth_basic "password Required";
     auth_basic_user_file /etc/htpasswd;
-	proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Upgrade \$http_upgrade;
     proxy_set_header Connection "upgrade";
 }
 WEBC
