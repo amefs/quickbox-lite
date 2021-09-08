@@ -769,8 +769,13 @@ function _configureApp() {
 		password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
 
 		DWSALT=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)
-		DWP=$(python2 /usr/local/bin/quickbox/system/auxiliary/deluge.Userpass.py ${password} ${DWSALT})
-		DUDID=$(python2 /usr/local/bin/quickbox/system/auxiliary/deluge.addHost.py)
+		if _version_gt ${deversion} 2.0; then
+			DWP=$(python3 /usr/local/bin/quickbox/system/auxiliary/deluge.Userpass.py ${password} ${DWSALT})
+			DUDID=$(python3 /usr/local/bin/quickbox/system/auxiliary/deluge.addHost.py)
+		else
+			DWP=$(python2 /usr/local/bin/quickbox/system/auxiliary/deluge.Userpass.py ${password} ${DWSALT})
+			DUDID=$(python2 /usr/local/bin/quickbox/system/auxiliary/deluge.addHost.py)
+		fi
 
 		if [[ ! -d /home/${username}/.config/deluge/plugins ]]; then
 			mkdir -p /home/${username}/.config/deluge/plugins
