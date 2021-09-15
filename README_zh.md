@@ -85,7 +85,7 @@ QuickBox Lite Setup Script
   NOTE: * is required anyway
 
   -d, --domain <domain>            为服务器设置以 Let's Encrypt 保护的域名
-  -H, --hostname <hostname>        为服务器设置 Hostname，莫恩恩不修改
+  -H, --hostname <hostname>        为服务器设置 Hostname，默认不修改
   -P, --port <1-65535>             为 SSH 服务设置端口，默认修改为 4747
   -u, --username <username*>       用户名（必要）
   -p, --password <password*>       密码（必要）
