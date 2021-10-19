@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.0
+# Current version:  v1.5.1
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -331,10 +331,6 @@ function _installLibt() {
 		APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git libgeoip-dev zlib1g-dev"
 		_installDepends
 		_installFpm
-		if [ ${CODENAME} == 'xenial' ]; then
-			_execute "apt purge -y libssl-dev"
-			_execute "apt install -y libssl-dev=1.0.*"
-		fi
 		_info "Build libtorrent for qBittorrent ... "
 		if [[ ${libt_major_version} == "1.2" ]]; then
 			LTRC=RC_1_2
@@ -428,17 +424,6 @@ function _installqBit() {
 	if $(echo "${qbit_version_list[@]}" | grep -wq "${qbitversion}"); then
 		_info "Installing ${APP_TITLE}..."
 		cd /tmp
-		if (_version_gt ${qbitversion} 4.1.9.1); then
-			if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
-				PACKAGE="qt5"
-				cd /tmp
-				QTBIN=qt512base_5.12.6-1basyskom1_amd64.deb
-				DEB=${QTBIN}
-				_download ${PACKAGE} ${DEB}
-				_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install /tmp/${QTBIN}"
-				rm -rf ${QTBIN}
-			fi
-		fi
 		PACKAGE="qbittorrent"
 		QBITBIN=qbittorrent-nox_${qbitversion}-libt${libt_major_version}-1build1_amd64.deb
 		DEB=${QBITBIN}
@@ -452,36 +437,9 @@ function _installqBit() {
 		# prepare package toolchain
 		APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev qtbase5-dev qttools5-dev-tools libqt5svg5-dev zlib1g-dev"
 		_info "Adding additional keys and sources ${APP_TITLE}..."
-		if [ $CODENAME == "xenial" ] && $(grep -qv 'xenial-updates'< /etc/apt/sources.list); then
-			cat > /etc/apt/sources.list.d/xenial-updates.list <<LIST
-deb http://us.archive.ubuntu.com/ubuntu/ xenial-updates main
-LIST
-			_success "Keys and sources added."
-		elif [ $CODENAME == "stretch" ] && $(grep -qv 'stretch-backports'< /etc/apt/sources.list); then
-			cat > /etc/apt/sources.list.d/stretch-backports.list <<LIST
-deb http://deb.debian.org/debian stretch-backports main	
-LIST
-			_success "Keys and sources added."
-		fi
 		DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 		_installDepends
 		_installFpm
-		if (_version_gt ${qbitversion} 4.1.9.1); then
-			if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
-				PACKAGE="qt5"
-				cd /tmp
-				DEBASE="qt512base_5.12.6-1basyskom1_amd64.deb qt512xmlpatterns_5.12.6-1basyskom1_amd64.deb qt512declarative_5.12.6-1basyskom1_amd64.deb qt512svg_5.12.6-1basyskom1_amd64.deb qt512tools_5.12.6-1basyskom1_amd64.deb"
-				for DEB in $DEBASE; do
-					_download ${PACKAGE} ${DEB}
-					_execute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
-					rm -rf /tmp/${DEB}
-				done
-				source /opt/qt512/bin/qt512-env.sh
-				if [[ ! -f /usr/bin/lrelease-qt5 ]]; then
-					ln -s /usr/lib/x86_64-linux-gnu/qt5/bin/lrelease /usr/bin/lrelease-qt5
-				fi
-			fi
-		fi
 		cd /tmp
 		_info "Building $APP_TITLE ... "
 		_execute "git clone ${BRANCH_QBIT} qBittorrent"
@@ -562,6 +520,10 @@ function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	if [ -z "${qbitversion}" ]; then
 		qbitversion=${qbitversion_default}
+	fi
+	if [[ "${CODENAME}" == "bullseye" ]] && (_version_gt "4.2.0"  ${qbitversion}); then
+		qbitversion=${qbitversion_default}
+		_warning "Use qBittorrent ${qbitversion}"
 	fi
 	qbit_major_version=$(echo ${qbitversion}| cut -d. -f1,2)
 	if [ -z "${libtversion}" ]; then

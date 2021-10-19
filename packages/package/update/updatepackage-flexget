@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.0
+# Current version:  v1.5.1
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -231,8 +231,8 @@ function _updateApp() {
 	fi
 	_info "Building ${APP_TITLE}..."
 	# Install for single user
-	_installPy 3.7.7
-	_initPyVenv 3.7.7 /home/${username}/.local/flexget3 ${username}
+	_installPy 3.8.12
+	_initPyVenv 3.8.12 /home/${username}/.local/flexget3 ${username}
 	cd /home/${username}/.local/flexget3
 	_info "Installing requirements... "
 	sudo -u ${username} -H bash -c "wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py" >>"${OUTTO}" 2>&1
@@ -294,10 +294,10 @@ diff -Nur '--exclude=.git' '--exclude=.vs' flexget/webserver.py flexget-patched/
      session.commit()
 EOF
 	sed -i "s/username='replace'/username='${username}'/g" /tmp/flexget-user-passwd.patch
-	patch -p1 -d ${pylib}/python3.7/site-packages/flexget/ </tmp/flexget-user-passwd.patch >>"${OUTTO}" 2>&1
-	sudo -u ${username} -H bash -c "${pybin}/python -m compileall ${pylib}/python3.7/site-packages/flexget/webserver.py" >>"${OUTTO}" 2>&1
+	patch -p1 -d ${pylib}/python3.8/site-packages/flexget/ </tmp/flexget-user-passwd.patch >>"${OUTTO}" 2>&1
+	sudo -u ${username} -H bash -c "${pybin}/python -m compileall ${pylib}/python3.8/site-packages/flexget/webserver.py" >>"${OUTTO}" 2>&1
 	rm -rf /tmp/flexget-user-passwd.patch
-	jspath=$(grep -rnw "${pylib}/python3.7/site-packages/flexget/ui/v2/dist/assets/" -e '"flexget"' | cut -d: -f1)
+	jspath=$(grep -rnw "${pylib}/python3.8/site-packages/flexget/ui/v2/dist/assets/" -e '"flexget"' | cut -d: -f1)
 	sed -i "s/initialValues:{username:\"flexget\"/initialValues:{username:\"\"/g" ${jspath}
 
 	PORT=$(cat /install/$username.flexget.port)

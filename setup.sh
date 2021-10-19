@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.0
+# Current version:  v1.5.1
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -202,7 +202,7 @@ function _checkdistro() {
 		whiptail --title "$ERROR_TITLE_OS" --msgbox "${ERROR_TEXT_DESTRO_1}${DISTRO}${ERROR_TEXT_DESTRO_2}" --ok-button "$BUTTON_OK" 8 72
 		_defaultcolor
 		exit 1
-	elif [[ ! "$CODENAME" =~ ("bionic"|"buster"|"focal") ]]; then
+	elif [[ ! "$CODENAME" =~ ("bionic"|"buster"|"bullseye"|"focal") ]]; then
 		_errorcolor
 		whiptail --title "$ERROR_TITLE_OS" --msgbox "${ERROR_TEXT_CODENAME_1}${DISTRO}${ERROR_TEXT_CODENAME_2}" --ok-button "$BUTTON_OK" 8 72
 		_defaultcolor
@@ -747,7 +747,12 @@ function _dependency() {
 	for depend in $DEPLIST; do
 		# shellcheck disable=SC2154
 		echo -e "XXX\n12\n$INFO_TEXT_PROGRESS_Extra_2${depend}\nXXX"
-		DEBIAN_FRONTEND=noninteractive apt-get -y install "${depend}" --allow-unauthenticated >>"${OUTTO}" 2>&1 || { local dependError=1; }
+		DEBIAN_FRONTEND=noninteractive apt-get -y install "${depend}" --allow-unauthenticated >>"${OUTTO}" 2>&1
+		if [[ $? -ne 0 ]]; then
+			# retry on failure
+			echo "Retry ${depend}" >>"${OUTTO}"
+			DEBIAN_FRONTEND=noninteractive apt-get -y install "${depend}" --allow-unauthenticated >>"${OUTTO}" 2>&1 || { local dependError=1; }
+		fi
 		if [[ $dependError == "1" ]]; then
 			whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "${ERROR_TEXT_INSTALL_1}${depend}" 8 64
 			exit 1
@@ -757,11 +762,7 @@ function _dependency() {
 
 function _insngx() {
 	rm -rf /etc/nginx/nginx.conf
-	if [[ $CODENAME =~ ("bionic"|"stretch"|"buster"|"focal") ]]; then
-		cp ${local_setup_template}nginx/nginx.conf.new.template /etc/nginx/nginx.conf
-	else
-		cp ${local_setup_template}nginx/nginx.conf.old.template /etc/nginx/nginx.conf
-	fi
+	cp ${local_setup_template}nginx/nginx.conf.new.template /etc/nginx/nginx.conf
 
 	rm -rf /etc/nginx/sites-enabled/default
 	cp ${local_setup_template}nginx/default.template /etc/nginx/sites-enabled/default

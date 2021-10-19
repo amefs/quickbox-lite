@@ -1,5 +1,25 @@
 ## CHANGELOG v1.5.0
 
+*Changelog update Tuesday, Oct 19, 2021*
+
+### General additions
+
+- add support for Debian 11 (Bullseye)
+
+### Function improved
+
+- reduce websocket connection (by Tautcony)
+
+### Function updated
+
+### Bug fixed
+
+- fix bug in box command
+
+---
+
+## CHANGELOG v1.5.0
+
 *Changelog update Monday, Aug 30, 2021*
 
 ### Notice
