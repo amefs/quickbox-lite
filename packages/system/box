@@ -236,7 +236,7 @@ if [[ $resolver == "set" ]]; then
 		chown -R www-data: /srv/dashboard
 		;;
 	"passwd" | "password")
-		bash /usr/local/bin/quickbox/system/users/changePass -p "${*:3}"
+		bash /usr/local/bin/quickbox/system/users/changePass -p ${*:3}
 		;;
 	"cdn")
 		case "$3" in
@@ -263,7 +263,7 @@ if [[ $resolver == "fix" ]]; then
 	case $command in
 	"dpkg" | "lock") bash /usr/local/bin/quickbox/system/auxiliary/fixDpkg ;;
 	"interface") bash /usr/local/bin/quickbox/system/auxiliary/set_interface ;;
-	"home") bash /usr/local/bin/quickbox/system/auxiliary/fixHome "${*:3}" ;;
+	"home") bash /usr/local/bin/quickbox/system/auxiliary/fixHome ${*:3} ;;
 	*)
 		_error "Nothing to be fixed"
 		echo -e "\nQuickBox Lite Cli Tools"
@@ -277,15 +277,15 @@ if [[ $resolver == "fix" ]]; then
 fi
 
 if [[ $resolver =~ ("iotest"|"disktest") ]]; then
-	bash /usr/local/bin/quickbox/system/auxiliary/iotest "${*:2}"
+	bash /usr/local/bin/quickbox/system/auxiliary/iotest ${*:2}
 fi
 
 if [[ $resolver == "unban" ]]; then
 	if [[ -f /install/.denyhosts.lock ]]; then
-		bash /usr/local/bin/quickbox/system/auxiliary/denyunban "${*:2}"
+		bash /usr/local/bin/quickbox/system/auxiliary/denyunban ${*:2}
 	fi
 	if [[ -f /install/.fail2ban.lock ]]; then
-		bash /usr/local/bin/quickbox/system/auxiliary/failunban "${*:2}"
+		bash /usr/local/bin/quickbox/system/auxiliary/failunban ${*:2}
 	fi
 fi
 

@@ -13,7 +13,6 @@
 
   const ansi_up = new AnsiUp();
 
-  const socket = io(location.origin, { path: "/ws/socket.io" });
   socket.on("exec", function (response) {
     if (response.success === false) {
       let message = response.message || "";

@@ -234,7 +234,6 @@
       }
       task_mapping[status.key] = status;
     }
-    const socket = io(location.origin, { path: "/ws/socket.io" });
     // add event listener
     socket.on("message", function (response) {
       if (response.success) {

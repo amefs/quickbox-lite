@@ -17,7 +17,7 @@ export interface CommandType {
  * @param dir directory path
  */
 export function getFiles(dir: string): string[] {
-    const files = [];
+    const files: string[] = [];
     if (!fs.existsSync(dir)) {
         return files;
     }
@@ -29,7 +29,7 @@ export function getFiles(dir: string): string[] {
  * validate and build command
  * @param payload command passed from frontend
  */
-export function buildCommand(payload: string, config: CommandType | WatchedConfig<CommandType>, username: string): string {
+export function buildCommand(payload: string | undefined, config: CommandType | WatchedConfig<CommandType> | undefined, username: string | undefined): string {
     if (!payload) {
         throw new Error(`Invalid payload with type '${Object.prototype.toString.call(payload)}'`);
     }
