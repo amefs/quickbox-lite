@@ -1,4 +1,4 @@
-/* global bootbox, AnsiUp, io */
+/* global bootbox, AnsiUp, socket */
 "use strict";
 
 // eslint-disable-next-line no-unused-vars

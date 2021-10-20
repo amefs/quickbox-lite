@@ -1,4 +1,4 @@
-/* global io,Visibility */
+/* global Visibility, socket */
 "use strict";
 
 (function ($) {
