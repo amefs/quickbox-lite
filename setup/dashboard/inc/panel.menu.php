@@ -50,6 +50,7 @@
                     <li class="active"><a data-target="#quickplus" data-toggle="tab">QuickBox+</a></li>
                     <!--li><a data-target="#chat" data-toggle="tab">Chat</a></li-->
                     <li><a data-target="#dashadjust" data-toggle="tab">Dashboard</a></li>
+                    <li><a data-target="#configure" data-toggle="tab">Config</a></li>
                   </ul>
 
                   <!-- Tab panes -->
@@ -88,18 +89,43 @@
                                   <small><div data-toggle="modal" data-target="#themeSelect<?php echo $theme['file']; ?>Confirm" style="cursor: pointer;"><img class="lang-flag lazyload" data-src="img/themes/opt_<?php echo $theme['file']; ?>.png" /><?php echo $theme['title']; ?></div></small>
                                 <?php } ?>
                               </div>
+                            </div>
+                          </div>
+                        </li>
+                      </ul>
+
+                    </div><!-- tab-pane -->
+
+                    <div role="tabpanel" class="tab-pane" id="configure">
+                      <ul class="list-group">
+                        <li class="list-group-item">
+                          <div class="row">
+                            <div class="col-xs-12">
                               <div class="col-xs-12 col-md-6" style="padding: 0">
                                 <h5><?php echo T('BW_SELECT'); ?></h5>
                                 <?php foreach ($bw_pages as $page) { ?>
                                   <small><div onclick="localStorage.setItem('bw_tables:page', '<?php echo $page['key']; ?>');location.reload()" style="cursor: pointer;"><?php echo T($page['title']); ?></div></small>
                                 <?php } ?>
                               </div>
+                              <div class="col-xs-12 col-md-6" style="padding: 0">
+                                <h5><?php echo T('PANEL_CONFIG'); ?></h5>
+                                  <small><div onclick="resetPanel();location.reload()" style="cursor: pointer;"><?php echo T('PANEL_RESET'); ?></div></small>
+                                  <script>
+                                    function resetPanel() {
+                                      for (let i = 0; i < localStorage.length; i++) {
+                                        const key = localStorage.key(i);
+                                        if (key.startsWith('lobipanel')) {
+                                          localStorage.removeItem(key);
+                                        }
+                                      }
+                                    }
+                                  </script>
+                              </div>
                             </div>
                           </div>
                         </li>
                       </ul>
-
-                    </div>
+                    </div><!-- tab-pane -->
                   </div>
                 </div>
               </div>

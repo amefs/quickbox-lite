@@ -24,6 +24,8 @@ $L['LANG_SELECT'] = 'Langue';
 $L['MAIN_MENU'] = 'Menu Principal';
 $L['MARKETPLACE'] = 'Marché';
 $L['THEME_SELECT'] = 'Thème';
+$L['PANEL_CONFIG'] ='Configuration du panneau';
+$L['PANEL_RESET'] ='Réinitialiser le panneau';
 $L['WEB_CONSOLE'] = 'Console Web';
 
 // plugin menu tab

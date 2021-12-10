@@ -24,6 +24,8 @@ $L['LANG_SELECT'] = 'Vælg sprog';
 $L['MAIN_MENU'] = 'Hovedmenu';
 $L['MARKETPLACE'] = 'Markedsplads';
 $L['THEME_SELECT'] = 'Select Theme';
+$L['PANEL_CONFIG'] ='Panelkonfiguration';
+$L['PANEL_RESET'] ='Nulstil panel';
 $L['WEB_CONSOLE'] = 'Webkonsol';
 $L['DONATE'] = 'Donér';
 

@@ -24,6 +24,8 @@ $L['LANG_SELECT'] = 'Wähle die Sprache aus';
 $L['MAIN_MENU'] = 'Hauptmenü';
 $L['MARKETPLACE'] = 'Marketplace';
 $L['THEME_SELECT'] = 'Thema wählen';
+$L['PANEL_CONFIG'] ='Panel-Konfiguration';
+$L['PANEL_RESET'] ='Panel zurücksetzen';
 $L['WEB_CONSOLE'] = 'Webkonsole';
 $L['DONATE'] = 'Donate';
 

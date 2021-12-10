@@ -24,6 +24,8 @@ $L['LANG_SELECT'] = '选择语言';
 $L['MAIN_MENU'] = '主菜单';
 $L['MARKETPLACE'] = '市场';
 $L['THEME_SELECT'] = '选择主题';
+$L['PANEL_CONFIG'] = '面板配置';
+$L['PANEL_RESET'] = '重置面板';
 $L['WEB_CONSOLE'] = 'Web控制台';
 $L['DONATE'] = '捐助';
 
