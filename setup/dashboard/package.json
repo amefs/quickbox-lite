@@ -4,13 +4,13 @@
   "scripts": {
     "lint": "eslint ./inc ./js --ext .js",
     "audit": "npm audit --registry=https://registry.npmjs.org",
-    "upgrade": "npm-check -u"
+    "upgrade": "npx npm-check -u"
   },
   "author": "quickbox-lite",
   "license": "GPL-3.0-or-later",
   "dependencies": {
     "animate.css": "3.7.2",
-    "ansi_up": "^5.0.1",
+    "ansi_up": "^5.1.0",
     "bootbox": "^5.5.2",
     "bootstrap": "3.4.1",
     "datatables": "^1.10.18",
@@ -20,21 +20,20 @@
     "ionicons": "2.0.1",
     "jquery": "^3.5.1",
     "jquery-toggles": "^4.0.0",
-    "jquery-ui": "^1.12.1",
+    "jquery-ui": "^1.13.0",
     "jquery-ui-touch-punch": "^0.2.3",
     "lazysizes": "^5.3.2",
     "lobipanel": "^1.0.0",
     "perfect-scrollbar": "0.8.1",
     "select2": "^4.0.13",
-    "socket.io-client": "^4.1.3",
+    "socket.io-client": "^4.4.0",
     "visibilityjs": "^2.0.2"
   },
   "devDependencies": {
     "eslint": "^7.32.0",
     "eslint-config-standard": "^16.0.3",
-    "eslint-plugin-import": "^2.23.4",
+    "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^5.1.0",
-    "npm-check": "^5.9.2"
+    "eslint-plugin-promise": "^5.2.0"
   }
 }

@@ -1,7 +1,7 @@
 {
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.0",
-        "phpstan/phpstan": "^0.12.92"
+        "friendsofphp/php-cs-fixer": "^3.3.2",
+        "phpstan/phpstan": "^1.2.0"
     },
     "scripts": {
         "lint": ["php-cs-fixer fix -n -vv --dry-run --using-cache no"],

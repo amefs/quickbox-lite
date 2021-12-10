@@ -47,7 +47,7 @@ const messageHandler = async (payload: Payload, client: Socket) => {
         const req = parseUrl(payload.url);
         ret.response = (await afetch.get(req.pathName, { params: req.args })).data;
     } catch (error) {
-        ret.message = error ? error.toString() : "Unknown error";
+        ret.message = error instanceof Error ? error.toString() : "Unknown error";
         ret.success = false;
     } finally {
         client.send(ret);
