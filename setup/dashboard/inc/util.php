@@ -24,7 +24,7 @@ if (!isset($_SERVER['REMOTE_USER'])) {
  *
  * @return void
  */
-function stripSlashesFromArray(&$arr) {
+function stripSlashesFromArray(& $arr) {
     if (is_array($arr)) {
         foreach ($arr as $k => $v) {
             if (is_array($v)) {
