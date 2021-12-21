@@ -5,8 +5,10 @@ After=sshd.service
 
 [Service]
 User=USERNAME
-Type=forking
-ExecStart=/usr/local/bin/ttyd -p 4200 bash
+Group=USERNAME
+Type=simple
+WorkingDirectory=/home/USERNAME
+ExecStart=/usr/local/bin/ttyd -i 127.0.0.1 -p 4200 bash
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process
 Restart=on-abort
