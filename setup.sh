@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.1
+# Current version:  v1.5.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -339,7 +339,7 @@ function _askchport() {
 
 function _changeport() {
 	if [[ -e /etc/ssh/sshd_config ]]; then
-		sed -i "s/#*Port 22/Port $chport/g" /etc/ssh/sshd_config
+		sed -i "s/#*Port\s[0-9]*/Port $chport/g" /etc/ssh/sshd_config
 		service ssh restart >>"${OUTTO}" 2>&1
 	fi
 }
@@ -866,7 +866,7 @@ EOF
 		cat > /etc/nginx/apps/"${username}".console.conf <<WEBC
 location /${username}.console/ {
     proxy_pass http://127.0.0.1:4200;
-	rewrite ^/${username}.console(.*) /\$1 break;
+    rewrite ^/${username}.console(.*) /\$1 break;
     auth_basic "password Required";
     auth_basic_user_file /etc/htpasswd;
     proxy_set_header Upgrade \$http_upgrade;
@@ -1232,7 +1232,11 @@ function _startinstall() {
 function _summary() {
 	# Summary list
 	ip=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-	sshport=$(grep -e '#*Port 22' < /etc/ssh/sshd_config | grep -Eo "[0-9]+" )
+	if [[ ${chport} == "default" ]]; then
+		sshport=$(grep -e '#*Port' < /etc/ssh/sshd_config | grep -Eo "[0-9]+" )
+	else
+		sshport=${chport}
+	fi
 	if (whiptail --title "$INFO_TITLE_SUMMARY" --yesno "${INFO_TEXT_SUMMARY_1}\n\n\
 ${INFO_TEXT_SUMMARY_2} $(echo "$OUTTO" | cut -d " " -f 1)\n\
 $(if [[ $domain != "" ]]; then printf "${INFO_TEXT_SUMMARY_20} $domain"; fi)\n\

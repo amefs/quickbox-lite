@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.1
+# Current version:  v1.5.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -125,6 +125,9 @@ function _removeService() {
 	for username in $userlist; do
 		_execute "systemctl disable ${APP_SERVICE}@${username}"
 		_execute "systemctl stop ${APP_SERVICE}@${username}"
+		if [ -f /etc/systemd/system/${APP_SERVICE}@${username} ]; then 
+			rm -rf /etc/systemd/system/${APP_SERVICE}@${username} >/dev/null 2>&1
+		fi
 	done
 	rm -rf /etc/systemd/system/${APP_SERVICE}@.service >/dev/null 2>&1
 	_execute "systemctl daemon-reload"
@@ -139,6 +142,9 @@ function _removeApp() {
 		rm -f /etc/nginx/apps/${username}.flood.conf
 		rm -f /install/${username}.${APP_NAME}.port
 	done
+	if npm list -g --depth=0 | grep -q flood; then
+		_execute "npm uninstall -g flood"
+	fi
 	_execute "nginx -s reload"
 	_success "${APP_TITLE} removed."
 }

@@ -1,4 +1,25 @@
-## CHANGELOG v1.5.0
+## CHANGELOG v1.5.2
+
+*Changelog update Saturday, Jan 1, 2022*
+
+### General additions
+
+- add reset button in panel (by Tautcony)
+
+### Function improved
+
+- replace Shellinabox with ttyd
+- install the latest flood repo
+
+### Function updated
+
+### Bug fixed
+
+- fix ssh port in installation summary (TUI)
+
+---
+
+## CHANGELOG v1.5.1
 
 *Changelog update Tuesday, Oct 19, 2021*
 

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.1
+# Current version:  v1.5.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -857,6 +857,11 @@ function _installAppStart() {
 			curl -i --data 'json={"scan_dirs":{"'"/home/${username}/qbwatch"'":1}}' http://localhost:$(cat /install/${username}.$APP_NAME.port)/api/v2/app/setPreferences >>"${OUTTO}" 2>&1
 		else
 			curl -i --data 'json={"scan_dirs":{"'"/home/${username}/qbwatch"'":1}}' http://localhost:$(cat /install/${username}.$APP_NAME.port)/command/setPreferences >>"${OUTTO}" 2>&1
+		fi
+		if [[ -d /home/${username}/.local/share/data/qBittorrent ]]; then
+			chmod -R 755 /home/"${username}"/.local/share/data/qBittorrent
+		else
+			chmod -R 755 /home/"${username}"/.local/share/qBittorrent
 		fi
 	done
 	_success "${APP_TITLE} started."

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.1
+# Current version:  v1.5.2
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -181,6 +181,11 @@ function _installDepends() {
 function _installApp() {
 	_info "Building ${APP_TITLE}..."
     PYENV_ROOT=/opt/pyenv bash <(wget -qO- https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer -o /dev/null) >>"${OUTTO}" 2>&1
+	# Verify Installation
+	if [[ ! -d "/opt/pyenv" ]] || [[ ! -d "/opt/pyenv/plugins/pyenv-doctor" ]] || [[ ! -d "/opt/pyenv/plugins/pyenv-installer" ]] || [[ ! -d "/opt/pyenv/plugins/pyenv-update" ]] || [[ ! -d "/opt/pyenv/plugins/pyenv-virtualenv" ]] || [[ ! -d "/opt/pyenv/plugins/pyenv-which-ext" ]] || [[ ! -d "/opt/pyenv/plugins/python-build" ]]; then
+		_error "failed to install ${APP_TITLE}"
+		exit 1
+	fi
 	# Add Env
 	if [[ ! -f "/root/.bash_pyenv" ]]; then 
 		cat > /root/.bash_pyenv <<EOF

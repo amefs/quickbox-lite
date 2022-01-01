@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.5.1
+# Current version:  v1.5.2
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -80,7 +80,6 @@ APP_WEB_PORT_HIGH="15100"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-BRANCH="https://github.com/jfurrow/flood.git"
 
 ################################################################################
 # SCRIPT FUNCTIONS
@@ -182,14 +181,11 @@ function _installApp() {
 	mkdir -p /tmp/quickbox
 	cd /tmp/quickbox || exit 1
 	if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
-		_execute "curl -sL https://deb.nodesource.com/setup_11.x -o nodesource_setup.sh"
+		_execute "curl -sL https://deb.nodesource.com/setup_14.x -o nodesource_setup.sh"
 		_execute "sudo bash nodesource_setup.sh"
 		_execute "apt-get install -y --force-reinstall true nodejs"
 	fi
 
-	if [[ ! $(which node-gyp) ]]; then
-		_execute "npm i -g node-gyp"
-	fi
 	_execute "npm install -g npm-check-updates"
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 	for username in $userlist; do
@@ -204,40 +200,24 @@ function _installApp() {
 			PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
 		done
 		echo "$PORT" >/install/$username.$APP_NAME.port
-		cd /home/${username} || exit 1
-		_execute "git clone ${BRANCH} .flood"
-		chown -R ${username}: .flood
-		cd .flood || { _error "flood installation failed..." && exit 1; }
-		cat >/home/${username}/.flood/config.js <<EOF
-// This is the configuration file for Flood, a React-based frontend for the
-// rtorrent BitTorrent client.
-const CONFIG = {
-  baseURI: '/${username}/flood',
-  dbCleanInterval: 1000 * 60 * 60,
-  dbPath: './server/db/',
-  floodServerHost: '127.0.0.1',
-  floodServerPort: ${PORT},
-  floodServerProxy: 'http://127.0.0.1:3000',
-  maxHistoryStates: 30,
-  torrentClientPollInterval: 1000 * 2,
-  secret: 'flood',
-  scgi: {
-    socket: true,
-    socketPath: '/var/run/${username}/.rtorrent.sock',
-  },
-  ssl: false,
-  sslKey: '/absolute/path/to/key/',
-  sslCert: '/absolute/path/to/certificate/',
-  diskUsageService: {
-    // watchMountPoints: [
-    //   "/mnt/disk"
-    // ]
-  }
-};
-// Do not remove the below line.
-module.exports = CONFIG;
+		_execute "npm i -g flood"
+		cat >/etc/systemd/system/${APP_SERVICE}@${username}.service <<EOF
+[Unit]
+Description=Flood rTorrent Web UI for ${username}
+After=network.target
+
+[Service]
+User=${username}
+Group=${username}
+Type=simple
+KillMode=process
+ExecStart=/usr/bin/env flood --host="127.0.0.1" --baseuri="/${username}/flood" --port="${PORT}" --auth="none" --rtsocket=/var/run/${username}/.rtorrent.sock
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
 EOF
-		sudo -u ${username} -H bash -c "cd /home/${username}/.flood; npm install --force && npm run build" >/dev/null 2>&1
 	done
 	_success "${APP_TITLE} Built."
 }
@@ -252,27 +232,17 @@ location /${username}/flood {
   return 301 /${username}/flood/;
 }
 
-location /${username}/flood/ {
+location /${username}/flood/api {
   include /etc/nginx/snippets/proxy.conf;
-  proxy_pass http://127.0.0.1:${PORT}/${username}/${APP_NAME}/;
-  rewrite ^/${username}/flood/(.*) /\$1 break;
+  proxy_pass http://127.0.0.1:${PORT};
+}
+
+location /${username}/flood/ {
+  alias /usr/lib/node_modules/flood/dist/assets/;
+  try_files \$uri /${username}/flood/index.html;
 }
 NGX
 	done
-	cat >/etc/systemd/system/${APP_SERVICE}@.service <<EOF
-[Unit]
-Description=Flood rTorrent Web UI
-After=network.target
-
-[Service]
-User=%I
-Group=%I
-WorkingDirectory=/home/%I/.flood
-ExecStart=/usr/bin/npm start --production /home/%I/.flood
-
-[Install]
-WantedBy=multi-user.target
-EOF
 	_execute "systemctl daemon-reload"
 	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."
