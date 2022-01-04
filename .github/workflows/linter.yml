@@ -75,7 +75,7 @@ jobs:
       uses: azohra/shell-linter@latest
       with:
         # todo: scripts in packages
-        path: "onekey.sh,setup.sh"
+        path: "onekey.sh,setup.sh,bump-version.sh"
 
   python-linter:
     runs-on: ubuntu-20.04
