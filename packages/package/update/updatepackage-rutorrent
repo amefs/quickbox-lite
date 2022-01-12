@@ -126,11 +126,16 @@ function _updateApp() {
 	_execute "git clone --recurse-submodules $BRANCH $APP_NAME"
 	chown -R www-data:www-data /srv/$APP_NAME
 	rm -rf /srv/$APP_NAME/conf/config.php
+
+	latest_release_version=$(curl -s https://api.github.com/repos/Novik/ruTorrent/releases/latest | jq -r ".tag_name")
+	_execute "cd /srv/$APP_NAME/ && git checkout $latest_release_version"
+	cd /srv || exit 1
+
 	_info "Setting up plugins... "
 	plugin_lib="/usr/local/bin/quickbox/rutorrent/plugins/"
 	rm -rf ${plugin_lib}
 	if [[ ! -d ${plugin_lib} ]]; then
-		_execute "sudo svn co https://github.com/Novik/ruTorrent/trunk/plugins ${plugin_lib}"
+		cp /srv/$APP_NAME/plugins ${plugin_lib}
 		if [[ ! -d ${plugin_lib}fileupload ]]; then
 			_execute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileupload ${plugin_lib}fileupload"
 		fi
