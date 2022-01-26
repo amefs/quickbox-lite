@@ -196,6 +196,7 @@ NGX
 	fi
 	# Replace webshell
 	if [[ ! -f /etc/systemd/system/ttyd.service ]]; then
+		_info "replace shellinabox with ttyd"
 		# stop shellinabox
 		_execute "systemctl stop shellinabox.service"
 		_execute "systemctl disable shellinabox.service"
@@ -231,13 +232,18 @@ WEBC
 		touch /install/.ttyd.lock
 	fi
 	# check ttyd update
-	if (which ttyd > /dev/null && which jq > /dev/null); then
+	if (which jq > /dev/null); then
+		if ! which ttyd > /dev/null; then
+			_warning "ttyd do not exists"
+		fi
 		local current_version
 		local latest_version
-		current_version=$(ttyd -v | awk '{print $3}')
+		current_version=$(ttyd -v | awk '{print $3}') 2> /dev/null
 		latest_version=$(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | jq -r ".tag_name")
+		_info "ttyd current version: ${current_version}, latest version: ${latest_version}"
 		if (_verlt "$current_version" "$latest_version"); then
 			_download_latest_ttyd
+			systemctl restart ttyd.service >/dev/null 2>&1
 		fi
 	fi
 }
