@@ -27,6 +27,8 @@ $L['THEME_SELECT'] = 'Thème';
 $L['PANEL_CONFIG'] ='Configuration du panneau';
 $L['PANEL_RESET'] ='Réinitialiser le panneau';
 $L['WEB_CONSOLE'] = 'Console Web';
+$L['SWITCH_DEV'] = 'Switch to <code>development</code>';
+$L['SWITCH_MASTER'] = 'Switch to <code>master</code>';
 
 // plugin menu tab
 $L['PLUGIN_MENU'] = 'Menu Plugins';

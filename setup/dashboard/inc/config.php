@@ -22,7 +22,7 @@ $iface_list = ['INETFACE'];
 $branch     = 'master';
 
 if (file_exists('/install/.developer.lock')) {
-    $branch = 'developer';
+    $branch = 'development';
     if (file_exists('/install/.debug.lock')) {
         $branch_info = @file('/install/.debug.lock');
         if ($branch_info !== false) {

@@ -54,7 +54,7 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
     // check operation
     if (template.includes(Constant.TEMPLATE_OPERATION)) {
         const configOperation = commandConfig.operations.find(value => value === operation);
-        if (configOperation) {
+        if (configOperation !== undefined) {
             template = template.replace(Constant.TEMPLATE_OPERATION, configOperation);
         } else {
             throw new Error(`Operation '${operation}' not found`);
@@ -68,7 +68,7 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
     // check target
     if (template.includes(Constant.TEMPLATE_TARGET)) {
         const configTarget = commandConfig.targets.find(value => value === target || value === target + `@${Constant.TEMPLATE_USERNAME}`);
-        if (configTarget) {
+        if (configTarget !== undefined) {
             template = template.replace(Constant.TEMPLATE_TARGET, configTarget);
         } else {
             throw new Error(`Target '${target}' not found`);

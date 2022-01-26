@@ -17,10 +17,10 @@
     },
     "box": {
         "template": "bash /usr/local/bin/quickbox/system/box $operation$ $target$",
-        "operations": ["clean", "update", "lang", "fix"],
+        "operations": ["clean", "update", "lang", "fix", "enable-dev", "disable-dev"],
         "targets": ["mem", "log", "dpkg",
             "quickbox --only-core",
-            "lang_de", "lang_dk", "lang_en", "lang_fr", "lang_es", "lang_zh"
+            "lang_de", "lang_dk", "lang_en", "lang_fr", "lang_es", "lang_zh", ""
         ]
     },
     "ping": {
