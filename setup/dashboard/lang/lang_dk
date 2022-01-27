@@ -28,6 +28,8 @@ $L['PANEL_CONFIG'] ='Panelkonfiguration';
 $L['PANEL_RESET'] ='Nulstil panel';
 $L['WEB_CONSOLE'] = 'Webkonsol';
 $L['DONATE'] = 'Donér';
+$L['SWITCH_DEV'] = 'Switch to <code>development</code>';
+$L['SWITCH_MASTER'] = 'Switch to <code>master</code>';
 
 // plugin menu tab
 $L['PLUGIN_MENU'] = 'Pluginmenu';

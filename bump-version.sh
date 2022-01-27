@@ -57,7 +57,6 @@ function _update_version() {
         packages/package/update/*
         packages/system/*
         packages/system/auxiliary/*
-        setup/scripts/*
         onekey.sh
         setup.sh
         bump-version.sh
@@ -66,7 +65,7 @@ function _update_version() {
     for file in "${FILE_LIST[@]}"; do
         if [[ -f "$file" ]]; then
             # echo "Bumping version to $version in $file"
-            sed -i "" "s/# Current version:  .*/# Current version:  v${VERSION}/" "$file"
+            sed -i "" "s/^# Current version:  .*$/# Current version:  v${VERSION}/" "$file"
             git add "$file"
         fi
     done

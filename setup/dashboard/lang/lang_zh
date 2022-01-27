@@ -28,6 +28,8 @@ $L['PANEL_CONFIG'] = '面板配置';
 $L['PANEL_RESET'] = '重置面板';
 $L['WEB_CONSOLE'] = 'Web控制台';
 $L['DONATE'] = '捐助';
+$L['SWITCH_DEV'] = '切换到 <code>development</code> 分支';
+$L['SWITCH_MASTER'] = '切换到 <code>master</code> 分支';
 
 // plugin menu tab
 $L['PLUGIN_MENU'] = '插件菜单';
