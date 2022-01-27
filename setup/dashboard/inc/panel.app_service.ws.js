@@ -102,7 +102,7 @@
     if (!target) {
       return;
     }
-    if (!target.dataset.package) {
+    if (target.dataset.package === undefined) {
       do {
         target = target.parentElement;
       } while (target && (target.nodeName === "DIV") && !target.dataset.package);
