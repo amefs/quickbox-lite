@@ -105,13 +105,13 @@
     if (!target.dataset.package) {
       do {
         target = target.parentElement;
-      } while (target && target.nodeName === "DIV" && !target.dataset.package);
+      } while (target && (target.nodeName === "DIV") && !target.dataset.package);
     }
     if (!target) {
       return;
     }
-    const operation = event.target.dataset.operation;
-    const pkg = event.target.dataset.package;
+    const operation = target.dataset.operation;
+    const pkg = target.dataset.package;
     exec(`box:${operation}:${pkg}`);
   }
   window.packageInstallHandler = packageHandler("installpackage");

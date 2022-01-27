@@ -4,9 +4,9 @@ assert(isset($branch));
 <ul class="dropdown-menu pull-right">
   <li>
   <?php if ($branch === 'master') { ?>
-    <a onclick="boxHandler(event)" data-package="" data-operation="enable-dev" style="cursor: pointer;"><?php echo T('SWITCH_DEV'); ?></a>
+    <a onclick="boxHandler(event)" data-package="" data-operation="enable-dev" data-toggle="modal" data-target="#sysResponse" style="cursor: pointer;"><?php echo T('SWITCH_DEV'); ?></a>
   <?php } elseif ($branch === 'development') { ?>
-    <a onclick="boxHandler(event)" data-package="" data-operation="disable-dev" style="cursor: pointer;"><?php echo T('SWITCH_MASTER'); ?></a>
+    <a onclick="boxHandler(event)" data-package="" data-operation="disable-dev" data-toggle="modal" data-target="#sysResponse" style="cursor: pointer;"><?php echo T('SWITCH_MASTER'); ?></a>
   <?php } ?>
   </li>
   <li style="border-top: 1px solid #444">
