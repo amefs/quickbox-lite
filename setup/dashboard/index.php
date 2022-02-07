@@ -123,7 +123,7 @@
         <div class="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
           <div class="panel-heading">
             <h4 class="panel-title text-success"><?php echo T('RECENT_UPDATES'); ?>
-              <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $version.'...'.$branch; ?>" 
+              <a href="https://github.com/amefs/quickbox-lite/blob/<?php echo $branch; ?>/CHANGELOG.md#changelog-<?php echo str_replace('.', '', $version); ?>"
                 title="<?php echo T('CURRENT_VERSIONS_CHANGELOG'); ?>"
                 data-placement="top" class="label label-primary tooltips"
                 style="font-size:10px; padding-top:0; padding-bottom:0px; top: -2px; position: relative;"
@@ -132,6 +132,25 @@
               </a>
             </h4>
           </div>
+          <div class="panel-body ps-container" style="max-height: 350px; padding: 0;">
+            <?php
+              $current_commit = shell_exec('git -C /etc/QuickBox/ rev-parse --short HEAD');
+            ?>
+            <?php if ($current_commit) { ?>
+            <div class="alert alert-default" style="margin-bottom: 4px; text-align: center" role="alert">
+                <?php echo T('QUICKBOX_COMMIT'); ?>
+                <code>
+                  <a href="https://github.com/amefs/quickbox-lite/commit/<?php echo $current_commit; ?>" target="_blank" title="<?php echo T('CURRENT_COMMIT'); ?>" data-placement="top" class="tooltips">
+                    <?php echo $current_commit; ?>
+                  </a>...
+                  <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $current_commit; ?>...<?php echo $branch; ?>" target="_blank" title="<?php echo T('COMPARE_COMMITS'); ?>" data-placement="top" class="tooltips">
+                    <?php echo T('LATEST_COMMIT'); ?>
+                  </a>
+                </code><br>
+              </div>
+              <?php } ?>
+              <div id="activityfeed"></div>
+            </div>
           <div class="panel-footer">
           <button onclick="boxHandler(event)" data-package="quickbox --only-core" data-operation="update" data-toggle="modal" data-target="#sysResponse" class="btn btn-success btn-quirk btn-block">
             <i class="fa fa-bell text-success"></i> <?php echo T('UPDATE'); ?>

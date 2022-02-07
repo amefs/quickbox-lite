@@ -113,7 +113,7 @@ if [[ $resolver == "lang" ]]; then
 	langname=$2
 	case $langname in
 	"de" | "deutsch" | "germany" | "lang_de") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_de ;;
-	"dk" | "dansk" | "danish" | "lang_dk") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_dk ;;
+	"da" | "dansk" | "danish" | "lang_da") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_da ;;
 	"en" | "en-us" | "english" | "lang_en") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en ;;
 	"es" | "spanish" | "lang_es") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_es ;;
 	"fr" | "french" | "lang_fr") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_fr ;;

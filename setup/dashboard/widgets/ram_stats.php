@@ -59,7 +59,7 @@ $memCachedPercent = number_format($sysMemInfo['CachedPercent'], 3); //cache memo
   <!-- CACHED MEMORY USAGE -->
   <div class="col-sm-12" style="padding-top:10px">
     <p style="font-size:10px"><?php echo T('CACHED_MEMORY_TITLE'); ?>: <?php echo "{$memCachedPercent}"; ?>%<br/>
-      <?php echo T('CACHED_MEMORY_USAGE_TXT'); ?> <?php echo "{$memCached}"; ?> | <?php echo T('CACHED_MEMORY_BUFFERS_TXT'); ?> <?php echo "{$memBuffers}"; ?></p>
+      <?php echo T('CACHED_MEMORY_USAGE_TXT', ['cached' => $memCached]); ?> | <?php echo T('CACHED_MEMORY_BUFFERS_TXT', ['buffered' => $memBuffers]); ?></p>
     <div class="progress progress-striped">
       <?php $ramcolor = get_ram_color($memCachedPercent); ?>
       <div style="width:<?php echo "{$memCachedPercent}"; ?>%" aria-valuemax="100" aria-valuemin="0" aria-valuenow="<?php echo "{$memCachedPercent}"; ?>" role="progressbar" class="progress-bar <?php echo $ramcolor; ?>">
@@ -70,7 +70,7 @@ $memCachedPercent = number_format($sysMemInfo['CachedPercent'], 3); //cache memo
   <!-- REAL MEMORY USAGE -->
   <div class="col-sm-12" style="padding-top:10px">
     <p style="font-size:10px"><?php echo T('REAL_MEMORY_TITLE'); ?>: <?php echo "{$memRealPercent}"; ?>%<br/>
-      <?php echo T('REAL_MEMORY_USAGE_TXT'); ?> <?php echo "{$memRealUsed}"; ?> | <?php echo T('REAL_MEMORY_FREE_TXT'); ?> <?php echo "{$memRealFree}"; ?></p>
+      <?php echo T('REAL_MEMORY_USAGE_TXT', ['used' => $memRealUsed]); ?> | <?php echo T('REAL_MEMORY_FREE_TXT', ['free' => $memRealFree]); ?></p>
     <div class="progress progress-striped">
     <?php $ramcolor = get_ram_color($memRealPercent); ?>
       <div style="width:<?php echo "{$memRealPercent}"; ?>%" aria-valuemax="100" aria-valuemin="0" aria-valuenow="<?php echo "{$memRealPercent}"; ?>" role="progressbar" class="progress-bar <?php echo $ramcolor; ?>">
@@ -86,7 +86,7 @@ $memCachedPercent = number_format($sysMemInfo['CachedPercent'], 3); //cache memo
   <div class="col-sm-12" style="padding-top:10px">
     <p style="font-size:10px">
       <?php echo T('SWAP_TITLE'); ?>: <?php echo "{$swapPercent}"; ?>%<br/>
-      <?php echo T('SWAP_TOTAL_TXT'); ?>: <?php echo T('TOTAL_L'); ?> <?php echo "{$swapTotal}"; ?> | <?php echo T('SWAP_USED_TXT'); ?> <?php echo "{$swapUsed}"; ?> | <?php echo T('SWAP_IDLE_TXT'); ?> <?php echo "{$swapFree}"; ?>
+      <?php echo T('SWAP_TOTAL_TXT'); ?>: <?php echo T('TOTAL_L', ['total' => $swapTotal]); ?> | <?php echo T('SWAP_USED_TXT', ['used' => $swapUsed]); ?> | <?php echo T('SWAP_IDLE_TXT', ['free' => $swapFree]); ?>
     </p>
     <div class="progress progress-striped">
       <?php $ramcolor = get_ram_color($swapPercent); ?>

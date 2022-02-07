@@ -11,11 +11,6 @@ $iface = null;
 
 $page_list = ['s', 'h', 'd', 'm'];
 
-$page_title['s'] = T('summary');
-$page_title['h'] = T('hours');
-$page_title['d'] = T('days');
-$page_title['m'] = T('months');
-
 /**
  * @return void
  */

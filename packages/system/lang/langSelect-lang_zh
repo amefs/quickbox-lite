@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# [Quick Box :: Set Danish Language function]
+# [Quick Box :: Set Chinese Language function]
 #
 # QuickLab REPOS
 # QuickLab _ packages  :   https://github.com/QuickBox/quickbox_packages
@@ -18,31 +18,18 @@
 #   under the GPL along with build & install instructions.
 #
 
-locale='da_DK.UTF-8'
-language='lang_dk'
+locale='zh_CN.UTF-8'
+language='lang_zh-Hans-CN'
 
-cat >/srv/dashboard/inc/localize.php <<LCL
+cat >/srv/dashboard/db/locale.php <<LCL
 <?php
-    \$locale = 'da_DK.UTF-8';
-    \$language = 'lang_dk';
-    setlocale(LC_ALL, \$locale);
-    require (\$_SERVER['DOCUMENT_ROOT']."/lang/$language");
-
-    function T(\$str)
-    {
-        global \$L;
-        if (isset(\$L[\$str]))
-            return \$L[\$str];
-        else
-            return \$str;
-    }
-
-?>
+    \$locale   = '$locale';
+    \$language = '$language';
 LCL
 
 rm -f /install/.lang_*
-touch /install/.${language}.lock
-chown www-data: /srv/dashboard/inc/localize.php
+touch /install/.lang_zh.lock
+chown www-data: /srv/dashboard/db/locale.php
 nginx -s reload >/dev/null 2>&1
 /usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'
 sleep 5

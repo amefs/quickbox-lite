@@ -195,7 +195,7 @@ function _installApp() {
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
 
-	if [[ -f /install/.lang_dk.lock ]]; then
+	if [[ -f /install/.lang_da.lock ]]; then
 		UIlang=en
 	elif [[ -f /install/.lang_en.lock ]]; then
 		UIlang=en
