@@ -46,8 +46,10 @@ function _download_latest_ttyd() {
 }
 
 function _updateservice() {
+	_info "Updating QuickBox service..."
 	# Update nginx service
 	if [[ ! -f /install/.quickbox-ws.lock ]]; then
+		_info "QuickBox Websockets service is not installed"
 		# Install nodejs for websocks method
 		if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
 			_info "Installing Node.js..."
@@ -72,6 +74,7 @@ function _updateservice() {
 			if [[ -f /tmp/nodesource_setup.sh ]]; then
 				rm nodesource_setup.sh
 			fi
+			_success "Node.js installed"
 		fi
 		# install service
 		_info "Installing Dashboard service..."
@@ -84,6 +87,7 @@ function _updateservice() {
 		_success "QuickBox service updated"
 	else
 		# upgrade to v14
+		_info "Upgrade nodejs to v14"
 		if [[ ! $(which npm) ]] || [[ ! $(node --version) =~ "v14" ]]; then
 			_info "Upgrading Node.js..."
 			cd /tmp || exit 1
@@ -106,6 +110,7 @@ function _updateservice() {
 			if [[ -f /tmp/nodesource_setup.sh ]]; then
 				rm nodesource_setup.sh
 			fi
+			_success "Node.js upgraded"
 		fi
 		_info "Reconfig Dashboard service..."
 		cd ${local_setup_dashboard}ws ||exit 1
@@ -182,19 +187,22 @@ location /rutorrent {
 	auth_basic "Password Required";
 	auth_basic_user_file /etc/htpasswd.d/htpasswd.\$remote_user;
 
-    location ~ \.php$
-    {
-      fastcgi_read_timeout 240;
-      fastcgi_pass  unix:/run/php/php7.4-fpm.sock;
-      include snippets/fastcgi-php.conf;
-      fastcgi_param SCRIPT_FILENAME /srv\$fastcgi_script_name;
-    }
+	location ~ \.php$
+	{
+		fastcgi_read_timeout 240;
+		fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+		include snippets/fastcgi-php.conf;
+		fastcgi_param SCRIPT_FILENAME /srv\$fastcgi_script_name;
+	}
 }
 NGX
 			_success "rutorrent config updated..."
 		fi
 	fi
 	# Replace webshell
+	if (! which jq > /dev/null); then
+		_execute "apt-get install -y jq"
+	fi
 	if [[ ! -f /etc/systemd/system/ttyd.service ]]; then
 		_info "replace shellinabox with ttyd"
 		# stop shellinabox
@@ -204,47 +212,42 @@ NGX
 		_execute "apt-get remove -y shellinabox"
 
 		# install ttyd and service config
-		if (! which jq > /dev/null); then
-			_execute "apt-get install -y jq"
-		fi
 		_download_latest_ttyd
 		service ttyd stop >/dev/null 2>&1
 		rm -f /etc/init.d/ttyd >/dev/null 2>&1
 
 		cat > /etc/nginx/apps/"${username}".console.conf <<WEBC
 location /${username}.console/ {
-    proxy_pass http://127.0.0.1:4200;
-    rewrite ^/${username}.console(.*) /\$1 break;
-    auth_basic "password Required";
-    auth_basic_user_file /etc/htpasswd;
-    proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection "upgrade";
+	proxy_pass http://127.0.0.1:4200;
+	rewrite ^/${username}.console(.*) /\$1 break;
+	auth_basic "password Required";
+	auth_basic_user_file /etc/htpasswd;
+	proxy_set_header Upgrade \$http_upgrade;
+	proxy_set_header Connection "upgrade";
 }
 WEBC
 		cp ${local_setup_template}systemd/ttyd.service.template /etc/systemd/system/ttyd.service
 		sed -i "s/USERNAME/${username}/g" /etc/systemd/system/ttyd.service
 
 		# enable ttyd service
-		systemctl daemon-reload >/dev/null 2>&1
-		systemctl enable ttyd.service >/dev/null 2>&1
-		systemctl start ttyd.service >/dev/null 2>&1
+		_execute "systemctl daemon-reload"
+		_execute "systemctl enable ttyd.service"
+		_execute "systemctl start ttyd.service"
 		# create lock
 		touch /install/.ttyd.lock
 	fi
 	# check ttyd update
-	if (which jq > /dev/null); then
-		if ! which ttyd > /dev/null; then
-			_warning "ttyd do not exists"
-		fi
-		local current_version
-		local latest_version
-		current_version=$(ttyd -v | awk '{print $3}') 2> /dev/null
-		latest_version=$(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | jq -r ".tag_name")
-		_info "ttyd current version: ${current_version}, latest version: ${latest_version}"
-		if (_verlt "$current_version" "$latest_version"); then
-			_download_latest_ttyd
-			systemctl restart ttyd.service >/dev/null 2>&1
-		fi
+	if ! which ttyd > /dev/null; then
+		_warning "ttyd do not exists"
+	fi
+	local current_version
+	local latest_version
+	current_version=$(ttyd -v | awk '{print $3}') 2> /dev/null
+	latest_version=$(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | jq -r ".tag_name")
+	_info "ttyd current version: ${current_version}, latest version: ${latest_version}"
+	if (_verlt "$current_version" "$latest_version"); then
+		_download_latest_ttyd
+		_execute "systemctl restart ttyd.service"
 	fi
 }
 
