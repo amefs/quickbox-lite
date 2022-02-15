@@ -1,0 +1,23 @@
+{
+  "upload": {
+    "type": "json",
+    "deprecateMissing": true,
+    "files": [
+      {
+        "pattern": "setup/dashboard/lang/lang_en.json",
+        "lang": "en",
+        "file": "lang.json"
+      },
+      {
+        "group": "existing",
+        "pattern": "setup/dashboard/lang/lang_*.json",
+        "excludes": ["setup/dashboard/lang/lang_en.json"],
+        "lang": "${autodetectLang}"
+      }
+    ]
+  },
+  "download": {
+    "includeSourceLang": false,
+    "files": "setup/dashboard/lang/lang_${lang}.json"
+  }
+}

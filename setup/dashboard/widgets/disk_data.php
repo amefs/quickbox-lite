@@ -76,7 +76,7 @@ foreach ($disk_info as $parts) {
         <span class="sr-only"><?php echo "{$perused}"; ?>% <?php echo T('USED'); ?></span>
       </div>
     </div>
-    <p style="font-size:10px"><?php echo T('PERCENTAGE_TXT_1'); ?> <?php echo "{$perused}"; ?>% <?php echo T('PERCENTAGE_TXT_2'); ?></p>
+    <p style="font-size:10px"><?php echo T('PERCENTAGE_TXT', ['used' => $perused]); ?></p>
   </div>
   <div class="col-sm-4 text-right">
     <?php $diskclass = get_disk_class($perused); ?>
@@ -90,17 +90,17 @@ foreach ($disk_info as $parts) {
 
 <?php if (processExists('rtorrent', $username) && file_exists('/install/.rtorrent.lock')) { ?>
 <h4><?php echo T('RTORRENTS_TITLE'); ?></h4>
-<p class="nomargin"><?php echo T('TORRENTS_LOADED_1'); ?> <b><?php echo "{$rtorrents}"; ?></b> <?php echo T('TORRENTS_LOADED_2'); ?></p>
+<p class="nomargin"><?php echo T('TORRENTS_LOADED', ['loaded' => $rtorrents]); ?></p>
 <?php } ?>
 <?php if (processExists('deluged', $username) && file_exists('/install/.deluge.lock')) { ?>
 <h4><?php echo T('DTORRENTS_TITLE'); ?></h4>
-<p class="nomargin"><?php echo T('TORRENTS_LOADED_1'); ?> <b><?php echo "{$dtorrents}"; ?></b> <?php echo T('TORRENTS_LOADED_2'); ?></p>
+<p class="nomargin"><?php echo T('TORRENTS_LOADED', ['loaded' => $dtorrents]); ?></p>
 <?php } ?>
 <?php if (processExists('transmission', $username) && file_exists('/install/.transmission.lock')) { ?>
 <h4><?php echo T('TRTORRENTS_TITLE'); ?></h4>
-<p class="nomargin"><?php echo T('TORRENTS_LOADED_1'); ?> <b><?php echo "{$transtorrents}"; ?></b> <?php echo T('TORRENTS_LOADED_2'); ?></p>
+<p class="nomargin"><?php echo T('TORRENTS_LOADED', ['loaded' => $transtorrents]); ?></p>
 <?php } ?>
 <?php if (processExists('qbittorrent-nox', $username) && file_exists('/install/.qbittorrent.lock')) { ?>
 <h4><?php echo T('QTORRENTS_TITLE'); ?></h4>
-<p class="nomargin"><?php echo T('TORRENTS_LOADED_1'); ?> <b><?php echo "{$qtorrents}"; ?></b> <?php echo T('TORRENTS_LOADED_2'); ?></p>
+<p class="nomargin"><?php echo T('TORRENTS_LOADED', ['loaded' => $qtorrents]); ?></p>
 <?php } ?>

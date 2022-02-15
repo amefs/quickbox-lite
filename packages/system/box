@@ -93,7 +93,7 @@ function _help() {
 	echo "                                  blank to use batch install"
 	echo "remove <appname>                  remove installed application"
 	echo "update <appname>                  upgrade installed application"
-	echo "lang <de|dk|en|es|fr|zh>          change dashboard language"
+	echo "lang <da|de|en|es|fr|zh>          change dashboard language"
 	echo "clean <mem|log>                   clean memory or installation log"
 	echo "fix <dpkg|interface|home>         fix your setting"
 	echo "set <interface|passwd|cdn>        change interface setting/password"
@@ -112,8 +112,8 @@ resolver=$1
 if [[ $resolver == "lang" ]]; then
 	langname=$2
 	case $langname in
+	"da" | "dansk" | "danish" | "lang_da") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_da ;;
 	"de" | "deutsch" | "germany" | "lang_de") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_de ;;
-	"dk" | "dansk" | "danish" | "lang_dk") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_dk ;;
 	"en" | "en-us" | "english" | "lang_en") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en ;;
 	"es" | "spanish" | "lang_es") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_es ;;
 	"fr" | "french" | "lang_fr") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_fr ;;
@@ -122,12 +122,13 @@ if [[ $resolver == "lang" ]]; then
 	echo -e "\nQuickBox Lite Cli Tools"
 	echo -e "\nUsage: \n$(basename "$0") lang LANGUAGE"
 	echo -e "\nAvailable language:\n"
-	echo  "germany"
 	echo  "danish"
+	echo  "germany"
 	echo  "english"
 	echo  "spanish"
 	echo  "french"
 	echo  "chinese"
+	exit 1
 	;;
 	esac
 fi

@@ -53,3 +53,6 @@ vendor/
 
 # Directories created by npm
 node_modules/
+
+# Key file for localazy
+localazy.keys.json

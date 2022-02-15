@@ -908,15 +908,12 @@ function _insdashboard() {
 	case $uilang in
 	"en")
 		bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en >/dev/null 2>&1
-		touch /install/.lang_en.lock
 		;;
 	"zh")
-		bash /usr/local/bin/quickbox/system/lang/langSelect-lang_zh-cn >/dev/null 2>&1
-		touch /install/.lang_zh.lock
+		bash /usr/local/bin/quickbox/system/lang/langSelect-lang_zh >/dev/null 2>&1
 		;;
 	*)
 		bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en >/dev/null 2>&1
-		touch /install/.lang_en.lock
 		;;
 	esac
 	if [[ $(vnstat -v | grep -Eo "[0-9.]+" | cut -d . -f1) == "1" ]]; then

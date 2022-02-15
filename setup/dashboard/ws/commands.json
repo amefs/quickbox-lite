@@ -20,7 +20,7 @@
         "operations": ["clean", "update", "lang", "fix", "enable-dev", "disable-dev"],
         "targets": ["mem", "log", "dpkg",
             "quickbox --only-core",
-            "lang_de", "lang_dk", "lang_en", "lang_fr", "lang_es", "lang_zh", ""
+            "lang_de", "lang_da", "lang_en", "lang_fr", "lang_es", "lang_zh", ""
         ]
     },
     "ping": {

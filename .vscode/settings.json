@@ -1,0 +1,11 @@
+{
+    "i18n-ally.localesPaths": [
+        "setup/lang",
+        "packages/system/lang",
+        "setup/dashboard/lang"
+    ],
+    "i18n-ally.pathMatcher": "lang_{locale}.json",
+    "i18n-ally.sourceLanguage": "en",
+    "i18n-ally.displayLanguage": "en",
+    "i18n-ally.keystyle": "nested",
+}

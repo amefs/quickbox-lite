@@ -33,7 +33,7 @@
           <li>
             <div class="btn-group">
               <button type="button" class="btn btn-logged">
-                <a href="#" class="label label-warning" style="">You are on the QuickBox <?php echo $branch; ?> branch</a>
+                <a href="#" class="label label-warning" style=""><?php T('DEV_REPO_TXT', ['branch' => $branch]); ?></a>
               </button>
             </div>
           </li>

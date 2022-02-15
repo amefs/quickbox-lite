@@ -21,28 +21,15 @@
 locale='fr_FR.UTF-8'
 language='lang_fr'
 
-cat >/srv/dashboard/inc/localize.php <<LCL
+cat >/srv/dashboard/db/locale.php <<LCL
 <?php
-    \$locale = 'fr_FR.UTF-8';
-    \$language = 'lang_fr';
-    setlocale(LC_ALL, \$locale);
-    require (\$_SERVER['DOCUMENT_ROOT']."/lang/$language");
-
-    function T(\$str)
-    {
-        global \$L;
-        if (isset(\$L[\$str]))
-            return \$L[\$str];
-        else
-            return \$str;
-    }
-
-?>
+    \$locale   = '$locale';
+    \$language = '$language';
 LCL
 
 rm -f /install/.lang_*
 touch /install/.${language}.lock
-chown www-data: /srv/dashboard/inc/localize.php
+chown www-data: /srv/dashboard/db/locale.php
 nginx -s reload >/dev/null 2>&1
 /usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'
 sleep 5

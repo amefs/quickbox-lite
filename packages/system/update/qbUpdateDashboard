@@ -1,3 +1,5 @@
+#!/bin/bash
+
 function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
@@ -50,6 +52,9 @@ function _updatedashboard() {
 function _updatelanguage() {
 	_info "Updating QuickBox language..."
 	dashlang=$(find /install -type f | grep -e "lang.*.lock" | cut -d "." -f 2)
-	bash /usr/local/bin/quickbox/system/box lang $dashlang
+	if ! bash /usr/local/bin/quickbox/system/box lang "$dashlang"; then
+		_warning "Failed to update language: $dashlang, fallback to en"
+		bash /usr/local/bin/quickbox/system/box lang en
+	fi
 	_success "QuickBox language updated"
 }

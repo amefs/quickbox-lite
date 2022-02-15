@@ -182,7 +182,7 @@ function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	# install librespeed
 	cd /srv || exit 1
-	if [[ -f /install/.lang_dk.lock ]]; then
+	if [[ -f /install/.lang_da.lock ]]; then
 		UIlang=en-US
 	elif [[ -f /install/.lang_en.lock ]]; then
 		UIlang=en-US
