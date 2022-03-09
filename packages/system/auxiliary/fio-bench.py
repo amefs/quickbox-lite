@@ -94,18 +94,17 @@ def printResult():
 def outputResult(filename=None):
     if os.path.exists(filename):
         os.remove(filename)
-    fo = open(filename, "w+")
-    fo.write(_("Test Results:\n"))
-    table = PrettyTable(
-        [_("Test Item"), _("Read IOPS"), _("Read Speed"), _("Write IOPS"), _("Write Speed")])
-    for k, v in rwResult.items():
-        lst = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
-        table.add_row(lst)
-    table.align = "r"
-    table.align[_("Test Item")] = "l"
-    fo.write(table.get_string(sortby=_("Test Item"), reversesort=True))
-    fo.write("\n")
-    fo.close()
+    with open(filename, "w+", encoding="utf-8") as fo:
+        fo.write(_("Test Results:\n"))
+        table = PrettyTable(
+            [_("Test Item"), _("Read IOPS"), _("Read Speed"), _("Write IOPS"), _("Write Speed")])
+        for k, v in rwResult.items():
+            lst = [k, v["read_iops"], v["read_bw"], v["write_iops"], v["write_bw"]]
+            table.add_row(lst)
+        table.align = "r"
+        table.align[_("Test Item")] = "l"
+        fo.write(table.get_string(sortby=_("Test Item"), reversesort=True))
+        fo.write("\n")
     print((G + _("\nThe test results saved in: {}") + N).format(filename))
 
 
