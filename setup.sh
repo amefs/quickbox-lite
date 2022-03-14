@@ -683,11 +683,20 @@ EOF
 function _chsource() {
 	if [[ $mirror == "" ]]; then mirror="us"; fi
 	if [[ $DISTRO == Debian ]]; then
-		if [[ $mirror == "tuna" ]]; then
-			cp ${local_setup_template}source.list/debian.tuna.template /etc/apt/sources.list
+		if [[ ${CODENAME} == "bullseye" ]]; then
+			if [[ $mirror == "tuna" ]]; then
+				cp ${local_setup_template}source.list/debian.new.tuna.template /etc/apt/sources.list
+			else
+				cp ${local_setup_template}source.list/debian.new.template /etc/apt/sources.list
+				sed -i "s/COUNTRY/${mirror}/g" /etc/apt/sources.list
+			fi
 		else
-			cp ${local_setup_template}source.list/debian.template /etc/apt/sources.list
-			sed -i "s/COUNTRY/${mirror}/g" /etc/apt/sources.list
+			if [[ $mirror == "tuna" ]]; then
+				cp ${local_setup_template}source.list/debian.tuna.template /etc/apt/sources.list
+			else
+				cp ${local_setup_template}source.list/debian.template /etc/apt/sources.list
+				sed -i "s/COUNTRY/${mirror}/g" /etc/apt/sources.list
+			fi
 		fi
 		sed -i "s/RELEASE/${CODENAME}/g" /etc/apt/sources.list
 	else
