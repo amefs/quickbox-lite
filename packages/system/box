@@ -117,7 +117,7 @@ if [[ $resolver == "lang" ]]; then
 	"en" | "en-us" | "english" | "lang_en") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en ;;
 	"es" | "spanish" | "lang_es") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_es ;;
 	"fr" | "french" | "lang_fr") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_fr ;;
-	"zh" | "zh-cn" | "chinese" | "lang_zh-cn" | "lang_zh") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_zh-cn ;;
+	"zh" | "zh-cn" | "chinese" | "lang_zh-cn" | "lang_zh") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_zh ;;
 	*)
 	echo -e "\nQuickBox Lite Cli Tools"
 	echo -e "\nUsage: \n$(basename "$0") lang LANGUAGE"

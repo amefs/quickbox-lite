@@ -378,6 +378,24 @@ function _updateStatic() {
 		wget -t3 -T20 -q -O /usr/local/bin/qbittorrent-nox https://qbit-static.ezapi.net/${static_binary}
 		chmod +x /usr/local/bin/qbittorrent-nox
 	else
+		# version check
+		if (_version_gt ${qbit_major_version} "4.2"); then
+			libtversion="1.2.11"
+			libt_major_version="1.2"
+		fi
+		if (_version_gt ${qbitversion} "4.3.1"); then
+			libtversion="1.2.12"
+			libt_major_version="1.2"
+		fi
+		if (_version_gt ${qbitversion} "4.3.9"); then
+			libtversion="2.0.5"
+			libt_major_version="2.0"
+		fi
+		if (_version_gt "4.2" ${qbit_major_version}); then
+			libtversion="1.1.14"
+			libt_major_version="1.1"
+		fi
+		_warning "Use Libtorrent ${libtversion} for qBittorrent ${qbit_major_version}.x"
 		if [[ ! -f /install/.docker.lock ]]; then
 			_info "Install docker for building qBittorrent... "
 			rm -f /install/.install.lock
@@ -451,24 +469,10 @@ function _updateApp() {
 			else
 				rm -f /usr/local/bin/qbittorrent-nox
 			fi
-			# version check
-			if (_version_gt ${qbit_major_version} "4.2"); then
-				libtversion="1.2.11"
-				libt_major_version="1.2"
-			fi
-			if (_version_gt ${qbitversion} "4.3.1"); then
-				libtversion="1.2.12"
-				libt_major_version="1.2"
-			fi
-			if (_version_gt "4.2" ${qbit_major_version}); then
-				libtversion="1.1.14"
-				libt_major_version="1.1"
-			fi
-			_warning "Use Libtorrent ${libtversion} for qBittorrent ${qbit_major_version}.x"
 			_info "Fetching package list..."
 			cd /tmp || exit 1
 			wget -t3 -T20 -q -O file.lst https://qbit-static.ezapi.net/file.lst
-			static_binary=$(cat file.lst | grep -w "qbittorrent-nox.qbit${qbitversion}_lt${libtversion}.amd64" | awk '{ print $4}')
+			static_binary=$(cat file.lst | grep ".amd64" | grep "qbittorrent-nox.qbit${qbitversion}" | awk '{ print $4}')
 			rm -f file.lst
 			_updateStatic
 		else
