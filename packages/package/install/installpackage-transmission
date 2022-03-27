@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.2
+# Current version:  v1.5.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -97,6 +97,7 @@ function _usage() {
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
 	echo "-p, --ppa                 use ppa source"
+	echo "-v, --version             selection version to install"
 	echo "--with-cf                 use cloudflare instead of github"
 	echo "--with-sf                 use sourceforge instead of github"
 	echo "--with-osdn               use osdn(jp)  instead of github"
@@ -297,7 +298,11 @@ function _installApp() {
 		# get deb packages
 		PACKAGE="transmission"
 		cd /tmp
-		DEBASE="transmission-common_2.94-1mod1_all.deb transmission-cli_2.94-1mod1_amd64.deb transmission-daemon_2.94-1mod1_amd64.deb"
+		if [[ ${version} == 3 ]]; then
+			DEBASE="transmission-common_3.00-1mod1_all.deb transmission-cli_3.00-1mod1_amd64.deb transmission-daemon_3.00-1mod1_amd64.deb"
+		else
+			DEBASE="transmission-common_2.94-1mod1_all.deb transmission-cli_2.94-1mod1_amd64.deb transmission-daemon_2.94-1mod1_amd64.deb"
+		fi
 		for DEB in $DEBASE; do
 			_download ${PACKAGE} ${DEB}
 			_execute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
@@ -513,7 +518,7 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl:p -l help,ppa,with-cf,with-sf,with-osdn,with-github,log: -- "$@")
+if ! ARGS=$(getopt -a -o hl:v:p -l help,ppa,with-cf,with-sf,with-osdn,with-github,version:,log: -- "$@")
 then
 	_usage
     exit 1
@@ -531,6 +536,10 @@ while true; do
 		;;
 	-p | --ppa)
 		ppa=1
+		;;
+	-v | --version)
+		version="$2"
+		shift
 		;;
 	--with-cf)
 		cdn="cf"

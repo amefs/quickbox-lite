@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.2
+# Current version:  v1.5.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -145,6 +145,8 @@ function _removeApp() {
 	sed -i "/\/export\/${username}/d" /etc/fstab
 	sed -i "/\/export\/${username}/d" /etc/exports
 	rm -rf /export
+	sed -i "/rpcbind mountd nfsd statd lockd rquotad : ALL/d" /etc/hosts.deny
+	sed -i "/rpcbind mountd nfsd statd lockd rquotad : 10\.8\.0\.0\/24, 127\.0\.0\.1/d" /etc/hosts.allow
 	_success "${APP_TITLE} removed."
 }
 

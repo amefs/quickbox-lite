@@ -16,7 +16,7 @@
 
 # If not running interactively, don't do anything
 [ -z "$PS1" ] && return
-QUICKBOX_VERSION=v1.5.2
+QUICKBOX_VERSION=v1.5.3
 
 export TERM=xterm;TERM=xterm
 EDITOR=nano; export EDITOR=nano
@@ -144,44 +144,6 @@ NC="\e[m"               # Color Reset
 
   ALERT=${BWhite}${On_Red} # Bold White on red background
   date=`date`
-
-  echo ""
-  echo ""
-  echo '         ____        _      __   ____                __    _ __     '
-  echo '        / __ \__  __(_)____/ /__/ __ )____  _  __   / /   (_) /____ '
-  echo '       / / / / / / / / ___/ //_/ __  / __ \| |/_/  / /   / / __/ _ \'
-  echo '      / /_/ / /_/ / / /__/ ,< / /_/ / /_/ />  <   / /___/ / /_/  __/'
-  echo '      \___\_\__,_/_/\___/_/|_/_____/\____/_/|_|  /_____/_/\__/\___/ '
-  echo ""
-  echo "|========================================================================|"
-  echo "|------------------------------------------------------------------------|"
-  echo "|  ###################   This Server is OFF limits   ####################|"
-  echo "|------------------------------------------------------------------------|"
-  echo -e "     ${BCyan}You are running QuickBox ${BRed}${QUICKBOX_VERSION}${NC}"
-  echo -e "     ${BCyan}Your logged IP is ${BRed}$DISPLAY${NC}"
-  echo -e "     ${BCyan}Your BASH version is ${BRed}${BASH_VERSION%.*}${BCyan}${NC}"
-  echo "     $date"
-  echo "|========================================================================|"
-  echo "|========================================================================|"
-  echo "|------------------------------------------------------------------------|"
-  echo "|  Just type any one of the following commands                           |"
-  echo "|  to turn on different bash prompts                                     |"
-  echo "|------------------------------------------------------------------------|"
-  echo -e "|  ${BGreen}commandprompt_on${NC}                                                      |"
-  echo "|  this prompt shows last command used & more                            |"
-  echo -e "|  ${BGreen}powerprompt_on${NC}                                                        |"
-  echo "|  this prompt shows colorful system data - cpu, load etc.               |"
-  echo -e "|  ${BGreen}basicprompt_on${NC} (default)                                              |"
-  echo "|  this prompt shows color coded load & cpu avg                          |"
-  echo -e "|  ${BGreen}prompt_OFF${NC}                                                            |"
-  echo "|  this turns off prompts and goes back to default                       |"
-  echo "|========================================================================|"
-  echo ""
-  echo ""
-
-if [ -x /usr/games/fortune ]; then
-    /usr/games/fortune -s     # Makes our day a bit more fun.... :-)
-fi
 
 function _exit()              # Function to run upon exit of shell.
 {
@@ -404,7 +366,7 @@ alias QBsetup='cd /etc/QuickBox/setup'
 alias QBsystem='cd /etc/QuickBox/packages/system'
 
 # -> Navigates to set QuickBox directories.
-alias dashboard='cd /srv/quickbox'
+alias dashboard='cd /srv/dashboard'
 alias syscommands='cd /usr/local/bin/quickbox/system/'
 
 #-------------------------------------------------------------

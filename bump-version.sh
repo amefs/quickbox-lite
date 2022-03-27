@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   TautCony
-# Current version:  v1.5.2
+# Current version:  v1.5.3
 #
 #   Licensed under GNU General Public License v3.0 GPL-3 (in short)
 #
@@ -65,15 +65,21 @@ function _update_version() {
     for file in "${FILE_LIST[@]}"; do
         if [[ -f "$file" ]]; then
             # echo "Bumping version to $version in $file"
-            sed -i "" "s/^# Current version:  .*$/# Current version:  v${VERSION}/" "$file"
+            sed -i "s/^# Current version:  .*$/# Current version:  v${VERSION}/" "$file"
             git add "$file"
         fi
     done
 
-    sed -i "" "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README.md
-    sed -i "" "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README_zh.md
+    sed -i "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README.md
+    sed -i "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README_zh.md
+    sed -i "s/QUICKBOX_VERSION=.*$/QUICKBOX_VERSION=v${VERSION}/" setup/templates/motd/01-custom
+    sed -i "s/QUICKBOX_VERSION=.*$/QUICKBOX_VERSION=v${VERSION}/" setup/templates/bash_qb.template
+    sed -i "s/\$version = 'v1.5.2';$/\$version = 'v${VERSION}';/" setup/dashboard/inc/config.php
     git add README.md
     git add README_zh.md
+    git add setup/templates/motd/01-custom
+    git add setup/templates/bash_qb.template
+    git add setup/dashboard/inc/config.php
 }
 
 function _commit_changes() {

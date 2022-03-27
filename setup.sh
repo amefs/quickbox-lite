@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.2
+# Current version:  v1.5.3
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -752,7 +752,7 @@ DPHP
 
 function _dependency() {
 	_addPHP
-	DEPLIST="sudo at bc build-essential curl wget nginx-extras subversion ssl-cert php7.4-cli php7.4-fpm php7.4 php7.4-dev php7.4-memcached memcached php7.4-curl php7.4-gd php7.4-geoip php7.4-json php7.4-mbstring php7.4-opcache php7.4-xml php7.4-xmlrpc php7.4-zip libfcgi0ldbl mcrypt libmcrypt-dev nano python-dev unzip htop iotop vnstat vnstati automake make openssl net-tools debconf-utils ntp rsync"
+	DEPLIST="sudo at bc build-essential curl wget nginx-extras subversion ssl-cert php7.4-cli php7.4-fpm php7.4 php7.4-dev php7.4-memcached memcached php7.4-curl php7.4-gd php7.4-geoip php7.4-json php7.4-mbstring php7.4-opcache php7.4-xml php7.4-xmlrpc php7.4-zip libfcgi0ldbl mcrypt libmcrypt-dev nano python-dev unzip htop iotop vnstat vnstati automake make openssl net-tools debconf-utils ntp rsync screenfetch"
 	for depend in $DEPLIST; do
 		# shellcheck disable=SC2154
 		echo -e "XXX\n12\n$INFO_TEXT_PROGRESS_Extra_2${depend}\nXXX"
@@ -849,17 +849,9 @@ function _insnodejs() {
 }
 
 function _webconsole() {
-	# setup webconsole for dashboard
-	PUBLICIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-	cat >/etc/profile <<EOF
-echo " Welcome Back !"
-if [[ -f /install/domain.info ]]; then
-	echo "    * Dashboard:  https://\$(cat /install/domain.info)"
-else
-	echo "    * Dashboard:  https://${PUBLICIP}"
-fi
-echo ""
-EOF
+	chmod -x /etc/update-motd.d/*
+	\cp -f ${local_setup_template}motd/01-custom /etc/update-motd.d/01-custom
+	chmod +x /etc/update-motd.d/01-custom
 	# install ttyd and service config
 	ttyd_binary_url=$(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | jq -r ".assets[] | select(.name | contains(\"$(arch)\")) | .browser_download_url") >>"${OUTTO}" 2>&1
 	if wget -qO /usr/local/bin/ttyd "${ttyd_binary_url}"; then

@@ -1,3 +1,26 @@
+## CHANGELOG v1.5.3
+
+*Changelog update Sunday, Mar 27, 2022*
+
+### General additions
+
+- support Transmission v3.0
+
+### Function improved
+
+- use motd instead of bashrc information
+
+### Function updated
+
+- nfs only run with private IP address by default
+
+### Bug fixed
+
+- fix qBittorrent static script
+- fix switch branch button on dashboard
+
+---
+
 ## CHANGELOG v1.5.2
 
 *Changelog update Saturday, Jan 1, 2022*

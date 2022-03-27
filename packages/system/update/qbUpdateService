@@ -129,18 +129,21 @@ function _updateservice() {
 	if [[ -f /install/.lecert.lock ]]; then
 		if [[ ! -f /install/domain.info ]]; then
 			cat /etc/nginx/sites-enabled/default | grep server_name | head -n 1 | tr -s ' ' | cut -d ' ' -f 3 | sed -e "s/;//" >> /install/domain.info
-			sed -zi "s/echo \" Welcome Back \!\"\necho \"    \* Dashboard:  https:\/\/.*\"\necho \"\"//g" /etc/profile
-			PUBLICIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
-			cat >/etc/profile <<EOF
-echo " Welcome Back !"
-if [[ -f /install/domain.info ]]; then
-	echo "    * Dashboard:  https://\$(cat /install/domain.info)"
-else
-	echo "    * Dashboard:  https://${PUBLICIP}"
-fi
-echo ""
-EOF
 		fi
+	fi
+	if ( grep -c '/install/domain.info' < /etc/profile > /dev/null); then
+		sed -i '/echo " Welcome Back !"/,7d' /etc/profile
+		# Install screenfetch command
+		if [[ $(dpkg -s screenfetch 2> /dev/null | grep -cow '^Status: install ok installed$') -eq '0' ]]; then
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -y install screenfetch --allow-unauthenticated >>"${OUTTO}" 2>&1 || { local dependError=1; }
+		fi
+		chmod -x /etc/update-motd.d/*
+		\cp -f ${local_setup_template}motd/01-custom /etc/update-motd.d/01-custom
+		chmod +x /etc/update-motd.d/01-custom
+	else
+		\cp -f ${local_setup_template}motd/01-custom /etc/update-motd.d/01-custom
+		chmod +x /etc/update-motd.d/01-custom
 	fi
 	# Install at command
 	if [[ $(dpkg -s at 2> /dev/null | grep -cow '^Status: install ok installed$') -eq '0' ]]; then

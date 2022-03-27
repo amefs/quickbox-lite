@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# [QuickBox Lite motd]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.5.2
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+#   Licensed under GNU General Public License v3.0 GPL-3 (in short)
+#
+#   You may copy, distribute and modify the software as long as you track
+#   changes/dates in source files. Any modifications to our software
+#   including (via compiler) GPL-licensed code must also be made available
+#   under the GPL along with build & install instructions.
+#
+#################################################################################
+QUICKBOX_VERSION=v1.5.3
+PUBLICIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
+printf "Welcome to QuickBox Lite %s" "${QUICKBOX_VERSION}"
+printf "\n"
+if [[ -f /install/domain.info ]]; then
+	printf " * Dashboard:      https://%s\n"  "$(cat /install/domain.info)"
+else
+	printf " * Dashboard:      https://%s\n" "${PUBLICIP}"
+fi
+printf " * Documentation:  https://www.ptbox.dev\n"
+printf " * Support:        https://github.com/amefs/quickbox-lite/issues\n"
+printf "\n"
+[ -x /usr/bin/screenfetch ] && /usr/bin/screenfetch -a /etc/QuickBox/packages/system/auxiliary/quickbox-logo
+printf "\n"

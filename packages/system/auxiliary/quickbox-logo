@@ -1,0 +1,23 @@
+startline="2"
+logowidth="50"
+Blue='\033[0m\033[34m'         # Blue
+White='\033[0m\033[37m'        # White
+lBlue='\033[0m\033[1;34m'         # Light Blue
+dGrey='\033[0m\033[1;30m'         # Dark Blue
+fulloutput=(
+"${lBlue}                            *********               "
+"${lBlue}                       ******************           "
+"${lBlue}                   ************  ************       "
+"${lBlue}               ************          ************.  %s"
+"${lBlue}              *    ****       ${White}....       ${lBlue}******${Blue}###  %s"
+"${lBlue}      **.  ***            ${White}.............     ${Blue}######  %s"
+"${lBlue}         *******   ${White}...  ....   ........${dGrey}**   ${Blue}######  %s"
+"${lBlue}**   ,*   *****    *      ${White}... .. .${dGrey}*******   ${Blue}######  %s"
+"${lBlue}    ****      ******  ${White}....   ...${dGrey}*********   ${Blue}######  %s"
+"${lBlue}   ***     **   **** ${White}.....   ...${dGrey}*********   ${Blue}######  %s"
+"${lBlue}         *****   **       ${White}......${dGrey}******,     ${Blue}######  %s"
+"${lBlue}           *     **           ${White}..${dGrey}**       ${Blue}#########  %s"
+"${lBlue}               ************          ${Blue}############   %s"
+"${lBlue}                   ************. ${Blue}############       %s"
+"${lBlue}                       .********${Blue}#########           %s"
+"${lBlue}                            ****${Blue}####,               %s")
