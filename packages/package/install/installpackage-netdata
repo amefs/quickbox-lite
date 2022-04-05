@@ -182,8 +182,10 @@ function _installApp() {
 	username=$(cat /root/.admin.info | cut -d: -f1)
 	mkdir -p /home/${username}/.config/ >/dev/null 2>&1
 	cd /home/${username}/.config/
-	_execute "git clone ${BRANCH} --depth=100 netdata"
+	_execute "git clone --recurse-submodules ${BRANCH} --depth=100 netdata"
 	cd netdata || { _error "Download Netdata failed..." && exit 1; }
+	latest_release_version=$(curl -s https://api.github.com/repos/netdata/netdata/releases/latest | jq -r ".tag_name")
+	_execute "git checkout $latest_release_version"
 	./netdata-installer.sh --disable-telemetry --dont-start-it --dont-wait >>"${OUTTO}" 2>&1
 	sleep 3
 	_success "${APP_TITLE} Built."
