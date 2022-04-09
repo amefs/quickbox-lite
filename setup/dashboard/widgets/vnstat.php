@@ -109,7 +109,7 @@ function get_vnstat_data() {
             $d  = $hour_data[$i];
             $ts = mktime($d['time']['hour'], 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
             assert($ts !== false);
-            $diff_time = max(time() - $ts, 3600); // at most one hour
+            $diff_time = min(time() - $ts, 3600); // at most one hour
             $rx        = $d['rx'] * $data_coefficient;
             $tx        = $d['tx'] * $data_coefficient;
 
@@ -131,7 +131,7 @@ function get_vnstat_data() {
             $d  = $day_data[$i];
             $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
             assert($ts !== false);
-            $diff_time = max(time() - $ts, 86400); // at most one day
+            $diff_time = min(time() - $ts, 86400); // at most one day
             $rx        = $d['rx'] * $data_coefficient;
             $tx        = $d['tx'] * $data_coefficient;
 
@@ -156,7 +156,7 @@ function get_vnstat_data() {
             assert($first_day !== false);
             assert($last_day !== false);
             $full_month_diff = $last_day - $first_day;
-            $diff_time       = max(time() - $first_day, $full_month_diff); // at most one month
+            $diff_time       = min(time() - $first_day, $full_month_diff); // at most one month
             $rx              = $d['rx'] * $data_coefficient;
             $tx              = $d['tx'] * $data_coefficient;
 
@@ -178,7 +178,7 @@ function get_vnstat_data() {
             $d  = $top10_data[$i];
             $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
             assert($ts !== false);
-            $diff_time = max(time() - $ts, 86400); // at most one day
+            $diff_time = min(time() - $ts, 86400); // at most one day
             $rx        = $d['rx'] * $data_coefficient;
             $tx        = $d['tx'] * $data_coefficient;
 
