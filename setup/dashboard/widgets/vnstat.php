@@ -49,7 +49,7 @@ function get_vnstat_data() {
             $vnstat_data = json_decode($file_data, true);
         }
     } else {
-        $fd = popen("{$vnstat_bin} --json -i {$iface} {$page}", 'r');
+        $fd = popen("{$vnstat_bin} --json -i {$iface}", 'r');
         if (is_resource($fd)) {
             $buffer = '';
             while (!feof($fd)) {
@@ -103,96 +103,88 @@ function get_vnstat_data() {
     //   )
 
     // per-hour data
-    if ($page === 'h') {
-        $hour_data = array_reverse($json_version === '1' ? $traffic_data['hours'] : $traffic_data['hour']);
-        for ($i = 0; $i < min(24, count($hour_data)); ++$i) {
-            $d          = $hour_data[$i];
-            $hours      = $json_version === '1' ? 0 : $d['time']['hour'];
-            $hour_delta = 23 - $d['id'];
-            $ts         = mktime($hours, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
-            assert($ts !== false);
-            $diff_time = min(time() - $ts, 3600); // at most one hour
-            $rx        = $d['rx'] * $data_coefficient;
-            $tx        = $d['tx'] * $data_coefficient;
+    $hour_data = array_reverse($json_version === '1' ? $traffic_data['hours'] : $traffic_data['hour']);
+    for ($i = 0; $i < min(24, count($hour_data)); ++$i) {
+        $d          = $hour_data[$i];
+        $hours      = $json_version === '1' ? 0 : $d['time']['hour'];
+        $hour_delta = 23 - $d['id'];
+        $ts         = mktime($hours, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+        assert($ts !== false);
+        $diff_time = min(time() - $ts, 3600); // at most one hour
+        $rx        = $d['rx'] * $data_coefficient;
+        $tx        = $d['tx'] * $data_coefficient;
 
-            $hour[$i] = [
-                'time'   => $ts,
-                'label'  => $json_version === '1' ? "T-{$hour_delta} h" : date('h A', $ts),
-                'rx'     => $rx, // in bytes
-                'tx'     => $tx, // int bytes
-                'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
-                'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-            ];
-        }
+        $hour[$i] = [
+            'time'   => $ts,
+            'label'  => $json_version === '1' ? "T-{$hour_delta} h" : date('h A', $ts),
+            'rx'     => $rx, // in bytes
+            'tx'     => $tx, // int bytes
+            'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
+            'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
+        ];
     }
 
     // per-day data
-    if ($page === 'd') {
-        $day_data = array_reverse($json_version === '1' ? $traffic_data['days'] : $traffic_data['day']);
-        for ($i = 0; $i < min(30, count($day_data)); ++$i) {
-            $d  = $day_data[$i];
-            $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
-            assert($ts !== false);
-            $diff_time = min(time() - $ts, 86400); // at most one day
-            $rx        = $d['rx'] * $data_coefficient;
-            $tx        = $d['tx'] * $data_coefficient;
+    $day_data = array_reverse($json_version === '1' ? $traffic_data['days'] : $traffic_data['day']);
+    for ($i = 0; $i < min(30, count($day_data)); ++$i) {
+        $d  = $day_data[$i];
+        $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+        assert($ts !== false);
+        $diff_time = min(time() - $ts, 86400); // at most one day
+        $rx        = $d['rx'] * $data_coefficient;
+        $tx        = $d['tx'] * $data_coefficient;
 
-            $day[$i] = [
-                'time'   => $ts,
-                'label'  => date('d F', $ts),
-                'rx'     => $rx, // in bytes
-                'tx'     => $tx, // int bytes
-                'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
-                'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-            ];
-        }
+        $day[$i] = [
+            'time'   => $ts,
+            'label'  => date('d F', $ts),
+            'rx'     => $rx, // in bytes
+            'tx'     => $tx, // int bytes
+            'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
+            'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
+        ];
     }
 
     // per-month data
-    if ($page === 'm') {
-        $month_data = array_reverse($json_version === '1' ? $traffic_data['months'] : $traffic_data['month']);
-        for ($i = 0; $i < min(12, count($month_data)); ++$i) {
-            $d         = $month_data[$i];
-            $first_day = mktime(0, 0, 0, $d['date']['month'], 1, $d['date']['year']);
-            $last_day  = mktime(0, 0, 0, $d['date']['month'] + 1, 1, $d['date']['year']);
-            assert($first_day !== false);
-            assert($last_day !== false);
-            $full_month_diff = $last_day - $first_day;
-            $diff_time       = min(time() - $first_day, $full_month_diff); // at most one month
-            $rx              = $d['rx'] * $data_coefficient;
-            $tx              = $d['tx'] * $data_coefficient;
+    $month_data = array_reverse($json_version === '1' ? $traffic_data['months'] : $traffic_data['month']);
+    for ($i = 0; $i < min(12, count($month_data)); ++$i) {
+        $d         = $month_data[$i];
+        $first_day = mktime(0, 0, 0, $d['date']['month'], 1, $d['date']['year']);
+        $last_day  = mktime(0, 0, 0, $d['date']['month'] + 1, 1, $d['date']['year']);
+        assert($first_day !== false);
+        assert($last_day !== false);
+        $full_month_diff = $last_day - $first_day;
+        $diff_time       = min(time() - $first_day, $full_month_diff); // at most one month
+        $rx              = $d['rx'] * $data_coefficient;
+        $tx              = $d['tx'] * $data_coefficient;
 
-            $month[$i] = [
-                'time'   => $first_day,
-                'label'  => date('F Y', $first_day),
-                'rx'     => $rx, // in bytes
-                'tx'     => $tx, // int bytes
-                'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
-                'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-            ];
-        }
+        $month[$i] = [
+            'time'   => $first_day,
+            'label'  => date('F Y', $first_day),
+            'rx'     => $rx, // in bytes
+            'tx'     => $tx, // int bytes
+            'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
+            'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
+        ];
     }
 
     // top10 days data
-    if ($page === 't') {
-        $top10_data = $json_version === '1' ? $traffic_data['tops'] : $traffic_data['top'];
-        for ($i = 0; $i < min(10, count($top10_data)); ++$i) {
-            $d  = $top10_data[$i];
-            $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
-            assert($ts !== false);
-            $diff_time = min(time() - $ts, 86400); // at most one day
-            $rx        = $d['rx'] * $data_coefficient;
-            $tx        = $d['tx'] * $data_coefficient;
+    $top10_data = $json_version === '1' ? $traffic_data['tops'] : $traffic_data['top'];
+    for ($i = 0; $i < min(10, count($top10_data)); ++$i) {
+        $d  = $top10_data[$i];
+        $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+        assert($ts !== false);
+        $diff_time = min(time() - $ts, 86400); // at most one day
+        $rx        = $d['rx'] * $data_coefficient;
+        $tx        = $d['tx'] * $data_coefficient;
 
-            $top[$i] = [
-                'time'   => $ts,
-                'label'  => date('d F Y', $ts),
-                'rx'     => $rx, // in bytes
-                'tx'     => $tx, // int bytes
-                'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
-                'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-            ];
-        }
+        $top[$i] = [
+            'time'   => $ts,
+            'label'  => date('d F Y', $ts),
+            'rx'     => $rx, // in bytes
+            'tx'     => $tx, // int bytes
+            'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
+            'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
+        ];
     }
 
     // summary data from old dumpdb command
