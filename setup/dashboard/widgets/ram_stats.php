@@ -25,17 +25,17 @@ function get_ram_color($percent) {
 $memTotal         = formatsize($sysMemInfo['MemTotal']);
 $memUsed          = formatsize($sysMemInfo['MemUsed']);
 $memFree          = formatsize($sysMemInfo['MemFree']);
-$memCached        = formatsize($sysMemInfo['Cached']); //memory cache
-$memBuffers       = formatsize($sysMemInfo['Buffers']); //buffer
+$memCached        = formatsize($sysMemInfo['Cached']); // memory cache
+$memBuffers       = formatsize($sysMemInfo['Buffers']); // buffer
 $swapTotal        = formatsize($sysMemInfo['SwapTotal']);
 $swapUsed         = formatsize($sysMemInfo['SwapUsed']);
 $swapFree         = formatsize($sysMemInfo['SwapFree']);
 $swapPercent      = number_format($sysMemInfo['SwapPercent'], 3);
-$memRealUsed      = formatsize($sysMemInfo['MemRealUsed']); //Real memory usage
-$memRealFree      = formatsize($sysMemInfo['MemRealFree']); //Real memory free
-$memRealPercent   = number_format($sysMemInfo['MemRealPercent'], 3); //Real memory usage ratio
-$memPercent       = number_format($sysMemInfo['MemPercent'], 3); //Total Memory Usage
-$memCachedPercent = number_format($sysMemInfo['CachedPercent'], 3); //cache memory usage
+$memRealUsed      = formatsize($sysMemInfo['MemRealUsed']); // Real memory usage
+$memRealFree      = formatsize($sysMemInfo['MemRealFree']); // Real memory free
+$memRealPercent   = number_format($sysMemInfo['MemRealPercent'], 3); // Real memory usage ratio
+$memPercent       = number_format($sysMemInfo['MemPercent'], 3); // Total Memory Usage
+$memCachedPercent = number_format($sysMemInfo['CachedPercent'], 3); // cache memory usage
 ?>
 
 <div class="row">
@@ -54,7 +54,7 @@ $memCachedPercent = number_format($sysMemInfo['CachedPercent'], 3); //cache memo
     <!--/div-->
   </div>
   <?php
-  //Determine if the cache is zero, no display
+  // Determine if the cache is zero, no display
   if ($memCached > 1e-5) { ?>
   <!-- CACHED MEMORY USAGE -->
   <div class="col-sm-12" style="padding-top:10px">
@@ -80,7 +80,7 @@ $memCachedPercent = number_format($sysMemInfo['CachedPercent'], 3); //cache memo
   </div>
   <?php } ?>
   <?php
-  //If SWAP district judge is 0, no display
+  // If SWAP district judge is 0, no display
   if ($swapTotal > 1e-5) { ?>
   <!-- SWAP USAGE -->
   <div class="col-sm-12" style="padding-top:10px">

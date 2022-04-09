@@ -67,10 +67,10 @@ class SystemInfo {
         $res['MemUsed']    = $res['MemTotal'] - $res['MemFree'];
         $res['MemPercent'] = $res['MemUsed'] / $res['MemTotal'] * 100;
 
-        $res['MemRealUsed']    = $res['MemUsed'] - $res['Cached'] - $res['Buffers']; //Real memory usage
-        $res['MemRealFree']    = $res['MemTotal'] - $res['MemRealUsed']; //Real idle
-        $res['MemRealPercent'] = $res['MemRealUsed'] / $res['MemTotal'] * 100; //Real memory usage
-        $res['CachedPercent']  = $res['Cached'] / $res['MemTotal'] * 100; //Cached memory usage
+        $res['MemRealUsed']    = $res['MemUsed'] - $res['Cached'] - $res['Buffers']; // Real memory usage
+        $res['MemRealFree']    = $res['MemTotal'] - $res['MemRealUsed']; // Real idle
+        $res['MemRealPercent'] = $res['MemRealUsed'] / $res['MemTotal'] * 100; // Real memory usage
+        $res['CachedPercent']  = $res['Cached'] / $res['MemTotal'] * 100; // Cached memory usage
 
         $res['SwapUsed']    = $res['SwapTotal'] - $res['SwapFree'];
         $res['SwapPercent'] = $res['SwapUsed'] / $res['SwapTotal'] * 100;
