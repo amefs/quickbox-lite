@@ -106,8 +106,10 @@ function get_vnstat_data() {
     if ($page === 'h') {
         $hour_data = array_reverse($json_version === '1' ? $traffic_data['hours'] : $traffic_data['hour']);
         for ($i = 0; $i < min(24, count($hour_data)); ++$i) {
-            $d  = $hour_data[$i];
-            $ts = mktime($d['time']['hour'], 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+            $d          = $hour_data[$i];
+            $hours      = $json_version === '1' ? 0 : $d['time']['hour'];
+            $hour_delta = 23 - $d['id'];
+            $ts         = mktime($hours, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
             assert($ts !== false);
             $diff_time = min(time() - $ts, 3600); // at most one hour
             $rx        = $d['rx'] * $data_coefficient;
@@ -115,7 +117,7 @@ function get_vnstat_data() {
 
             $hour[$i] = [
                 'time'   => $ts,
-                'label'  => date('h A', $ts),
+                'label'  => $json_version === '1' ? "T-{$hour_delta} h" : date('h A', $ts),
                 'rx'     => $rx, // in bytes
                 'tx'     => $tx, // int bytes
                 'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
