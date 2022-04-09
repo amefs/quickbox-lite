@@ -13,6 +13,10 @@ $day = null;
 $hour = null;
 /** @var array<int,mixed> $month */
 $month = null;
+/** @var array<int,mixed> $top */
+$top = null;
+/** @var array<int,mixed> $summary */
+$summary = null;
 
 require($_SERVER['DOCUMENT_ROOT'].'/widgets/vnstat.php');
 
@@ -35,7 +39,6 @@ function write_summary() {
     //
     // let's build array for write_data_table
     //
-
     $sum = [];
 
     if (count($day) > 0 && count($hour) > 0 && count($month) > 0) {
@@ -65,54 +68,6 @@ function write_summary() {
     }
 
     write_data_table(T('Summary'), $sum);
-}
-
-/**
- * bandwidth info for top 10 days with the highest traffic.
- *
- * @return void
- */
-function write_top_10() {
-    global $top, $summary, $hour, $day, $month;
-
-    $trx     = $summary['totalrx'];
-    $ttx     = $summary['totaltx'];
-    $ttime   = strtotime('now') - $summary['created'];
-    $trx_avg = round($trx / $ttime) * 8;
-    $ttx_avg = round($ttx / $ttime) * 8;
-    //
-    // let's build array for write_data_table
-    //
-
-    $sum = [];
-
-    if (count($day) > 0 && count($hour) > 0 && count($month) > 0) {
-        $sum[0]['label']  = T('This hour');
-        $sum[0]['rx']     = $hour[0]['rx'];
-        $sum[0]['tx']     = $hour[0]['tx'];
-        $sum[0]['rx_avg'] = $hour[0]['rx_avg'];
-        $sum[0]['tx_avg'] = $hour[0]['tx_avg'];
-
-        $sum[1]['label']  = T('This day');
-        $sum[1]['rx']     = $day[0]['rx'];
-        $sum[1]['tx']     = $day[0]['tx'];
-        $sum[1]['rx_avg'] = $day[0]['rx_avg'];
-        $sum[1]['tx_avg'] = $day[0]['tx_avg'];
-
-        $sum[2]['label']  = T('This month');
-        $sum[2]['rx']     = $month[0]['rx'];
-        $sum[2]['tx']     = $month[0]['tx'];
-        $sum[2]['rx_avg'] = $month[0]['rx_avg'];
-        $sum[2]['tx_avg'] = $month[0]['tx_avg'];
-
-        $sum[3]['label']  = T('All time');
-        $sum[3]['rx']     = $trx;
-        $sum[3]['tx']     = $ttx;
-        $sum[3]['rx_avg'] = $trx_avg;
-        $sum[3]['tx_avg'] = $ttx_avg;
-    }
-
-    write_data_table(T('Top 10 days'), $top);
 }
 
 /**
@@ -170,14 +125,14 @@ get_vnstat_data();
 <div class="col-sm-12" style="padding-left:0;padding-right:0;">
   <div class="table-responsive">
     <?php
-      if ($page === 's') {
-          write_top_10();
-      } elseif ($page === 'h') {
+      if ($page === 'h') {
           write_data_table(T('Last 24 hours'), $hour);
       } elseif ($page === 'd') {
           write_data_table(T('Last 30 days'), $day);
       } elseif ($page === 'm') {
           write_data_table(T('Last 12 months'), $month);
+      } elseif ($page === 't') {
+          write_data_table(T('Top 10 days'), $top);
       }
     ?>
   </div>
