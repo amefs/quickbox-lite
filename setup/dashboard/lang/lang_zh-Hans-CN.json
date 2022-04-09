@@ -175,11 +175,8 @@
   "X2GO": "X2Go 是一款使用 NX 技术协议的 Linux 开源远程桌面软件.",
   "YOUR_DISK_STATUS": "磁盘状态",
   "ZNC": "ZNC 是一个 IRC 网络辅助软件. 它可以将客户端从实际的 IRC 服务器以及选定的频道中分离出来.",
-  "datefmt_days": "%d %B",
-  "datefmt_days_img": "%d",
-  "datefmt_hours": "%l%p",
-  "datefmt_hours_img": "%l",
-  "datefmt_months": "%B %Y",
-  "datefmt_months_img": "%b",
-  "datefmt_top": "%d %B %Y"
+  "datefmt_days": "F d",
+  "datefmt_hours": "g A",
+  "datefmt_months": "Y F",
+  "datefmt_top": "Y F d"
 }

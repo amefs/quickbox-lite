@@ -917,11 +917,6 @@ function _insdashboard() {
 		bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en >/dev/null 2>&1
 		;;
 	esac
-	if [[ $(vnstat -v | grep -Eo "[0-9.]+" | cut -d . -f1) == "1" ]]; then
-		\cp -f /srv/dashboard/widgets/vnstat-raw.php /srv/dashboard/widgets/vnstat.php
-	elif [[ $(vnstat -v | grep -Eo "[0-9.]+" | cut -d . -f1) == "2" ]]; then
-		\cp -f /srv/dashboard/widgets/vnstat-json.php /srv/dashboard/widgets/vnstat.php
-	fi
 	touch /install/.dashboard.lock
 	cd /srv/dashboard/ws || exit 1
 	npm ci --production >>"${OUTTO}" 2>&1

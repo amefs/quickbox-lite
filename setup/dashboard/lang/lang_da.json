@@ -175,11 +175,8 @@
   "X2GO": "X2Go er et open source fjernskrivebords-software til Linux som benytter sig af NX tech. protokollen.",
   "YOUR_DISK_STATUS": "Disk Status",
   "ZNC": "ZNC er en IRC bouncer eller BNC. Den kan frigøre ircklienten fra serveren eller kanalen og holde din klient ajour når der igen sker en tilkobling.",
-  "datefmt_days": "%d %B",
-  "datefmt_days_img": "%d",
-  "datefmt_hours": "%l%p",
-  "datefmt_hours_img": "%l",
-  "datefmt_months": "%B %Y",
-  "datefmt_months_img": "%b",
-  "datefmt_top": "%d %B %Y"
+  "datefmt_days": "d F",
+  "datefmt_hours": "g A",
+  "datefmt_months": "F Y",
+  "datefmt_top": "d F Y"
 }

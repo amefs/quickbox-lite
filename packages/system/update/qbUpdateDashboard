@@ -30,12 +30,6 @@ function _updatedashboard() {
 	cd /srv/dashboard || exit 1
 	_execute "rsync -aP --delete --exclude=output.log  --exclude=interface.txt --exclude=master.txt --exclude=.smoked.lock --exclude=.defaulted.lock --exclude=share.php --exclude=custom.menu.php --exclude=url.override.php --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
 
-	if [[ $(vnstat -v | grep -Eo "[0-9.]+" | cut -d . -f1) == "1" ]]; then
-		\cp -f /srv/dashboard/widgets/vnstat-raw.php /srv/dashboard/widgets/vnstat.php
-	elif [[ $(vnstat -v | grep -Eo "[0-9.]+" | cut -d . -f1) == "2" ]]; then
-		\cp -f /srv/dashboard/widgets/vnstat-json.php /srv/dashboard/widgets/vnstat.php
-	fi
-
 	IFACE=$(cat /srv/dashboard/db/interface.txt)
 	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/inc/config.php
 	if [[ -f /srv/dashboard/db/.smoked.lock ]]; then

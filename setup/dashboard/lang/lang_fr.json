@@ -175,11 +175,8 @@
   "X2GO": "X2Go est un logiciel de bureau à distance open source pour Linux qui utilise le protocole de technologie NX.",
   "YOUR_DISK_STATUS": "Statut Du Disque",
   "ZNC": "ZNC est un bouncer IRC sous licence GPL. Celui-ci sera connecté en permanence à vos salons de discussions et fera office de passerelle entre votre client et vos serveurs IRC.",
-  "datefmt_days": "%d %B",
-  "datefmt_days_img": "%d",
-  "datefmt_hours": "%l%p",
-  "datefmt_hours_img": "%l",
-  "datefmt_months": "%B %Y",
-  "datefmt_months_img": "%b",
-  "datefmt_top": "%d %B %Y"
+  "datefmt_days": "d F",
+  "datefmt_hours": "g A",
+  "datefmt_months": "F Y",
+  "datefmt_top": "d F Y"
 }

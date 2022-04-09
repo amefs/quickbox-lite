@@ -26,8 +26,8 @@ validate_input();
 function write_summary() {
     global $summary, $day, $hour, $month;
 
-    $trx     = $summary['totalrx'] * 1024 + $summary['totalrxk'];
-    $ttx     = $summary['totaltx'] * 1024 + $summary['totaltxk'];
+    $trx     = $summary['totalrx'];
+    $ttx     = $summary['totaltx'];
     $ttime   = strtotime('now') - $summary['created'];
     $trx_avg = round($trx / $ttime) * 8;
     $ttx_avg = round($ttx / $ttime) * 8;
@@ -79,8 +79,8 @@ function write_summary() {
 function write_top_10() {
     global $top, $summary, $hour, $day, $month;
 
-    $trx     = $summary['totalrx'] * 1024 + $summary['totalrxk'];
-    $ttx     = $summary['totaltx'] * 1024 + $summary['totaltxk'];
+    $trx     = $summary['totalrx'];
+    $ttx     = $summary['totaltx'];
     $ttime   = strtotime('now') - $summary['created'];
     $trx_avg = round($trx / $ttime) * 8;
     $ttx_avg = round($ttx / $ttime) * 8;

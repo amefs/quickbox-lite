@@ -106,7 +106,7 @@ function session_start_timeout($timeout = 5, $probability = 100, $cookie_domain 
  *
  * @return string
  */
-function formatsize($length, $decimals = 3, $startwith = 1) {
+function formatsize($length, $decimals = 3, $startwith = 0) {
     if ($length < 1e-5) {
         return '0 B';
     }
@@ -124,7 +124,7 @@ function formatsize($length, $decimals = 3, $startwith = 1) {
  *
  * @return string
  */
-function formatspeed($length, $decimals = 3, $startwith = 1) {
+function formatspeed($length, $decimals = 3, $startwith = 0) {
     if ($length < 1e-5) {
         return '0 B';
     }

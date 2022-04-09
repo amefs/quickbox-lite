@@ -70,7 +70,12 @@ function get_vnstat_data($use_label = true) {
         return;
     }
 
-    $iface_data   = $vnstat_data['interfaces'][0];
+    $iface_index = array_search($iface, array_column($vnstat_data['interfaces'], 'name'), true);
+    if (!$iface_index) {
+        $iface_index = 0;
+    }
+
+    $iface_data   = $vnstat_data['interfaces'][$iface_index];
     $traffic_data = $iface_data['traffic'];
 
     // data are grouped for hour, day, month, ... and a data entry looks like this:
@@ -99,77 +104,65 @@ function get_vnstat_data($use_label = true) {
         $d  = $day_data[$i];
         $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
         assert($ts !== false);
+        $diff_time = max(time() - $ts, 86400); // at most one day
+        $rx        = $d['rx'];
+        $tx        = $d['tx'];
 
-        $day[$i]['time'] = $ts;
-        $day[$i]['rx']   = $d['rx'] / 1024;
-        $day[$i]['tx']   = $d['tx'] / 1024;
-        $day[$i]['act']  = 1;
-
-        if ($use_label) {
-            $day[$i]['label']     = strftime(T('datefmt_days'), $ts);
-            $day[$i]['img_label'] = strftime(T('datefmt_days_img'), $ts);
-        }
-
-        $now     = strtotime('now');
-        $zerostr = strftime('%d %B %Y', $now);
-        assert($zerostr !== false);
-        $diff_time         = $now - strtotime($zerostr);
-        $day[$i]['rx_avg'] = round($day[$i]['rx'] / $diff_time) * 8;
-        $day[$i]['tx_avg'] = round($day[$i]['tx'] / $diff_time) * 8;
+        $day[$i] = [
+            'time'   => $ts,
+            'label'  => date(T('datefmt_days'), $ts),
+            'rx'     => $rx, // in bytes
+            'tx'     => $tx, // int bytes
+            'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
+            'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
+            'act'    => 1,
+        ];
     }
 
     // per-month data
     $month_data = array_reverse($traffic_data['month']);
     for ($i = 0; $i < min(12, count($month_data)); ++$i) {
-        $d  = $month_data[$i];
-        $ts = mktime(0, 0, 0, $d['date']['month'] + 1, 0, $d['date']['year']);
-        assert($ts !== false);
+        $d = $month_data[$i];
 
-        $month[$i]['time'] = $ts;
-        $month[$i]['rx']   = $d['rx'] / 1024;
-        $month[$i]['tx']   = $d['tx'] / 1024;
-        $month[$i]['act']  = 1;
+        $first_day = mktime(0, 0, 0, $d['date']['month'], 1, $d['date']['year']);
+        $last_day  = mktime(0, 0, 0, $d['date']['month'] + 1, 1, $d['date']['year']);
+        assert($first_day !== false);
+        assert($last_day !== false);
+        $full_month_diff = $last_day - $first_day;
+        $diff_time       = max(time() - $first_day, $full_month_diff); // at most one month
+        $rx              = $d['rx'];
+        $tx              = $d['tx'];
 
-        if ($use_label) {
-            $month[$i]['label']     = strftime(T('datefmt_months'), $ts);
-            $month[$i]['img_label'] = strftime(T('datefmt_months_img'), $ts);
-        }
-
-        $now          = strtotime('now');
-        $lastmomthstr = strftime('1 %B %Y', $now);
-        assert($lastmomthstr !== false);
-        $diff_time = $now - strtotime($lastmomthstr);
-
-        $month[$i]['rx_avg'] = round($month[$i]['rx'] / $diff_time) * 8;
-        $month[$i]['tx_avg'] = round($month[$i]['tx'] / $diff_time) * 8;
+        $month[$i] = [
+            'time'   => $first_day,
+            'label'  => date(T('datefmt_months'), $first_day),
+            'rx'     => $rx, // in bytes
+            'tx'     => $tx, // int bytes
+            'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
+            'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
+            'act'    => 1,
+        ];
     }
 
     // per-hour data
     $hour_data = array_reverse($traffic_data['hour']);
     for ($i = 0; $i < min(24, count($hour_data)); ++$i) {
         $d  = $hour_data[$i];
-        $ts = mktime($d['time']['hour'], $d['time']['minute'], 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+        $ts = mktime($d['time']['hour'], 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
         assert($ts !== false);
+        $diff_time = max(time() - $ts, 3600); // at most one hour
 
-        $hour[$i]['time'] = $ts;
-        $hour[$i]['rx']   = $d['rx'] / 1024;
-        $hour[$i]['tx']   = $d['tx'] / 1024;
-        $hour[$i]['act']  = 1;
-
-        if ($use_label) {
-            $hour[$i]['label']     = strftime(T('datefmt_hours'), $ts);
-            $hour[$i]['img_label'] = strftime(T('datefmt_hours_img'), $ts);
-        }
-
-        $now         = strtotime('now');
-        $lasthourstr = strftime('%d %B %Y %H:00:00', $now);
-        assert($lasthourstr !== false);
-        $diff_time = $now - strtotime($lasthourstr);
-        if ($diff_time <= 300) {
-            $diff_time = 3600;
-        }
-        $hour[$i]['rx_avg'] = round($hour[$i]['rx'] / $diff_time) * 8;
-        $hour[$i]['tx_avg'] = round($hour[$i]['tx'] / $diff_time) * 8;
+        $rx       = $d['rx'];
+        $tx       = $d['tx'];
+        $hour[$i] = [
+            'time'   => $ts,
+            'label'  => date(T('datefmt_hours'), $ts),
+            'rx'     => $rx, // in bytes
+            'tx'     => $tx, // int bytes
+            'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
+            'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
+            'act'    => 1,
+        ];
     }
 
     // top10 days data
@@ -178,28 +171,24 @@ function get_vnstat_data($use_label = true) {
         $d  = $top10_data[$i];
         $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
         assert($ts !== false);
+        $diff_time = max(time() - $ts, 86400); // at most one day
+        $rx        = $d['rx'];
+        $tx        = $d['tx'];
 
-        $top[$i]['time'] = $ts;
-        $top[$i]['rx']   = $d['rx'] / 1024;
-        $top[$i]['tx']   = $d['tx'] / 1024;
-        $top[$i]['act']  = 1;
-
-        if ($use_label) {
-            $top[$i]['label']     = strftime(T('datefmt_top'), $ts);
-            $top[$i]['img_label'] = '';
-        }
-
-        $top[$i]['rx_avg'] = round($top[$i]['rx'] / 86400) * 8;
-        $top[$i]['tx_avg'] = round($top[$i]['tx'] / 86400) * 8;
+        $top[$i] = [
+            'time'   => $ts,
+            'label'  => date(T('datefmt_top'), $ts),
+            'rx'     => $rx, // in bytes
+            'tx'     => $tx, // int bytes
+            'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
+            'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
+            'act'    => 1,
+        ];
     }
 
     // summary data from old dumpdb command
-    // all time total received/transmitted MB
-    $summary['totalrx'] = $traffic_data['total']['rx'] / 1024 / 1024;
-    $summary['totaltx'] = $traffic_data['total']['tx'] / 1024 / 1024;
-    // FIXME: used to be "total rx kB counter" from dumpdb, no idea how to get those
-    $summary['totalrxk']  = 0;
-    $summary['totaltxk']  = 0;
+    $summary['totalrx']   = $traffic_data['total']['rx']; // in bytes
+    $summary['totaltx']   = $traffic_data['total']['tx']; // in bytes
     $summary['interface'] = $iface_data['name'];
     $created              = $iface_data['created'];
     $summary['created']   = mktime(0, 0, 0, $created['date']['month'], $created['date']['day'], $created['date']['year']);
