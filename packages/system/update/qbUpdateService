@@ -246,11 +246,14 @@ WEBC
 	local current_version
 	local latest_version
 	current_version=$(ttyd -v | awk '{print $3}') 2> /dev/null
+	current_version=${current_version%-*}
 	latest_version=$(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | jq -r ".tag_name")
 	_info "ttyd current version: ${current_version}, latest version: ${latest_version}"
 	if (_verlt "$current_version" "$latest_version"); then
+		_info "ttyd update available"
 		_download_latest_ttyd
 		_execute "systemctl restart ttyd.service"
+		_info "ttyd update success"
 	fi
 }
 

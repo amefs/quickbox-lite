@@ -30,6 +30,7 @@ function _updateRepo() {
 			rm -rf "/etc/QuickBox"
 			_execute "git clone --recursive ${BRANCH} --branch legacy /etc/QuickBox"
 		else
+			cd /etc/QuickBox || exit 1
 			_execute "git checkout legacy"
 			_execute "git reset --hard origin/legacy"
 			_execute "git pull --ff-only"
@@ -37,7 +38,7 @@ function _updateRepo() {
 	elif [[ ! -f /install/.developer.lock ]]; then
 		# update to dev branch
 		if [[ -d /etc/QuickBox ]]; then
-			cd /etc/QuickBox
+			cd /etc/QuickBox || exit 1
 			_execute "git checkout master"
 			_execute "git reset --hard origin/master"
 			_execute "git pull --ff-only"
@@ -46,7 +47,7 @@ function _updateRepo() {
 		fi
 	else
 		if [[ -d /etc/QuickBox ]]; then
-			cd /etc/QuickBox
+			cd /etc/QuickBox || exit 1
 			if [[ ! -f /install/.debug.lock ]]; then
 				_execute "git checkout development"
 				_execute "git reset --hard origin/development"
