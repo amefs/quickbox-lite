@@ -33,11 +33,9 @@ function validate_input() {
 }
 
 /**
- * @param bool $use_label
- *
  * @return void
  */
-function get_vnstat_data($use_label = true) {
+function get_vnstat_data() {
     global $iface, $vnstat_bin, $data_dir;
     global $hour,$day,$month,$top,$summary;
 
@@ -69,6 +67,12 @@ function get_vnstat_data($use_label = true) {
     if (!isset($vnstat_data) || !isset($vnstat_data['vnstatversion'])) {
         return;
     }
+    $json_version = $vnstat_data['jsonversion'];
+    /**
+     * json version 1: All traffic values in the output are in KiB.
+     * json version 2: All traffic values in the output are in bytes.
+     */
+    $data_coefficient = $json_version === '1' ? 1024 : 1;
 
     $iface_index = array_search($iface, array_column($vnstat_data['interfaces'], 'name'), true);
     if (!$iface_index) {
@@ -99,14 +103,14 @@ function get_vnstat_data($use_label = true) {
 
     // per-day data
     // FIXME: instead of using array_reverse, sorting by date/time keys would be more reliable
-    $day_data = array_reverse($traffic_data['day']);
+    $day_data = array_reverse($json_version === '1' ? $traffic_data['days'] : $traffic_data['day']);
     for ($i = 0; $i < min(30, count($day_data)); ++$i) {
         $d  = $day_data[$i];
         $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
         assert($ts !== false);
         $diff_time = max(time() - $ts, 86400); // at most one day
-        $rx        = $d['rx'];
-        $tx        = $d['tx'];
+        $rx        = $d['rx'] * $data_coefficient;
+        $tx        = $d['tx'] * $data_coefficient;
 
         $day[$i] = [
             'time'   => $ts,
@@ -119,7 +123,7 @@ function get_vnstat_data($use_label = true) {
     }
 
     // per-month data
-    $month_data = array_reverse($traffic_data['month']);
+    $month_data = array_reverse($json_version === '1' ? $traffic_data['months'] : $traffic_data['month']);
     for ($i = 0; $i < min(12, count($month_data)); ++$i) {
         $d = $month_data[$i];
 
@@ -129,8 +133,8 @@ function get_vnstat_data($use_label = true) {
         assert($last_day !== false);
         $full_month_diff = $last_day - $first_day;
         $diff_time       = max(time() - $first_day, $full_month_diff); // at most one month
-        $rx              = $d['rx'];
-        $tx              = $d['tx'];
+        $rx              = $d['rx'] * $data_coefficient;
+        $tx              = $d['tx'] * $data_coefficient;
 
         $month[$i] = [
             'time'   => $first_day,
@@ -143,15 +147,15 @@ function get_vnstat_data($use_label = true) {
     }
 
     // per-hour data
-    $hour_data = array_reverse($traffic_data['hour']);
+    $hour_data = array_reverse($json_version === '1' ? $traffic_data['hours'] : $traffic_data['hour']);
     for ($i = 0; $i < min(24, count($hour_data)); ++$i) {
         $d  = $hour_data[$i];
         $ts = mktime($d['time']['hour'], 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
         assert($ts !== false);
         $diff_time = max(time() - $ts, 3600); // at most one hour
+        $rx        = $d['rx'] * $data_coefficient;
+        $tx        = $d['tx'] * $data_coefficient;
 
-        $rx       = $d['rx'];
-        $tx       = $d['tx'];
         $hour[$i] = [
             'time'   => $ts,
             'label'  => date('h A', $ts),
@@ -163,14 +167,14 @@ function get_vnstat_data($use_label = true) {
     }
 
     // top10 days data
-    $top10_data = $traffic_data['top'];
+    $top10_data = array_reverse($json_version === '1' ? $traffic_data['tops'] : $traffic_data['top']);
     for ($i = 0; $i < min(10, count($top10_data)); ++$i) {
         $d  = $top10_data[$i];
         $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
         assert($ts !== false);
         $diff_time = max(time() - $ts, 86400); // at most one day
-        $rx        = $d['rx'];
-        $tx        = $d['tx'];
+        $rx        = $d['rx'] * $data_coefficient;
+        $tx        = $d['tx'] * $data_coefficient;
 
         $top[$i] = [
             'time'   => $ts,
@@ -183,8 +187,8 @@ function get_vnstat_data($use_label = true) {
     }
 
     // summary data from old dumpdb command
-    $summary['totalrx']   = $traffic_data['total']['rx']; // in bytes
-    $summary['totaltx']   = $traffic_data['total']['tx']; // in bytes
+    $summary['totalrx']   = $traffic_data['total']['rx'] * $data_coefficient; // in bytes
+    $summary['totaltx']   = $traffic_data['total']['tx'] * $data_coefficient; // in bytes
     $summary['interface'] = $iface_data['name'];
     $created              = $iface_data['created'];
     $summary['created']   = mktime(0, 0, 0, $created['date']['month'], $created['date']['day'], $created['date']['year']);
