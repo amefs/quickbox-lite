@@ -174,9 +174,5 @@
   "WEB_CONSOLE": "Web Console",
   "X2GO": "X2Go is an open source remote desktop software for Linux that uses the NX technology protocol.",
   "YOUR_DISK_STATUS": "Your Disk Status",
-  "ZNC": "ZNC is an IRC network bouncer or BNC. It can detach the client from the actual IRC server, and also from selected channels.",
-  "datefmt_days": "d F",
-  "datefmt_hours": "g A",
-  "datefmt_months": "F Y",
-  "datefmt_top": "d F Y"
+  "ZNC": "ZNC is an IRC network bouncer or BNC. It can detach the client from the actual IRC server, and also from selected channels."
 }

@@ -110,12 +110,11 @@ function get_vnstat_data($use_label = true) {
 
         $day[$i] = [
             'time'   => $ts,
-            'label'  => date(T('datefmt_days'), $ts),
+            'label'  => date('d F', $ts),
             'rx'     => $rx, // in bytes
             'tx'     => $tx, // int bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-            'act'    => 1,
         ];
     }
 
@@ -135,12 +134,11 @@ function get_vnstat_data($use_label = true) {
 
         $month[$i] = [
             'time'   => $first_day,
-            'label'  => date(T('datefmt_months'), $first_day),
+            'label'  => date('F Y', $first_day),
             'rx'     => $rx, // in bytes
             'tx'     => $tx, // int bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-            'act'    => 1,
         ];
     }
 
@@ -156,12 +154,11 @@ function get_vnstat_data($use_label = true) {
         $tx       = $d['tx'];
         $hour[$i] = [
             'time'   => $ts,
-            'label'  => date(T('datefmt_hours'), $ts),
+            'label'  => date('h A', $ts),
             'rx'     => $rx, // in bytes
             'tx'     => $tx, // int bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-            'act'    => 1,
         ];
     }
 
@@ -177,12 +174,11 @@ function get_vnstat_data($use_label = true) {
 
         $top[$i] = [
             'time'   => $ts,
-            'label'  => date(T('datefmt_top'), $ts),
+            'label'  => date('d F Y', $ts),
             'rx'     => $rx, // in bytes
             'tx'     => $tx, // int bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-            'act'    => 1,
         ];
     }
 

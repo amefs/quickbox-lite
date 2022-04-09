@@ -174,9 +174,5 @@
   "WEB_CONSOLE": "Webkonsole",
   "X2GO": "X2Go ist eine Open-Source Remote-Desktop-Software für Linux, die das NX-Technologie-Protokoll verwendet.",
   "YOUR_DISK_STATUS": "Status deines Speicherplatzes",
-  "ZNC": "ZNC ist ein IRC-Netzwerk Bouncer oder BNC. Er kann den Clienten vom eigentlichen IRC-Server sowie ausgewählten Chaträumen trennen.",
-  "datefmt_days": "d F",
-  "datefmt_hours": "g A",
-  "datefmt_months": "F Y",
-  "datefmt_top": "d F Y"
+  "ZNC": "ZNC ist ein IRC-Netzwerk Bouncer oder BNC. Er kann den Clienten vom eigentlichen IRC-Server sowie ausgewählten Chaträumen trennen."
 }

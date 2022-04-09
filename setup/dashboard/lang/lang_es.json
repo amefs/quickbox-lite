@@ -174,9 +174,5 @@
   "WEB_CONSOLE": "Consola Web",
   "X2GO": "X2Go es un software de código abierto para acceso remoto al escritorio que utiliza el protocolo NX.",
   "YOUR_DISK_STATUS": "Disco Duro",
-  "ZNC": "ZNC es un bouncer o BNC para IRC. Permite separar al cliente del servidor IRC, e incluso de canales concretos.",
-  "datefmt_days": "d F",
-  "datefmt_hours": "g A",
-  "datefmt_months": "F Y",
-  "datefmt_top": "d F Y"
+  "ZNC": "ZNC es un bouncer o BNC para IRC. Permite separar al cliente del servidor IRC, e incluso de canales concretos."
 }
