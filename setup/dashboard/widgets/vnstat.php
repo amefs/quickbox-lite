@@ -38,7 +38,7 @@ function validate_input() {
  * @return void
  */
 function get_vnstat_data() {
-    global $iface, $page, $vnstat_bin, $data_dir;
+    global $iface, $vnstat_bin, $data_dir;
     global $hour, $day, $month, $top, $summary;
 
     $vnstat_data = [];
@@ -76,7 +76,7 @@ function get_vnstat_data() {
     $data_coefficient = $json_version === '1' ? 1024 : 1;
 
     $iface_index = array_search($iface, array_column($vnstat_data['interfaces'], 'name'), true);
-    if (!$iface_index) {
+    if ($iface_index === false) {
         $iface_index = 0;
     }
 
@@ -188,9 +188,11 @@ function get_vnstat_data() {
     }
 
     // summary data from old dumpdb command
-    $summary['totalrx']   = $traffic_data['total']['rx'] * $data_coefficient; // in bytes
-    $summary['totaltx']   = $traffic_data['total']['tx'] * $data_coefficient; // in bytes
-    $summary['interface'] = $iface_data['name'];
-    $created              = $iface_data['created'];
-    $summary['created']   = mktime(0, 0, 0, $created['date']['month'], $created['date']['day'], $created['date']['year']);
+    $created = $iface_data['created'];
+    $summary = [
+        'totalrx'   => $traffic_data['total']['rx'] * $data_coefficient, // in bytes
+        'totaltx'   => $traffic_data['total']['tx'] * $data_coefficient, // in bytes
+        'interface' => $iface_data['name'],
+        'created'   => mktime(0, 0, 0, $created['date']['month'], $created['date']['day'], $created['date']['year']),
+    ];
 }

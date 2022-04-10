@@ -1,7 +1,9 @@
 {
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.8.0",
-        "phpstan/phpstan": "^1.5.4"
+        "phpstan/phpstan": "^1.5.4",
+        "phpstan/phpstan-strict-rules": "^1.1",
+        "phpstan/extension-installer": "^1.1"
     },
     "scripts": {
         "lint": ["export PHP_CS_FIXER_IGNORE_ENV=1 && php-cs-fixer fix -n -vv --dry-run --using-cache no"],
@@ -11,6 +13,16 @@
     "config": {
         "platform": {
             "php": "7.4"
+        },
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        }
+    },
+    "extra": {
+        "phpstan": {
+            "includes": [
+                "extension.neon"
+            ]
         }
     }
 }

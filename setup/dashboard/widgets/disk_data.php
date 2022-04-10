@@ -48,12 +48,16 @@ if (file_exists('/home/'.$username.'/.local/share/data/qBittorrent')) {
 // $web_path = substr($php_self, 0, strrpos($php_self, '/') + 1);
 // $start     = microtime_float();
 
-$disk_info = array_filter(explode("\n", `df -h| grep -E "^(/dev/)"`));
+$df_result = shell_exec('df -h| grep -E "^(/dev/)"');
+if (!is_string($df_result)) {
+    $df_result = '';
+}
+$disk_info = array_filter(explode("\n", $df_result));
 foreach ($disk_info as $parts) {
     $splited = preg_split('/\s+/', $parts);
     assert($splited !== false);
     $parts_tmp = array_values($splited);
-    if (strstr($parts_tmp[1], 'M')) {
+    if (strstr($parts_tmp[1], 'M') !== false) {
         continue;
     }
     $perused = (int) substr($parts_tmp['4'], 0, -1); ?>

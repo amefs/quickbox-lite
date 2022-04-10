@@ -7,7 +7,7 @@ class SystemInfo {
     public static function loadavg() {
         $loadavg       = shell_exec("uptime | awk -F ': ' '{ print $2; }'");
         $process_count = shell_exec('ps ax | wc -l');
-        if (!$loadavg || !$process_count) {
+        if (!is_string($loadavg) || !is_string($process_count)) {
             return '';
         }
 
@@ -23,7 +23,7 @@ class SystemInfo {
             'model' => '<h4>Unknown</h4>',
             'count' => '-',
         ];
-        if (!$info) {
+        if (!is_array($info)) {
             return $res;
         }
 
@@ -56,7 +56,7 @@ class SystemInfo {
     public static function meminfo() {
         $info = @file('/proc/meminfo');
         $res  = [];
-        if (!$info) {
+        if (!is_array($info)) {
             return $res;
         }
         foreach ($info as $line) {
@@ -84,7 +84,7 @@ class SystemInfo {
     public static function netinfo() {
         $info = @file('/proc/net/dev');
         $res  = [];
-        if (!$info) {
+        if (!is_array($info)) {
             return $res;
         }
 
@@ -108,7 +108,7 @@ class SystemInfo {
     public static function enuminterface() {
         $info = @file('/proc/net/dev');
         $res  = [];
-        if (!$info) {
+        if (!is_array($info)) {
             return $res;
         }
         for ($i = 2; $i < count($info); ++$i) {

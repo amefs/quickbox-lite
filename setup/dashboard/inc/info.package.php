@@ -556,12 +556,12 @@ function __check_package_config($package) {
     assert(array_key_exists('package', $package));
     assert(array_key_exists('name', $package));
     $skip = array_key_exists('skip', $package) ? $package['skip'] : false;
-    if (!$skip) {
+    if ($skip === false) {
         assert(array_key_exists('description', $package));
         assert(array_key_exists('lockfile', $package));
         assert(array_key_exists('boxonly', $package));
         $boxonly = $package['boxonly'];
-        if ($boxonly) {
+        if ($boxonly === true) {
             assert(array_key_exists('install', $package));
         } else {
             assert(array_key_exists('uninstall', $package));

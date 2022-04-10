@@ -20,7 +20,7 @@ if (!isset($_SERVER['REMOTE_USER'])) {
 }
 
 /**
- * @param array<mixed,mixed> $arr
+ * @param mixed $arr
  *
  * @return void
  */
@@ -58,7 +58,7 @@ function getUser() {
         return getMaster();
     }
     foreach (['REMOTE_USER', 'PHP_AUTH_USER', 'REDIRECT_REMOTE_USER'] as $key) {
-        if (isset($_SERVER[$key]) && !empty($_SERVER[$key])) {
+        if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') {
             return $_SERVER[$key];
         }
     }
@@ -155,9 +155,17 @@ function GetCoreInformation() {
     assert($data !== false);
     $cores = [];
     foreach ($data as $line) {
-        if (preg_match('/^cpu[0-9]/', $line)) {
+        if (preg_match('/^cpu[0-9]/', $line) === 1) {
             $info    = explode(' ', $line);
-            $cores[] = ['user' => $info[1], 'nice' => $info[2], 'sys' => $info[3], 'idle' => $info[4], 'iowait' => $info[5], 'irq' => $info[6], 'softirq' => $info[7]];
+            $cores[] = [
+                'user'    => $info[1],
+                'nice'    => $info[2],
+                'sys'     => $info[3],
+                'idle'    => $info[4],
+                'iowait'  => $info[5],
+                'irq'     => $info[6],
+                'softirq' => $info[7],
+            ];
         }
     }
 

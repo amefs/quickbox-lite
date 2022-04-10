@@ -99,7 +99,7 @@ function write_data_table($caption, $tab) {
         $rx_avg = formatspeed($tab[$i]['rx_avg'], 2);
         $tx_avg = formatspeed($tab[$i]['tx_avg'], 2);
         $total  = formatsize($tab[$i]['rx'] + $tab[$i]['tx'], 2);
-        $id     = ($i & 1) ? 'odd' : 'even';
+        $id     = ($i % 2 === 1) ? 'odd' : 'even';
         echo '<tr>';
         echo "<td class=\"label_{$id}\" style=\"font-size:12px;text-align:right\"><b>{$t}</b></td>";
         echo "<td class=\"numeric_{$id} text-success\" style=\"font-size:12px;text-align:right\">{$tx}</td>";
