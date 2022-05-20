@@ -178,11 +178,12 @@ function _installApp() {
 	cd /srv || exit 1
 	if [[ ! -d /srv/$APP_NAME/ ]]; then
 		_execute "git clone --recurse-submodules $BRANCH $APP_NAME"
-		chown -R www-data:www-data $APP_NAME
 		rm -rf /srv/$APP_NAME/conf/config.php
 		latest_release_version=$(curl -s https://api.github.com/repos/Novik/ruTorrent/releases/latest | jq -r ".tag_name")
 		cd /srv/$APP_NAME/ || exit 1
+		_info "Fetching $latest_release_version"
 		_execute "git checkout $latest_release_version"
+		chown -R www-data:www-data /srv/$APP_NAME
 		cd /srv || exit 1
 	fi
 	_success "${APP_TITLE} Built."
@@ -193,6 +194,7 @@ function _configureApp() {
 	_info "Setting up plugins... "
 	plugin_lib="/usr/local/bin/quickbox/rutorrent/plugins/"
 	if [[ ! -d ${plugin_lib} ]]; then
+		mkdir -p ${plugin_lib}
 		cp -R /srv/$APP_NAME/plugins ${plugin_lib}
 		if [[ ! -d ${plugin_lib}fileupload ]]; then
 			_execute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileupload ${plugin_lib}fileupload"
