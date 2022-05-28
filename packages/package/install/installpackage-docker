@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.3
+# Current version:  v1.5.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -132,11 +132,11 @@ Please wait until the process is completed
 function _installAddSources() {
 	_info "Adding additional keys and sources ${APP_TITLE}..."
 	if [[ ${DISTRO} == "Ubuntu" ]]; then
-		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - >>"/dev/null" 2>&1
-		sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu ${CODENAME} stable" >>"/dev/null" 2>&1
+		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/docker.gpg >>"/dev/null" 2>&1
+		echo  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/trusted.gpg.d/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list >>"/dev/null" 2>&1
 	elif [[ ${DISTRO} == "Debian" ]]; then
-		curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add - >>"/dev/null" 2>&1
-		sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian ${CODENAME} stable" >>"/dev/null" 2>&1
+		curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/docker.gpg >>"/dev/null" 2>&1
+		echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/trusted.gpg.d/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list >>"/dev/null" 2>&1
 	fi
 	_success "Keys and sources added."
 }

@@ -17,7 +17,7 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-QUICKBOX_VERSION=v1.5.3
+QUICKBOX_VERSION=v1.5.4
 PUBLICIP=$(ip addr show | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 | head -n 1)
 printf "Welcome to QuickBox Lite %s" "${QUICKBOX_VERSION}"
 printf "\n"

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.3
+# Current version:  v1.5.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -231,8 +231,8 @@ function _updateApp() {
 	fi
 	_info "Building ${APP_TITLE}..."
 	# Install for single user
-	_installPy 3.8.12
-	_initPyVenv 3.8.12 /home/${username}/.local/flexget3 ${username}
+	_installPy 3.9.13
+	_initPyVenv 3.9.13 /home/${username}/.local/flexget3 ${username}
 	cd /home/${username}/.local/flexget3
 	_info "Installing requirements... "
 	sudo -u ${username} -H bash -c "wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py" >>"${OUTTO}" 2>&1

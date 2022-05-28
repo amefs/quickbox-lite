@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   TautCony
-# Current version:  v1.5.3
+# Current version:  v1.5.4
 #
 #   Licensed under GNU General Public License v3.0 GPL-3 (in short)
 #
@@ -74,7 +74,7 @@ function _update_version() {
     sed -i "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README_zh.md
     sed -i "s/QUICKBOX_VERSION=.*$/QUICKBOX_VERSION=v${VERSION}/" setup/templates/motd/01-custom
     sed -i "s/QUICKBOX_VERSION=.*$/QUICKBOX_VERSION=v${VERSION}/" setup/templates/bash_qb.template
-    sed -i "s/\$version = 'v1.5.2';$/\$version = 'v${VERSION}';/" setup/dashboard/inc/config.php
+    sed -i "s/\$version = 'v[0-9|.]*';$/\$version = 'v${VERSION}';/" setup/dashboard/inc/config.php
     git add README.md
     git add README_zh.md
     git add setup/templates/motd/01-custom

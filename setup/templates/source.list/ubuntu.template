@@ -9,12 +9,12 @@ deb-src http://COUNTRY.archive.ubuntu.com/ubuntu/ RELEASE main restricted univer
 
 ###### Ubuntu Update Repos
 deb http://COUNTRY.archive.ubuntu.com/ubuntu/ RELEASE-security main restricted universe multiverse
-deb-src http://COUNTRY.archive.ubuntu.com/ubuntu/ RELEASE-security main restricted universe multiverse
+#deb-src http://COUNTRY.archive.ubuntu.com/ubuntu/ RELEASE-security main restricted universe multiverse
 deb http://COUNTRY.archive.ubuntu.com/ubuntu/ RELEASE-updates main restricted universe multiverse
-deb-src http://COUNTRY.archive.ubuntu.com/ubuntu/ RELEASE-updates main restricted universe multiverse
-deb http://COUNTRY.archive.ubuntu.com/ubuntu/ RELEASE-backports main restricted universe multiverse
-deb-src http://COUNTRY.archive.ubuntu.com/ubuntu/ RELEASE-backports main restricted universe multiverse
+#deb-src http://COUNTRY.archive.ubuntu.com/ubuntu/ RELEASE-updates main restricted universe multiverse
+#deb http://COUNTRY.archive.ubuntu.com/ubuntu/ RELEASE-backports main restricted universe multiverse
+#deb-src http://COUNTRY.archive.ubuntu.com/ubuntu/ RELEASE-backports main restricted universe multiverse
 
 ###### Ubuntu Partner Repo
-deb http://archive.canonical.com/ubuntu RELEASE partner
-deb-src http://archive.canonical.com/ubuntu RELEASE partner
+#deb http://archive.canonical.com/ubuntu RELEASE partner
+#deb-src http://archive.canonical.com/ubuntu RELEASE partner

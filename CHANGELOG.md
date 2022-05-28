@@ -1,3 +1,27 @@
+## CHANGELOG v1.5.4
+
+*Changelog update Friday, May 27, 2022*
+
+### General additions
+
+- support ubuntu 22.04
+
+### Function improved
+
+- better implemented vnstat statistics on dashbaord (by Tautcony)
+- replace outdated `apt-key` with `/etc/apt/trusted.gpg.d/`
+
+### Function updated
+
+- install qBittorrent v4.3.9 by default
+
+### Bug fixed
+
+- add submodule when compiling Netdata
+- wrong permission in ruTorrent install and upgrade script
+
+---
+
 ## CHANGELOG v1.5.3
 
 *Changelog update Sunday, Mar 27, 2022*

@@ -52,7 +52,7 @@ function checkos() {
     fi
     #
     ## Check against allowed codenames or if the codename is alpine version greater thab 3.10
-    if [[ ! "${CODENAME}" =~ ^(alpine|buster|bionic|focal)$ ]] || [[ "${CODENAME}" =~ ^(alpine)$ && "${OSVERSION//\./}" -lt "3100" ]]; then
+    if [[ ! "${CODENAME}" =~ ^(alpine|buster|bionic|focal|jammy)$ ]] || [[ "${CODENAME}" =~ ^(alpine)$ && "${OSVERSION//\./}" -lt "3100" ]]; then
         echo
         echo -e " ${cly}This is not a supported OS. There is no reason to continue.${cend}"
         echo
@@ -62,7 +62,7 @@ function checkos() {
         echo
         echo -e " ${clm}Debian${cend} - ${clb}buster${cend}"
         echo
-        echo -e " ${clm}Ubuntu${cend} - ${clb}bionic${cend} - ${clb}focal${cend}"
+        echo -e " ${clm}Ubuntu${cend} - ${clb}bionic${cend} - ${clb}focal${cend} - ${clb}jammy${cend}"
         echo
         echo -e " ${clm}Alpine${cend} - ${clb}3.10.0${cend} or greater"
         echo

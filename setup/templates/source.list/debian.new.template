@@ -9,5 +9,5 @@ deb http://deb.debian.org/debian-security/ RELEASE-security main contrib non-fre
 #deb-src http://deb.debian.org/debian-security/ RELEASE-security main contrib non-free
 deb http://ftp.COUNTRY.debian.org/debian/ RELEASE-updates main contrib non-free
 #deb-src http://ftp.COUNTRY.debian.org/debian/ RELEASE-updates main contrib non-free
-deb http://ftp.COUNTRY.debian.org/debian RELEASE-backports main contrib non-free
+#deb http://ftp.COUNTRY.debian.org/debian RELEASE-backports main contrib non-free
 #deb-src http://ftp.COUNTRY.debian.org/debian RELEASE-backports main contrib non-free

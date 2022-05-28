@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.3
+# Current version:  v1.5.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -131,8 +131,8 @@ Please wait until the process is completed
 
 function _installAddSources() {
 	_info "Adding additional keys and sources ${APP_TITLE}..."
-	sudo sh -c 'echo "deb http://linux-packages.resilio.com/resilio-sync/deb resilio-sync non-free" > /etc/apt/sources.list.d/btsync.list'
-	wget -qO - https://linux-packages.resilio.com/resilio-sync/key.asc | sudo apt-key add - >/dev/null 2>&1
+	curl -fsSL https://linux-packages.resilio.com/resilio-sync/key.asc | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/resilio.gpg >>"/dev/null" 2>&1
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/trusted.gpg.d/resilio.gpg] http://linux-packages.resilio.com/resilio-sync/deb resilio-sync non-free" | sudo tee /etc/apt/sources.list.d/resilio.list >>"/dev/null" 2>&1
 	_success "Keys and sources added."
 }
 

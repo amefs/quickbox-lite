@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.5.3
+# Current version:  v1.5.4
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -292,6 +292,12 @@ startxfce4 &
 EOF
 	chmod +x /home/${username}/.vnc/xstartup
 	chown ${username}:${username} -R /home/${username}/.vnc
+	if [[ ! -d /home/${username}/.config ]]; then
+		chown ${username}:${username} -R /home/${username}/.config
+	else
+		mkdir -p /home/${username}/.config
+		chown ${username}:${username} -R /home/${username}/.config
+	fi
 
 	_execute "nginx -s reload"
 	_execute "systemctl daemon-reload"

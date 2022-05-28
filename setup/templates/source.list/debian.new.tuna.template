@@ -9,5 +9,5 @@ deb http://deb.debian.org/debian-security/ RELEASE-security main contrib non-fre
 #deb-src http://deb.debian.org/debian-security/ RELEASE-security main contrib non-free
 deb https://mirrors.tuna.tsinghua.edu.cn/debian/ RELEASE-updates main contrib non-free
 #deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ RELEASE-updates main contrib non-free
-deb https://mirrors.tuna.tsinghua.edu.cn/debian/ RELEASE-backports main contrib non-free
+#deb https://mirrors.tuna.tsinghua.edu.cn/debian/ RELEASE-backports main contrib non-free
 #deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ RELEASE-backports main contrib non-free

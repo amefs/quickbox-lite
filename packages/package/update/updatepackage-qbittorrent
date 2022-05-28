@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.3
+# Current version:  v1.5.4
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -81,7 +81,7 @@ APP_SERVICE="qbittorrent"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-qbitversion=4.2.5
+qbitversion=4.3.9
 cdn=$(cat /install/.cdn.lock)
 use_static=false
 

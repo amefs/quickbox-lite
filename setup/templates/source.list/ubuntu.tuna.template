@@ -12,9 +12,9 @@ deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ RELEASE-security main restricte
 #deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ RELEASE-security main restricted universe multiverse
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ RELEASE-updates main restricted universe multiverse
 #deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ RELEASE-updates main restricted universe multiverse
-deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ RELEASE-backports main restricted universe multiverse
+#deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ RELEASE-backports main restricted universe multiverse
 #deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ RELEASE-backports main restricted universe multiverse
 
 ###### Ubuntu Partner Repo
-deb http://archive.canonical.com/ubuntu RELEASE partner
+#deb http://archive.canonical.com/ubuntu RELEASE partner
 #deb-src http://archive.canonical.com/ubuntu RELEASE partner
