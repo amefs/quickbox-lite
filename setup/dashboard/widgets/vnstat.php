@@ -35,33 +35,42 @@ function validate_input() {
 }
 
 /**
- * comparison function for vnstat data
+ * comparison function for vnstat data.
+ *
+ * @param array<mixed> $a
+ * @param array<mixed> $b
+ *
  * @return int
  */
 function vnstat_cmp_desc($a, $b) {
-    $date_a = $a['date']['year']*10000 + $a['date']['month']*100 + $a['date']['day']??0;
-    $date_b = $b['date']['year']*10000 + $b['date']['month']*100 + $b['date']['day']??0;
+    $date_a = $a['date']['year'] * 10000 + $a['date']['month'] * 100 + $a['date']['day'];
+    $date_b = $b['date']['year'] * 10000 + $b['date']['month'] * 100 + $b['date']['day'];
 
     if ($date_a === $date_b) {
         // id distributed from new to old (0 for latest)
         return $a['id'] < $b['id'] ? -1 : 1;
     }
+
     return ($date_a > $date_b) ? -1 : 1;
 }
 
 /**
- * comparison function for vnstat data
- * 
+ * comparison function for vnstat data.
+ *
+ * @param array<mixed> $a
+ * @param array<mixed> $b
+ *
  * @return int
  */
 function vnstat_cmp_asc($a, $b) {
-    $date_a = $a['date']['year']*10000 + $a['date']['month']*100 + $a['date']['day']??0;
-    $date_b = $b['date']['year']*10000 + $b['date']['month']*100 + $b['date']['day']??0;
+    $date_a = $a['date']['year'] * 10000 + $a['date']['month'] * 100 + $a['date']['day'];
+    $date_b = $b['date']['year'] * 10000 + $b['date']['month'] * 100 + $b['date']['day'];
 
     if ($date_a === $date_b) {
         // id distributed from new to old (0 for latest)
         return $a['id'] > $b['id'] ? -1 : 1;
     }
+
     return ($date_a < $date_b) ? -1 : 1;
 }
 
@@ -135,7 +144,7 @@ function get_vnstat_data() {
 
     // per-hour data (from newest to oldest)
     $hour_data = $json_version === '1' ? $traffic_data['hours'] : $traffic_data['hour'];
-    usort($hour_data, "vnstat_cmp_desc");
+    usort($hour_data, 'vnstat_cmp_desc');
     for ($i = 0; $i < min(24, count($hour_data)); ++$i) {
         $d          = $hour_data[$i];
         $hours      = $json_version === '1' ? 0 : $d['time']['hour'];
@@ -158,7 +167,7 @@ function get_vnstat_data() {
 
     // per-day data
     $day_data = $json_version === '1' ? $traffic_data['days'] : $traffic_data['day'];
-    usort($hour_data, "vnstat_cmp_asc");
+    usort($hour_data, 'vnstat_cmp_asc');
     for ($i = 0; $i < min(30, count($day_data)); ++$i) {
         $d  = $day_data[$i];
         $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
@@ -179,7 +188,7 @@ function get_vnstat_data() {
 
     // per-month data
     $month_data = $json_version === '1' ? $traffic_data['months'] : $traffic_data['month'];
-    usort($month_data, "vnstat_cmp_asc");
+    usort($month_data, 'vnstat_cmp_asc');
     for ($i = 0; $i < min(12, count($month_data)); ++$i) {
         $d         = $month_data[$i];
         $first_day = mktime(0, 0, 0, $d['date']['month'], 1, $d['date']['year']);
