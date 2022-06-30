@@ -22,17 +22,17 @@ function get_ram_color($percent) {
     return 'progress-bar-success';
 }
 
-$memTotal         = formatsize($sysMemInfo['MemTotal']);
-$memUsed          = formatsize($sysMemInfo['MemUsed']);
-$memFree          = formatsize($sysMemInfo['MemFree']);
-$memCached        = formatsize($sysMemInfo['Cached']); // memory cache
-$memBuffers       = formatsize($sysMemInfo['Buffers']); // buffer
-$swapTotal        = formatsize($sysMemInfo['SwapTotal']);
-$swapUsed         = formatsize($sysMemInfo['SwapUsed']);
-$swapFree         = formatsize($sysMemInfo['SwapFree']);
+$memTotal         = formatsize($sysMemInfo['MemTotal'], 1);
+$memUsed          = formatsize($sysMemInfo['MemUsed'], 1);
+$memFree          = formatsize($sysMemInfo['MemFree'], 1);
+$memCached        = formatsize($sysMemInfo['Cached'], 1); // memory cache
+$memBuffers       = formatsize($sysMemInfo['Buffers'], 1); // buffer
+$swapTotal        = formatsize($sysMemInfo['SwapTotal'], 1);
+$swapUsed         = formatsize($sysMemInfo['SwapUsed'], 1);
+$swapFree         = formatsize($sysMemInfo['SwapFree'], 1);
 $swapPercent      = number_format($sysMemInfo['SwapPercent'], 3);
-$memRealUsed      = formatsize($sysMemInfo['MemRealUsed']); // Real memory usage
-$memRealFree      = formatsize($sysMemInfo['MemRealFree']); // Real memory free
+$memRealUsed      = formatsize($sysMemInfo['MemRealUsed'], 1); // Real memory usage
+$memRealFree      = formatsize($sysMemInfo['MemRealFree'], 1); // Real memory free
 $memRealPercent   = number_format($sysMemInfo['MemRealPercent'], 3); // Real memory usage ratio
 $memPercent       = number_format($sysMemInfo['MemPercent'], 3); // Total Memory Usage
 $memCachedPercent = number_format($sysMemInfo['CachedPercent'], 3); // cache memory usage
