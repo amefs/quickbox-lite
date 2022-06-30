@@ -43,10 +43,10 @@ function write_summary() {
 
     if (count($day) > 0 && count($hour) > 0 && count($month) > 0) {
         $sum[0]['label']  = T('This hour');
-        $sum[0]['rx']     = current($hour)['rx'];
-        $sum[0]['tx']     = current($hour)['tx'];
-        $sum[0]['rx_avg'] = current($hour)['rx_avg'];
-        $sum[0]['tx_avg'] = current($hour)['tx_avg'];
+        $sum[0]['rx']     = end($hour)['rx'];
+        $sum[0]['tx']     = end($hour)['tx'];
+        $sum[0]['rx_avg'] = end($hour)['rx_avg'];
+        $sum[0]['tx_avg'] = end($hour)['tx_avg'];
 
         $sum[1]['label']  = T('This day');
         $sum[1]['rx']     = end($day)['rx'];

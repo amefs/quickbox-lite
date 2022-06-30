@@ -66,7 +66,7 @@
   "LATEST_COMMIT": "latest.",
   "LECERT": "Let's Encrypt is a free, automated, and open certificate authority (CA), run for the public's benefit. It is a service provided by the <a href=\"https://letsencrypt.org/\" target=\"_blank\">Internet Security Research Group (ISRG)</a>.",
   "Last 12 months": "Last 12 months",
-  "Last 24 hours": "Last 24 hours",
+  "Recent hours": "Recent hours",
   "Last 30 days": "Last 30 days",
   "MAIN_MENU": "Main Menu",
   "MINUTES_L": "min",

@@ -144,12 +144,16 @@ function get_vnstat_data() {
 
     // per-hour data (from newest to oldest)
     $hour_data = $json_version === '1' ? $traffic_data['hours'] : $traffic_data['hour'];
-    usort($hour_data, 'vnstat_cmp_desc');
+
+    $today = $hour_data[0]['date']['day'];
+
     for ($i = 0; $i < min(24, count($hour_data)); ++$i) {
-        $d          = $hour_data[$i];
-        $hours      = $json_version === '1' ? 0 : $d['time']['hour'];
-        $hour_delta = $d['id'];
-        $ts         = mktime($hours, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
+        $d = $hour_data[$i];
+        if ($d['date']['day'] !== $today) {
+            break;
+        }
+        $hours = $json_version === '1' ? $d['id'] : $d['time']['hour'];
+        $ts    = mktime($hours, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
         assert($ts !== false);
         $diff_time = min(time() - $ts, 3600); // at most one hour
         $rx        = $d['rx'] * $data_coefficient;
@@ -157,7 +161,7 @@ function get_vnstat_data() {
 
         $hour[$i] = [
             'time'   => $ts,
-            'label'  => $json_version === '1' ? "T-{$hour_delta} h" : date('h A', $ts),
+            'label'  => date('h A', $ts),
             'rx'     => $rx, // in bytes
             'tx'     => $tx, // int bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
