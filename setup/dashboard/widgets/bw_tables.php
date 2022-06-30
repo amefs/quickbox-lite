@@ -126,7 +126,7 @@ get_vnstat_data();
   <div class="table-responsive">
     <?php
       if ($page === 'h') {
-          write_data_table(T('Last 24 hours'), $hour);
+          write_data_table(T('Recent hours'), $hour);
       } elseif ($page === 'd') {
           write_data_table(T('Last 30 days'), $day);
       } elseif ($page === 'm') {
