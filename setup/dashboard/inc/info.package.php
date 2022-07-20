@@ -257,6 +257,20 @@ $packageList = [
             ],
         ],
     ], [
+        'package'     => 'rclone',
+        'name'        => 'Rclone',
+        'description' => 'RCLONE',
+        'lockfile'    => "/install/.{$username}.rclone.lock",
+        'uninstall'   => 'UNINSTALL_RCLONE_TXT',
+        'boxonly'     => false,
+        'services'    => [
+            'rclone-web' => [
+                'process'  => 'rcd',
+                'name'     => 'Rclone',
+                'username' => $username,
+            ],
+        ],
+    ], [
         'package'     => 'rtorrent',
         'name'        => 'rTorrent',
         'description' => 'RTORRENT',
@@ -347,6 +361,20 @@ $packageList = [
                 'process'  => 'znc',
                 'name'     => 'ZNC',
                 'username' => 'znc',
+            ],
+        ],
+    ], [
+        'package'     => 'webdav',
+        'name'        => 'WebDAV',
+        'description' => 'WEBDAV',
+        'lockfile'    => "/install/.{$username}.webdav.lock",
+        'uninstall'   => 'UNINSTALL_WEBDAV_TXT',
+        'boxonly'     => false,
+        'services'    => [
+            'webdav' => [
+                'process'  => 'webdav',
+                'name'     => 'WebDAV',
+                'username' => $username,
             ],
         ],
     ], [
@@ -457,6 +485,12 @@ $menuList = [
         'ref'     => $packageMap['plex'],
         'url'     => '/web/',
         'logo'    => 'img/brands/plex.png',
+    ], [
+        'name'    => 'Rclone',
+        'service' => true,
+        'ref'     => $packageMap['rclone'],
+        'url'     => '/rclone/',
+        'logo'    => 'img/brands/rclone.png',
     ], [
         'name'    => 'SpeedTest',
         'service' => false,

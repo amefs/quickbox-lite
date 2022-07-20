@@ -4,7 +4,7 @@
 
 # Project QuickBox-Lite
 
-[![Project](https://img.shields.io/badge/Project-中文版-green?logo=git&style=for-the-badge)](https://github.com/amefs/quickbox-lite/blob/master/README_zh.md)    [![DOC](https://img.shields.io/badge/Doc-Read%20Manual%20here-1F8ACB?logo=read-the-docs&style=for-the-badge)](https://en.wiki.ptbox.dev/)
+[![Project](https://img.shields.io/badge/Project-中文版-green?logo=git&style=for-the-badge)](https://github.com/amefs/quickbox-lite/blob/master/README_zh.md)    [![DOC](https://img.shields.io/badge/Doc-Read%20Manual%20here-1F8ACB?logo=read-the-docs&style=for-the-badge)](https://wiki.ptbox.dev/)
 
 ---
 
@@ -24,7 +24,7 @@ This project is a modified version of the QuickBox community edition. This proje
 
 ## Script status
 
-![Version](https://img.shields.io/badge/version-1.5.4-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.5.5-orange?style=flat-square)![GNU v3.0 License](https://img.shields.io/badge/license-GNU%20v3.0%20License-blue.svg?style=flat-square)
 
 When upgrade from 1.3.2 to 1.3.3, very recommend to use SSH with `box update quickbox`. You also need to run the command twice to finish the service upgrade. If you are using WebUI to finish the upgrade, please also upgrade twice.
 
@@ -133,5 +133,5 @@ It means: The username being set to demouser, password is demo123456, use 1234 a
 
 ## Have trouble with QuickBox Lite
 
-If you still have questions about the QuickBox Lite or need to report bugs, be sure to read the [Wiki](https://en.wiki.ptbox.dev) first. When you still have trouble with it, please assign an issue [here](https://github.com/amefs/quickbox-lite/issues/new), I will try my best to help you.
+If you still have questions about the QuickBox Lite or need to report bugs, be sure to read the [Wiki](https://wiki.ptbox.dev) first. When you still have trouble with it, please assign an issue [here](https://github.com/amefs/quickbox-lite/issues/new), I will try my best to help you.
 

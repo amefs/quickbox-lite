@@ -1,3 +1,24 @@
+## CHANGELOG v1.5.5
+
+*Changelog update Wednesday, Jul 20, 2022*
+
+### General additions
+
+- support rclone rcd WebUI
+- support WebDAV (Rclone backend)
+
+### Function improved
+
+### Function updated
+
+### Bug fixed
+
+- fix vnstat statistics on dashbaord (by Tautcony)
+- fix wrong memory statistics on dashbaord
+- fix update FlexGet script
+
+---
+
 ## CHANGELOG v1.5.4
 
 *Changelog update Friday, May 27, 2022*

@@ -83,6 +83,11 @@
     id: "#appstat_plexmediaserver",
     time: 5000
   }, {
+    key: "RCLONE",
+    url: "/widgets/service_status.php?service=rclone-web",
+    id: "#appstat_rclone-web",
+    time: 5000
+  }, {
     key: "RTORRENT",
     url: "/widgets/service_status.php?service=rtorrent",
     id: "#appstat_rtorrent",
@@ -101,6 +106,11 @@
     key: "QBITTORRENT",
     url: "/widgets/service_status.php?service=qbittorrent",
     id: "#appstat_qbittorrent",
+    time: 5000
+  }, {
+    key: "WEBDAV",
+    url: "/widgets/service_status.php?service=webdav",
+    id: "#appstat_webdav",
     time: 5000
   }, {
     key: "VSFTPD",

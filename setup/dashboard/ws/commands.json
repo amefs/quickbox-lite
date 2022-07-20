@@ -3,17 +3,17 @@
     "systemctl": {
         "template": "systemctl $operation$ $target$",
         "operations": ["enable", "start", "stop" , "disable", "restart", "status"],
-        "targets": ["deluge-web@$username$", "deluged@$username$", "denyhosts", "fail2ban", "filebrowser@$username$", "filebrowser-ee@$username$", "flexget@$username$", "flood@$username$", "irssi@$username$", "netdata", "nfs-server", "openvpn", "plexmediaserver", "qbittorrent@$username$", "resilio-sync@$username$", "rtorrent@$username$", "smbd", "ttyd", "syncthing@$username$", "tightvnc", "transmission@$username$", "novnc@$username$", "vsftpd", "znc"]
+        "targets": ["deluge-web@$username$", "deluged@$username$", "denyhosts", "fail2ban", "filebrowser@$username$", "filebrowser-ee@$username$", "flexget@$username$", "flood@$username$", "irssi@$username$", "netdata", "nfs-server", "openvpn", "plexmediaserver", "qbittorrent@$username$", "rclone-web@$username$", "resilio-sync@$username$", "rtorrent@$username$", "smbd", "ttyd", "syncthing@$username$", "tightvnc", "transmission@$username$", "novnc@$username$", "vsftpd", "webdav@$username$", "znc"]
     },
     "installpackage": {
         "template": "bash /usr/local/bin/quickbox/package/install/installpackage-$target$",
         "operations": [],
-        "targets": ["autodlirssi", "btsync", "cifs", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "nfs", "novnc", "openvpn", "plex", "qbittorrent", "rtorrent", "rutorrent", "speedtest", "syncthing", "transmission", "x2go"]
+        "targets": ["autodlirssi", "btsync", "cifs", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "nfs", "novnc", "openvpn", "plex", "qbittorrent", "rclone", "rtorrent", "rutorrent", "speedtest", "syncthing", "transmission", "webdav", "x2go"]
     },
     "removepackage": {
         "template": "/usr/local/bin/quickbox/package/remove/removepackage-$target$",
         "operations": [],
-        "targets": ["autodlirssi", "btsync", "cifs", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "nfs", "novnc", "openvpn", "plex", "qbittorrent", "rtorrent", "rutorrent", "speedtest", "syncthing", "transmission", "x2go"]
+        "targets": ["autodlirssi", "btsync", "cifs", "deluge", "filebrowser", "filebrowser-ee", "flexget", "flood", "netdata", "nfs", "novnc", "openvpn", "plex", "qbittorrent", "rclone", "rtorrent", "rutorrent", "speedtest", "syncthing", "transmission", "webdav", "x2go"]
     },
     "box": {
         "template": "bash /usr/local/bin/quickbox/system/box $operation$ $target$",

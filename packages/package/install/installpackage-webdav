@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# [QuickBox Lite Resilio Sync Installer]
+# [QuickBox Lite WebDAV Installer]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
@@ -69,27 +69,27 @@ function _error() {
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="Resilio Sync"
-APP_NAME="btsync"
-APP_SERVICE="resilio-sync"
-APP_BASEDEPS="resilio-sync"
-APP_HOST="127.0.0.1"
+APP_TITLE="WebDAV"
+APP_NAME="webdav"
+APP_SERVICE="webdav"
+APP_BASEDEPS=""
+APP_DAEMON_PORT="15400"
 
-# RANDOM PORT
-APP_WEB_PORT_LOW="15301"
-APP_WEB_PORT_HIGH="15350"
-
-APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
+username=$(cat /root/.admin.info | cut -d: -f1)
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+	echo -e "\nUsage: \n$(basename "$0") [-gh] [-l logfile] [-u username] [-v version]"
 	echo -e "\nOptions:\n"
+	echo "-g, --gui                 use a menu configuration to install"
 	echo "-l, --log <logfile>       specific log file"
+	# not required by multi-user applications
+	echo "-u, --user <username>     the user for this installer"
+	echo "-v, --version <version>   the application version you want to install"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -97,15 +97,11 @@ function _usage() {
 # INSTALL FUNCTIONS
 ################################################################################
 function _lockCheck() {
-	if [[ -f "/install/.install.lock" ]]; then
+	if [[ -f "/install/.${username}.${APP_NAME}.lock" ]]; then
 		prevApp=$(cat /install/.install.lock)
 		_info "$prevApp process running."
 		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
 		_error "Exiting..."
-		exit 1
-	fi
-	if [[ -f "/install/$APP_LOCK" ]]; then
-		_error "${APP_TITLE} already installed !"
 		exit 1
 	fi
 }
@@ -127,13 +123,6 @@ $APP_TITLE will now be installed.
 This process may take a few minutes
 Please wait until the process is completed
 "
-}
-
-function _installAddSources() {
-	_info "Adding additional keys and sources ${APP_TITLE}..."
-	curl -fsSL https://linux-packages.resilio.com/resilio-sync/key.asc | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/resilio.gpg >>"/dev/null" 2>&1
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/trusted.gpg.d/resilio.gpg] http://linux-packages.resilio.com/resilio-sync/deb resilio-sync non-free" | sudo tee /etc/apt/sources.list.d/resilio.list >>"/dev/null" 2>&1
-	_success "Keys and sources added."
 }
 
 function _installSystemUpdates() {
@@ -165,145 +154,84 @@ function _installSystemUpdates() {
 	_success "System updated."
 }
 
-function _installDepends() {
-	_info "Installing ${APP_TITLE} dependencies..."
-	local DEPLIST="${APP_BASEDEPS}"
-	for depend in $DEPLIST; do
-		_info "Installing ${depend}... "
-		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
-	done
-	if [[ $dependError != "1" ]]; then
-		_success "${APP_TITLE} dependencies installed."
-	else
-		_error "${APP_TITLE} dependencies failed to install."
-		exit 1
-	fi
-}
-
 function _installApp() {
-	_info "Building ${APP_TITLE}..."
-
-	_success "${APP_TITLE} Built."
+	if [[ -z "$(rclone --version 2> /dev/null | awk 'NR==1{print $2}')" ]]; then
+		_info "Installing ${APP_TITLE}..."
+		cd /tmp || exit 1
+		_execute "curl -o rclone.sh https://rclone.org/install.sh"
+		_execute "chmod +x rclone.sh"
+		/tmp/rclone.sh >>"${OUTTO}" 2>&1
+		_success "${APP_TITLE} installed."
+	else
+		_success "${APP_TITLE} already installed, Skipping."
+	fi
 }
 
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
-	_execute "systemctl disable resilio-sync"
-	_execute "systemctl stop resilio-sync"
-	# get userlist
-	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-	for username in $userlist; do
-		# get used port
-		local usedport=""
-		if [[ ! -z $(find /install/ -type f | grep .$APP_NAME.port) ]]; then
-			usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
-		fi
-		# generate available port
-		PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
-		while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do
-			PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
-		done
-		echo $PORT >/install/$username.$APP_NAME.port
-
-		mkdir -p /home/${username}/sync_folder
-		sudo chown -R ${username}:${username} /home/${username}/sync_folder
-		sudo chmod 775 /home/${username}/sync_folder
-
-		mkdir -p /home/${username}/.config/resilio-sync/
-		mkdir -p /home/${username}/.config/resilio-sync/run
-		mkdir -p /home/${username}/.config/resilio-sync/lib
-		cp -r /var/lib/resilio-sync/* /home/${username}/.config/resilio-sync/lib >>"${OUTTO}" 2>&1
-
-		cat >/home/${username}/.config/resilio-sync/config.json <<EOF
-{
-    "listening_port" : 0,
-    "storage_path" : "/home/${username}/.config/resilio-sync/lib",
-    "pid_file" : "/home/${username}/.config/resilio-sync/run/sync.pid",
-    "agree_to_EULA": "yes",
-
-    "webui" :
-    {
-        "listen" : "${APP_HOST}:${PORT}"
-    }
+    cat >/etc/nginx/apps/${username}.webdav.conf <<EOF
+location /dav {
+  return 301 /dav/;
 }
-EOF
-		sudo chown -R ${username}:${username} /home/${username}/.config
 
-		# Generate reverse proxy upstream
-		cat >/etc/nginx/apps/${username}.resilio-sync.conf <<EOF
-location /${username}.btsync/ {
+location /dav/ {
+    client_max_body_size 0;
     auth_basic "Password Required";
     auth_basic_user_file /etc/htpasswd.d/htpasswd.\$remote_user;
-    rewrite ^/${username}/btsync/gui(.*) /${username}.btsync\$1 last;
-    proxy_pass http://${APP_HOST}:${PORT}/gui/;
-    proxy_redirect /gui/ /${username}.btsync/;
-    proxy_buffering off;
-    proxy_set_header Host \$host;
+    proxy_request_buffering on;
+    proxy_redirect off;
+    proxy_pass http://127.0.0.1:${APP_DAEMON_PORT}/dav/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host \$http_host;
     proxy_set_header X-Real-IP \$remote_addr;
-}
-location /gui/ {
-    proxy_pass http://${APP_HOST}:${PORT}/gui/;
-    proxy_buffering off;
-    proxy_set_header Host \$host;
-    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
 }
 EOF
-	done
 
-	cat >/etc/systemd/system/resilio-sync@.service <<'EOF'
+	cat >/etc/systemd/system/webdav@${username}.service <<EOF
 [Unit]
-Description=Resilio Sync service
-Documentation=https://help.resilio.com
-After=network.target network-online.target
+Description=Rclone WebDAV Service
+After=network-online.target
 
 [Service]
-Type=forking
-UMask=0002
-Restart=on-failure
-PermissionsStartOnly=true
-
-User=%I
-Group=%I
-Environment="SYNC_USER=%I"
-Environment="SYNC_GROUP=%I"
-
-Environment="SYNC_RUN_DIR=/home/%I/.config/resilio-sync/run"
-Environment="SYNC_LIB_DIR=/home/%I/.config/resilio-sync/lib"
-Environment="SYNC_CONF_DIR=/home/%I/.config/resilio-sync"
-
-ExecStartPre=/bin/mkdir -p ${SYNC_RUN_DIR} ${SYNC_LIB_DIR}
-ExecStartPre=/bin/chown -R ${SYNC_USER}:${SYNC_GROUP} ${SYNC_RUN_DIR} ${SYNC_LIB_DIR}
-PIDFile=${SYNC_RUN_DIR}/sync.pid
-ExecStart=/usr/bin/rslsync --config /home/%I/.config/resilio-sync/config.json
+Type=simple
+User=${username}
+Group=${username}
+UMask=002
+ExecStart=/usr/bin/rclone serve webdav /home/${username} \\
+          --addr 127.0.0.1:${APP_DAEMON_PORT} \\
+          --baseurl /dav \\
+          --dir-cache-time 0 \\
+          --poll-interval 0
+Restart=on-abort
 
 [Install]
 WantedBy=multi-user.target
 EOF
 	_execute "systemctl daemon-reload"
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."
 }
 
 function _installAppLock() {
 	_info "Configuring ${APP_TITLE} lock..."
-	touch /install/${APP_LOCK}
+    	touch /install/.${username}.${APP_NAME}.lock
 	_success "${APP_TITLE} lock configured."
 }
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-	for username in $userlist; do
-		_execute "systemctl enable ${APP_SERVICE}@${username}"
-		_execute "systemctl start ${APP_SERVICE}@${username}"
-	done
-	_execute "nginx -s reload"
+	_execute "systemctl enable ${APP_SERVICE}@${username}"
+	_execute "systemctl start ${APP_SERVICE}@${username}"
 	_success "${APP_TITLE} started."
 }
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
+if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
 then
     _usage
     exit 1
@@ -317,6 +245,10 @@ while true; do
 		;;
 	-l | --log)
 		OUTTO="$2"
+		shift
+		;;
+	-u | --user)
+		username="$2"
 		shift
 		;;
 	--)
@@ -333,9 +265,8 @@ done
 _lockCheck
 _setLock
 _installInfo
-_installAddSources
 _installSystemUpdates
-_installDepends
+_installApp
 _configureApp
 _installAppLock
 _installAppStart

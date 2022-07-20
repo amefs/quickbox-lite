@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# [QuickBox Lite Transmission Remover]
+# [QuickBox Lite WebDAV Remover]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
@@ -69,22 +69,22 @@ function _error() {
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="Transmission"
-APP_NAME="transmission"
-APP_SERVICE="transmission"
-APP_BASEDEPS="transmission-daemon transmission-cli transmission-common"
+APP_TITLE="WebDAV"
+APP_NAME="webdav"
+APP_SERVICE="webdav"
 
-APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
+username=$(cat /root/.admin.info | cut -d: -f1)
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
-	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+	echo -e "\nQuickBox Lite $APP_TITLE Remover"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
+	echo "-u, --user <username>     the user for this remover"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -99,7 +99,7 @@ function _lockCheck() {
 		_error "Exiting..."
 		exit 1
 	fi
-	if [[ ! -f "/install/$APP_LOCK" ]]; then
+	if [[ ! -f "/install/.${username}.${APP_NAME}.lock" ]]; then
 		_error "${APP_TITLE} haven't installed ..."
 		exit 1
 	fi
@@ -122,12 +122,9 @@ Please wait until the process is completed
 
 function _removeService() {
 	_info "Removing ${APP_TITLE} service..."
-	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-	for username in $userlist; do
-		_execute "systemctl disable ${APP_SERVICE}@${username}"
-		_execute "systemctl stop ${APP_SERVICE}@${username}"
-	done
-	rm -rf /etc/systemd/system/${APP_SERVICE}@.service >/dev/null 2>&1
+	_execute "systemctl disable ${APP_SERVICE}@${username}"
+	_execute "systemctl stop ${APP_SERVICE}@${username}"
+	rm -rf /etc/systemd/system/webdav@${username}.service
 	_execute "systemctl daemon-reload"
 	_success "${APP_TITLE} service removed."
 }
@@ -146,40 +143,19 @@ function _removeDepends() {
 
 function _removeApp() {
 	_info "Removing ${APP_TITLE}..."
-	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-	for username in $userlist; do
-		if [[ -f /install/.${username}.flexget.lock ]]; then
-			if [[ ! -f /install/.pyenv.lock ]]; then
-				_execute 'python2 -m pip uninstall transmission-rpc -y'
-				_execute 'python3 -m pip uninstall transmission-rpc -y'
-			else
-				sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip uninstall transmission-rpc -y" >>"${OUTTO}" 2>&1
-			fi
-			TRPORT=$(cat /install/${username}.transmission.port)
-			sed -i "s/${TRPORT}/TRPORT/g" /home/${username}/.config/flexget/config.yml
-		fi
-		if [[ -f /install/.${username}.autoremovetorrents.lock ]]; then
-			TRPORT=$(cat /install/${username}.transmission.port)
-			sed -i "s/${TRPORT}/TRPORT/g" /home/${username}/.config/autoremovetorrents/config.yml
-		fi
-		rm -rf /home/${username}/torrents/$APP_NAME/
-		rm -rf /home/${username}/trwatch/
-		rm -rf /usr/share/transmission/
-		rm -rf /var/lib/transmission-daemon/
-		rm -rf /srv/$APP_NAME/
-		rm -rf /home/${username}/.config/$APP_NAME/
-		rm -rf /etc/nginx/conf.d/${username}.$APP_NAME.conf
-		rm -rf /etc/nginx/conf.d/${username}.trdlindex.conf
-		rm -f /install/${username}.${APP_NAME}.port
-	done
-	rm -rf /etc/nginx/apps/$APP_NAME.conf
+	rm -f /etc/nginx/apps/${username}.webdav.conf
+	if [[ ! -f /install/${username}.rclone.port ]]; then
+		rm -f /usr/bin/rclone
+		rm -f /usr/local/share/man/man1/rclone.1
+	fi
+	rm -f /install/${username}.${APP_NAME}.port
 	_execute "nginx -s reload"
 	_success "${APP_TITLE} removed."
 }
 
 function _removeAppLock() {
 	_info "Removing ${APP_TITLE} lock..."
-	rm -f /install/${APP_LOCK}
+	rm -f /install/.${username}.${APP_NAME}.lock
 	_success "${APP_TITLE} lock removed."
 }
 
@@ -202,6 +178,10 @@ while true; do
 		OUTTO="$2"
 		shift
 		;;
+	-u | --user)
+		username="$2"
+		shift
+		;;
 	--)
 		shift
 		break
@@ -217,7 +197,6 @@ _lockCheck
 _setLock
 _removeInfo
 _removeService
-_removeDepends
 _removeApp
 _removeAppLock
 _lockCleanup
