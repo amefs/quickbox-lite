@@ -5,6 +5,7 @@
 (function ($) {
   function showAlert (message) {
     bootbox.alert({
+      // eslint-disable-next-line object-shorthand
       message: message,
       backdrop: true,
       size: "large"

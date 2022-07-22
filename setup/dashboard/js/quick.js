@@ -25,6 +25,7 @@ $(document).ready(function () {
         $("body").css({ overflow: "hidden" });
       }
     } else {
+      // eslint-disable-next-line object-shorthand
       $(".logopanel, .leftpanel").animate({ marginLeft: marginLeft }, "fast");
       $(".headerbar, .mainpanel").animate({ marginLeft: marginMain }, "fast");
     }
