@@ -171,7 +171,7 @@ function get_vnstat_data() {
 
     // per-day data
     $day_data = $json_version === '1' ? $traffic_data['days'] : $traffic_data['day'];
-    usort($hour_data, 'vnstat_cmp_asc');
+    usort($day_data, 'vnstat_cmp_asc');
     for ($i = 0; $i < min(30, count($day_data)); ++$i) {
         $d  = $day_data[$i];
         $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
