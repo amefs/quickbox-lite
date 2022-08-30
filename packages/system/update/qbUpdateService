@@ -37,9 +37,16 @@ function _verlt() {
 
 function _download_latest_ttyd() {
 	ttyd_binary_url=$(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | jq -r ".assets[] | select(.name | contains(\"$(arch)\")) | .browser_download_url") >>"${OUTTO}" 2>&1
-	if wget -qO /usr/local/bin/ttyd "${ttyd_binary_url}"; then
-		echo "ttyd binary download success" >>"${OUTTO}" 2>&1
-		chmod +x /usr/local/bin/ttyd
+	if wget -qO /usr/local/bin/ttyd.new "${ttyd_binary_url}"; then
+		chmod +x /usr/local/bin/ttyd.new
+		if /usr/local/bin/ttyd.new -v > /dev/null; then
+			mv -f /usr/local/bin/ttyd.new /usr/local/bin/ttyd >>"${OUTTO}" 2>&1
+			echo "ttyd binary download success" >>"${OUTTO}" 2>&1
+		else
+			/usr/local/bin/ttyd.new -v >>"${OUTTO}" 2>&1
+			rm -f /usr/local/bin/ttyd.new >>"${OUTTO}" 2>&1
+			echo "downloaded ttyd file corrupted" >>"${OUTTO}" 2>&1
+		fi
 	else
 		echo "ttyd binary download failed" >>"${OUTTO}" 2>&1
 	fi
