@@ -16,7 +16,7 @@
           return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-dis toggle-light primary" data-service="'.$service.'" data-operation="enable,restart"></div></div>';
       }
   }
-?>
+  ?>
 
 <!--SERVICE CONTROL CENTER-->
 <div class="panel panel-inverse" data-inner-id="panel-server-service-control">
@@ -35,13 +35,13 @@
         </thead>
         <tbody>
         <?php
-        foreach ($packageList as &$package) {
-            if (!isset($package['services']) || !file_exists($package['lockfile'])) {
-                continue;
-            }
-            $services = $package['services'];
-            foreach ($services as $service => $info) {
-                ?>
+          foreach ($packageList as &$package) {
+              if (!isset($package['services']) || !file_exists($package['lockfile'])) {
+                  continue;
+              }
+              $services = $package['services'];
+              foreach ($services as $service => $info) {
+                  ?>
           <tr>
             <td><span id="appstat_<?php echo $service; ?>"></span><?php echo $info['name']; ?>
             <?php if (isset($info['tooltips'])) { ?>
@@ -51,9 +51,9 @@
             <td class="text-center"><?php echo isServiceEnabled($service, $info['username']); ?></td>
           </tr>
         <?php
-            }
-        }
-        ?>
+              }
+          }
+  ?>
         </tbody>
       </table>
     </div><!-- table-responsive -->

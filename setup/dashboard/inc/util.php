@@ -144,7 +144,7 @@ function microtime_float() {
     $mtime = microtime();
     $mtime = explode(' ', $mtime);
 
-    return (float) ($mtime[1]) + (float) ($mtime[0]);
+    return (float) $mtime[1] + (float) $mtime[0];
 }
 
 /**

@@ -4,7 +4,7 @@
   require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.package.php');
 
   assert(isset($packageList));
-?>
+  ?>
 
 
 <!--PACKAGE MANAGEMENT CENTER-->
@@ -28,12 +28,12 @@
         </thead>
         <tbody>
           <?php
-            foreach ($packageList as &$package) {
-                if (isset($package['skip']) && $package['skip']) {
-                    continue;
-                }
-                $packageLowercase = strtolower($package['package']);
-                $packageUppercase = strtoupper($package['package']); ?>
+              foreach ($packageList as &$package) {
+                  if (isset($package['skip']) && $package['skip']) {
+                      continue;
+                  }
+                  $packageLowercase = strtolower($package['package']);
+                  $packageUppercase = strtoupper($package['package']); ?>
             <tr>
               <td><?php echo $package['name']; ?></td>
               <td><?php echo T($package['description']); ?></td>
@@ -46,7 +46,7 @@
               <?php } ?>
             </tr>
           <?php
-            } ?>
+              } ?>
         </tbody>
       </table>
       <?php if (file_exists('/install/.install.lock')) { ?>

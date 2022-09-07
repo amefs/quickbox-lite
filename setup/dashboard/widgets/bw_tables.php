@@ -134,6 +134,6 @@ get_vnstat_data();
       } elseif ($page === 't') {
           write_data_table(T('Top 10 days'), $top);
       }
-    ?>
+?>
   </div>
 </div>

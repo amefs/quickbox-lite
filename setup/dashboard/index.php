@@ -134,7 +134,7 @@
           </div>
           <div class="panel-body ps-container" style="max-height: 350px; padding: 0;">
             <?php
-                $current_commit = trim((string) (shell_exec('git -C /etc/QuickBox/ rev-parse --short HEAD')));
+                $current_commit = trim((string) shell_exec('git -C /etc/QuickBox/ rev-parse --short HEAD'));
   ?>
             <?php if ($current_commit !== '') { ?>
             <div class="alert alert-default" style="margin-bottom: 4px; text-align: center" role="alert">

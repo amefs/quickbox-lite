@@ -36,13 +36,13 @@ function get_disk_class($percent) {
     return 'disk-good';
 }
 
-$rtorrents     = trim((string) (shell_exec('ls /home/'.$username.'/.sessions/*.torrent|wc -l')));
-$dtorrents     = trim((string) (shell_exec('ls /home/'.$username.'/.config/deluge/state/*.torrent|wc -l')));
-$transtorrents = trim((string) (shell_exec('ls /home/'.$username.'/.config/transmission/torrents/*.torrent|wc -l')));
+$rtorrents     = trim((string) shell_exec('ls /home/'.$username.'/.sessions/*.torrent|wc -l'));
+$dtorrents     = trim((string) shell_exec('ls /home/'.$username.'/.config/deluge/state/*.torrent|wc -l'));
+$transtorrents = trim((string) shell_exec('ls /home/'.$username.'/.config/transmission/torrents/*.torrent|wc -l'));
 if (file_exists('/home/'.$username.'/.local/share/data/qBittorrent')) {
-    $qtorrents = trim((string) (shell_exec('ls /home/'.$username.'/.local/share/data/qBittorrent/BT_backup/*.torrent|wc -l')));
+    $qtorrents = trim((string) shell_exec('ls /home/'.$username.'/.local/share/data/qBittorrent/BT_backup/*.torrent|wc -l'));
 } else {
-    $qtorrents = trim((string) (shell_exec('ls /home/'.$username.'/.local/share/qBittorrent/BT_backup/*.torrent|wc -l')));
+    $qtorrents = trim((string) shell_exec('ls /home/'.$username.'/.local/share/qBittorrent/BT_backup/*.torrent|wc -l'));
 }
 // $php_self = $_SERVER['PHP_SELF'];
 // $web_path = substr($php_self, 0, strrpos($php_self, '/') + 1);

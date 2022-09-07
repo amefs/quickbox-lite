@@ -18,7 +18,7 @@
     assert(isset($version));
     assert(isset($branch));
     assert(isset($plugins));
-?>
+    ?>
 <body class="body">
 <header>
   <div class="headerpanel">
@@ -163,33 +163,33 @@
             <!--li class="active"><a href="index.php"><i class="fa fa-home"></i> <span>Dashboard</span></a></li-->
             <!-- // RUTORRENT // -->
             <?php
-            foreach ($menuList as $menu) {
-                if (!is_package_installed($menu)) {
-                    continue;
-                } ?>
+                foreach ($menuList as $menu) {
+                    if (!is_package_installed($menu)) {
+                        continue;
+                    } ?>
               <li><a class="grayscale" href="<?php echo $menu['url']; ?>" target="_blank"><img data-src="<?php echo $menu['logo']; ?>" class="brand-ico lazyload"> <span><?php echo $menu['name']; ?></span></a></li>
             <?php
-            } ?>
+                } ?>
             <?php
-            $require_download_menu = false;
-            foreach ($downloadList as $download) {
-                if (is_package_installed($download)) {
-                    $require_download_menu = true;
-                    break;
-                }
-            }
-            ?>
+                $require_download_menu = false;
+    foreach ($downloadList as $download) {
+        if (is_package_installed($download)) {
+            $require_download_menu = true;
+            break;
+        }
+    }
+    ?>
             <?php if ($require_download_menu) { ?>
               <li class="nav-parent">
                 <a href=""><i class="fa fa-download"></i> <span><?php echo T('DOWNLOADS'); ?></span></a>
                 <ul class="children">
                 <?php foreach ($downloadList as $download) {
-                if (!is_package_installed($download)) {
-                    continue;
-                } ?>
+                    if (!is_package_installed($download)) {
+                        continue;
+                    } ?>
                     <li><a href="<?php echo $download['url']; ?>" target="_blank"><?php echo $download['name']; ?></a></li>
                 <?php
-            } ?>
+                } ?>
                 </ul>
               </li>
             <?php } ?>
@@ -198,10 +198,10 @@
             <?php } ?>
             <!-- /// BEGIN INSERT CUSTOM MENU /// -->
             <?php
-              if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php')) {
-                  include($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php');
-              }
-            ?>
+                  if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php')) {
+                      include($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php');
+                  }
+    ?>
             <!-- /// END INSERT CUSTOM MENU /// -->
           </ul>
         </div><!-- tab pane -->
@@ -266,8 +266,8 @@
               <ul class="children">
                 <li class="info-quote"><p class="info-quote"><?php echo T('PMENU_NOTICE_TXT'); ?></p></li>
                 <?php foreach ($plugins as $plugin) {
-                $installed = file_exists("/srv/rutorrent/plugins/{$plugin}/plugin.info");
-                $action    = $installed ? "?removeplugin-{$plugin}=true" : "?installplugin-{$plugin}=true"; ?>
+                    $installed = file_exists("/srv/rutorrent/plugins/{$plugin}/plugin.info");
+                    $action    = $installed ? "?removeplugin-{$plugin}=true" : "?installplugin-{$plugin}=true"; ?>
                 <li>
                   <a href="javascript:void(0)"><?php echo $plugin; ?></a>
                   <div class="toggle-wrapper pull-right" style="margin-right: -10px; margin-top: 5px;">
@@ -280,7 +280,7 @@
                   </div>
                 </li>
                 <?php
-            } ?>
+                } ?>
               </ul>
             </li>
           </ul>
