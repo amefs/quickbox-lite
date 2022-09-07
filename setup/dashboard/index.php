@@ -11,7 +11,7 @@
 
   $sysCpuInfo       = SystemInfo::cpuinfo();
   $sysInterfaceInfo = SystemInfo::enuminterface();
-?>
+  ?>
 
 <div class="mainpanel">
   <!--<div class="pageheader">
@@ -134,9 +134,9 @@
           </div>
           <div class="panel-body ps-container" style="max-height: 350px; padding: 0;">
             <?php
-              $current_commit = shell_exec('git -C /etc/QuickBox/ rev-parse --short HEAD');
-            ?>
-            <?php if (is_string($current_commit)) { ?>
+                $current_commit = trim((string) (shell_exec('git -C /etc/QuickBox/ rev-parse --short HEAD')));
+  ?>
+            <?php if ($current_commit !== '') { ?>
             <div class="alert alert-default" style="margin-bottom: 4px; text-align: center" role="alert">
                 <?php echo T('QUICKBOX_COMMIT'); ?>
                 <code>
@@ -165,4 +165,4 @@
 <?php
   require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.scripts.php');
   require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.end.php');
-?>
+  ?>
