@@ -142,16 +142,17 @@ function get_vnstat_data() {
     //     [tx] => 2175640
     //   )
 
-    // per-hour data (from newest to oldest)
+    // per-hour data
     $hour_data = $json_version === '1' ? $traffic_data['hours'] : $traffic_data['hour'];
+    usort($hour_data, 'vnstat_cmp_asc');
 
-    $today = $hour_data[0]['date']['day'];
-
-    for ($i = 0; $i < min(24, count($hour_data)); ++$i) {
-        $d = $hour_data[$i];
-        if ($d['date']['day'] !== $today) {
-            break;
-        }
+    // filter out data for the current day
+    $today           = $iface_data['updated']['date'];
+    $today_hour_data = array_values(array_filter($hour_data, function ($item) use (&$today) {
+        return $item['date']['day'] === $today['day'] && $item['date']['month'] === $today['month'];
+    }));
+    for ($i = 0; $i < min(24, count($today_hour_data)); ++$i) {
+        $d     = $today_hour_data[$i];
         $hours = $json_version === '1' ? $d['id'] : $d['time']['hour'];
         $ts    = mktime($hours, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
         assert($ts !== false);
@@ -159,20 +160,24 @@ function get_vnstat_data() {
         $rx        = $d['rx'] * $data_coefficient;
         $tx        = $d['tx'] * $data_coefficient;
 
-        $hour[$i] = [
+        array_push($hour, [
             'time'   => $ts,
             'label'  => date('h A', $ts),
             'rx'     => $rx, // in bytes
-            'tx'     => $tx, // int bytes
+            'tx'     => $tx, // in bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-        ];
+        ]);
     }
 
     // per-day data
     $day_data = $json_version === '1' ? $traffic_data['days'] : $traffic_data['day'];
     usort($day_data, 'vnstat_cmp_asc');
-    for ($i = 0; $i < min(30, count($day_data)); ++$i) {
+
+    // filter out data for last 30 days
+    $day_data_count     = count($day_data);
+    $display_day_length = min(30, $day_data_count);
+    for ($i = $day_data_count - $display_day_length; $i < $day_data_count; ++$i) {
         $d  = $day_data[$i];
         $ts = mktime(0, 0, 0, $d['date']['month'], $d['date']['day'], $d['date']['year']);
         assert($ts !== false);
@@ -180,20 +185,24 @@ function get_vnstat_data() {
         $rx        = $d['rx'] * $data_coefficient;
         $tx        = $d['tx'] * $data_coefficient;
 
-        $day[$i] = [
+        array_push($day, [
             'time'   => $ts,
             'label'  => date('d F', $ts),
             'rx'     => $rx, // in bytes
-            'tx'     => $tx, // int bytes
+            'tx'     => $tx, // in bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-        ];
+        ]);
     }
 
     // per-month data
     $month_data = $json_version === '1' ? $traffic_data['months'] : $traffic_data['month'];
     usort($month_data, 'vnstat_cmp_asc');
-    for ($i = 0; $i < min(12, count($month_data)); ++$i) {
+
+    // filter out data for last 12 months
+    $month_data_count     = count($month_data);
+    $display_month_length = min(12, $month_data_count);
+    for ($i = $month_data_count - $display_month_length; $i < $month_data_count; ++$i) {
         $d         = $month_data[$i];
         $first_day = mktime(0, 0, 0, $d['date']['month'], 1, $d['date']['year']);
         $last_day  = mktime(0, 0, 0, $d['date']['month'] + 1, 1, $d['date']['year']);
@@ -204,14 +213,14 @@ function get_vnstat_data() {
         $rx              = $d['rx'] * $data_coefficient;
         $tx              = $d['tx'] * $data_coefficient;
 
-        $month[$i] = [
+        array_push($month, [
             'time'   => $first_day,
             'label'  => date('F Y', $first_day),
             'rx'     => $rx, // in bytes
-            'tx'     => $tx, // int bytes
+            'tx'     => $tx, // in bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-        ];
+        ]);
     }
 
     // top10 days data
@@ -224,14 +233,14 @@ function get_vnstat_data() {
         $rx        = $d['rx'] * $data_coefficient;
         $tx        = $d['tx'] * $data_coefficient;
 
-        $top[$i] = [
+        array_push($top, [
             'time'   => $ts,
             'label'  => date('d F Y', $ts),
             'rx'     => $rx, // in bytes
-            'tx'     => $tx, // int bytes
+            'tx'     => $tx, // in bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-        ];
+        ]);
     }
 
     // summary data from old dumpdb command
