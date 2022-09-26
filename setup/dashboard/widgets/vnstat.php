@@ -144,7 +144,6 @@ function get_vnstat_data() {
 
     // per-hour data
     $hour_data = $json_version === '1' ? $traffic_data['hours'] : $traffic_data['hour'];
-    usort($hour_data, 'vnstat_cmp_asc');
 
     // filter out data for the current day
     $today           = $iface_data['updated']['date'];
