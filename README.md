@@ -1,10 +1,9 @@
-
-
 ![QB-lite](https://i.loli.net/2019/09/16/nqx5mwdDVW3lY6a.png)
 
 # Project QuickBox-Lite
 
-[![Project](https://img.shields.io/badge/Project-中文版-green?logo=git&style=for-the-badge)](https://github.com/amefs/quickbox-lite/blob/master/README_zh.md)    [![DOC](https://img.shields.io/badge/Doc-Read%20Manual%20here-1F8ACB?logo=read-the-docs&style=for-the-badge)](https://wiki.ptbox.dev/)
+[![Project](https://img.shields.io/badge/Project-中文版-green?logo=git&style=for-the-badge)](https://github.com/amefs/quickbox-lite/blob/master/README_zh.md) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Famefs%2Fquickbox-lite.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Famefs%2Fquickbox-lite?ref=badge_shield)
+   [![DOC](https://img.shields.io/badge/Doc-Read%20Manual%20here-1F8ACB?logo=read-the-docs&style=for-the-badge)](https://wiki.ptbox.dev/)
 
 ---
 
@@ -135,3 +134,7 @@ It means: The username being set to demouser, password is demo123456, use 1234 a
 
 If you still have questions about the QuickBox Lite or need to report bugs, be sure to read the [Wiki](https://wiki.ptbox.dev) first. When you still have trouble with it, please assign an issue [here](https://github.com/amefs/quickbox-lite/issues/new), I will try my best to help you.
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Famefs%2Fquickbox-lite.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Famefs%2Fquickbox-lite?ref=badge_large)
