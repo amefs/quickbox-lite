@@ -1,12 +1,10 @@
 #!/bin/bash
 #
-# [QuickBox Lite noVNC Installer]
+# [QuickBox Lite Emby Media Server Installer]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
-# Maintainer:   Amefs
+# Author:   Amefs
 # Current version:  v1.5.6
-# Author:           Mischief
-# Credits to:       QuickBox.io
 #
 #   Licensed under GNU General Public License v3.0 GPL-3 (in short)
 #
@@ -16,12 +14,6 @@
 #   under the GPL along with build & install instructions.
 #
 #################################################################################
-#################################################################################
-# CORE VARIABLE
-#################################################################################
-DISTRO=$(lsb_release -is)
-CODENAME=$(lsb_release -cs)
-
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -74,11 +66,10 @@ function _error() {
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="noVNC"
-APP_NAME="novnc"
-APP_BASEDEPS="expect xfce4 xfce4-goodies xfonts-base dbus-x11 xinit xserver-xorg xserver-xorg-legacy x11-xserver-utils tightvncserver fonts-noto iptables-persistent firefox-esr"
-APP_WEB_PORT="6080"
-APP_DAEMON_PORT="5901"
+APP_TITLE="Emby Media Server"
+APP_NAME="emby"
+APP_SERVICE="emby-server"
+APP_BASEDEPS="emby-server"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
@@ -130,15 +121,6 @@ Please wait until the process is completed
 "
 }
 
-function _installAddSources() {
-	_info "Adding additional keys and sources ${APP_TITLE}..."
-	if [[ $DISTRO == "Ubuntu" ]]; then
-		apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0x0AB215679C571D1C8325275B9BDB3D89CE49EC21 >/dev/null 2>&1
-		add-apt-repository ppa:mozillateam/ppa -y >/dev/null 2>&1
-	fi
-	_success "Keys and sources added."
-}
-
 function _installSystemUpdates() {
 	_info "Checking and performing updates to system... "
 	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
@@ -173,7 +155,6 @@ function _installDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Installing ${depend}... "
-		export DEBIAN_FRONTEND=noninteractive
 		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
 	done
 	if [[ $dependError != "1" ]]; then
@@ -185,122 +166,91 @@ function _installDepends() {
 }
 
 function _installApp() {
-	_info "Building ${APP_TITLE}..."
-	if [[ $CODENAME == bionic ]]; then
-		_execute "apt-get -y install libappindicator-dev"
+	_info "Downloading ${APP_TITLE}..."
+	emby_binary_url=$(curl -s https://api.github.com/repos/MediaBrowser/Emby.Releases/releases/latest | jq -r ".assets[] | select(.name | match(\"emby-server-deb_[0-9.]*_$(dpkg --print-architecture).deb\")) | .browser_download_url") >>"${OUTTO}" 2>&1
+	cd /tmp || exit 1
+	if wget -qO /tmp/emby-server-deb_amd64.deb "${emby_binary_url}"; then
+		_info "Installing ${APP_TITLE}..."
+		dpkg -i /tmp/emby-server-deb_amd64.deb >>"${OUTTO}" 2>&1
+	else
+		_error "${APP_TITLE} installer download failed"
+		exit 1
 	fi
-	cd /tmp
-	wget -q -O master.zip 'https://github.com/novnc/noVNC/archive/master.zip'
-	_execute "unzip master.zip"
-	rm -rf master.zip
-	_execute "mv noVNC-master /srv/novnc/"
-	_info "Generating self-signed certificate for noVNC security..."
-	_execute "openssl req -config /root/.openssl.cnf -newkey rsa:1024 -x509 -days 1095 -nodes -out /srv/novnc/utils/self.pem -keyout /srv/novnc/utils/self.pem"
-	chown www-data:www-data -R /srv/novnc/
-	chmod +rx /srv/novnc/utils/novnc_proxy
-	_success "${APP_TITLE} Built."
+	_success "${APP_TITLE} installed."
 }
 
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
 	username=$(cat /root/.admin.info | cut -d: -f1)
-	passphrase=$(cat /root/.ssh/local_user)
-	passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
-	password=$(echo "${passtext}" | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:"${passphrase}" -nosalt)
-
-	_success "${APP_TITLE} configured."
-	cat >/etc/systemd/system/tightvnc.service <<EOF
-[Unit]
-Description=Remote desktop service (TightVNC)
-After=syslog.target network.target
-
-[Service]
-User=${username}
-Group=${username}
-Type=forking
-PIDFile=/home/${username}/.vnc/%H:1.pid
-ExecStartPre=/bin/sh -c '/usr/bin/vncserver -kill :1 > /dev/null 2>&1 || :'
-ExecStart=/usr/bin/vncserver -depth 24 -geometry 1440x900 :1
-ExecStop=/usr/bin/vncserver -kill :1
-KillMode=mixed
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-	cat >/etc/systemd/system/novnc.service <<EOF
-[Unit]
-Description=novnc websockify
-After=network.target
-
-[Service]
-Type=simple
-User=root
-PIDFile=/srv/novnc/utils/%H:%i.pid
-ExecStart=/srv/novnc/utils/novnc_proxy --vnc 127.0.0.1:${APP_DAEMON_PORT} &
-KillMode=process
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-	cat >/etc/nginx/conf.d/novnc.conf <<EOF
-upstream novnc {
-    server 127.0.0.1:${APP_WEB_PORT};
-}
-EOF
-
-	cat >/etc/nginx/apps/vnc.conf <<EOF
-location /websockify {
-  proxy_http_version 1.1;
-  proxy_pass http://novnc;
-  proxy_set_header Upgrade \$http_upgrade;
-  proxy_set_header Connection "upgrade";
-  proxy_read_timeout 61s;
-  proxy_buffering off;
-}
-
-location /vnc {
-  index vnc.html;
-  alias /srv/novnc/;
-  try_files \$uri \$uri/ /index.php?q=\$uri&\$args;
-  auth_basic "Password Required";
-  auth_basic_user_file /etc/htpasswd.d/htpasswd.${username};
-}
-EOF
-
-	# create log password with expect
-	prog=/usr/bin/vncpasswd
-	_execute "runuser -l $username -c /usr/bin/expect" <<EOF
-spawn "$prog"
-expect "Password:"
-send "$password\r"
-expect "Verify:"
-send "$password\r"
-expect "(y/n)?\r"
-send "n\r"
-expect dof
-exit
-EOF
-	mkdir -p /home/${username}/.vnc >/dev/null 2>&1
-	cat >/home/${username}/.vnc/xstartup <<EOF
-#!/bin/bash
-xrdb $HOME/.Xresources
-startxfce4 &
-EOF
-	chmod +x /home/${username}/.vnc/xstartup
-	chown ${username}:${username} -R /home/${username}/.vnc
-	if [[ ! -d /home/${username}/.config ]]; then
-		chown ${username}:${username} -R /home/${username}/.config
-	else
-		mkdir -p /home/${username}/.config
-		chown ${username}:${username} -R /home/${username}/.config
+	if [[ ! -d /var/lib/emby-server/ ]]; then
+		mkdir -p /var/lib/emby-server/
 	fi
+	perm=$(stat -c '%U' /var/lib/emby-server/)
+	if [[ ! $perm == emby ]]; then
+		chown -R emby:emby /var/lib/emby-server/
+	fi
+	usermod -a -G ${username} emby
 
+	cat >/etc/nginx/conf.d/emby.conf <<EOF
+upstream emby {
+  server 127.0.0.1:8096;
+}
+EOF
+
+	cat >/etc/nginx/apps/emby.conf <<'EOF'
+location /emby {
+    return 301 $scheme://$host/emby/;
+}
+
+location ^~ /emby/ {
+    #Forward real ip and host to Emby
+	proxy_set_header Host $host;
+	proxy_set_header X-Real-IP $remote_addr;
+	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header Sec-WebSocket-Extensions $http_sec_websocket_extensions;
+	proxy_set_header Sec-WebSocket-Key $http_sec_websocket_key;
+	proxy_set_header Sec-WebSocket-Version $http_sec_websocket_version;
+
+	#Websockets
+	proxy_http_version 1.1;
+	proxy_set_header Upgrade $http_upgrade;
+	proxy_set_header Connection "Upgrade";
+
+    proxy_pass http://emby;
+
+    proxy_set_header Range $http_range;
+    proxy_set_header If-Range $http_if_range;
+}
+
+location ^~ /embywebsocket {
+    #Forward real ip and host to Emby
+	proxy_set_header Host $host;
+	proxy_set_header X-Real-IP $remote_addr;
+	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header Sec-WebSocket-Extensions $http_sec_websocket_extensions;
+	proxy_set_header Sec-WebSocket-Key $http_sec_websocket_key;
+	proxy_set_header Sec-WebSocket-Version $http_sec_websocket_version;
+
+	#Websockets
+	proxy_http_version 1.1;
+	proxy_set_header Upgrade $http_upgrade;
+	proxy_set_header Connection "Upgrade";
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1000;
+    gzip_proxied any;
+    gzip_types text/plain text/css text/xml application/xml text/javascript application/x-javascript image/svg+xml;
+    gzip_disable "MSIE [1-6]\.";
+    client_max_body_size 100M;
+
+    proxy_pass http://emby;
+}
+EOF
 	_execute "nginx -s reload"
-	_execute "systemctl daemon-reload"
+	_success "${APP_TITLE} configured."
 }
 
 function _installAppLock() {
@@ -311,13 +261,8 @@ function _installAppLock() {
 
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
-	_execute "systemctl start tightvnc.service"
-	_execute "systemctl enable tightvnc.service"
-	_execute "systemctl start novnc.service"
-	_execute "systemctl enable novnc.service"
-	_execute "iptables -A INPUT -p tcp -s localhost --dport $APP_DAEMON_PORT -j ACCEPT"
-	_execute "iptables -A INPUT -p tcp --dport $APP_DAEMON_PORT -j DROP"
-	_execute "iptables-save > /etc/iptables/rules.v4"
+	_execute "systemctl start ${APP_SERVICE}"
+	_execute "systemctl enable ${APP_SERVICE}"
 	_success "${APP_TITLE} started."
 }
 
@@ -354,9 +299,7 @@ done
 _lockCheck
 _setLock
 _installInfo
-_installAddSources
 _installSystemUpdates
-_installDepends
 _installApp
 _configureApp
 _installAppLock

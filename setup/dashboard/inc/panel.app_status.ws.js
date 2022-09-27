@@ -28,6 +28,11 @@
     id: "#appstat_denyhosts",
     time: 5000
   }, {
+    key: "EMBY",
+    url: "/widgets/service_status.php?service=emby-server",
+    id: "#appstat_emby-server",
+    time: 5000
+  }, {
     key: "FAIL2BAN",
     url: "/widgets/service_status.php?service=fail2ban",
     id: "#appstat_fail2ban",
@@ -51,6 +56,11 @@
     key: "FLOOD",
     url: "/widgets/service_status.php?service=flood",
     id: "#appstat_flood",
+    time: 5000
+  }, {
+    key: "JELLYFIN",
+    url: "/widgets/service_status.php?service=jellyfin",
+    id: "#appstat_jellyfin",
     time: 5000
   }, {
     key: "IRSSI",

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   TautCony
-# Current version:  v1.5.5
+# Current version:  v1.5.6
 #
 #   Licensed under GNU General Public License v3.0 GPL-3 (in short)
 #

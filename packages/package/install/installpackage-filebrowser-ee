@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.5
+# Current version:  v1.5.6
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -191,7 +191,22 @@ function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	# install filebrowser cli
 	cd /tmp || exit 1
-	/usr/local/bin/quickbox/system/auxiliary/getfb.sh >/dev/null 2>&1
+	REQUIRED_PKG="docker-compose-plugin"
+	PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $REQUIRED_PKG|grep "install ok installed")
+	if [ "" = "$PKG_OK" ]; then
+		local DEPLIST="${REQUIRED_PKG}"
+		for depend in $DEPLIST; do
+			_info "Installing ${depend}... "
+			_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+		done
+		if [[ $dependError != "1" ]]; then
+			_success "${APP_TITLE} dependencies installed."
+		else
+			_error "${APP_TITLE} dependencies failed to install."
+			exit 1
+		fi
+	fi
+	#/usr/local/bin/quickbox/system/auxiliary/getfb.sh >/dev/null 2>&1
 	_success "${APP_TITLE} Built."
 }
 
@@ -229,31 +244,45 @@ function _configureApp() {
 		passphrase=$(cat /root/.ssh/local_user)
 		passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
 		password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
-
+		_UID=$(id -u ${username})
+		_GID=$(id -g ${username})
 		mkdir -p /home/${username}/.config/filebrowser-ee/
 		mkdir -p /home/${username}/.config/filebrowser-ee/log/
 		chown ${username}.${username} -R /home/${username}/.config/filebrowser-ee/
-		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser-ee/database.db config init" >>"${OUTTO}" 2>&1
-		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser-ee/database.db config set --locale ${UIlang} --auth.method=noauth" >>"${OUTTO}" 2>&1
-		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser-ee/database.db users add ${username} ${password} --perm.admin" >>"${OUTTO}" 2>&1
+		cd /home/${username}/.config/filebrowser-ee/ || exit 1
+		cat >/home/${username}/.config/filebrowser-ee/docker-compose.yml <<EOF
+version: "3.0"  # optional since v1.27.0
+services:
+  fb-ee:
+    image: 80x86/filebrowser:2.9.4-amd64
+    environment:
+      PUID: $_UID
+      PGID: $_GID
+      WEB_PORT: ${PORT}
+      FB_AUTH_SERVER_ADDR: 127.0.0.1
+      FB_BASEURL: /filebrowser-ee/
+    ports:
+      - "${PORT}:${PORT}"
+    volumes:
+      - '/home/${username}/.config/filebrowser-ee:/config'
+      - '/home/${username}/:/myfiles'
+    tmpfs:
+      - /tmp
+    logging:
+        driver: journald
+    container_name: filebrowser-ee-${username}
+    restart: unless-stopped
+EOF
+		_execute "docker compose up -d"
+        while [[ ! -f /home/${username}/.config/filebrowser-ee/database.db ]]; do
+            sleep 1
+        done
+		_execute "docker exec -i filebrowser-ee-${username} cp /config/database.db /config/database-new.db"
+		_execute "docker exec -i filebrowser-ee-${username} filebrowser -d /config/database-new.db config set --locale ${UIlang} --auth.method=noauth --baseurl=\"/filebrowser-ee/\""
+		_execute "docker exec -i filebrowser-ee-${username} filebrowser -d /config/database-new.db users add ${username} ${password} --perm.admin"
+        _execute "docker compose down"
+        mv /home/${username}/.config/filebrowser-ee/database-new.db /home/${username}/.config/filebrowser-ee/database.db
 		chown ${username}.${username} -R /home/${username}/.config/filebrowser-ee/
-		
-		# setup docker File Browser EE
-		_UID=$(id -u ${username})
-		_GID=$(id -g ${username})
-		docker run -itd  \
--e PUID=$_UID \
--e PGID=$_GID \
--e WEB_PORT=${PORT} \
--e UMASK_SET=133 \
--e FB_BASEURL="/filebrowser-ee/" \
--p ${APP_HOST}:${PORT}:${PORT} \
--v /home/${username}/.config/filebrowser-ee:/config \
--v /home/${username}/:/myfiles \
---mount type=tmpfs,destination=/tmp \
---restart=always \
---name="filebrowser-ee-${username}" \
-80x86/filebrowser:amd64 >>"${OUTTO}" 2>&1
 
 		# Generate reverse proxy upstream
 		cat >/etc/nginx/conf.d/${username}.filebrowser-ee.conf <<EOF
@@ -286,23 +315,11 @@ After=docker.service
 Requires=docker.service
 
 [Service]
-TimeoutStartSec=0
-ExecStartPre=-/usr/bin/docker stop filebrowser-ee-${username}
-ExecStartPre=-/usr/bin/docker rm filebrowser-ee-${username}
-ExecStart=/usr/bin/docker run \
--e PUID=$_UID \
--e PGID=$_GID \
--e WEB_PORT=${PORT} \
--e UMASK_SET=133 \
--e FB_BASEURL="/filebrowser-ee/" \
--p ${APP_HOST}:${PORT}:${PORT} \
--v /home/${username}/.config/filebrowser-ee:/config \
--v /home/${username}/:/myfiles \
---mount type=tmpfs,destination=/tmp \
---restart=always \
---name="filebrowser-ee-${username}" \
-80x86/filebrowser:amd64
-ExecStop=/usr/bin/docker stop filebrowser-ee-${username}
+Type=oneshot
+RemainAfterExit=true
+WorkingDirectory=/home/${username}/.config/filebrowser-ee/
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStop=/usr/bin/docker compose down
 
 [Install]
 WantedBy=multi-user.target

@@ -1,3 +1,26 @@
+## CHANGELOG v1.5.6
+
+*Changelog update Tuesday,Sep 27, 2022*
+
+### General additions
+
+- support Emby
+- support Jellyfin
+
+### Function improved
+
+- use docker compose to manage filebrowser-ee service
+
+### Function updated
+
+- install latest filebrowser binary by default
+
+### Bug fixed
+
+- fix broken dependency (deluge)
+
+---
+
 ## CHANGELOG v1.5.5
 
 *Changelog update Wednesday, Jul 20, 2022*

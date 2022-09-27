@@ -110,6 +110,20 @@ $packageList = [
             ],
         ],
     ], [
+        'package'     => 'emby',
+        'name'        => 'Emby',
+        'description' => 'EMBY',
+        'lockfile'    => '/install/.emby.lock',
+        'uninstall'   => 'UNINSTALL_EMBY_TXT',
+        'boxonly'     => false,
+        'services'    => [
+            'emby-server' => [
+                'process'  => 'emby-server',
+                'name'     => 'Emby',
+                'username' => 'emby',
+            ],
+        ],
+    ], [
         'package'     => 'fail2ban',
         'name'        => 'Fail2ban',
         'description' => 'FAIL2BAN',
@@ -146,7 +160,7 @@ $packageList = [
         'boxonly'     => false,
         'services'    => [
             'filebrowser-ee' => [
-                'process'  => 'filebrowser-ee',
+                'process'  => 'filebrowser',
                 'name'     => 'File Browser Enhanced',
                 'username' => $username,
             ],
@@ -177,6 +191,20 @@ $packageList = [
                 'process'  => 'flood',
                 'name'     => 'Flood',
                 'username' => $username,
+            ],
+        ],
+    ], [
+        'package'     => 'jellyfin',
+        'name'        => 'Jellyfin',
+        'description' => 'JELLYFIN',
+        'lockfile'    => '/install/.jellyfin.lock',
+        'uninstall'   => 'UNINSTALL_JELLYFIN_TXT',
+        'boxonly'     => false,
+        'services'    => [
+            'jellyfin' => [
+                'process'  => 'jellyfin',
+                'name'     => 'Jellyfin',
+                'username' => 'jellyfin',
             ],
         ],
     ], [
@@ -450,6 +478,12 @@ $menuList = [
         'url'     => "/{$username}.btsync/",
         'logo'    => 'img/brands/btsync.png',
     ], [
+        'name'    => 'Emby',
+        'service' => true,
+        'ref'     => $packageMap['emby'],
+        'url'     => '/emby/',
+        'logo'    => 'img/brands/emby.png',
+    ], [
         'name'    => 'File Browser',
         'service' => true,
         'ref'     => $packageMap['filebrowser'],
@@ -467,6 +501,12 @@ $menuList = [
         'ref'     => $packageMap['flexget'],
         'url'     => '/flexget/',
         'logo'    => 'img/brands/flexget.png',
+    ], [
+        'name'    => 'Jellyfin',
+        'service' => true,
+        'ref'     => $packageMap['jellyfin'],
+        'url'     => '/jellyfin/',
+        'logo'    => 'img/brands/jellyfin.png',
     ], [
         'name'    => 'NetData',
         'service' => true,

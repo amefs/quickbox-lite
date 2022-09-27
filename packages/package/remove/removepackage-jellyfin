@@ -1,13 +1,10 @@
 #!/bin/bash
 #
-# [QuickBox Lite Resilio Sync Remover]
+# [QuickBox Lite Emby Media Server Remover]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
 # Current version:  v1.5.6
-# URL:
-# Original Repo:    https://github.com/QuickBox/QB
-# Credits to:       QuickBox.io
 #
 #   Licensed under GNU General Public License v3.0 GPL-3 (in short)
 #
@@ -69,10 +66,10 @@ function _error() {
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="Resilio Sync"
-APP_NAME="btsync"
-APP_SERVICE="resilio-sync"
-APP_BASEDEPS="resilio-sync"
+APP_TITLE="Jellyfin Media Server"
+APP_NAME="jellyfin"
+APP_SERVICE="jellyfin"
+APP_BASEDEPS="jellyfin jellyfin-ffmpeg5 jellyfin-server jellyfin-web"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
@@ -81,7 +78,7 @@ OUTTO=/srv/dashboard/db/output.log
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
-	echo -e "\nQuickBox Lite $APP_TITLE Installer"
+	echo -e "\nQuickBox Lite $APP_TITLE Remover"
 	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
@@ -122,12 +119,8 @@ Please wait until the process is completed
 
 function _removeService() {
 	_info "Removing ${APP_TITLE} service..."
-	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-	for username in $userlist; do
-		_execute "systemctl disable ${APP_SERVICE}@${username}"
-		_execute "systemctl stop ${APP_SERVICE}@${username}"
-	done
-	rm -rf /etc/systemd/system/${APP_SERVICE}@.service >/dev/null 2>&1
+	_execute "systemctl disable $APP_SERVICE"
+	_execute "systemctl stop $APP_SERVICE"
 	_success "${APP_TITLE} service removed."
 }
 
@@ -145,14 +138,14 @@ function _removeDepends() {
 
 function _removeApp() {
 	_info "Removing ${APP_TITLE}..."
-	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-	for username in $userlist; do
-		rm -rf /home/${username}/.config/resilio-sync/
-		rm -rf /home/${username}/sync_folder
-		rm -f /etc/nginx/apps/${username}.resilio-sync.conf
-		rm -f /install/${username}.${APP_NAME}.port >/dev/null 2>&1
-	done
-	rm -rf /home/rslsync
+	rm -rf /etc/apt/trusted.gpg.d/plex.gpg
+	rm -rf /etc/apt/sources.list.d/plex.list
+	rm -rf /var/lib/jellyfin
+	rm -rf /etc/jellyfin
+	_execute "userdel jellyfin"
+	rm -f /etc/nginx/conf.d/jellyfin.conf
+	rm -f /etc/nginx/apps/jellyfin.conf
+	_execute "nginx -s reload"
 	_success "${APP_TITLE} removed."
 }
 
@@ -165,7 +158,7 @@ function _removeAppLock() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
+if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
 then
     _usage
     exit 1
