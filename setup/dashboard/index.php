@@ -1,17 +1,19 @@
 <?php
-  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
-  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.system.php');
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.header.php');
-  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.menu.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.system.php');
 
-  assert(isset($version));
-  assert(isset($branch));
+require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.header.php');
+require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.menu.php');
 
-  $sysCpuInfo       = SystemInfo::cpuinfo();
-  $sysInterfaceInfo = SystemInfo::enuminterface();
-  ?>
+assert(isset($version));
+assert(isset($branch));
+
+$sysCpuInfo       = SystemInfo::cpuinfo();
+$sysInterfaceInfo = SystemInfo::enuminterface();
+?>
 
 <div class="mainpanel">
   <!--<div class="pageheader">
@@ -134,8 +136,8 @@
           </div>
           <div class="panel-body ps-container" style="max-height: 350px; padding: 0;">
             <?php
-                $current_commit = trim((string) shell_exec('git -C /etc/QuickBox/ rev-parse --short HEAD'));
-  ?>
+              $current_commit = trim((string) shell_exec('git -C /etc/QuickBox/ rev-parse --short HEAD'));
+?>
             <?php if ($current_commit !== '') { ?>
             <div class="alert alert-default" style="margin-bottom: 4px; text-align: center" role="alert">
                 <?php echo T('QUICKBOX_COMMIT'); ?>
@@ -163,6 +165,6 @@
 </div><!-- mainpanel -->
 
 <?php
-  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.scripts.php');
-  require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.end.php');
-  ?>
+require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.scripts.php');
+require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.end.php');
+?>

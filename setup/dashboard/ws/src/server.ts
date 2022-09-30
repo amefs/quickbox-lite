@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import * as express from "express";
 import * as http from "http";
 import { Server as socketio } from "socket.io";

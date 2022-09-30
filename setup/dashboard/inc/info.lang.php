@@ -1,5 +1,7 @@
 <?php
 
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 $languages = [
     ['file' => 'lang_zh', 'title' => 'Chinese', 'locale' => 'zh_CN.UTF-8'],
     ['file' => 'lang_da', 'title' => 'Danish', 'locale' => 'da_DK.UTF-8'],

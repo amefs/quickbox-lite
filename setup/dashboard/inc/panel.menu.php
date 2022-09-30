@@ -1,24 +1,26 @@
 <?php
-    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.lang.php');
-    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.package.php');
-    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.theme.php');
-    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.plugin.php');
-    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.bw_page.php');
-    require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-    $username = getMaster();
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.lang.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.package.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.theme.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.plugin.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.bw_page.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
 
-    assert(isset($languages));
-    assert(isset($packageMap));
-    assert(isset($menuList));
-    assert(isset($downloadList));
-    assert(isset($themes));
-    assert(isset($bw_pages));
-    assert(isset($version));
-    assert(isset($branch));
-    assert(isset($plugins));
-    ?>
+$username = getMaster();
+
+assert(isset($languages));
+assert(isset($packageMap));
+assert(isset($menuList));
+assert(isset($downloadList));
+assert(isset($themes));
+assert(isset($bw_pages));
+assert(isset($version));
+assert(isset($branch));
+assert(isset($plugins));
+?>
 <body class="body">
 <header>
   <div class="headerpanel">
@@ -163,22 +165,22 @@
             <!--li class="active"><a href="index.php"><i class="fa fa-home"></i> <span>Dashboard</span></a></li-->
             <!-- // RUTORRENT // -->
             <?php
-                foreach ($menuList as $menu) {
-                    if (!is_package_installed($menu)) {
-                        continue;
-                    } ?>
+            foreach ($menuList as $menu) {
+                if (!is_package_installed($menu)) {
+                    continue;
+                } ?>
               <li><a class="grayscale" href="<?php echo $menu['url']; ?>" target="_blank"><img data-src="<?php echo $menu['logo']; ?>" class="brand-ico lazyload"> <span><?php echo $menu['name']; ?></span></a></li>
             <?php
-                } ?>
+            } ?>
             <?php
-                $require_download_menu = false;
-    foreach ($downloadList as $download) {
-        if (is_package_installed($download)) {
-            $require_download_menu = true;
-            break;
-        }
+            $require_download_menu = false;
+foreach ($downloadList as $download) {
+    if (is_package_installed($download)) {
+        $require_download_menu = true;
+        break;
     }
-    ?>
+}
+?>
             <?php if ($require_download_menu) { ?>
               <li class="nav-parent">
                 <a href=""><i class="fa fa-download"></i> <span><?php echo T('DOWNLOADS'); ?></span></a>
@@ -201,7 +203,7 @@
                   if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php')) {
                       include($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php');
                   }
-    ?>
+?>
             <!-- /// END INSERT CUSTOM MENU /// -->
           </ul>
         </div><!-- tab pane -->

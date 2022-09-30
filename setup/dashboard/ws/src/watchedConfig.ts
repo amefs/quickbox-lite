@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { readFileSync, watchFile } from "fs";
 
 export class WatchedConfig<T> {

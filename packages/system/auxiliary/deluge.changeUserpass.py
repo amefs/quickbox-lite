@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Changes the password for Deluge's Web UI
 
 from __future__ import print_function

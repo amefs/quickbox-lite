@@ -1,5 +1,7 @@
 <?php
 
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 $themes = [
     ['file' => 'defaulted', 'title' => 'Defaulted'],
     ['file' => 'smoked', 'title' => 'Smoked'],

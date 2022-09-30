@@ -1,4 +1,6 @@
 <?php
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 assert(isset($branch));
 ?>
 <ul class="dropdown-menu pull-right">

@@ -1,5 +1,7 @@
 <?php
 
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 error_reporting(\E_ERROR);
 if (function_exists('ini_set')) {
     ini_set('display_errors', '0');

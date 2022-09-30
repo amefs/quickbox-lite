@@ -1,5 +1,7 @@
 <?php
 
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 if (isset($_SESSION)) {
     session_destroy();
 }

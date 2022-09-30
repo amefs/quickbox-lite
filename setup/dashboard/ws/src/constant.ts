@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 export default class Constant {
     public static EVENT_CONNECTION = "connection";
     public static EVENT_DISCONNECT = "disconnect";

@@ -3,6 +3,7 @@
 # [qBittorrent static build script]
 #
 # Author:   EFS
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # credits: - https://github.com/userdocs/qbittorrent-nox-static
 #          - https://gist.github.com/notsure2

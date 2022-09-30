@@ -1,22 +1,24 @@
 <?php
-  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-  require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.package.php');
-  assert(isset($packageList));
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-  /**
-   * @param string $service
-   * @param string $username
-   *
-   * @return string
-   */
-  function isServiceEnabled($service, $username) {
-      if (file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'@'.$username.'.service') || file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'.service')) {
-          return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-en toggle-light primary" data-service="'.$service.'" data-operation="stop,disable"></div></div>';
-      } else {
-          return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-dis toggle-light primary" data-service="'.$service.'" data-operation="enable,restart"></div></div>';
-      }
-  }
-  ?>
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.package.php');
+assert(isset($packageList));
+
+/**
+ * @param string $service
+ * @param string $username
+ *
+ * @return string
+ */
+function isServiceEnabled($service, $username) {
+    if (file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'@'.$username.'.service') || file_exists('/etc/systemd/system/multi-user.target.wants/'.$service.'.service')) {
+        return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-en toggle-light primary" data-service="'.$service.'" data-operation="stop,disable"></div></div>';
+    } else {
+        return ' <div class="toggle-wrapper text-center"><div onclick="serviceUpdateHandler(event)" class="toggle-dis toggle-light primary" data-service="'.$service.'" data-operation="enable,restart"></div></div>';
+    }
+}
+?>
 
 <!--SERVICE CONTROL CENTER-->
 <div class="panel panel-inverse" data-inner-id="panel-server-service-control">
@@ -35,13 +37,13 @@
         </thead>
         <tbody>
         <?php
-          foreach ($packageList as &$package) {
-              if (!isset($package['services']) || !file_exists($package['lockfile'])) {
-                  continue;
-              }
-              $services = $package['services'];
-              foreach ($services as $service => $info) {
-                  ?>
+        foreach ($packageList as &$package) {
+            if (!isset($package['services']) || !file_exists($package['lockfile'])) {
+                continue;
+            }
+            $services = $package['services'];
+            foreach ($services as $service => $info) {
+                ?>
           <tr>
             <td><span id="appstat_<?php echo $service; ?>"></span><?php echo $info['name']; ?>
             <?php if (isset($info['tooltips'])) { ?>
@@ -51,9 +53,9 @@
             <td class="text-center"><?php echo isServiceEnabled($service, $info['username']); ?></td>
           </tr>
         <?php
-              }
-          }
-  ?>
+            }
+        }
+?>
         </tbody>
       </table>
     </div><!-- table-responsive -->

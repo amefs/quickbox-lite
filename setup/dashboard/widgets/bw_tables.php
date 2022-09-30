@@ -1,4 +1,6 @@
 <?php
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 const path = require("path");
 const nodeExternals = require("webpack-node-externals");
 const WebpackBar = require("webpackbar");

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import Constant from "../constant";
 import { Socket } from "socket.io";
 

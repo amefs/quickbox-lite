@@ -1,5 +1,7 @@
 <?php
 
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 include($_SERVER['DOCUMENT_ROOT'].'/db/locale.php');
 
 $fallback_language = 'lang_en';

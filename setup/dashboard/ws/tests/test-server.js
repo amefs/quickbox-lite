@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 const { spawn } = require('child_process');
 const express  = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
