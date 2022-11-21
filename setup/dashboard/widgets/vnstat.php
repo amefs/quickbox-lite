@@ -161,14 +161,14 @@ function get_vnstat_data() {
         $rx        = $d['rx'] * $data_coefficient;
         $tx        = $d['tx'] * $data_coefficient;
 
-        array_push($hour, [
+        $hour[] = [
             'time'   => $ts,
             'label'  => date('h A', $ts),
             'rx'     => $rx, // in bytes
             'tx'     => $tx, // in bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-        ]);
+        ];
     }
 
     // per-day data
@@ -186,14 +186,14 @@ function get_vnstat_data() {
         $rx        = $d['rx'] * $data_coefficient;
         $tx        = $d['tx'] * $data_coefficient;
 
-        array_push($day, [
+        $day[] = [
             'time'   => $ts,
             'label'  => date('d F', $ts),
             'rx'     => $rx, // in bytes
             'tx'     => $tx, // in bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-        ]);
+        ];
     }
 
     // per-month data
@@ -214,14 +214,14 @@ function get_vnstat_data() {
         $rx              = $d['rx'] * $data_coefficient;
         $tx              = $d['tx'] * $data_coefficient;
 
-        array_push($month, [
+        $month[] = [
             'time'   => $first_day,
             'label'  => date('F Y', $first_day),
             'rx'     => $rx, // in bytes
             'tx'     => $tx, // in bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-        ]);
+        ];
     }
 
     // top10 days data
@@ -234,14 +234,14 @@ function get_vnstat_data() {
         $rx        = $d['rx'] * $data_coefficient;
         $tx        = $d['tx'] * $data_coefficient;
 
-        array_push($top, [
+        $top[] = [
             'time'   => $ts,
             'label'  => date('d F Y', $ts),
             'rx'     => $rx, // in bytes
             'tx'     => $tx, // in bytes
             'rx_avg' => round($rx / $diff_time) * 8, // in bits/s
             'tx_avg' => round($tx / $diff_time) * 8, // in bits/s
-        ]);
+        ];
     }
 
     // summary data from old dumpdb command

@@ -106,4 +106,3 @@ jobs:
         run: |
           # stop the build if there are Python syntax errors or undefined names
           pipenv run flake8
-          pipenv run futurize
