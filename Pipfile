@@ -10,7 +10,7 @@ prettytable = "*"
 flake8 = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.10"
 
 [scripts]
 flake8 = "flake8 packages/system/auxiliary/"
