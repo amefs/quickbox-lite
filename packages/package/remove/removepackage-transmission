@@ -132,6 +132,7 @@ function _removeDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Removing ${depend}... "
+		_execute "apt-mark unhold ${depend}"
 		_execute "apt-get -y purge ${depend}"
 		_execute "apt-get -y autoremove"
 		_execute "apt-get -y autoclean"

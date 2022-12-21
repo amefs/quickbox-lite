@@ -310,10 +310,18 @@ function _installLibt() {
 			DEB=${LIBTBIN}
 			_download ${PACKAGE} ${DEB}
 			_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTBIN}"
+			# disable auto upgrade
+			if [[ ${libt_major_version} == "1.1" ]]; then
+				_execute "apt-mark hold libtorrent-rasterbar9"
+			elif [[ ${libt_major_version} == "1.2" ]]; then
+				_execute "apt-mark hold libtorrent-rasterbar10"
+			fi
 			LIBTDEVBIN=libtorrent-rasterbar-dev_${libtversion}-1build1_amd64.deb
 			DEB=${LIBTDEVBIN}
 			_download ${PACKAGE} ${DEB}
 			_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTDEVBIN}"
+			# disable auto upgrade
+			_execute "apt-mark hold libtorrent-rasterbar-dev"
 			rm -rf {${LIBTBIN},${LIBTDEVBIN}}
 			if [[ ${libt_major_version} == "1.1" ]]; then
 				touch /install/.libtorrent-rasterbar9.lock
@@ -330,6 +338,8 @@ function _installLibt() {
 			DEB=${PYLIBTBIN}
 			_download ${PACKAGE} ${DEB}
 			_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install /tmp/${PYLIBTBIN}"
+			# disable auto upgrade
+			_execute "apt-mark hold python3-libtorrent"
 			rm -rf ${PYLIBTBIN}
 			touch /install/.libtorrent-rasterbar-python3.lock
 		elif [ ${libt_deb_python_req} == 1 ]; then
@@ -337,6 +347,8 @@ function _installLibt() {
 			DEB=${PYLIBTBIN}
 			_download ${PACKAGE} ${DEB}
 			_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install /tmp/${PYLIBTBIN}"
+			# disable auto upgrade
+			_execute "apt-mark hold python-libtorrent"
 			rm -rf ${PYLIBTBIN}
 			touch /install/.libtorrent-rasterbar-python.lock
 		fi
@@ -447,6 +459,8 @@ function _installLibt() {
 			_execute "make install"
 			fpm -f -C /tmp/dist/libtorrent-rasterbar -p /root/pool/libtorrent-rasterbar_${libtversion}.deb -s dir -t deb -n libtorrent-rasterbar --version ${libtversion} --description "libtorrent-rasterbar compiled by QuickBox Lite" >>${OUTTO} 2>&1
 			_execute "dpkg -i /root/pool/libtorrent-rasterbar_${libtversion}.deb"
+			# disable auto upgrade
+			_execute "apt-mark hold libtorrent-rasterbar"
 			echo ${libtversion} >/install/.libtorrent-rasterbar.lock
 			_success "Libtorrent built ..."
 		else
@@ -534,6 +548,8 @@ function _installLibt() {
 			_execute "make install"
 			fpm --verbose --python-bin=python3 --python-package-name-prefix=python3 -n python3-libtorrent -f -p /root/pool/python3-libtorrent_${libtversion}.deb --version ${libtversion} --description "Libtorrent rasterbar python bindings compiled by QuickBox Lite" -s python -t deb /tmp/libtorrent/bindings/python/setup.py >>${OUTTO} 2>&1
 			_execute "dpkg -i /root/pool/python3-libtorrent_${libtversion}.deb"
+			# disable auto upgrade
+			_execute "apt-mark hold python3-libtorrent"
 			echo ${libtversion} >/install/.libtorrent-rasterbar-python3.lock
 			_success "Libtorrent python binding built ..."
 		elif [ ${libt_compile_python_req} == 1 ]; then
@@ -546,6 +562,8 @@ function _installLibt() {
 			_execute "make install"
 			fpm --verbose --python-bin=python2 --python-package-name-prefix=python -n python-libtorrent -f -p /root/pool/python-libtorrent_${libtversion}.deb --version ${libtversion} --description "Libtorrent rasterbar python bindings compiled by QuickBox Lite" -s python -t deb /tmp/libtorrent/bindings/python/setup.py >>${OUTTO} 2>&1
 			_execute "dpkg -i /root/pool/python-libtorrent_${libtversion}.deb"
+			# disable auto upgrade
+			_execute "apt-mark hold python-libtorrent"
 			echo ${libtversion} >/install/.libtorrent-rasterbar-python.lock
 			_success "Libtorrent python binding built ..."
 		fi
@@ -575,6 +593,8 @@ function _installDeluge() {
 			_execute "pip3 install --upgrade twisted[tls]"
 			_info "Installing pyOpenSSL... "
 			_execute "pip3 install --upgrade --force-reinstall pyOpenSSL"
+			_info "Installing attrs... "
+			_execute "pip3 install --upgrade --force-reinstall attrs"
 			_success "${APP_TITLE} dependencies installed."
 			DEBASE="deluge-common_${deversion}-1build1_all.deb deluge-console_${deversion}-1build1_all.deb deluge-gtk_${deversion}-1build1_all.deb deluge-web_${deversion}-1build1_all.deb deluged_${deversion}-1build1_all.deb"
 			_info "Installing ${APP_TITLE}... "
@@ -625,6 +645,8 @@ function _installDeluge() {
 			_execute "pip3 install --upgrade twisted[tls]"
 			_info "Installing pyOpenSSL... "
 			_execute "pip3 install --upgrade --force-reinstall pyOpenSSL"
+			_info "Installing attrs... "
+			_execute "pip3 install --upgrade --force-reinstall attrs"
 			_success "${APP_TITLE} dependencies installed."
 			_info "Building ${APP_TITLE}... "
 			tar -xf deluge-${deversion}.tar.xz

@@ -309,10 +309,18 @@ function _installLibt() {
 		DEB=${LIBTBIN}
 		_download ${PACKAGE} ${DEB}
 		_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTBIN}"
+		# disable auto upgrade
+		if [[ ${libt_major_version} == "1.1" ]]; then
+			_execute "apt-mark hold libtorrent-rasterbar9"
+		elif [[ ${libt_major_version} == "1.2" ]]; then
+			_execute "apt-mark hold libtorrent-rasterbar10"
+		fi
 		LIBTDEVBIN=libtorrent-rasterbar-dev_${libtversion}-1build1_amd64.deb
 		DEB=${LIBTDEVBIN}
 		_download ${PACKAGE} ${DEB}
 		_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTDEVBIN}"
+		# disable auto upgrade
+		_execute "apt-mark hold libtorrent-rasterbar-dev"
 		rm -rf {${LIBTBIN},${LIBTDEVBIN}}
 		if [[ ${libt_major_version} == "1.1" ]]; then
 			touch /install/.libtorrent-rasterbar9.lock
@@ -407,6 +415,8 @@ function _installLibt() {
 		_execute "make install"
 		fpm -f -C /tmp/dist/libtorrent-rasterbar -p /root/pool/libtorrent-rasterbar_${libtversion}.deb -s dir -t deb -n libtorrent-rasterbar --version ${libtversion} --description "libtorrent-rasterbar compiled by QuickBox Lite" >>${OUTTO} 2>&1
 		_execute "dpkg -i /root/pool/libtorrent-rasterbar_${libtversion}.deb"
+		# disable auto upgrade
+		_execute "apt-mark hold libtorrent-rasterbar"
 		echo ${libtversion} >/install/.libtorrent-rasterbar.lock
 		_success "Libtorrent built ..."
 		ldconfig

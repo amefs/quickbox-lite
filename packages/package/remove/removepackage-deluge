@@ -140,14 +140,17 @@ function _removeDepends() {
 		_execute "apt-get -y autoclean"
 	done
 	if [[ -f /install/.libtorrent-rasterbar-python.lock ]]; then
+		_execute "apt-mark unhold python-libtorrent"
 		_execute "apt-get -y purge python-libtorrent"
 		rm -f /install/.libtorrent-rasterbar-python.lock
 	fi
 	if [[ -f /install/.libtorrent-rasterbar-python3.lock ]]; then
+		_execute "apt-mark unhold python3-libtorrent"
 		_execute "apt-get -y purge python3-libtorrent"
 		rm -f /install/.libtorrent-rasterbar-python3.lock
 	fi
 	if [[ ! -f /install/.qbittorrent.lock ]]; then
+		_execute "apt-mark unhold libtorrent-rasterbar*"
 		_execute "apt-get -y purge libtorrent-rasterbar*"
 		_execute "apt-get -y autoremove"
 		_execute "apt-get -y autoclean"

@@ -303,6 +303,9 @@ function _installApp() {
 			_execute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
 			rm -rf /tmp/${DEB}
 		done
+		_execute "apt-mark hold transmission-cli"
+		_execute "apt-mark hold transmission-common"
+		_execute "apt-mark hold transmission-daemon"
 	fi
 	_success "${APP_TITLE} Built."
 }
