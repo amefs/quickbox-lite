@@ -251,6 +251,7 @@ location /filebrowser {
 }
 
 location /filebrowser/ {
+  client_max_body_size 0;
   auth_basic "Password Required";
   auth_basic_user_file /etc/htpasswd.d/htpasswd.$remote_user;
   rewrite ^/filebrowser/(.*) /$1 break;
