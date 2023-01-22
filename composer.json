@@ -1,9 +1,9 @@
 {
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.8.0",
-        "phpstan/phpstan": "^1.5.4",
-        "phpstan/phpstan-strict-rules": "^1.1",
-        "phpstan/extension-installer": "^1.1"
+        "friendsofphp/php-cs-fixer": "^3.13.2",
+        "phpstan/phpstan": "^1.9.14",
+        "phpstan/phpstan-strict-rules": "^1.4.5",
+        "phpstan/extension-installer": "^1.2.0"
     },
     "scripts": {
         "lint": ["export PHP_CS_FIXER_IGNORE_ENV=1 && php-cs-fixer fix -n -vv --dry-run --using-cache no"],

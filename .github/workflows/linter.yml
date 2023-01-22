@@ -1,6 +1,10 @@
 name: Linter
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+    paths-ignore:
+    - '**.md'
 
 jobs:
   es-linter-for-ts:
