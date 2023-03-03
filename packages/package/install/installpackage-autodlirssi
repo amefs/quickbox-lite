@@ -214,6 +214,11 @@ ADLC
 			_execute "git clone ${PLUGINSRC} autodl-irssi"
 			_execute "chown -R www-data:www-data autodl-irssi/"
 		fi
+		# apply patch https://github.com/autodl-community/autodl-rutorrent/pull/58
+		cd /tmp || exit 1
+		curl -L https://patch-diff.githubusercontent.com/raw/autodl-community/autodl-rutorrent/pull/58.patch -o 58.patch  >>"${OUTTO}" 2>&1
+		patch -p 1 -d /srv/rutorrent/plugins/autodl-irssi < /tmp/58.patch >>"${OUTTO}" 2>&1
+		rm -f 58.patch
 
 		userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
 		for username in $userlist; do
