@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   JMSolo, Amefs
-# Current version:  v1.5.6
+# Current version:  v1.5.7
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -71,16 +71,18 @@ APP_BASEDEPS="socat"
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
 domain=""
+letsencrypt=0
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-d domain] [-l logfile]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-d domain] [-l logfile] [--letsencrypt]"
 	echo -e "\nOptions:\n"
 	echo "-d, --domain <FQDN>       your domain"
 	echo "-l, --log <logfile>       specific log file"
+	echo "--letsencrypt             use Let's Encrypt instead of ZeroSSL"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -171,13 +173,17 @@ function _installApp() {
 	mkdir -p /srv/.well-known/acme-challenge
 	chown -R root:www-data /srv/.well-known
 	if [[ -d /root/.acme.sh ]]; then
-		rm -rf /root/.acme.sh
+		/root/.acme.sh/acme.sh upgrade >>"${OUTTO}" 2>&1
+	else
+		cd /tmp || exit 1
+		_execute "git clone https://github.com/Neilpang/acme.sh.git /root/.acme.sh"
+		cd /root/.acme.sh || { _error "Can not download acme.sh ..." && exit 1; }
+		./acme.sh --install >/dev/null 2>&1
+		./acme.sh --register-account -m domain@example.com >>"${OUTTO}" 2>&1
+		if [[ ${letsencrypt} == 1 ]]; then
+			./acme.sh --set-default-ca --server letsencrypt >>"${OUTTO}" 2>&1
+		fi
 	fi
-	cd /tmp
-	_execute "git clone https://github.com/Neilpang/acme.sh.git /root/.acme.sh"
-	cd /root/.acme.sh || { _error "Can not download acme.sh ..." && exit 1; }
-	./acme.sh --install >/dev/null 2>&1
-	./acme.sh --register-account -m domain@example.com >>"${OUTTO}" 2>&1
 	mkdir -p /etc/nginx/ssl/${domain}/
 	_success "${APP_TITLE} Built."
 }
@@ -329,7 +335,7 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl:d: -l help,log:,domain: -- "$@")
+if ! ARGS=$(getopt -a -o hl:d: -l help,letsencrypt,log:,domain: -- "$@")
 then
     _usage
     exit 1
@@ -344,6 +350,9 @@ while true; do
 	-l | --log)
 		OUTTO="$2"
 		shift
+		;;
+	--letsencrypt)
+	    letsencrypt=1
 		;;
 	-d | --domain)
 		domain="$2"

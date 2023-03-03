@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.6
+# Current version:  v1.5.7
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -1396,7 +1396,7 @@ while true; do
 		fi
 		shift
 		;;
-	-u | --user)
+	-u | --username)
 		onekey=1
 		username="$2"
 		count=0

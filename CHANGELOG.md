@@ -1,3 +1,24 @@
+## CHANGELOG v1.5.7
+
+*Changelog update Friday, Mar 03, 2023*
+
+### General additions
+
+- support h5ai to generate a shared index.
+
+### Function improved
+
+- update qBittorrent systemd config
+
+### Function updated
+
+- ruTorrent update to v4.x
+- update dashboard dependency
+
+### Bug fixed
+
+---
+
 ## CHANGELOG v1.5.6
 
 *Changelog update Tuesday,Sep 27, 2022*

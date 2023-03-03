@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.6
+# Current version:  v1.5.7
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -81,15 +81,17 @@ APP_WEB_PORT_HIGH="15500"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
+hwaccel=${hwaccel:-0}
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [--hwaccel]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
+	echo "--hwaccel                 enable hwaccel"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
@@ -245,11 +247,38 @@ function _configureApp() {
 		mkdir -p /home/${username}/.config/filebrowser-ee/log/
 		chown ${username}.${username} -R /home/${username}/.config/filebrowser-ee/
 		cd /home/${username}/.config/filebrowser-ee/ || exit 1
-		cat >/home/${username}/.config/filebrowser-ee/docker-compose.yml <<EOF
+		if [[ ${hwaccel{} == 1 ]]; then
+			cat >/home/${username}/.config/filebrowser-ee/docker-compose.yml <<EOF
 version: "3.0"  # optional since v1.27.0
 services:
   fb-ee:
-    image: 80x86/filebrowser:2.9.4-amd64
+    image: 80x86/filebrowser:2.10.1-amd64
+    environment:
+      PUID: $_UID
+      PGID: $_GID
+      WEB_PORT: ${PORT}
+      FB_AUTH_SERVER_ADDR: 127.0.0.1
+      FB_BASEURL: /filebrowser-ee/
+    ports:
+      - "${PORT}:${PORT}"
+    volumes:
+      - '/home/${username}/.config/filebrowser-ee:/config'
+      - '/home/${username}/:/myfiles'
+    devices:
+      - "/dev/dri/renderD128:/dev/dri/renderD128"
+    tmpfs:
+      - /tmp
+    logging:
+        driver: journald
+    container_name: filebrowser-ee-${username}
+    restart: unless-stopped
+EOF
+		else
+			cat >/home/${username}/.config/filebrowser-ee/docker-compose.yml <<EOF
+version: "3.0"  # optional since v1.27.0
+services:
+  fb-ee:
+    image: 80x86/filebrowser:2.10.1-amd64
     environment:
       PUID: $_UID
       PGID: $_GID
@@ -268,6 +297,7 @@ services:
     container_name: filebrowser-ee-${username}
     restart: unless-stopped
 EOF
+		fi
 		_execute "docker compose up -d"
         while [[ ! -f /home/${username}/.config/filebrowser-ee/database.db ]]; do
             sleep 1
@@ -344,7 +374,7 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
+if ! ARGS=$(getopt -a -o hl:u: -l help,hwaccel,log:,user: -- "$@")
 then
     _usage
     exit 1
@@ -355,6 +385,9 @@ while true; do
 	-h | --help)
 		_usage
 		exit 1
+		;;
+	--hwaccel)
+		hwaccel=1
 		;;
 	-l | --log)
 		OUTTO="$2"

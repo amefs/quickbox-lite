@@ -1,0 +1,793 @@
+#!/bin/bash
+#
+# [QuickBox Lite h5ai Installer]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.5.7
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+#################################################################################
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _execute() {
+    ($1 >>"${OUTTO}" 2>&1)
+}
+function _print() {
+    printf "${_norm}%s${_norm}\n" "$@"
+    printf "%s\n" "$@" >>"${OUTTO}"
+}
+function _info() {
+    printf "${_cyan}➜ %s${_norm}\n" "$@"
+    printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+    printf "${_green}✓ %s${_norm}\n" "$@"
+    printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+    printf "${_tan}⚠ %s${_norm}\n" "$@"
+    printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+    printf "${_red}✗ %s${_norm}\n" "$@"
+    printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
+
+#################################################################################
+# APP VARIABLE
+#################################################################################
+APP_TITLE="h5ai"
+APP_NAME="h5ai"
+APP_BASEDEPS="php7.4-cli php7.4-fpm php7.4 php7.4-dev imagemagick"
+
+APP_LOCK=.$APP_NAME.lock
+OUTTO=/srv/dashboard/db/output.log
+auth_array=()
+subfolder=""
+domain=""
+lecert=0
+public=1
+username=$(cat /root/.admin.info | cut -d: -f1)
+target="/home/${username}/h5aihome/"
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+    echo -e "\nQuickBox Lite $APP_TITLE Installer"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [--auth] [--lecert]"
+    echo -e "                            [--public] [--private] [--target]"
+    echo -e "                            [--subfolder] [--vhost] [--lecert]"
+	echo -e "\nOptions:\n"
+	echo "-l, --log <logfile>       specific log file"
+	echo "--auth <user:password>    add authentication in the form of user:password"
+	echo "                          e.g. --auth \"u1:p1\" --auth \"u2:p2\""
+	echo "--public, --private       private or public access"
+	echo "--target                  the target path to share directory"
+	echo "                          (default /home/${username}/h5aihome)"
+	echo "--subfolder <path>        run h5ai in sub directory e.g. https://my.site/path"
+	echo "--vhost <domain>          run h5ai on vhost e.g. https://h5ai.my.site/"
+	echo "--lecert                  protect your site with Let's Encrypt"
+	echo ""
+	echo "-h, --help                display this help and exit"
+}
+################################################################################
+# INSTALL FUNCTIONS
+################################################################################
+function _lockCheck() {
+    if [[ -f "/install/.install.lock" ]]; then
+        prevApp=$(cat /install/.install.lock)
+        _info "$prevApp process running."
+        _info "If you believe this to be in error, please manually remove the /install/.install.lock"
+        _error "Exiting..."
+        exit 1
+    fi
+    if [[ -f "/install/$APP_LOCK" ]]; then
+        _error "${APP_TITLE} already installed !"
+        exit 1
+    fi
+}
+function _setLock() {
+    echo "${APP_TITLE}" >/install/.install.lock
+}
+function _lockCleanup() {
+    echo "$APP_TITLE Install Complete!
+
+
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
+    rm -f /install/.install.lock
+}
+
+function _installInfo() {
+    _print "
+$APP_TITLE will now be installed.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _installSystemUpdates() {
+    _info "Checking and performing updates to system... "
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+    ## auto solve lock
+    if [ "$?" -eq 2 ]; then
+        _warning "dpkg database is locked."
+        _info "fixing dpkg lock..."
+        rm -f /var/lib/dpkg/updates/0*
+        locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+        if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+            for l in ${locks}; do
+                rm -rf ${l}
+            done
+            _execute "dpkg --configure -a"
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+            DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+        fi
+        if ! (apt-get check >/dev/null); then
+            apt-get install -f >>"${OUTTO}" 2>&1
+            if ! (apt-get check >/dev/null); then
+                whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
+                exit 1
+            fi
+        fi
+    fi
+    _success "System updated."
+}
+
+function _installDepends() {
+    _info "Installing ${APP_TITLE} dependencies..."
+    local DEPLIST="${APP_BASEDEPS}"
+    for depend in $DEPLIST; do
+        _info "Installing ${depend}... "
+        _execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+    done
+    if [[ $dependError != "1" ]]; then
+        _success "${APP_TITLE} dependencies installed."
+    else
+        _error "${APP_TITLE} dependencies failed to install."
+        exit 1
+    fi
+}
+
+function _installApp() {
+    _info "Building ${APP_TITLE}..."
+    #latest_release_version=$(curl -s https://api.github.com/repos/lrsjng/h5ai/tags | jq -r ".[0].name" | grep -Po '(\d+\.)+\d+')
+    download_url="https://release.larsjung.de/h5ai/h5ai-0.30.0.zip"
+    cd /tmp || exit 1
+    _execute "wget ${download_url} -O h5ai.zip"
+    username=$(cat /root/.admin.info | cut -d: -f1)
+    usermod -a -G www-data ${username}
+    if [[ ! -d ${target} ]]; then
+        mkdir -p ${target}
+        if [ $? -ne 0 ] ; then
+            _error "Failed to create ${target}, please check your target"
+            exit 99
+        else
+            _info "${target} created!"
+        fi
+    fi
+    echo "${target}_h5ai" > /install/.h5ai.path
+    _execute "unzip -o h5ai.zip -d ${target}"
+    _execute "chown -R www-data.www-data ${target}"
+    _execute "chmod 770 ${target}"
+    _execute "chmod 770 -R ${target}_h5ai/private/cache"
+    _execute "chmod 770 -R ${target}_h5ai/public/cache"
+    if  [[ -n ${subfolder} ]]; then
+        _execute "ln -s ${target} /srv/${subfolder}"
+    fi
+    _success "${APP_TITLE} Built."
+}
+
+function _configNginx() {
+    if [[ -n "${subfolder}" ]]; then
+        _info "Configuring h5ai under ${subfolder}..."
+        cat >/etc/nginx/apps/h5ai.conf <<EOF
+index  index.html  index.php  /${subfolder}/_h5ai/public/index.php;
+location /${subfolder} {
+    alias ${target};
+    auth_basic "Password Required";
+    auth_basic_user_file /etc/htpasswd.d/htpasswd.h5ai;
+}
+EOF
+    elif [[ -n "${domain}" ]]; then
+        _info "Configuring h5ai on ${domain}..."
+        if [[ ${lecert} == 0 ]]; then
+        cat >/etc/nginx/sites-enabled/h5ai.conf <<EOF
+server {
+    listen              443 ssl http2;
+    listen              [::]:443 ssl http2;
+    server_name         ${domain};
+    root                ${target};
+
+    auth_basic "Password Required";
+    auth_basic_user_file /etc/htpasswd.d/htpasswd.h5ai;
+
+    # SSL
+    ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;
+    ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
+
+    # security headers
+    add_header X-XSS-Protection        "1; mode=block" always;
+    add_header X-Content-Type-Options  "nosniff" always;
+    add_header Referrer-Policy         "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'; frame-ancestors 'self';" always;
+    add_header Permissions-Policy      "interest-cohort=()" always;
+
+    # index.php
+    index       /_h5ai/public/index.php;
+
+    # index.php fallback
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    # favicon.ico
+    location = /favicon.ico {
+        log_not_found off;
+        access_log    off;
+    }
+
+    # robots.txt
+    location = /robots.txt {
+        log_not_found off;
+        access_log    off;
+    }
+
+    # assets, media
+    location ~* \.(?:css(\.map)?|js(\.map)?|jpe?g|png|gif|ico|cur|heic|webp|tiff?|mp3|m4a|aac|ogg|midi?|wav|mp4|mov|webm|mpe?g|avi|ogv|flv|wmv)\$ {
+        expires    7d;
+        access_log off;
+    }
+
+    # svg, fonts
+    location ~* \.(?:svgz?|ttf|ttc|otf|eot|woff2?)\$ {
+        add_header Access-Control-Allow-Origin "*";
+        expires    7d;
+        access_log off;
+    }
+
+    # gzip
+    gzip            on;
+    gzip_vary       on;
+    gzip_proxied    any;
+    gzip_comp_level 6;
+    gzip_types      text/plain text/css text/xml application/json application/javascript application/rss+xml application/atom+xml image/svg+xml;
+
+    # handle .php
+    location /_h5ai/ {
+        root ${target};
+
+        location ~ \.php\$ {
+            include snippets/fastcgi-php.conf;
+            fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+            fastcgi_param   SCRIPT_FILENAME    \$document_root\$fastcgi_script_name;
+            fastcgi_param   SCRIPT_NAME        \$fastcgi_script_name;
+        }
+    }
+}
+
+# HTTP redirect
+server {
+    listen      80;
+    listen      [::]:80;
+    server_name ${domain};
+    return      301 https://${domain}\$request_uri;
+}
+EOF
+        else
+            APP_BASEDEPS="socat"
+            _installDepends
+            mkdir -p /srv/.well-known/acme-challenge
+            chown -R root:www-data /srv/.well-known
+            if [[ -d /root/.acme.sh ]]; then
+                /root/.acme.sh/acme.sh upgrade >>"${OUTTO}" 2>&1
+            else
+                cd /tmp || exit 1
+                _execute "git clone https://github.com/Neilpang/acme.sh.git /root/.acme.sh"
+                cd /root/.acme.sh || { _error "Can not download acme.sh ..." && exit 1; }
+                ./acme.sh --install >/dev/null 2>&1
+                ./acme.sh --register-account -m domain@example.com >>"${OUTTO}" 2>&1
+            fi
+            mkdir -p /etc/nginx/ssl/${domain}/
+            sock='php7.4-fpm'
+            cat >/etc/nginx/sites-enabled/h5ai.conf <<EOF
+server {
+    listen              443 ssl http2;
+    listen              [::]:443 ssl http2;
+    server_name         ${domain};
+    root                ${target};
+
+    auth_basic "Password Required";
+    auth_basic_user_file /etc/htpasswd.d/htpasswd.h5ai;
+
+    # SSL
+    ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;
+    ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
+
+    # security headers
+    add_header X-XSS-Protection        "1; mode=block" always;
+    add_header X-Content-Type-Options  "nosniff" always;
+    add_header Referrer-Policy         "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'; frame-ancestors 'self';" always;
+    add_header Permissions-Policy      "interest-cohort=()" always;
+
+    # index.php
+    index       /_h5ai/public/index.php;
+
+    # index.php fallback
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    # favicon.ico
+    location = /favicon.ico {
+        log_not_found off;
+        access_log    off;
+    }
+
+    # robots.txt
+    location = /robots.txt {
+        log_not_found off;
+        access_log    off;
+    }
+
+    # assets, media
+    location ~* \.(?:css(\.map)?|js(\.map)?|jpe?g|png|gif|ico|cur|heic|webp|tiff?|mp3|m4a|aac|ogg|midi?|wav|mp4|mov|webm|mpe?g|avi|ogv|flv|wmv)\$ {
+        expires    7d;
+        access_log off;
+    }
+
+    # svg, fonts
+    location ~* \.(?:svgz?|ttf|ttc|otf|eot|woff2?)\$ {
+        add_header Access-Control-Allow-Origin "*";
+        expires    7d;
+        access_log off;
+    }
+
+    # gzip
+    gzip            on;
+    gzip_vary       on;
+    gzip_proxied    any;
+    gzip_comp_level 6;
+    gzip_types      text/plain text/css text/xml application/json application/javascript application/rss+xml application/atom+xml image/svg+xml;
+
+    # handle .php
+    location /_h5ai/ {
+        root ${target};
+
+        location ~ \.php\$ {
+            include snippets/fastcgi-php.conf;
+            fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+            fastcgi_param   SCRIPT_FILENAME    \$document_root\$fastcgi_script_name;
+            fastcgi_param   SCRIPT_NAME        \$fastcgi_script_name;
+        }
+    }
+}
+
+# HTTP redirect
+server {
+    listen      80;
+    listen      [::]:80;
+    server_name ${domain};
+
+    location /.well-known {
+      alias /srv/.well-known;
+      allow all;
+      default_type "text/plain";
+      autoindex    on;
+    }
+}
+EOF
+
+            _execute "nginx -s reload"
+            mkdir -p /root/.quickbox/logs/
+            cd /root/.acme.sh || exit 1
+            ./acme.sh --issue --nginx --domain ${domain} --force \
+--keylength ec-384 \
+--key-file /etc/nginx/ssl/${domain}/${domain}-key.pem \
+--cert-file /etc/nginx/ssl/${domain}/${domain}-cert.pem \
+--fullchain-file /etc/nginx/ssl/${domain}/${domain}-ssl.pem \
+--reloadcmd "systemctl reload nginx.service" \
+--log /root/.quickbox/logs/${domain}.log >>"${OUTTO}" 2>&1
+
+            cat >/etc/nginx/sites-enabled/h5ai.conf <<EOF
+server {
+    listen              443 ssl http2;
+    listen              [::]:443 ssl http2;
+    server_name         ${domain};
+    root                ${target};
+
+    auth_basic "Password Required";
+    auth_basic_user_file /etc/htpasswd.d/htpasswd.h5ai;
+
+    # SSL
+    ssl_certificate /etc/nginx/ssl/${domain}/${domain}-ssl.pem;
+    ssl_certificate_key /etc/nginx/ssl/${domain}/${domain}-key.pem;
+
+    # security headers
+    add_header X-XSS-Protection        "1; mode=block" always;
+    add_header X-Content-Type-Options  "nosniff" always;
+    add_header Referrer-Policy         "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'; frame-ancestors 'self';" always;
+    add_header Permissions-Policy      "interest-cohort=()" always;
+
+    # index.php
+    index       /_h5ai/public/index.php;
+
+    # index.php fallback
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    # favicon.ico
+    location = /favicon.ico {
+        log_not_found off;
+        access_log    off;
+    }
+
+    # robots.txt
+    location = /robots.txt {
+        log_not_found off;
+        access_log    off;
+    }
+
+    # assets, media
+    location ~* \.(?:css(\.map)?|js(\.map)?|jpe?g|png|gif|ico|cur|heic|webp|tiff?|mp3|m4a|aac|ogg|midi?|wav|mp4|mov|webm|mpe?g|avi|ogv|flv|wmv)\$ {
+        expires    7d;
+        access_log off;
+    }
+
+    # svg, fonts
+    location ~* \.(?:svgz?|ttf|ttc|otf|eot|woff2?)\$ {
+        add_header Access-Control-Allow-Origin "*";
+        expires    7d;
+        access_log off;
+    }
+
+    # gzip
+    gzip            on;
+    gzip_vary       on;
+    gzip_proxied    any;
+    gzip_comp_level 6;
+    gzip_types      text/plain text/css text/xml application/json application/javascript application/rss+xml application/atom+xml image/svg+xml;
+
+    # handle .php
+    location /_h5ai/ {
+        root ${target};
+
+        location ~ \.php\$ {
+            include snippets/fastcgi-php.conf;
+            fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+            fastcgi_param   SCRIPT_FILENAME    \$document_root\$fastcgi_script_name;
+            fastcgi_param   SCRIPT_NAME        \$fastcgi_script_name;
+        }
+    }
+}
+
+# HTTP redirect
+server {
+    listen      80;
+    listen      [::]:80;
+    server_name ${domain};
+
+    location /.well-known {
+      alias /srv/.well-known;
+      allow all;
+      default_type "text/plain";
+      autoindex    on;
+    }
+    location / {
+      return 301 https://\$host\$request_uri;
+    }
+}
+EOF
+            _execute "./acme.sh --install-cronjob"
+        fi
+    else
+        _error "No vhost or subfolder configurations provided!"
+    fi
+}
+
+function _configureApp() {
+    _info "Configuring ${APP_TITLE}..."
+    cat >${target}_h5ai/private/conf/options.json <<'EOF'
+{
+    "passhash": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+    "resources": {
+        "scripts": [],
+        "styles": [
+            "//fonts.googleapis.com/css?family=Ubuntu:300,400,700%7CUbuntu+Mono:400,700"
+        ]
+    },
+    "view": {
+        "binaryPrefix": false,
+        "disableSidebar": false,
+        "fallbackMode": false,
+        "fastBrowsing": true,
+        "fonts": ["Ubuntu", "Roboto", "Helvetica", "Arial", "sans-serif"],
+        "fontsMono": ["Ubuntu Mono", "Monaco", "Lucida Sans Typewriter", "monospace"],
+        "hidden": ["^\\.", "^_h5ai"],
+        "hideFolders": false,
+        "hideIf403": true,
+        "hideParentFolder": false,
+        "maxIconSize": 40,
+        "modes": ["details", "grid", "icons"],
+        "modeToggle": false,
+        "setParentFolderLabels": true,
+        "sizes": [20, 40, 60, 80, 100, 140, 180, 220, 260, 300],
+        "theme": "comity",
+        "unmanaged": ["index.html", "index.htm", "index.php"],
+        "unmanagedInNewWindow": false
+    },
+    "autorefresh": {
+        "enabled": false,
+        "interval": 5000
+    },
+    "crumb": {
+        "enabled": true
+    },
+    "custom": {
+        "enabled": true,
+        "stopSearchingAtRoot": true
+    },
+    "download": {
+        "enabled": false,
+        "type": "php-tar",
+        "packageName": null,
+        "alwaysVisible": false
+    },
+    "filter": {
+        "enabled": false,
+        "advanced": true,
+        "debounceTime": 100,
+        "ignorecase": true
+    },
+    "foldersize": {
+        "enabled": true,
+        "type": "php"
+    },
+    "google-analytics-ua": {
+        "enabled": false,
+        "id": "UA-000000-0"
+    },
+    "info": {
+        "enabled": true,
+        "show": false,
+        "qrcode": true,
+        "qrFill": "#999",
+        "qrBack": "#fff"
+    },
+    "l10n": {
+        "enabled": true,
+        "lang": "en",
+        "useBrowserLang": true
+    },
+    "piwik-analytics": {
+        "enabled": false,
+        "baseURL": "some/url",
+        "idSite": 1
+    },
+    "preview-aud": {
+        "enabled": true,
+        "autoplay": true,
+        "types": ["aud"]
+    },
+    "preview-img": {
+        "enabled": true,
+        "size": false,
+        "types": ["img", "img-bmp", "img-gif", "img-ico", "img-jpg", "img-png", "img-raw", "img-svg"]
+    },
+    "preview-txt": {
+        "enabled": true,
+        "styles": {
+            "txt": 1,
+            "txt-authors": 1,
+            "txt-c": 3,
+            "txt-cpp": 3,
+            "txt-css": 3,
+            "txt-diff": 1,
+            "txt-go": 3,
+            "txt-h": 3,
+            "txt-hpp": 3,
+            "txt-install": 1,
+            "txt-js": 3,
+            "txt-json": 3,
+            "txt-less": 3,
+            "txt-license": 1,
+            "txt-log": 1,
+            "txt-makefile": 1,
+            "txt-md": 2,
+            "txt-py": 3,
+            "txt-rb": 3,
+            "txt-readme": 1,
+            "txt-rtf": 1,
+            "txt-rust": 3,
+            "txt-script": 3,
+            "txt-xml": 1
+        }
+    },
+    "preview-vid": {
+        "enabled": true,
+        "autoplay": true,
+        "types": ["vid-avi", "vid-flv", "vid-mkv", "vid-mov", "vid-mp4", "vid-mpg", "vid-webm"]
+    },
+    "search": {
+        "enabled": true,
+        "advanced": true,
+        "debounceTime": 300,
+        "ignorecase": true
+    },
+    "select": {
+        "enabled": true,
+        "clickndrag": true,
+        "checkboxes": true
+    },
+    "sort": {
+        "enabled": true,
+        "column": 0,
+        "reverse": false,
+        "ignorecase": true,
+        "natural": true,
+        "folders": 0
+    },
+    "thumbnails": {
+        "enabled": true,
+        "img": ["img-bmp", "img-gif", "img-ico", "img-jpg", "img-png"],
+        "mov": ["vid-avi", "vid-flv", "vid-mkv", "vid-mov", "vid-mp4", "vid-mpg", "vid-webm"],
+        "doc": ["x-pdf", "x-ps"],
+        "delay": 1,
+        "size": 240,
+        "exif": false,
+        "chunksize": 20
+    },
+    "title": {
+        "enabled": true
+    },
+    "tree": {
+        "enabled": true,
+        "show": true,
+        "maxSubfolders": 50,
+        "naturalSort": true,
+        "ignorecase": true
+    }
+}
+EOF
+    _execute "chown www-data.www-data ${target}_h5ai/private/conf/options.json"
+    username=$(cat /root/.admin.info | cut -d: -f1)
+    _execute "cp /etc/htpasswd.d/htpasswd.${username} /etc/htpasswd.d/htpasswd.h5ai"
+    if [[ ${public} == 0 ]]; then
+        for auth in "${auth_array[@]}"; do
+            username=$(echo ${auth} | cut -d: -f1)
+            password=$(echo ${auth} | cut -d: -f2)
+            echo "${username}:$(openssl passwd -apr1 "${password}")" >> /etc/htpasswd.d/htpasswd.h5ai
+        done
+        username=$(cat /root/.admin.info | cut -d: -f1)
+        _configNginx
+    else
+        _configNginx
+        if [[ -n "${subfolder}" ]]; then
+            sed -i -r 's/(auth_basic|auth_basic_user_file)/#\1/g' /etc/nginx/apps/h5ai.conf
+        elif [[ -n "${domain}" ]]; then
+            sed -i -r 's/(auth_basic|auth_basic_user_file)/#\1/g' /etc/nginx/sites-enabled/h5ai.conf
+        else
+            _error "No vhost or subfolder configurations provided!"
+        fi
+    fi
+    _success "${APP_TITLE} configured."
+}
+
+function _installAppLock() {
+    _info "Configuring ${APP_TITLE} lock..."
+    touch /install/${APP_LOCK}
+    _success "${APP_TITLE} lock configured."
+}
+
+function _installAppStart() {
+    _info "Starting ${APP_TITLE}..."
+    _execute "nginx -s reload"
+    _success "${APP_TITLE} started."
+}
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+if ! ARGS=$(getopt -a -o hl: -l help,log:,auth:,lecert,target:,subfolder:,vhost:,public,private -- "$@")
+then
+    _usage
+    exit 1
+fi
+eval set -- "${ARGS}"
+while true; do
+    case "$1" in
+    -h | --help)
+        _usage
+        exit 1
+        ;;
+    -l | --log)
+        OUTTO="$2"
+        shift
+        ;;
+    --auth)
+        auth_array+=("$2")
+        shift
+        ;;
+    --lecert)
+        lecert=1
+        ;;
+    --subfolder)
+        subfolder="$2"
+        shift
+        ;;
+    --vhost)
+        domain="$2"
+        shift
+        ;;
+    --public)
+        public=1
+        ;;
+    --private)
+        public=0
+        ;;
+    --target)
+        target="$2"
+        target="${target%/}/" # add slash if missing
+        shift
+        ;;
+    --)
+        shift
+        break
+        ;;
+    esac
+    shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
+_lockCheck
+_setLock
+_installInfo
+if [[ -z "${subfolder}" ]] && [[ -z "${domain}" ]]; then
+    _error "No vhost or subfolder configurations provided!"
+    _lockCleanup
+else
+    if [[ ! -f /install/.system.lock ]]; then
+        _installSystemUpdates
+    fi
+    _installDepends
+    _installApp
+    _configureApp
+    _installAppLock
+    _installAppStart
+    _lockCleanup
+fi

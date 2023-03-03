@@ -196,6 +196,13 @@ $packageList = [
             ],
         ],
     ], [
+        'package'     => 'h5ai',
+        'name'        => 'h5ai',
+        'description' => 'H5AI',
+        'lockfile'    => "/install/.h5ai.lock",
+        'install'     => 'BOX_TOOLTIP_H5AI',
+        'boxonly'     => true,
+    ], [
         'package'     => 'jellyfin',
         'name'        => 'Jellyfin',
         'description' => 'JELLYFIN',
