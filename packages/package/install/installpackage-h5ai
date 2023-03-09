@@ -204,6 +204,7 @@ function _installApp() {
     _execute "chmod 770 -R ${target}_h5ai/public/cache"
     if  [[ -n ${subfolder} ]]; then
         _execute "ln -s ${target} /srv/${subfolder}"
+        echo "/srv/${subfolder}" >> /install/.h5ai.path
     fi
     _success "${APP_TITLE} Built."
 }
