@@ -212,8 +212,8 @@ function _configNginx() {
     if [[ -n "${subfolder}" ]]; then
         _info "Configuring h5ai under ${subfolder}..."
         cat >/etc/nginx/apps/h5ai.conf <<EOF
-index  index.html  index.php  /${subfolder}/_h5ai/public/index.php;
 location /${subfolder} {
+    index  index.html  index.php  /${subfolder}/_h5ai/public/index.php;
     alias ${target};
     auth_basic "Password Required";
     auth_basic_user_file /etc/htpasswd.d/htpasswd.h5ai;
