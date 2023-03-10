@@ -18,7 +18,7 @@
     "gritter": "^1.7.4",
     "hover.css": "^2.3.2",
     "ionicons": "2.0.1",
-    "jquery": "^3.6.3",
+    "jquery": "^3.6.4",
     "jquery-toggles": "^4.0.0",
     "jquery-ui": "^1.13.2",
     "jquery-ui-touch-punch": "^0.2.3",
@@ -26,11 +26,11 @@
     "lobipanel": "^1.0.0",
     "perfect-scrollbar": "0.8.1",
     "select2": "^4.0.13",
-    "socket.io-client": "^4.5.4",
+    "socket.io-client": "^4.6.1",
     "visibilityjs": "^2.0.2"
   },
   "devDependencies": {
-    "eslint": "^8.32.0",
+    "eslint": "^8.35.0",
     "eslint-config-standard": "^17.0.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-n": "^15.6.1",
