@@ -34,5 +34,5 @@ app.get("/", (req, res) => {
 });
 
 server.listen(8575, "127.0.0.1", () => {
-    console.log("quickbox-ws running...");
+    console.log("Quickbox-ws running...");
 });

@@ -23,16 +23,21 @@ while (lookupDepth-- > 0) {
     baseDir = path.join(baseDir, "..");
 }
 if (!configPath) {
-    console.error("commonds.json not found");
+    console.error("commonds.json not found for quickbox-ws");
 }
 
 const config = new WatchedConfig<CommandType>(configPath);
 let username = "";
 try {
-    const content = fs.readFileSync("/srv/dashboard/db/master.txt", { encoding: "utf8" });
-    username = content.split("\n")[0].trim();
+    const masterConfigPath = "/srv/dashboard/db/master.txt";
+    if (!fs.existsSync(masterConfigPath)) {
+        console.error("Quickbox-Lite user info not found");
+    } else {
+        const content = fs.readFileSync(masterConfigPath, { encoding: "utf8" });
+        username = content.split("\n")[0].trim();
+    }
 } catch (err) {
-    console.error("Failed to read user info", err);
+    console.error("Failed to read Quickbox-Lite user info", err);
 }
 
 const execOption = {
@@ -54,7 +59,7 @@ const execHandler = async (payload: string, client: Socket) => {
         template = buildCommand(payload, config, username);
     } catch (e) {
         ret.success = false;
-        ret.message = "Invalid command";
+        ret.message = "Invalid Command";
         if (e instanceof Error) {
             ret.message = e.message;
         }
@@ -66,9 +71,9 @@ const execHandler = async (payload: string, client: Socket) => {
         ret.stderr = stderr;
         if (error) {
             ret.success = false;
-            ret.message = "Execute Failed";
+            ret.message = "Execution Failed";
             if (error.killed && error.signal === "SIGTERM") {
-                ret.message = "Execute Timeout";
+                ret.message = "Execution Timeout";
             }
         }
         client.emit(Constant.EVENT_EXEC, ret);
