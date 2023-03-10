@@ -129,7 +129,7 @@ $sysInterfaceInfo = SystemInfo::enuminterface();
                 title="<?php echo T('CURRENT_VERSIONS_CHANGELOG'); ?>"
                 data-placement="top" class="label label-primary tooltips"
                 style="font-size:10px; padding-top:0; padding-bottom:0px; top: -2px; position: relative;"
-                target="_blank" rel="noopener">
+                target="_blank" rel="noopenner noreferrer">
                   QuickBox :: <span style="color: #fff;text-shadow: 0px 0px 6px #fff;"><?php echo "{$version}"; ?></span>
               </a>
             </h4>
@@ -142,10 +142,10 @@ $sysInterfaceInfo = SystemInfo::enuminterface();
             <div class="alert alert-default" style="margin-bottom: 4px; text-align: center" role="alert">
                 <?php echo T('QUICKBOX_COMMIT'); ?>
                 <code>
-                  <a href="https://github.com/amefs/quickbox-lite/commit/<?php echo $current_commit; ?>" target="_blank" title="<?php echo T('CURRENT_COMMIT'); ?>" data-placement="top" class="tooltips">
+                  <a href="https://github.com/amefs/quickbox-lite/commit/<?php echo $current_commit; ?>" target="_blank" rel="noopenner noreferrer" title="<?php echo T('CURRENT_COMMIT'); ?>" data-placement="top" class="tooltips">
                     <?php echo $current_commit; ?>
                   </a>...
-                  <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $current_commit; ?>...<?php echo $branch; ?>" target="_blank" title="<?php echo T('COMPARE_COMMITS'); ?>" data-placement="top" class="tooltips">
+                  <a href="https://github.com/amefs/quickbox-lite/compare/<?php echo $current_commit; ?>...<?php echo $branch; ?>" target="_blank" rel="noopenner noreferrer" title="<?php echo T('COMPARE_COMMITS'); ?>" data-placement="top" class="tooltips">
                     <?php echo T('LATEST_COMMIT'); ?>
                   </a>
                 </code><br>

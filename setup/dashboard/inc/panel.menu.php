@@ -64,8 +64,8 @@ assert(isset($plugins));
                             <div class="col-xs-12">
                               <h5>QuickBox :: <span style="color: #fff;text-shadow: 0px 0px 6px #fff;"><?php echo "{$version}"; ?></span></h5>
                               <!-- Changelog and ReadME Link -->
-                              <small><a href="https://github.com/amefs/quickbox-lite/blob/master/README.md" target="_blank">README.md</a></small>
-                              <small><a href="https://github.com/amefs/quickbox-lite/blob/master/CHANGELOG.md#changelog-<?php echo $version; ?>" target="_blank">CHANGELOG</a></small>
+                              <small><a href="https://github.com/amefs/quickbox-lite/blob/master/README.md" target="_blank" rel="noopenner noreferrer">README.md</a></small>
+                              <small><a href="https://github.com/amefs/quickbox-lite/blob/master/CHANGELOG.md#changelog-<?php echo $version; ?>" target="_blank" rel="noopenner noreferrer">CHANGELOG</a></small>
                             </div>
                           </div>
                         </li>
@@ -169,7 +169,7 @@ assert(isset($plugins));
                 if (!is_package_installed($menu)) {
                     continue;
                 } ?>
-              <li><a class="grayscale" href="<?php echo $menu['url']; ?>" target="_blank"><img data-src="<?php echo $menu['logo']; ?>" class="brand-ico lazyload"> <span><?php echo $menu['name']; ?></span></a></li>
+              <li><a class="grayscale" href="<?php echo $menu['url']; ?>" target="_blank" rel="noopenner noreferrer"><img data-src="<?php echo $menu['logo']; ?>" class="brand-ico lazyload"> <span><?php echo $menu['name']; ?></span></a></li>
             <?php
             } ?>
             <?php
@@ -189,14 +189,14 @@ foreach ($downloadList as $download) {
                     if (!is_package_installed($download)) {
                         continue;
                     } ?>
-                    <li><a href="<?php echo $download['url']; ?>" target="_blank"><?php echo $download['name']; ?></a></li>
+                    <li><a href="<?php echo $download['url']; ?>" target="_blank" rel="noopenner noreferrer"><?php echo $download['name']; ?></a></li>
                 <?php
                 } ?>
                 </ul>
               </li>
             <?php } ?>
             <?php if (is_package_running($packageMap['ttyd'])) { ?>
-            <li><a href="/<?php echo $username; ?>.console" target="_blank"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
+            <li><a href="/<?php echo $username; ?>.console" target="_blank" rel="noopenner noreferrer"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
             <?php } ?>
             <!-- /// BEGIN INSERT CUSTOM MENU /// -->
             <?php
