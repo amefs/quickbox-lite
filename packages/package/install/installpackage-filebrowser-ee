@@ -247,7 +247,7 @@ function _configureApp() {
 		mkdir -p /home/${username}/.config/filebrowser-ee/log/
 		chown ${username}.${username} -R /home/${username}/.config/filebrowser-ee/
 		cd /home/${username}/.config/filebrowser-ee/ || exit 1
-		if [[ ${hwaccel{} == 1 ]]; then
+		if [[ ${hwaccel} == 1 ]]; then
 			cat >/home/${username}/.config/filebrowser-ee/docker-compose.yml <<EOF
 version: "3.0"  # optional since v1.27.0
 services:
@@ -278,7 +278,7 @@ EOF
 version: "3.0"  # optional since v1.27.0
 services:
   fb-ee:
-    image: 80x86/filebrowser:2.10.1-amd64
+    image: 80x86/filebrowser:2.10.3-amd64
     environment:
       PUID: $_UID
       PGID: $_GID
