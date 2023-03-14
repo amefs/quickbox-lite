@@ -824,7 +824,8 @@ location /qbittorrent/ {
 QBRP
 
 	BINPATH=$(which qbittorrent-nox)
-	cat >/etc/systemd/system/qbittorrent@.service <<QBS
+	if [[ $CODENAME == bionic ]]; then
+		cat >/etc/systemd/system/qbittorrent@.service <<QBS
 [Unit]
 Description=qBittorrent Daemon Service
 After=network.target
@@ -832,10 +833,10 @@ After=network.target
 [Service]
 Environment="SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
 Environment="SSL_CERT_DIR=/etc/ssl/certs"
-Type=forking
+Type=simple
 User=%I
 LimitNOFILE=infinity
-ExecStart=${BINPATH} -d
+ExecStart=${BINPATH}
 ExecStop=/usr/bin/killall -w -s 9 ${BINPATH}
 TimeoutSec=300
 Restart=on-failure
@@ -843,6 +844,28 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 QBS
+	else
+		cat >/etc/systemd/system/qbittorrent@.service <<QBS
+[Unit]
+Description=qBittorrent Daemon Service
+After=network.target
+
+[Service]
+Environment="SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
+Environment="SSL_CERT_DIR=/etc/ssl/certs"
+Type=exec
+User=%I
+LimitNOFILE=infinity
+ExecStart=${BINPATH}
+ExecStop=/usr/bin/killall -w -s 9 ${BINPATH}
+TimeoutSec=300
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+QBS
+	fi
+
 	_execute "systemctl daemon-reload"
 	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."

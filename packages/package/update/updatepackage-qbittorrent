@@ -528,22 +528,47 @@ function _updateApp() {
 		fi	
 		# Update qbittorrent-nox binary location
 		BINPATH=$(which qbittorrent-nox)
-		cat >/etc/systemd/system/qbittorrent@.service <<QBS
+		if [[ $CODENAME == bionic ]]; then
+			cat >/etc/systemd/system/qbittorrent@.service <<QBS
 [Unit]
 Description=qBittorrent Daemon Service
 After=network.target
 
 [Service]
-Type=forking
+Environment="SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
+Environment="SSL_CERT_DIR=/etc/ssl/certs"
+Type=simple
 User=%I
 LimitNOFILE=infinity
-ExecStart=${BINPATH} -d
+ExecStart=${BINPATH}
 ExecStop=/usr/bin/killall -w -s 9 ${BINPATH}
 TimeoutSec=300
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 QBS
+		else
+			cat >/etc/systemd/system/qbittorrent@.service <<QBS
+[Unit]
+Description=qBittorrent Daemon Service
+After=network.target
+
+[Service]
+Environment="SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
+Environment="SSL_CERT_DIR=/etc/ssl/certs"
+Type=exec
+User=%I
+LimitNOFILE=infinity
+ExecStart=${BINPATH}
+ExecStop=/usr/bin/killall -w -s 9 ${BINPATH}
+TimeoutSec=300
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+QBS
+		fi
 		_execute "systemctl daemon-reload"
 		if (_version_gt ${qbitversion} 4.1.9.1) && (_version_gt 4.2.0 ${cur_version}); then
 			_reconfigureAppv2
