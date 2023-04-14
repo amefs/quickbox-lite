@@ -84,7 +84,7 @@ class SystemInfo {
      * @return array<string,array<int>>
      */
     public static function netinfo() {
-        sleep(0.1);
+        usleep(10000); // sleep for 0.01s
 
         $info = @file('/proc/net/dev');
         $res  = [];
