@@ -169,23 +169,42 @@
         }
       }
 
+      if (Object.prototype.toString.call(dataJSON) !== "[object Object]") {
+        console.log("Invalid data for net status", dataJSON, window.NetOutSpeed, window.NetInputSpeed, window.NetTimeStamp);
+        return;
+      }
       const duration = (dataJSON.NetTimeStamp - window.NetTimeStamp);
+      if (Object.prototype.toString.call(duration) !== "[object Number]" || duration <= 0) {
+        console.log("Invalid data for net status", dataJSON, window.NetOutSpeed, window.NetInputSpeed, window.NetTimeStamp);
+        return;
+      }
       const length = dataJSON.NetOutSpeed.length;
+      let invalidData = false;
       for (let i = 0; i < length; ++i) {
-        if (window.NetOutSpeed[i] !== undefined) {
+        if (Object.prototype.toString.call(dataJSON.NetOutSpeed[i]) === "[object Number]") {
           const speed = (dataJSON.NetOutSpeed[i] - window.NetOutSpeed[i]) / duration;
           const speed_str = formatsize(speed);
           $("#NetOutSpeed" + i).html(speed_str);
+        } else {
+          invalidData = true;
+          $("#NetOutSpeed" + i).html("N/A");
         }
-        if (window.NetInputSpeed[i] !== undefined) {
+        if (Object.prototype.toString.call(dataJSON.NetInputSpeed[i]) === "[object Number]") {
           const speed = (dataJSON.NetInputSpeed[i] - window.NetInputSpeed[i]) / duration;
           const speed_str = formatsize(speed);
           $("#NetInputSpeed" + i).html(speed_str);
+        } else {
+          invalidData = true;
+          $("#NetInputSpeed" + i).html("N/A");
         }
       }
-      window.NetOutSpeed = dataJSON.NetOutSpeed;
-      window.NetInputSpeed = dataJSON.NetInputSpeed;
-      window.NetTimeStamp = dataJSON.NetTimeStamp;
+      if (invalidData) {
+        console.log("Invalid data for net status", dataJSON, window.NetOutSpeed, window.NetInputSpeed, window.NetTimeStamp);
+      } else {
+        window.NetOutSpeed = dataJSON.NetOutSpeed;
+        window.NetInputSpeed = dataJSON.NetInputSpeed;
+        window.NetTimeStamp = dataJSON.NetTimeStamp;
+      }
     },
     time: 1000
   }, {
