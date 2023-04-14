@@ -170,14 +170,16 @@
       }
 
       const duration = (dataJSON.NetTimeStamp - window.NetTimeStamp);
+      if (duration < 1e-5) {
+        return;
+      }
       const length = dataJSON.NetOutSpeed.length;
       let invalid_data_flag = false;
       for (let i = 0; i < length; ++i) {
         const out_speed = (dataJSON.NetOutSpeed[i] - window.NetOutSpeed[i]) / duration;
         if (isNaN(out_speed)) {
           invalid_data_flag = true;
-          console.warn(`[NaN DETECTED] out[${i}]=${out_speed}`, out_speed, dataJSON.NetOutSpeed[i], window.NetOutSpeed[i], duration, dataJSON.NetOutSpeed[i] - window.NetOutSpeed[i]);
-          $("#NetOutSpeed" + i).html("N/A");
+          console.warn(`[NaN DETECTED] out[${i}]`, out_speed, dataJSON.NetOutSpeed[i], window.NetOutSpeed[i], duration, dataJSON.NetOutSpeed[i] - window.NetOutSpeed[i]);
         } else {
           const out_speed_str = formatsize(out_speed);
           $("#NetOutSpeed" + i).html(out_speed_str);
@@ -187,7 +189,6 @@
         if (isNaN(in_speed)) {
           invalid_data_flag = true;
           console.warn(`[NaN DETECTED]  in[${i}]`, in_speed, dataJSON.NetInputSpeed[i], window.NetInputSpeed[i], duration, dataJSON.NetInputSpeed[i] - window.NetInputSpeed[i]);
-          $("#NetInputSpeed" + i).html("N/A");
         } else {
           const in_speed_str = formatsize(in_speed);
           $("#NetInputSpeed" + i).html(in_speed_str);

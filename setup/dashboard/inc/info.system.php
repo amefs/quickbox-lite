@@ -84,6 +84,8 @@ class SystemInfo {
      * @return array<string,array<int>>
      */
     public static function netinfo() {
+        sleep(0.1);
+
         $info = @file('/proc/net/dev');
         $res  = [];
         if (!is_array($info)) {
