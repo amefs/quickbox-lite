@@ -58,7 +58,7 @@ function _error() {
 
 function _checkroot() {
 	if [[ $EUID != 0 ]]; then
-        _error "Do not have root previlage, Please run \"sudo su -\" and try again!"
+        _error "You do not have root privileges, please run \"sudo su -\" and try again!"
 		exit 1
 	fi
 }
