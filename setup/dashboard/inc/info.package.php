@@ -331,6 +331,20 @@ $packageList = [
         'uninstall'   => 'UNINSTALL_RUTORRENT_TXT',
         'boxonly'     => false,
     ], [
+        'package'     => 'sabnzbd',
+        'name'        => 'SABnzbd',
+        'description' => 'SABNZBD',
+        'lockfile'    => "/install/.{$username}.sabnzbd.lock",
+        'uninstall'   => 'UNINSTALL_SABNZBD_TXT',
+        'boxonly'     => false,
+        'services'    => [
+            'sabnzbd' => [
+                'process'  => 'sabnzbd',
+                'name'     => 'SABnzbd',
+                'username' => $username,
+            ],
+        ],
+    ], [
         'package'     => 'speedtest',
         'name'        => 'SpeedTest',
         'description' => 'SPEEDTEST',
@@ -555,6 +569,12 @@ $menuList = [
         'ref'     => getPackage('rclone'),
         'url'     => '/rclone/',
         'logo'    => 'img/brands/rclone.png',
+    ], [
+        'name'    => 'SABnzbd',
+        'service' => true,
+        'ref'     => getPackage('sabnzbd'),
+        'url'     => '/sabnzbd',
+        'logo'    => 'img/brands/sabnzbd.png',
     ], [
         'name'    => 'SpeedTest',
         'service' => false,

@@ -105,6 +105,11 @@
     id: "#appstat_rtorrent",
     time: 5000
   }, {
+    key: "SABNZBD",
+    url: "/widgets/service_status.php?service=sabnzbd",
+    id: "#appstat_sabnzbd",
+    time: 5000
+  }, {
     key: "SYNCTHING",
     url: "/widgets/service_status.php?service=syncthing",
     id: "#appstat_syncthing",

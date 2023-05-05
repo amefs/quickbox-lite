@@ -1,0 +1,385 @@
+#!/bin/bash
+#
+# [QuickBox Lite sabnzbd Installer]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   JMSolo | Mischief | Amefs
+# Current version:  v1.5.7
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+#################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+CODENAME=$(lsb_release -cs)
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _execute() {
+	($1 >>"${OUTTO}" 2>&1)
+}
+function _print() {
+	printf "${_norm}%s${_norm}\n" "$@"
+	printf "%s\n" "$@" >>"${OUTTO}"
+}
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
+
+function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+#################################################################################
+# APP VARIABLE
+#################################################################################
+APP_TITLE="sabnzbd"
+APP_NAME="sabnzbd"
+APP_HOST="127.0.0.1"
+
+# RANDOM PORT
+APP_WEB_PORT_LOW="15451"
+APP_WEB_PORT_HIGH="15500"
+APP_TLS_WEB_PORT_LOW="15501"
+APP_TLS_WEB_PORT_HIGH="15550"
+
+OUTTO=/srv/dashboard/db/output.log
+username=$(cat /root/.admin.info | cut -d: -f1)
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+	echo -e "\nQuickBox Lite $APP_TITLE Installer"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username]"
+	echo -e "\nOptions:\n"
+	echo "-l, --log <logfile>       specific log file"
+	echo "-u, --user <username>     the user for this installer"
+	echo ""
+	echo "-h, --help                display this help and exit"
+}
+################################################################################
+# INSTALL FUNCTIONS
+################################################################################
+function _lockCheck() {
+	if [[ -f "/install/.${username}.${APP_NAME}.lock" ]]; then
+		_error "${APP_TITLE} already installed !"
+		exit 1
+	fi
+	if [[ ! -f /install/.pyenv.lock ]]; then
+		_warning "Automatically install pyenv... "
+		bash /usr/local/bin/quickbox/package/install/installpackage-pyenv
+	fi
+	if [[ ! -f /install/.linuxrar.lock ]]; then
+		_warning "Automatically install linuxrar... "
+		bash /usr/local/bin/quickbox/package/install/installpackage-linuxrar
+	fi
+	if [[ -f "/install/.install.lock" ]]; then
+		prevApp=$(cat /install/.install.lock)
+		_info "$prevApp process running."
+		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
+		_error "Exiting..."
+		exit 1
+	fi
+}
+function _setLock() {
+	echo "${APP_TITLE}" >/install/.install.lock
+}
+function _lockCleanup() {
+	echo "$APP_TITLE Install Complete!
+
+
+Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
+	rm -f /install/.install.lock
+}
+
+function _installPy(){
+	version=$1
+	major_version=$(echo ${version}| cut -d. -f1)
+	source /root/.bash_pyenv
+	versions=$(/opt/pyenv/bin/pyenv versions)
+	if [[ ! $versions =~ $version ]]; then
+	_info "Preparing Python $version. This may take some time ... "
+		_execute "/opt/pyenv/bin/pyenv update"
+		_execute "/opt/pyenv/bin/pyenv install $version"
+		_success "Python ${version} installed"
+		if [[ ${major_version} == "2" ]]; then
+			_execute "/opt/pyenv/versions/${version}/bin/python${major_version} -m pip install virtualenv"
+			_success "Python ${version} virtualenv installed"
+		fi
+	else
+		_success "Python ${version} already installed"
+	fi
+}
+
+function _initPyVenv() {
+	version=$1
+	major_version=$(echo ${version}| cut -d. -f1)
+	path=$2
+	user=$3
+	mkdir -p ${path}
+	source /root/.bash_pyenv
+	if [[ ${major_version} == "2" ]]; then
+		_execute "/opt/pyenv/versions/${version}/bin/python${major_version} -m virtualenv $path"
+	elif [[ ${major_version} == "3" ]]; then
+		_execute "/opt/pyenv/versions/${version}/bin/python3 -m venv $path"
+	fi
+	chown -R ${user}.${user} $path
+	_success "Python virtual environment setup finished"
+}
+
+function _installInfo() {
+	_print "
+$APP_TITLE will now be installed.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _installAddSources() {
+	_info "Adding additional keys and sources ${APP_TITLE}..."
+	_success "Keys and sources added."
+}
+
+function _installSystemUpdates() {
+	_info "Checking and performing updates to system... "
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+	## auto solve lock
+	if [ "$?" -eq 2 ]; then
+		_warning "dpkg database is locked."
+		_info "fixing dpkg lock..."
+		rm -f /var/lib/dpkg/updates/0*
+		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+			for l in ${locks}; do
+				rm -rf ${l}
+			done
+			_execute "dpkg --configure -a"
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+		fi
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
+				exit 1
+			fi
+		fi
+	fi
+	_success "System updated."
+}
+
+function _installDepends() {
+	_info "Installing ${APP_TITLE} dependencies..."
+	local DEPLIST="${APP_BASEDEPS}"
+	for depend in $DEPLIST; do
+		_info "Installing ${depend}... "
+		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
+	done
+	if [[ $dependError != "1" ]]; then
+		_success "${APP_TITLE} dependencies installed."
+	else
+		_error "${APP_TITLE} dependencies failed to install."
+		exit 1
+	fi
+}
+
+function _installApp() {
+	_info "Building ${APP_TITLE}..."
+
+	# Install for single user
+	_installPy 3.10.11
+	_initPyVenv 3.10.11 /home/${username}/.local/sabnzbd ${username}
+	chown -R ${username}.${username} /home/${username}/.local
+	APP_BASEDEPS="par2 unzip python3-dev python3-setuptools python3-pip libffi-dev"
+	_installDepends
+	_info "Installing Rust... "
+	if [[ ! -f $HOME/.cargo/env ]]; then
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y >>"${OUTTO}" 2>&1
+	fi
+	source $HOME/.cargo/env
+	cd /tmp || exit 1
+	_info "Downloading ${APP_TITLE}... "
+	latest_release_version=$(curl -s https://api.github.com/repos/sabnzbd/sabnzbd/releases/latest | jq -r ".tag_name")
+	BRANCH="https://github.com/sabnzbd/sabnzbd/releases/download/${latest_release_version}/SABnzbd-${latest_release_version}-src.tar.gz"
+	wget -q ${BRANCH} && tar -xf SABnzbd-${latest_release_version}-src.tar.gz >>"${OUTTO}" 2>&1
+	\cp -rf /tmp/SABnzbd-${latest_release_version}/. /home/${username}/.local/sabnzbd
+    rm -rf /tmp/SABnzbd-${latest_release_version} SABnzbd-${latest_release_version}-src.tar.gz
+	chown -R ${username}.${username} /home/${username}/.local
+	cd /home/${username}/.local/sabnzbd || exit 1
+	_info "Installing requirements... "
+	sudo -u ${username} -H bash -c "wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py" >>"${OUTTO}" 2>&1
+	sudo -u ${username} -H bash -c "/home/${username}/.local/sabnzbd/bin/python get-pip.py --force-reinstall" >>"${OUTTO}" 2>&1
+	sudo -u ${username} -H bash -c "/home/${username}/.local/sabnzbd/bin/pip install --upgrade pip" >>"${OUTTO}" 2>&1
+	_info "Installing ${APP_TITLE}... "
+	sudo -u ${username} -H bash -c "/home/${username}/.local/sabnzbd/bin/pip install --upgrade pip wheel" >>"${OUTTO}" 2>&1
+	sudo -u ${username} -H bash -c "/home/${username}/.local/sabnzbd/bin/pip install --upgrade -r requirements.txt" >>"${OUTTO}" 2>&1
+	_info "Installing ${APP_TITLE} Language support... "
+	sudo -u ${username} -H bash -c "/home/${username}/.local/sabnzbd/bin/python tools/make_mo.py" >>"${OUTTO}" 2>&1
+	_success "${APP_TITLE} Built."
+}
+
+function _configureApp() {
+	_info "Configuring ${APP_TITLE}..."
+	pypath=/home/${username}/.local/sabnzbd
+	pybin=/home/${username}/.local/sabnzbd/bin
+	pylib=/home/${username}/.local/sabnzbd/lib
+	passphrase=$(cat /root/.ssh/local_user)
+	passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
+	password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
+	APP_WEB_PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
+	APP_TLS_WEB_PORT=$(shuf -i ${APP_TLS_WEB_PORT_LOW}-${APP_TLS_WEB_PORT_HIGH} -n 1)
+
+	# get used port
+	local usedport=""
+	if (find /install/ -type f | grep -q .$APP_NAME.port); then
+		usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
+	fi
+
+	cat >/etc/systemd/system/sabnzbd@${username}.service <<EOF
+[Unit]
+Description=Sabnzbd
+#Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=${username}
+Group=${username}
+Environment="PYTHONIOENCODING=utf-8"
+ExecStart=${pybin}/python ${pypath}/SABnzbd.py --config-file /home/${username}/.sabnzbd/sabnzbd.ini --server 127.0.0.1:${APP_WEB_PORT} --browser 0 --https ${APP_TLS_WEB_PORT} &
+Restart=always
+SyslogIdentifier=SABnzbd Usenet Client
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+	cat >/etc/nginx/apps/${username}.${APP_NAME}.conf <<EOF
+location /${APP_NAME} {
+  include /etc/nginx/snippets/proxy.conf;
+  proxy_pass https://127.0.0.1:${APP_TLS_WEB_PORT}/${APP_NAME};
+  proxy_set_header Upgrade \$http_upgrade;
+  proxy_set_header Connection \$http_connection;
+  proxy_set_header Host \$proxy_host;
+  auth_basic "Password Required";
+  auth_basic_user_file /etc/htpasswd.d/htpasswd.${username};
+}
+
+location /${APP_NAME}/api {
+  include /etc/nginx/snippets/proxy.conf;
+  proxy_pass https://127.0.0.1:${APP_TLS_WEB_PORT}/${APP_NAME}/api;
+  proxy_set_header Upgrade \$http_upgrade;
+  proxy_set_header Connection \$http_connection;
+  proxy_set_header Host \$proxy_host;
+  auth_basic off;
+}
+EOF
+
+	_execute "systemctl daemon-reload"
+	_execute "nginx -s reload"
+	_execute "systemctl enable sabnzbd@${username}"
+	_execute "systemctl start sabnzbd@${username}"
+
+	sleep 10
+
+	_execute "systemctl stop sabnzbd@${username}"
+
+	encpass=$(sed -e 's/[&\\/]/\\&/g; s/\$/\\$/g; s/@/\\@/g;' <<<"$password")
+	sed -i "s/url_base = \/sabnzbd/url_base = \/sabnzbd/g" /home/${username}/.sabnzbd/sabnzbd.ini
+	sed -i "s/username = \"\"/username = \"${username}\"/g" /home/${username}/.sabnzbd/sabnzbd.ini
+	sed -i "s/html_login = 1/html_login = 0/g" /home/${username}/.sabnzbd/sabnzbd.ini
+	perl -pi -e "s/password = \"\"/password = \"${encpass}\"/" /home/${username}/.sabnzbd/sabnzbd.ini
+
+	chown ${username}.${username} -R /home/${username}/.sabnzbd/
+	_execute "systemctl start sabnzbd@${username}"
+	_success "${APP_TITLE} configured."
+}
+
+function _installAppLock() {
+	_info "Configuring ${APP_TITLE} lock..."
+	touch /install/.${username}.${APP_NAME}.lock
+	_success "${APP_TITLE} lock configured."
+}
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
+then
+    _usage
+    exit 1
+fi
+eval set -- "${ARGS}"
+while true; do
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 1
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	-u | --user)
+		username="$2"
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
+_lockCheck
+_setLock
+_installInfo
+_installSystemUpdates
+_installApp
+_configureApp
+_installAppLock
+_lockCleanup
