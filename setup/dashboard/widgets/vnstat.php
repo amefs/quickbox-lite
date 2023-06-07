@@ -45,8 +45,8 @@ function validate_input() {
  * @return int
  */
 function vnstat_cmp_desc($a, $b) {
-    $date_a = $a['date']['year'] * 10000 + $a['date']['month'] * 100 + $a['date']['day'];
-    $date_b = $b['date']['year'] * 10000 + $b['date']['month'] * 100 + $b['date']['day'];
+    $date_a = $a['date']['year'] * 10000 + ($a['date']['month'] ?? 0) * 100 + ($a['date']['day'] ?? 0);
+    $date_b = $b['date']['year'] * 10000 + ($b['date']['month'] ?? 0) * 100 + ($b['date']['day'] ?? 0);
 
     if ($date_a === $date_b) {
         // id distributed from new to old (0 for latest)
@@ -65,8 +65,8 @@ function vnstat_cmp_desc($a, $b) {
  * @return int
  */
 function vnstat_cmp_asc($a, $b) {
-    $date_a = $a['date']['year'] * 10000 + $a['date']['month'] * 100 + $a['date']['day'];
-    $date_b = $b['date']['year'] * 10000 + $b['date']['month'] * 100 + $b['date']['day'];
+    $date_a = $a['date']['year'] * 10000 + ($a['date']['month'] ?? 0) * 100 + ($a['date']['day'] ?? 0);
+    $date_b = $b['date']['year'] * 10000 + ($b['date']['month'] ?? 0) * 100 + ($b['date']['day'] ?? 0);
 
     if ($date_a === $date_b) {
         // id distributed from new to old (0 for latest)
