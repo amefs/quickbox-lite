@@ -27,7 +27,7 @@ const parseUrl = (url: string) => {
         u = new URL(url, "http://localhost");
     }
     const pathName = u.pathname;
-    const args = {};
+    const args: {[key: string]: string} = {};
     u.searchParams.forEach((v, k) => {
         args[k] = v;
     });

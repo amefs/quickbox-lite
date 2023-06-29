@@ -43,8 +43,8 @@ $sysInterfaceInfo = SystemInfo::enuminterface();
                     <?php for ($i = 0; $i < count($sysInterfaceInfo); ++$i) { ?>
                     <tr>
                       <td style="font-size:14px;font-weight:bold;padding: 2px 2px 2px 12px"><?php echo $sysInterfaceInfo[$i]; ?></td>
-                      <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-success"><span id="NetOutSpeed<?php echo $i; ?>">0B/s</span></span></td>
-                      <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-primary"><span id="NetInputSpeed<?php echo $i; ?>">0B/s</span></span></td>
+                      <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-success"><span id="net_<?php echo $sysInterfaceInfo[$i]; ?>_tx">0B/s</span></span></td>
+                      <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-primary"><span id="net_<?php echo $sysInterfaceInfo[$i]; ?>_rx">0B/s</span></span></td>
                     </tr>
                     <?php } ?>
                   </tbody>

@@ -10,7 +10,7 @@
   "license": "GPL-3.0-or-later",
   "dependencies": {
     "animate.css": "3.7.2",
-    "ansi_up": "^5.1.0",
+    "ansi_up": "^5.2.1",
     "bootbox": "^5.5.3",
     "bootstrap": "3.4.1",
     "datatables": "^1.10.18",
@@ -18,7 +18,7 @@
     "gritter": "^1.7.4",
     "hover.css": "^2.3.2",
     "ionicons": "2.0.1",
-    "jquery": "^3.6.4",
+    "jquery": "^3.7.0",
     "jquery-toggles": "^4.0.0",
     "jquery-ui": "^1.13.2",
     "jquery-ui-touch-punch": "^0.2.3",
@@ -30,10 +30,10 @@
     "visibilityjs": "^2.0.2"
   },
   "devDependencies": {
-    "eslint": "^8.35.0",
-    "eslint-config-standard": "^17.0.0",
+    "eslint": "^8.41.0",
+    "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-n": "^15.6.1",
+    "eslint-plugin-n": "^16.0.0",
     "eslint-plugin-promise": "^6.1.1"
   }
 }

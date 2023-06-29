@@ -16,15 +16,26 @@ $rules = [
     'pow_to_exponentiation' => true,
     // Array Notation
     // Basic
-    'braces' => [
-        'allow_single_line_closure' => true,
-        'position_after_functions_and_oop_constructs' => 'same',
+    'single_space_around_construct' => false,
+    'control_structure_braces' => true,
+    'curly_braces_position' => [
+        'functions_opening_brace' => 'same_line',
+        'classes_opening_brace' => 'same_line'
     ],
+    'control_structure_continuation_position' => true,
+    'declare_parentheses' => true,
+    'statement_indentation' => true,
+    'no_multiple_statements_per_line' => true,
+    'no_extra_blank_lines' => true,
     // Casing
     // Cast Notation
     // Class Notation
     // Class Usage
     // Comment
+    'no_superfluous_phpdoc_tags' => [
+        'allow_mixed' => true,
+        'remove_inheritdoc' => true
+    ],
     // Constant Notation
     // Control Structure
     'include' => false,
