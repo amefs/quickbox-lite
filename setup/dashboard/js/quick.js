@@ -33,17 +33,6 @@ $(document).ready(function () {
     }
   }
 
-  /** PULSE A QUICK ACCESS PANEL **/
-
-  $(".panel-quick-page .panel").hover(
-    function () {
-      $(this).addClass("flip animated");
-    },
-    function () {
-      $(this).removeClass("flip animated");
-    }
-  );
-
   // Date Today in Notification
   $("#todayDay").text(getDayToday());
   $("#todayDate").text(getDateToday());

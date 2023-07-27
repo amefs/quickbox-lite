@@ -9,31 +9,29 @@
   "author": "quickbox-lite",
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "animate.css": "3.7.2",
+    "animate.css": "^4.1.1",
     "ansi_up": "^5.2.1",
     "bootbox": "^5.5.3",
     "bootstrap": "3.4.1",
     "datatables": "^1.10.18",
     "font-awesome": "^4.7.0",
     "gritter": "^1.7.4",
-    "hover.css": "^2.3.2",
-    "ionicons": "2.0.1",
     "jquery": "^3.7.0",
     "jquery-toggles": "^4.0.0",
     "jquery-ui": "^1.13.2",
     "jquery-ui-touch-punch": "^0.2.3",
     "lazysizes": "^5.3.2",
     "lobipanel": "^1.0.0",
-    "perfect-scrollbar": "0.8.1",
+    "perfect-scrollbar": "^1.5.5",
     "select2": "^4.0.13",
-    "socket.io-client": "^4.6.1",
+    "socket.io-client": "^4.7.1",
     "visibilityjs": "^2.0.2"
   },
   "devDependencies": {
-    "eslint": "^8.41.0",
+    "eslint": "^8.45.0",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-n": "^16.0.0",
+    "eslint-plugin-n": "^16.0.1",
     "eslint-plugin-promise": "^6.1.1"
   }
 }

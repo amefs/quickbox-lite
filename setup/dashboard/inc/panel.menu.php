@@ -148,7 +148,7 @@ assert(isset($plugins));
   </div><!-- header-->
 </header>
 <section>
-  <div class="leftpanel ps-container">
+  <div class="leftpanel ps">
     <div class="leftpanelinner">
       <ul class="nav nav-tabs nav-justified nav-sidebar">
         <li class="tooltips active" data-toggle="tooltip" title="<?php echo T('MAIN_MENU'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#mainmenu"><i class="tooltips fa fa-ellipsis-h"></i></a></li>

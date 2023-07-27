@@ -17,7 +17,7 @@ foreach ($packageList as &$package) {
     $packageLowercase = strtolower($package['package']);
     $packageUppercase = strtoupper($package['package']); ?>
 <!-- <?php echo $packageUppercase; ?> UNINSTALL MODAL -->
-<div class="modal bounceIn animated" id="<?php echo $packageLowercase; ?>RemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="<?php echo $packageUppercase; ?>RemovalConfirm" aria-hidden="true">
+<div class="modal animate__bounceIn animate__animated" id="<?php echo $packageLowercase; ?>RemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="<?php echo $packageUppercase; ?>RemovalConfirm" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -42,7 +42,7 @@ foreach ($packageList as &$package) {
 $option[]     = ['file' => 'defaulted', 'title' => 'Defaulted'];
 $option[]     = ['file' => 'smoked', 'title' => 'Smoked']; ?>
 <?php foreach ($option as $theme) { ?>
-<div class="modal bounceIn animated" id="themeSelect<?php echo $theme['file']; ?>Confirm" tabindex="-1" role="dialog" aria-labelledby="ThemeSelect<?php echo $theme['file']; ?>Confirm" aria-hidden="true">
+<div class="modal animate__bounceIn animate__animated" id="themeSelect<?php echo $theme['file']; ?>Confirm" tabindex="-1" role="dialog" aria-labelledby="ThemeSelect<?php echo $theme['file']; ?>Confirm" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -62,13 +62,13 @@ $option[]     = ['file' => 'smoked', 'title' => 'Smoked']; ?>
 <?php } ?>
 <?php ?>
 <!-- SYSTEM RESPONSE MODAL -->
-<div class="modal bounceIn animated" id="sysResponse" tabindex="-1" role="dialog" aria-labelledby="sysResponse" aria-hidden="true">
+<div class="modal animate__bounceIn animate__animated" id="sysResponse" tabindex="-1" role="dialog" aria-labelledby="sysResponse" aria-hidden="true">
   <div class="modal-dialog" style="width: 600px">
     <div class="modal-content" style="background:rgba(0, 0, 0, 0.6);border:2px solid rgba(0, 0, 0, 0.2)">
       <div class="modal-header" style="background:rgba(0, 0, 0, 0.4);border:0!important">
         <h4 class="modal-title" style="color:#fff"><?php echo T('SYSTEM_RESPONSE_TITLE'); ?></h4>
       </div>
-      <div class="modal-body ps-container" style="background:rgba(0, 0, 0, 0.4); max-height:600px;" id="sysPre">
+      <div class="modal-body ps" style="background:rgba(0, 0, 0, 0.4); max-height:600px;" id="sysPre">
         <pre style="color: rgb(83, 223, 131) !important;" class="sysout ps-child"><span id="sshoutput"></span></pre>
       </div>
       <div class="modal-footer" style="background:rgba(0, 0, 0, 0.4);border:0!important">
@@ -79,7 +79,7 @@ $option[]     = ['file' => 'smoked', 'title' => 'Smoked']; ?>
 </div><!-- modal -->
 
 <!-- VERSION UPDATE CHECK MODAL >
-<div class="modal bounceIn animated" id="versionChecker" tabindex="-1" role="dialog" aria-labelledby="VersionChecker" aria-hidden="true">
+<div class="modal animate__bounceIn animate__animated" id="versionChecker" tabindex="-1" role="dialog" aria-labelledby="VersionChecker" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -214,21 +214,20 @@ $(function() {
 // });
 </script>
 
-<script src="lib/perfect-scrollbar/js/perfect-scrollbar.jquery.min.js"></script>
+<script src="lib/perfect-scrollbar/js/perfect-scrollbar.min.js"></script>
 <script>
-// asyncLoad("lib/perfect-scrollbar/js/perfect-scrollbar.jquery.min.js", function() {
 $(function() {
-  $('.leftpanel').perfectScrollbar();
-  $('.leftpanel').perfectScrollbar({ wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 });
-  $('.leftpanel').perfectScrollbar('update');
-  $('.modal-body').perfectScrollbar();
-  $('.modal-body').perfectScrollbar({ wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 });
-  $('.modal-body').perfectScrollbar('update');
-  $('.sysout').perfectScrollbar();
-  $('.sysout').perfectScrollbar({ wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 });
-  $('.sysout').perfectScrollbar('update');
+  const option = { wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 };
+  const leftpanel = document.querySelector('.leftpanel');
+  const modal_body = document.querySelector('.modal-body');
+  const sysout = document.querySelector('.sysout');
+  const ps_leftpanel = new PerfectScrollbar(leftpanel, option);
+  const ps_modal_body = new PerfectScrollbar(modal_body, option);
+  const ps_sysout = new PerfectScrollbar(sysout, option);
+  ps_leftpanel.update();
+  ps_modal_body.update();
+  ps_sysout.update();
 });
-// });
 </script>
 
 <script src="lib/jquery-gritter/js/jquery.gritter.min.js"></script>

@@ -134,7 +134,7 @@ $sysInterfaceInfo = SystemInfo::enuminterface();
               </a>
             </h4>
           </div>
-          <div class="panel-body ps-container" style="max-height: 350px; padding: 0;">
+          <div class="panel-body ps" style="max-height: 350px; padding: 0;">
             <?php
               $current_commit = trim((string) shell_exec('git -C /etc/QuickBox/ rev-parse --short HEAD'));
 ?>
