@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -208,7 +208,7 @@ function _configureApp() {
 	cd /home/${username}/ || exit 1
 	_execute "zip openvpn/${username}.zip /home/${username}/openvpn/${username}.ovpn"
 	_execute "rm /home/${username}/openvpn/${username}.ovpn"
-	chown ${username}.${username} /home/${username}/openvpn >/dev/null 2>&1
+	chown ${username}:${username} /home/${username}/openvpn >/dev/null 2>&1
 	cat >/etc/nginx/apps/${username}.ovpn.conf<<EOF
 location /${username}/ovpn.zip {
   alias /home/${username}/openvpn/${username}.zip;

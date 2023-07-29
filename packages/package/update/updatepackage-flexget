@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -202,7 +202,7 @@ function _initPyVenv() {
 	elif [[ ${major_version} == "3" ]]; then
 		_execute "/opt/pyenv/versions/${version}/bin/python3 -m venv $path"
 	fi
-	chown -R ${user}.${user} $path
+	chown -R ${user}:${user} $path
 	_success "Python virtual environment setup finished"
 }
 

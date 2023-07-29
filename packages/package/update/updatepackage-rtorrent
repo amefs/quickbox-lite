@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -273,7 +273,7 @@ function _updateApp() {
 		LTORRENTBIN=libtorrent19_0.13.6-1build1_amd64.deb
 		;;
 	0.9.4)
-		if [[ "${CODENAME}" == "bullseye" ]]; then
+		if [[ "$CODENAME" =~ ("bullseye"|"bookworm") ]]; then
 			RTORRENTBIN=rtorrent_0.9.6-1build1_amd64.deb
 			LTORRENTBIN=libtorrent19_0.13.6-1build1_amd64.deb
 		else

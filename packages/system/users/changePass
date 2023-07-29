@@ -175,7 +175,7 @@ function _chPasswd() {
 			binpath=/home/${username}/.local/bin
 		fi
 		su ${username} -c "${binpath}/flexget -c /home/${username}/.config/flexget/config.yml web passwd ${password} >/dev/null 2>&1"
-		chown ${username}.${username} -R /home/${username}/.config/flexget/
+		chown ${username}:${username} -R /home/${username}/.config/flexget/
 		_execute "systemctl start flexget@${username}"
 		_success "FlexGet password updated"
 	fi

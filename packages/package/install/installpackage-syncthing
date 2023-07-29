@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -125,8 +125,8 @@ Please wait until the process is completed
 
 function _installAddSources() {
 	_info "Adding additional keys and sources ${APP_TITLE}..."
-	curl -s https://syncthing.net/release-key.txt | sudo apt-key add - >/dev/null 2>&1
-	echo "deb http://apt.syncthing.net/ syncthing release" >/etc/apt/sources.list.d/syncthing.list
+	curl -o /usr/share/keyrings/syncthing-archive-keyring.gpg https://syncthing.net/release-key.gpg >/dev/null 2>&1
+	echo "deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing stable" | sudo tee /etc/apt/sources.list.d/syncthing.list >/dev/null 2>&1
 	_success "Keys and sources added."
 }
 
@@ -225,7 +225,7 @@ EOF
 
 		# create default config
 		mkdir -p /home/${username}/.config/syncthing
-		chown -R ${username}.${username} /home/${username}/.config/syncthing
+		chown -R ${username}:${username} /home/${username}/.config/syncthing
 		sudo -u ${username} -H bash -c "/usr/bin/syncthing -generate=/home/${username}/.config/syncthing" >>"${OUTTO}" 2>&1
 
 		# set a port for WebUI
@@ -234,7 +234,7 @@ EOF
 			sed -i "s/<\/gui>/    <insecureSkipHostcheck>true<\/insecureSkipHostcheck>\n    <\/gui>/g" /home/${username}/.config/syncthing/config.xml
 		fi
 		chmod -R 755 /home/${username}/.config/$APP_NAME
-		chown -R ${username}.${username} /home/${username}/.config/$APP_NAME
+		chown -R ${username}:${username} /home/${username}/.config/$APP_NAME
 
 		cat >/etc/nginx/apps/${username}.$APP_NAME.conf <<EOF
 location /${username}.syncthing/ {

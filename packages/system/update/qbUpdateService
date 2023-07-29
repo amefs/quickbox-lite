@@ -63,7 +63,7 @@ function _updateservice() {
 		if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
 			_info "Installing Node.js..."
 			cd /tmp || exit 1
-			_execute "curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh"
+			_execute "curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh"
 			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
 			exitstatus=$?
 			counter=0
@@ -95,12 +95,12 @@ function _updateservice() {
 		touch /install/.quickbox-ws.lock
 		_success "QuickBox service updated"
 	else
-		# upgrade to v14
-		_info "Upgrade nodejs to v14"
-		if [[ ! $(which npm) ]] || [[ ! $(node --version) =~ "v14" ]]; then
+		# upgrade to v18
+		_info "Upgrade nodejs to v18"
+		if [[ ! $(which npm) ]] || [[ ! $(node --version) =~ "v18" ]]; then
 			_info "Upgrading Node.js..."
 			cd /tmp || exit 1
-			_execute "curl -sL https://deb.nodesource.com/setup_14.x -o nodesource_setup.sh"
+			_execute "curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh"
 			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
 			exitstatus=$?
 			counter=0

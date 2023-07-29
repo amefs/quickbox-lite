@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -424,11 +424,11 @@ TRC
 		mkdir -p /home/${username}/torrents/transmission
 		mkdir -p /home/${username}/trwatch
 		chmod -R 755 /home/${username}/.config
-		chown -R ${username}.${username} /home/${username}/.config/
+		chown -R ${username}:${username} /home/${username}/.config/
 		chmod -R 755 /home/${username}/torrents/transmission
-		chown -R ${username}.${username} /home/${username}/torrents
+		chown -R ${username}:${username} /home/${username}/torrents
 		chmod -R 755 /home/${username}/trwatch
-		chown -R ${username}.${username} /home/${username}/trwatch
+		chown -R ${username}:${username} /home/${username}/trwatch
 
 		# create reverse proxy
 		cat >/etc/nginx/conf.d/${username}.transmission.conf <<EOF

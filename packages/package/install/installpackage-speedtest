@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -191,7 +191,7 @@ function _installApp() {
 		UIlang=zh-CN
 	fi
 	git clone https://github.com/amefs/speedtest-x.git -b ${UIlang} speedtest
-	chown www-data.www-data -R /srv/speedtest
+	chown www-data:www-data -R /srv/speedtest
 	_success "${APP_TITLE} Built."
 }
 

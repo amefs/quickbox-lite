@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -526,7 +526,7 @@ function _installApp() {
 	if [ -z "${qbitversion}" ]; then
 		qbitversion=${qbitversion_default}
 	fi
-	if [[ "${CODENAME}" == "bullseye" ]] && (_version_gt "4.2.0"  ${qbitversion}); then
+	if [[ "$CODENAME" =~ ("bullseye"|"bookworm") ]] && (_version_gt "4.2.0"  ${qbitversion}); then
 		qbitversion=${qbitversion_default}
 		_warning "Use qBittorrent ${qbitversion}"
 	fi
@@ -772,7 +772,7 @@ Session\SendBufferWatermarkFactor=50
 QBC
 		fi
 		
-		chown -R ${username}.${username} /home/${username}/.config/
+		chown -R ${username}:${username} /home/${username}/.config/
 		mkdir -p /home/${username}/qbwatch
 		chown ${username}: /home/${username}/qbwatch
 		mkdir -p /home/${username}/torrents/qbittorrent

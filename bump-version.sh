@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   TautCony
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #

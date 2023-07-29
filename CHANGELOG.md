@@ -1,3 +1,28 @@
+## CHANGELOG v1.5.8
+
+*Changelog update Thursday, Jul 27, 2023*
+
+### General additions
+
+- support Debian 12.
+- support Deluge 2.1.x.
+- support [SABnzbd](https://sabnzbd.org/).
+
+### Function improved
+
+- update vnstat statistics on dashbaord (by Tautcony).
+- update qBittorrent systemd service.
+- use venv for denyhosts.
+
+### Function updated
+
+- update node.js to v18.
+- update dashboard dependency.
+
+### Bug fixed
+
+---
+
 ## CHANGELOG v1.5.7
 
 *Changelog update Friday, Mar 03, 2023*

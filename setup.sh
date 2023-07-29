@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -108,7 +108,7 @@ function _init() {
 		elif [[ $DISTRO == Ubuntu && $CODENAME =~ ("jammy") ]]; then
 			apt-get -y install git curl wget dos2unix python3 apt-transport-https software-properties-common dnsutils unzip jq >/dev/null 2>&1
 		elif [[ $DISTRO == Debian ]]; then
-			apt-get -y install git curl wget dos2unix python apt-transport-https software-properties-common gnupg2 ca-certificates dnsutils unzip jq >/dev/null 2>&1
+			apt-get -y install git curl wget dos2unix python3 apt-transport-https software-properties-common gnupg2 ca-certificates dnsutils unzip jq >/dev/null 2>&1
 		fi
 		echo -e "XXX\n20\nPreparing scripts... \nXXX"
 		dos2unix $(find ${local_prefix} -type f) >/dev/null 2>&1
@@ -199,7 +199,7 @@ function _checkdistro() {
 		whiptail --title "$ERROR_TITLE_OS" --msgbox "${ERROR_TEXT_DESTRO_1}${DISTRO}${ERROR_TEXT_DESTRO_2}" --ok-button "$BUTTON_OK" 8 72
 		_defaultcolor
 		exit 1
-	elif [[ ! "$CODENAME" =~ ("bionic"|"buster"|"bullseye"|"focal"|"jammy") ]]; then
+	elif [[ ! "$CODENAME" =~ ("bionic"|"buster"|"bullseye"|"focal"|"jammy"|"bookworm") ]]; then
 		_errorcolor
 		whiptail --title "$ERROR_TITLE_OS" --msgbox "${ERROR_TEXT_CODENAME_1}${DISTRO}${ERROR_TEXT_CODENAME_2}" --ok-button "$BUTTON_OK" 8 72
 		_defaultcolor
@@ -680,7 +680,7 @@ EOF
 function _chsource() {
 	if [[ $mirror == "" ]]; then mirror="us"; fi
 	if [[ $DISTRO == Debian ]]; then
-		if [[ ${CODENAME} == "bullseye" ]]; then
+		if [[ "$CODENAME" =~ ("bullseye"|"bookworm") ]]; then
 			if [[ $mirror == "tuna" ]]; then
 				cp ${local_setup_template}source.list/debian.new.tuna.template /etc/apt/sources.list
 			else
@@ -714,9 +714,9 @@ function _addPHP() {
 		LC_ALL=en_US.UTF-8 add-apt-repository ppa:ondrej/php -y >/dev/null 2>&1
 	elif [[ $DISTRO == "Debian" ]]; then
 		# add php for debian
-		printf "\n" | wget -q https://packages.sury.org/php/apt.gpg -O- | apt-key add - >/dev/null 2>&1
+		wget -q https://packages.sury.org/php/apt.gpg -O /etc/apt/trusted.gpg.d/deb.sury.org-php.gpg 2>&1
 		cat >/etc/apt/sources.list.d/php.list <<DPHP
-deb https://packages.sury.org/php/ $(lsb_release -sc) main
+deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/trusted.gpg.d/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main
 DPHP
 	fi
 	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
@@ -814,7 +814,7 @@ function _insngx() {
 	fi
 
 	mkdir -p /var/log/nginx/
-	chown -R www-data.www-data /var/log/nginx/
+	chown -R www-data:www-data /var/log/nginx/
 	systemctl restart nginx
 	systemctl restart php7.4-fpm
 }
@@ -822,7 +822,7 @@ function _insngx() {
 function _insnodejs() {
 	# install Nodejs for background service
 	cd /tmp || exit 1
-	curl -sL https://deb.nodesource.com/setup_14.x -o nodesource_setup.sh
+	curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh
 	bash nodesource_setup.sh >>"${OUTTO}" 2>&1
 	exitstatus=$?
 	counter=0

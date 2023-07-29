@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -521,7 +521,7 @@ DWS
 			else
 				cp -f /usr/local/bin/quickbox/deluge/plugins/YaRSS2-2.1.4-py3.7.egg /home/${username}/.config/deluge/plugins/
 			fi
-			chown -R ${username}.${username} /home/${username}/.config/deluge
+			chown -R ${username}:${username} /home/${username}/.config/deluge
 			chmod 755 -R /home/${username}/.config/deluge
 			_execute "systemctl start deluged@${username}"
 			_execute "systemctl start deluge-web@${username}"

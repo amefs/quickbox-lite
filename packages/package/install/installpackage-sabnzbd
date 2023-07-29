@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   JMSolo | Mischief | Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -161,7 +161,7 @@ function _initPyVenv() {
 	elif [[ ${major_version} == "3" ]]; then
 		_execute "/opt/pyenv/versions/${version}/bin/python3 -m venv $path"
 	fi
-	chown -R ${user}.${user} $path
+	chown -R ${user}:${user} $path
 	_success "Python virtual environment setup finished"
 }
 
@@ -229,7 +229,7 @@ function _installApp() {
 	# Install for single user
 	_installPy 3.10.11
 	_initPyVenv 3.10.11 /home/${username}/.local/sabnzbd ${username}
-	chown -R ${username}.${username} /home/${username}/.local
+	chown -R ${username}:${username} /home/${username}/.local
 	APP_BASEDEPS="par2 unzip python3-dev python3-setuptools python3-pip libffi-dev"
 	_installDepends
 	_info "Installing Rust... "
@@ -244,7 +244,7 @@ function _installApp() {
 	wget -q ${BRANCH} && tar -xf SABnzbd-${latest_release_version}-src.tar.gz >>"${OUTTO}" 2>&1
 	\cp -rf /tmp/SABnzbd-${latest_release_version}/. /home/${username}/.local/sabnzbd
     rm -rf /tmp/SABnzbd-${latest_release_version} SABnzbd-${latest_release_version}-src.tar.gz
-	chown -R ${username}.${username} /home/${username}/.local
+	chown -R ${username}:${username} /home/${username}/.local
 	cd /home/${username}/.local/sabnzbd || exit 1
 	_info "Installing requirements... "
 	sudo -u ${username} -H bash -c "wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py" >>"${OUTTO}" 2>&1
@@ -330,7 +330,7 @@ EOF
 	sed -i "s/html_login = 1/html_login = 0/g" /home/${username}/.sabnzbd/sabnzbd.ini
 	perl -pi -e "s/password = \"\"/password = \"${encpass}\"/" /home/${username}/.sabnzbd/sabnzbd.ini
 
-	chown ${username}.${username} -R /home/${username}/.sabnzbd/
+	chown ${username}:${username} -R /home/${username}/.sabnzbd/
 	_execute "systemctl start sabnzbd@${username}"
 	_success "${APP_TITLE} configured."
 }

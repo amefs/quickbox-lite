@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -156,7 +156,7 @@ function _initPyVenv() {
 	elif [[ ${major_version} == "3" ]]; then
 		_execute "/opt/pyenv/versions/${version}/bin/python3 -m venv $path"
 	fi
-	chown -R ${user}.${user} $path
+	chown -R ${user}:${user} $path
 	_success "Python virtual environment setup finished"
 }
 
@@ -224,7 +224,7 @@ function _installApp() {
 	# Install for single user
 	_installPy 3.9.13
 	_initPyVenv 3.9.13 /home/${username}/.local/autoremovetorrents ${username}
-	chown -R ${username}.${username} /home/${username}/.local
+	chown -R ${username}:${username} /home/${username}/.local
 	cd /home/${username}/.local/autoremovetorrents
 	_info "Installing requirements... "
 	sudo -u ${username} -H bash -c "wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py" >>"${OUTTO}" 2>&1
@@ -343,7 +343,7 @@ Example3:
   delete_data: false
 EOF
 
-	chown ${username}.${username} -R /home/${username}/.config/autoremovetorrents/
+	chown ${username}:${username} -R /home/${username}/.config/autoremovetorrents/
 
 	_success "${APP_TITLE} configured."
 }

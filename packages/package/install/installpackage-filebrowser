@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -224,7 +224,7 @@ function _configureApp() {
 
 		mkdir -p /home/${username}/.config/filebrowser/
 		mkdir -p /home/${username}/.config/filebrowser/log
-		chown ${username}.${username} -R /home/${username}/.config/filebrowser/
+		chown ${username}:${username} -R /home/${username}/.config/filebrowser/
 		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser/filebrowser.db config init" >>"${OUTTO}" 2>&1
 		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser/filebrowser.db config set \
 		--address ${APP_HOST} \
@@ -235,7 +235,7 @@ function _configureApp() {
 		--auth.method=noauth \
 		--baseurl=\"/filebrowser/\"" >>"${OUTTO}" 2>&1
 		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser/filebrowser.db users add ${username} ${password} --perm.admin" >>"${OUTTO}" 2>&1
-		chown ${username}.${username} -R /home/${username}/.config/filebrowser/
+		chown ${username}:${username} -R /home/${username}/.config/filebrowser/
 
 		# Generate reverse proxy upstream
 		cat >/etc/nginx/conf.d/${username}.filebrowser.conf <<EOF

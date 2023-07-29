@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.7
+# Current version:  v1.5.8
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -245,7 +245,7 @@ function _configureApp() {
 		_GID=$(id -g ${username})
 		mkdir -p /home/${username}/.config/filebrowser-ee/
 		mkdir -p /home/${username}/.config/filebrowser-ee/log/
-		chown ${username}.${username} -R /home/${username}/.config/filebrowser-ee/
+		chown ${username}:${username} -R /home/${username}/.config/filebrowser-ee/
 		cd /home/${username}/.config/filebrowser-ee/ || exit 1
 		if [[ ${hwaccel} == 1 ]]; then
 			cat >/home/${username}/.config/filebrowser-ee/docker-compose.yml <<EOF
@@ -307,7 +307,7 @@ EOF
 		_execute "docker exec -i filebrowser-ee-${username} filebrowser -d /config/database-new.db users add ${username} ${password} --perm.admin"
         _execute "docker compose down"
         mv /home/${username}/.config/filebrowser-ee/database-new.db /home/${username}/.config/filebrowser-ee/database.db
-		chown ${username}.${username} -R /home/${username}/.config/filebrowser-ee/
+		chown ${username}:${username} -R /home/${username}/.config/filebrowser-ee/
 
 		# Generate reverse proxy upstream
 		cat >/etc/nginx/conf.d/${username}.filebrowser-ee.conf <<EOF
