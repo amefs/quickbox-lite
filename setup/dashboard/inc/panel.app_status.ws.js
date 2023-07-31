@@ -153,7 +153,7 @@
 
   const system_status_list = [{
     key: "NETWORK",
-    url: "/widgets/net_status.php",
+    url: "/node/net_status.php",
     id: undefined,
     override: function (dataJSON) {
       function formatsize (length) {
@@ -208,7 +208,7 @@
     time: 60000
   }, {
     key: "TOP",
-    url: "/widgets/load.php",
+    url: "/node/load.php",
     id: "#cpuload",
     time: 60000
   }, {

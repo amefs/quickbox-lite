@@ -5,6 +5,8 @@ import * as https from "https";
 import { Socket } from "socket.io";
 
 import Constant from "../constant";
+import { widgetsLoad } from "../widgets/load";
+import { netStatus } from "../widgets/net_status";
 
 interface Payload {
     key: string;
@@ -26,19 +28,26 @@ const parseUrl = (url: string) => {
     } else {
         u = new URL(url, "http://localhost");
     }
-    const pathName = u.pathname;
+    const pathname = u.pathname;
     const args: {[key: string]: string} = {};
     u.searchParams.forEach((v, k) => {
         args[k] = v;
     });
     return {
-        pathName,
+        pathname,
         args,
     };
 };
 
+
 const messageHandler = async (payload: Payload, client: Socket) => {
-    const ret = {
+    const ret: {
+        key: string;
+        pathName: string;
+        success: boolean;
+        message: string;
+        response: string|object;
+    } = {
         key: payload.key,
         pathName: payload.url,
         success: true,
@@ -47,7 +56,17 @@ const messageHandler = async (payload: Payload, client: Socket) => {
     };
     try {
         const req = parseUrl(payload.url);
-        ret.response = (await afetch.get(req.pathName, { params: req.args })).data;
+        switch (req.pathname) {
+            case "/node/load.php":
+                ret.response = await widgetsLoad();
+                break;
+            case "/node/net_status.php":
+                ret.response = await netStatus();
+                break;
+            default:
+                ret.response = (await afetch.get(req.pathname, { params: req.args })).data;
+                break;
+        }
     } catch (error) {
         ret.message = error instanceof Error ? error.toString() : "Unknown error";
         ret.success = false;
