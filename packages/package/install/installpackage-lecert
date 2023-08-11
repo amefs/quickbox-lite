@@ -178,6 +178,8 @@ function _installApp() {
 		cd /tmp || exit 1
 		_execute "git clone https://github.com/Neilpang/acme.sh.git /root/.acme.sh"
 		cd /root/.acme.sh || { _error "Can not download acme.sh ..." && exit 1; }
+		latest_release_version=$(curl -sL https://api.github.com/repos/Neilpang/acme.sh/releases/latest | jq -r ".tag_name")
+		_execute "git checkout $latest_release_version"
 		./acme.sh --install >/dev/null 2>&1
 		./acme.sh --register-account -m domain@example.com >>"${OUTTO}" 2>&1
 		if [[ ${letsencrypt} == 1 ]]; then
