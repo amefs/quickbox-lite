@@ -253,15 +253,15 @@ function _updateLibt() {
 		_info "Installing Libtorrent..."
 		PACKAGE="libtorrent-rasterbar"
 		cd /tmp || exit 1
-		[[ "$(dpkg -s libtorrent-rasterbar9 2> /dev/null | grep -cow '^Status: install ok installed$')" -eq '1' ]] && libtversion=$(dpkg -s libtorrent-rasterbar9 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
-		[[ "$(dpkg -s libtorrent-rasterbar10 2> /dev/null | grep -cow '^Status: install ok installed$')" -eq '1' ]] && libtversion=$(dpkg -s libtorrent-rasterbar10 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+		[[ "$(dpkg -s libtorrent-rasterbar9 2> /dev/null | grep -cow '^Status: hold ok installed$')" -eq '1' ]] && libtversion=$(dpkg -s libtorrent-rasterbar9 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
+		[[ "$(dpkg -s libtorrent-rasterbar10 2> /dev/null | grep -cow '^Status: hold ok installed$')" -eq '1' ]] && libtversion=$(dpkg -s libtorrent-rasterbar10 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
 		cd /tmp || exit 1
 		PYLIBTBIN=python3-libtorrent_${libtversion}-1build1_amd64.deb
-		# disable auto upgrade
-		_execute "apt-mark hold python3-libtorrent"
 		DEB=${PYLIBTBIN}
 		_download ${PACKAGE} ${DEB}
 		_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${PYLIBTBIN}"
+		# disable auto upgrade
+		_execute "apt-mark hold python3-libtorrent"
 		rm -rf ${PYLIBTBIN}
 		touch /install/.libtorrent-rasterbar-python3.lock
 	elif [[ ${libt_compile_python3_req} == 1 ]]; then
