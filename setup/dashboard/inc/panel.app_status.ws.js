@@ -203,7 +203,7 @@
     time: 1000
   }, {
     key: "UPTIME",
-    url: "/widgets/up.php",
+    url: "/node/up.php",
     id: "#uptime",
     time: 60000
   }, {
@@ -337,4 +337,5 @@
   document.addEventListener("DOMContentLoaded", function () {
     Visibility.afterPrerendering(start_status_update);
   });
+  // socket.emit("i18n", "zh");
 })(window.jQuery);

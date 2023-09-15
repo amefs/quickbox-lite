@@ -7,6 +7,7 @@ import { Socket } from "socket.io";
 import Constant from "../constant";
 import { widgetsLoad } from "../widgets/load";
 import { netStatus } from "../widgets/net_status";
+import { upTime } from "../widgets/up";
 
 interface Payload {
     key: string;
@@ -62,6 +63,9 @@ const messageHandler = async (payload: Payload, client: Socket) => {
                 break;
             case "/node/net_status.php":
                 ret.response = await netStatus();
+                break;
+            case "/node/up.php":
+                ret.response = upTime();
                 break;
             default:
                 ret.response = (await afetch.get(req.pathname, { params: req.args })).data;

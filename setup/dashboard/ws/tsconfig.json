@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "target": "es6",
+        "target": "ES6",
         "module": "commonjs",
         "moduleResolution": "node",
         "isolatedModules": false,
@@ -16,14 +16,22 @@
         "removeComments": true,
         "noLib": false,
         "preserveConstEnums": true,
+        "esModuleInterop": false,
+        "allowSyntheticDefaultImports": false,
+        "resolveJsonModule": true,
         "types": [
             "node"
         ]
     },
+    "ts-node": {
+        "esm": true,
+        "experimentalSpecifierResolution": "node"
+    },
     "include": [
         "src/**/*.ts",
         "tests/**/*.ts",
-    ],
+        "lang/*.json"
+, "src/widgets/up.ts"    ],
     "exclude": [
         "node_modules",
         "dist"
