@@ -231,7 +231,7 @@
     time: 15000
   }, {
     key: "RAM_USAGE",
-    url: "/widgets/ram_stats.php",
+    url: "/node/ram_stats.php",
     id: "#meterram",
     time: 10000
   }, {

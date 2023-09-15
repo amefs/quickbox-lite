@@ -6,7 +6,7 @@ import * as fs from "fs/promises";
 
 import { username } from "../constant";
 import i18n from "../i18n";
-import { processExists } from "../utils";
+import { processExists, formatSize } from "../utils";
 
 
 function getProgressColor(percent: number) {
@@ -29,13 +29,6 @@ function getDiskClass(percent: number) {
     }
 
     return "disk-good";
-}
-
-function formatSize(length: number) {
-    const value = isNaN(length) ? 0 : length;
-    const suffixList = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-    const idx = Math.min(Math.max(Math.floor(Math.log2(value) / 10), 0), suffixList.length - 1);
-    return (value / Math.pow(2, idx * 10)).toFixed(idx > 0 ? 2 : 0).toString() + " " + suffixList[idx];
 }
 
 async function countTorrent(path: string) {

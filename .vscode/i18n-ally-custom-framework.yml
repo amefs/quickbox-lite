@@ -3,6 +3,7 @@
 languageIds:
   - php
   - shell
+  - typescript
 
 # An array of RegExes to find the key usage. **The key should be captured in the first match group**.
 # You should unescape RegEx strings in order to fit in the YAML file
@@ -12,6 +13,7 @@ usageMatchRegex:
   # the `{key}` will be placed by a proper keypath matching regex,
   # you can ignore it and use your own matching rules as well
   - "[^\\w\\d]T\\(['\"]({key})['\"]"
+  - "[^\\w\\d]i18n.t\\(['\"]({key})['\"]"
 
 
 # An array of strings containing refactor templates.

@@ -1,8 +1,7 @@
 {
     "i18n-ally.localesPaths": [
-        "setup/lang",
-        "packages/system/lang",
-        "setup/dashboard/lang"
+        "packages/**/**/lang",
+        "setup/**/**/lang",
     ],
     "i18n-ally.pathMatcher": "lang_{locale}.json",
     "i18n-ally.sourceLanguage": "en",

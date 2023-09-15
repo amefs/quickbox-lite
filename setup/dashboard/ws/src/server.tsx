@@ -12,7 +12,7 @@ import messageHandler from "./handler/message";
 import execHandler from "./handler/exec";
 import i18nHandler from "./handler/i18n";
 import i18n from "./i18n";
-import { diskData } from "./widgets/disk_data";
+import { ramStats } from "./widgets/ram_stats";
 
 const app = express();
 app.set("trust proxy", true);
@@ -46,8 +46,8 @@ app.get("/set", (req, res) => {
     res.send(i18n.locale);
 });
 
-app.get("/fs", async (req, res) => {
-    res.send(await diskData());
+app.get("/test", async (req, res) => {
+    res.send(await ramStats());
 });
 
 server.listen(8575, "127.0.0.1", () => {

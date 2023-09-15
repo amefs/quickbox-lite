@@ -9,6 +9,7 @@ import { widgetsLoad } from "../widgets/load";
 import { netStatus } from "../widgets/net_status";
 import { upTime } from "../widgets/up";
 import { diskData } from "../widgets/disk_data";
+import { ramStats } from "../widgets/ram_stats";
 
 interface Payload {
     key: string;
@@ -70,6 +71,9 @@ const messageHandler = async (payload: Payload, client: Socket) => {
                 break;
             case "/node/disk_data.php":
                 ret.response = await diskData();
+                break;
+            case "/node/ram_stats.php":
+                ret.response = await ramStats();
                 break;
             default:
                 ret.response = (await afetch.get(req.pathname, { params: req.args })).data;
