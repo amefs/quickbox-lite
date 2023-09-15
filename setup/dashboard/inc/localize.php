@@ -31,7 +31,7 @@ function T($message, $values = null) {
         $value = $L[$message];
         if (is_array($values)) {
             foreach ($values as $key => $val) {
-                $value = str_replace("{{$key}}", $val, $value);
+                $value = str_replace("{{{$key}}}", $val, $value);
             }
         }
 

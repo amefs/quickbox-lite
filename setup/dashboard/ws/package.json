@@ -7,9 +7,9 @@
     "build": "webpack --config build/webpack.config.js",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "check-type": "tsc --noemit",
-    "eslint": "eslint . --ext .ts",
+    "eslint": "eslint . --ext .ts --ext .tsx",
     "lint": "npm run check-type && npm run eslint",
-    "test/server": "ts-node src/server.ts",
+    "test/server": "ts-node src/server.tsx",
     "test/client": "ts-node tests/client.js",
     "audit": "npm audit --registry=https://registry.npmjs.org",
     "upgrade": "npx npm-check -u"

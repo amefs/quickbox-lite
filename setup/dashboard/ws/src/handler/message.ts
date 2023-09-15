@@ -8,6 +8,7 @@ import Constant from "../constant";
 import { widgetsLoad } from "../widgets/load";
 import { netStatus } from "../widgets/net_status";
 import { upTime } from "../widgets/up";
+import { diskData } from "../widgets/disk_data";
 
 interface Payload {
     key: string;
@@ -66,6 +67,9 @@ const messageHandler = async (payload: Payload, client: Socket) => {
                 break;
             case "/node/up.php":
                 ret.response = upTime();
+                break;
+            case "/node/disk_data.php":
+                ret.response = await diskData();
                 break;
             default:
                 ret.response = (await afetch.get(req.pathname, { params: req.args })).data;

@@ -226,7 +226,7 @@
     time: 60000
   }, {
     key: "DISK_USAGE",
-    url: "/widgets/disk_data.php",
+    url: "/node/disk_data.php",
     id: "#disk_data",
     time: 15000
   }, {

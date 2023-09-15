@@ -29,9 +29,10 @@
     },
     "include": [
         "src/**/*.ts",
+        "src/**/*.tsx",
         "tests/**/*.ts",
         "lang/*.json"
-, "src/widgets/up.ts"    ],
+    ],
     "exclude": [
         "node_modules",
         "dist"

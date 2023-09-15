@@ -6,7 +6,7 @@ import * as path from "path";
 import { Socket } from "socket.io";
 
 
-import Constant from "../constant";
+import Constant, { username } from "../constant";
 import { WatchedConfig } from "../watchedConfig";
 import { CommandType, buildCommand } from "./utils/command";
 
@@ -27,18 +27,6 @@ if (!configPath) {
 }
 
 const config = new WatchedConfig<CommandType>(configPath);
-let username = "";
-try {
-    const masterConfigPath = "/srv/dashboard/db/master.txt";
-    if (!fs.existsSync(masterConfigPath)) {
-        console.error("Quickbox-Lite user info not found");
-    } else {
-        const content = fs.readFileSync(masterConfigPath, { encoding: "utf8" });
-        username = content.split("\n")[0].trim();
-    }
-} catch (err) {
-    console.error("Failed to read Quickbox-Lite user info", err);
-}
 
 const execOption = {
     env: { TERM: "xterm", ...process.env },
