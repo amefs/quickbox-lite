@@ -15,7 +15,7 @@ let baseDir = __dirname;
 let configPath = "";
 let lookupDepth = 3;
 while (lookupDepth-- > 0) {
-    const filePath = path.join(baseDir, "commands.json");
+    const filePath = path.join(baseDir, "config", "commands.json");
     if (fs.existsSync(filePath)) {
         configPath = filePath;
         break;
