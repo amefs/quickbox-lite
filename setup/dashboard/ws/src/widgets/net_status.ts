@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import * as si from "systeminformation";
+import si from "systeminformation";
 
 async function enuminterface() {
     const interfaces = await si.networkInterfaces();

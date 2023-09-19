@@ -1,6 +1,6 @@
-import * as si from "systeminformation";
-import * as React from "react";
-import * as ReactDOMServer from "react-dom/server";
+import si from "systeminformation";
+import React from "react";
+import ReactDOMServer from "react-dom/server";
 import { toNumber } from "lodash";
 import i18n from "../i18n";
 import { formatSize } from "../utils";

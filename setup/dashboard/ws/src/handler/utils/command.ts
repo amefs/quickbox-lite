@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import * as fs from "fs";
+import fs from "fs";
 
 import Constant from "../../constant";
 import { WatchedConfig } from "../../watchedConfig";

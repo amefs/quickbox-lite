@@ -1,4 +1,4 @@
-import * as si from "systeminformation";
+import si from "systeminformation";
 
 export async function processExists(processName: string, username: string) {
     const processes = await si.processes();

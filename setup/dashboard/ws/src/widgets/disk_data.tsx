@@ -1,8 +1,8 @@
-import * as si from "systeminformation";
-import * as React from "react";
-import * as ReactDOMServer from "react-dom/server";
+import si from "systeminformation";
+import React from "react";
+import ReactDOMServer from "react-dom/server";
 import { existsSync } from "fs";
-import * as fs from "fs/promises";
+import fs from "fs/promises";
 
 import { username } from "../constant";
 import i18n from "../i18n";

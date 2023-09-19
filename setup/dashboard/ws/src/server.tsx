@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import * as express from "express";
-import * as http from "http";
+import express from "express";
+import http from "http";
 import { Server as socketio } from "socket.io";
-import * as ws from "ws";
-import * as React from "react";
-import * as ReactDOMServer from "react-dom/server";
+import ws from "ws";
+import React from "react";
+import ReactDOMServer from "react-dom/server";
 
 import logHandler from "./handler/log";
 import messageHandler from "./handler/message";

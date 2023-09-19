@@ -16,8 +16,8 @@
         "removeComments": true,
         "noLib": false,
         "preserveConstEnums": true,
-        "esModuleInterop": false,
-        "allowSyntheticDefaultImports": false,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
         "resolveJsonModule": true,
         "types": [
             "node"
