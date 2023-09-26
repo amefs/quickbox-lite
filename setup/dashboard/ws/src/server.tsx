@@ -12,7 +12,6 @@ import messageHandler from "./handler/message";
 import execHandler from "./handler/exec";
 import i18nHandler from "./handler/i18n";
 import i18n from "./i18n";
-import { ramStats } from "./widgets/ram_stats";
 
 const app = express();
 app.set("trust proxy", true);
@@ -44,10 +43,6 @@ app.get("/set", (req, res) => {
         i18n.locale = "en";
     }
     res.send(i18n.locale);
-});
-
-app.get("/test", async (req, res) => {
-    res.send(await ramStats());
 });
 
 server.listen(8575, "127.0.0.1", () => {
