@@ -58,7 +58,7 @@ interface TrafficEntry {
     tx: number;
 }
 
-interface ParsedTrafficEntry {
+export interface ParsedTrafficEntry {
     time: number;
     label: string;
     rx: number;
@@ -74,7 +74,7 @@ interface ParsedSummayEntry {
     created: number;
 }
 
-interface ParsedVnstatData {
+export interface ParsedVnstatData {
     hour: ParsedTrafficEntry[];
     day: ParsedTrafficEntry[];
     month: ParsedTrafficEntry[];
@@ -154,7 +154,7 @@ export async function getVnstatData(iface: string, mode: "f"|"h"|"d"|"m"|"y"|"t"
         const d = todayHourData[i];
         const hours = jsonVersion === "1" ? d.id : d.time?.hour;
         const ts = new Date(d.date.year, d.date.month as number, d.date.day, hours, 0, 0);
-        const diffTime = Math.min(Date.now() - ts.getTime(), 3600); // at most one hour
+        const diffTime = Math.min((Date.now() - ts.getTime()) / 1000, 3600); // at most one hour
         const rx = d.rx * dataCoefficient;
         const tx = d.tx * dataCoefficient;
 
@@ -178,7 +178,7 @@ export async function getVnstatData(iface: string, mode: "f"|"h"|"d"|"m"|"y"|"t"
     for (let i = dayDataCount - displayDayLength; i < dayDataCount; i++) {
         const d = dayData[i];
         const ts = new Date(d.date.year, d.date.month as number, d.date.day, 0, 0, 0);
-        const diffTime = Math.min(Date.now() - ts.getTime(), 86400); // at most one day
+        const diffTime = Math.min((Date.now() - ts.getTime()) / 1000, 86400); // at most one day
         const rx = d.rx * dataCoefficient;
         const tx = d.tx * dataCoefficient;
 
@@ -201,7 +201,7 @@ export async function getVnstatData(iface: string, mode: "f"|"h"|"d"|"m"|"y"|"t"
         const firstDay = new Date(d.date.year, d.date.month as number, 1, 0, 0, 0);
         const lastDay = new Date(d.date.year, d.date.month as number + 1, 1, 0, 0, 0);
         const fullMonthDiff = lastDay.getTime() - firstDay.getTime();
-        const diffTime = Math.min(Date.now() - firstDay.getTime(), fullMonthDiff); // at most one month
+        const diffTime = Math.min((Date.now() - firstDay.getTime()) / 1000, fullMonthDiff); // at most one month
         const rx = d.rx * dataCoefficient;
         const tx = d.tx * dataCoefficient;
 
@@ -220,7 +220,7 @@ export async function getVnstatData(iface: string, mode: "f"|"h"|"d"|"m"|"y"|"t"
     for (let i = 0; i < Math.min(10, topData.length); i++) {
         const d = topData[i];
         const ts = new Date(d.date.year, d.date.month as number, d.date.day, 0, 0, 0);
-        const diffTime = Math.min(Date.now() - ts.getTime(), 86400); // at most one day
+        const diffTime = Math.min((Date.now() - ts.getTime()) / 1000, 86400); // at most one day
         const rx = d.rx * dataCoefficient;
         const tx = d.tx * dataCoefficient;
 
@@ -236,4 +236,14 @@ export async function getVnstatData(iface: string, mode: "f"|"h"|"d"|"m"|"y"|"t"
     }
 
     return ret;
+}
+
+export function getIfaceConfig() {
+    const configPath = "/srv/dashboard/db/interface.txt";
+    if (!fs.existsSync(configPath)) {
+        console.error("Interface info not found, use eth0 instead");
+        return "eth0";
+    }
+    const config = fs.readFileSync(configPath, "utf8");
+    return config.trim();
 }

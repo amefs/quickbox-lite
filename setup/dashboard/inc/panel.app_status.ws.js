@@ -213,8 +213,8 @@
     time: 60000
   }, {
     key: "BANDWIDTH",
-    url: "/widgets/bw_tables.php",
-    url_template: "/widgets/bw_tables.php?page={0}",
+    url: "/node/bw_tables.php",
+    url_template: "/node/bw_tables.php?page={0}",
     id: "#bw_tables",
     before: function () {
       const page = localStorage.getItem("bw_tables:page");

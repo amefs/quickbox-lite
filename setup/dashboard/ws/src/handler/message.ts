@@ -10,6 +10,8 @@ import { netStatus } from "../widgets/net_status";
 import { upTime } from "../widgets/up";
 import { diskData } from "../widgets/disk_data";
 import { ramStats } from "../widgets/ram_stats";
+import { bwTables } from "../widgets/bw_tables";
+import { getIfaceConfig } from "../utils/vnstat";
 
 interface Payload {
     key: string;
@@ -23,6 +25,8 @@ const afetch = axios.create({
         rejectUnauthorized: false,
     }),
 });
+
+const iface = getIfaceConfig();
 
 const parseUrl = (url: string) => {
     let u: URL;
@@ -74,6 +78,9 @@ const messageHandler = async (payload: Payload, client: Socket) => {
                 break;
             case "/node/ram_stats.php":
                 ret.response = await ramStats();
+                break;
+            case "/node/bw_tables.php":
+                ret.response = await bwTables(iface, req.args["page"] as "h"|"d"|"m"|"t");
                 break;
             default:
                 ret.response = (await afetch.get(req.pathname, { params: req.args })).data;
