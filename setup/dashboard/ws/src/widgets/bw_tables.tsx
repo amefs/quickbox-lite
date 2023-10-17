@@ -99,7 +99,7 @@ function writeSummary(data: ParsedVnstatData) {
 }
 
 export async function bwTables(iface: string, page: "h"|"d"|"m"|"t") {
-    const vnstatData = await getVnstatData(iface, page);
+    const vnstatData = await getVnstatData(iface);
 
     const renderDataTable = () => {
         if (page === "h") {

@@ -218,7 +218,7 @@
     id: "#bw_tables",
     before: function () {
       const page = localStorage.getItem("bw_tables:page");
-      if (page && page.length === 1 && "shdm".includes(page)) {
+      if (page && page.length === 1 && "shdmt".includes(page)) {
         this.url = this.url_template.replace("{0}", page);
       }
       return true;

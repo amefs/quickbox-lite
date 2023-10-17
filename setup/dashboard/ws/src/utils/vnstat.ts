@@ -96,7 +96,7 @@ function execAsync(cmd: string): Promise<string> {
 /**
  * Get vnstat data.
  */
-export async function getVnstatData(iface: string, mode: "f"|"h"|"d"|"m"|"y"|"t"): Promise<ParsedVnstatData> {
+export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
     const ret = {
         hour: [] as ParsedTrafficEntry[],
         day: [] as ParsedTrafficEntry[],
@@ -126,7 +126,7 @@ export async function getVnstatData(iface: string, mode: "f"|"h"|"d"|"m"|"y"|"t"
             vnstatData = JSON.parse(fileData);
         }
     } else {
-        vnstatData = JSON.parse(await execAsync(`${vnstatBin} --json ${mode} -i ${iface}`));
+        vnstatData = JSON.parse(await execAsync(`${vnstatBin} --json -i ${iface}`));
     }
 
     const jsonVersion = vnstatData.jsonversion;
