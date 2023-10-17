@@ -153,7 +153,7 @@ export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
     for (let i = 0; i < Math.min(24, todayHourData.length); i++) {
         const d = todayHourData[i];
         const hours = jsonVersion === "1" ? d.id : d.time?.hour;
-        const ts = new Date(d.date.year, d.date.month as number, d.date.day, hours, 0, 0);
+        const ts = new Date(d.date.year, d.date.month as number - 1, d.date.day, hours, 0, 0);
         const diffTime = Math.min((Date.now() - ts.getTime()) / 1000, 3600); // at most one hour
         const rx = d.rx * dataCoefficient;
         const tx = d.tx * dataCoefficient;
@@ -171,13 +171,13 @@ export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
 
 
     const dayData = sortBy((jsonVersion === "1" ? trafficData.days : trafficData.day) ?? [],
-        (d) => new Date(d.date.year, d.date.month as number, d.date.day, 0, 0, 0));
+        (d) => d.date.year * 10000 + (d.date.month??0) * 100 + (d.date.day??0));
 
     const dayDataCount = dayData?.length ?? 0;
     const displayDayLength = Math.min(30, dayDataCount);
     for (let i = dayDataCount - displayDayLength; i < dayDataCount; i++) {
         const d = dayData[i];
-        const ts = new Date(d.date.year, d.date.month as number, d.date.day, 0, 0, 0);
+        const ts = new Date(d.date.year, d.date.month as number - 1, d.date.day, 0, 0, 0);
         const diffTime = Math.min((Date.now() - ts.getTime()) / 1000, 86400); // at most one day
         const rx = d.rx * dataCoefficient;
         const tx = d.tx * dataCoefficient;
@@ -198,8 +198,8 @@ export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
     const displayMonthLength = Math.min(12, monthDataCount);
     for (let i = monthDataCount - displayMonthLength; i < monthDataCount; i++) {
         const d = monthData[i];
-        const firstDay = new Date(d.date.year, d.date.month as number, 1, 0, 0, 0);
-        const lastDay = new Date(d.date.year, d.date.month as number + 1, 1, 0, 0, 0);
+        const firstDay = new Date(d.date.year, d.date.month as number - 1, 1, 0, 0, 0);
+        const lastDay = new Date(d.date.year, d.date.month as number, 1, 0, 0, 0);
         const fullMonthDiff = lastDay.getTime() - firstDay.getTime();
         const diffTime = Math.min((Date.now() - firstDay.getTime()) / 1000, fullMonthDiff); // at most one month
         const rx = d.rx * dataCoefficient;
@@ -219,7 +219,7 @@ export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
     const topData = (jsonVersion === "1" ? trafficData.tops : trafficData.top) ?? [];
     for (let i = 0; i < Math.min(10, topData.length); i++) {
         const d = topData[i];
-        const ts = new Date(d.date.year, d.date.month as number, d.date.day, 0, 0, 0);
+        const ts = new Date(d.date.year, d.date.month as number - 1, d.date.day, 0, 0, 0);
         const diffTime = Math.min((Date.now() - ts.getTime()) / 1000, 86400); // at most one day
         const rx = d.rx * dataCoefficient;
         const tx = d.tx * dataCoefficient;

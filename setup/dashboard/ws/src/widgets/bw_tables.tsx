@@ -102,7 +102,7 @@ export async function bwTables(iface: string, page: "h"|"d"|"m"|"t") {
     const vnstatData = await getVnstatData(iface);
 
     const renderDataTable = () => {
-        if (page === "h") {
+        if (page === undefined || page === "h") {
             return writeDataTable(i18n.t("Recent hours"), vnstatData.hour);
         } else if (page === "d") {
             return writeDataTable(i18n.t("Last 30 days"), vnstatData.day);
