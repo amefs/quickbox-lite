@@ -235,6 +235,15 @@ export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
         ret.top.push(top);
     }
 
+    // summary data from old dumpdb command
+    const created = ifaceData.created;
+    ret.summary = {
+        totalrx: trafficData.total.rx * dataCoefficient, // in bytes
+        totaltx: trafficData.total.tx * dataCoefficient, // in bytes
+        interface: ifaceData.name,
+        created: (+new Date(created.date.year, created.date.month as number - 1, created.date.day) / 1000),
+    };
+
     return ret;
 }
 
