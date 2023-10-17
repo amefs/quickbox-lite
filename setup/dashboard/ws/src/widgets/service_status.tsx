@@ -34,9 +34,9 @@ export async function serviceStatus(service: string) {
     const val = status ? "running" : "disabled";
 
     return ReactDOMServer.renderToString(
-        <div>
+        <span>
             <span className={`badge badge-service-${val}-dot`}></span>
             <span className={`badge badge-service-${val}-pulse`}></span>
-        </div>
+        </span>
     );
 }
