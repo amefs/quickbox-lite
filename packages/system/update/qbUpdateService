@@ -264,6 +264,13 @@ WEBC
 		_execute "systemctl restart ttyd.service"
 		_info "ttyd update success"
 	fi
+	# enable writable ttyd
+	if (grep -c 'ExecStart=/usr/local/bin/ttyd -i 127.0.0.1 -p 4200 bash' < /etc/systemd/system/ttyd.service > /dev/null); then
+		cp ${local_setup_template}systemd/ttyd.service.template /etc/systemd/system/ttyd.service
+		sed -i "s/USERNAME/${username}/g" /etc/systemd/system/ttyd.service
+		_execute "systemctl daemon-reload"
+		_execute "systemctl restart ttyd.service"
+	fi
 }
 
 function _startservice() {
