@@ -63,26 +63,11 @@ function _updateservice() {
 		if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
 			_info "Installing Node.js..."
 			cd /tmp || exit 1
-			_execute "curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh"
-			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-			exitstatus=$?
-			counter=0
-			while [[ ${exitstatus} -eq 1 ]]; do
-				if [[ ${counter} -gt 2 ]]; then
-					_error "Fail to update nodejs source list! exit"
-					exit 1
-				else
-					bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-					exitstatus=$?
-					((counter++))
-					_warning "Fail to update nodejs source list! retry..."
-				fi
-			done
-			_execute "sudo bash nodesource_setup.sh"
+			curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/nodesource.gpg >>"/dev/null" 2>&1
+			NODE_MAJOR=18
+			echo "deb [signed-by=/etc/apt/trusted.gpg.d/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list >>"/dev/null" 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			_execute "apt-get install -y nodejs"
-			if [[ -f /tmp/nodesource_setup.sh ]]; then
-				rm nodesource_setup.sh
-			fi
 			_success "Node.js installed"
 		fi
 		# install service
@@ -96,29 +81,25 @@ function _updateservice() {
 		_success "QuickBox service updated"
 	else
 		# upgrade to v18
-		_info "Upgrade nodejs to v18"
-		if [[ ! $(which npm) ]] || [[ ! $(node --version) =~ "v18" ]]; then
-			_info "Upgrading Node.js..."
+		if [[ ! $(node --version) =~ "v18" ]]; then
+			_info "Upgrade nodejs to v18"
 			cd /tmp || exit 1
-			_execute "curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh"
-			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-			exitstatus=$?
-			counter=0
-			while [[ ${exitstatus} -eq 1 ]]; do
-				if [[ ${counter} -gt 2 ]]; then
-					_error "Fail to update nodejs source list! exit"
-					exit 1
-				else
-					bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-					exitstatus=$?
-					((counter++))
-					_warning "Fail to update nodejs source list! retry..."
-				fi
-			done
+			curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/nodesource.gpg >>"/dev/null" 2>&1
+			NODE_MAJOR=18
+			echo "deb [signed-by=/etc/apt/trusted.gpg.d/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list >>"/dev/null" 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 			_execute "apt-get install -y nodejs"
-			if [[ -f /tmp/nodesource_setup.sh ]]; then
-				rm nodesource_setup.sh
-			fi
+			_success "Node.js upgraded"
+		fi
+		# upgrade to nodistro repo
+		if (grep -c "${CODENAME} main" < /etc/apt/sources.list.d/nodesource.list > /dev/null); then
+			_info "Upgrading Node.js Repo..."
+			cd /tmp || exit 1
+			curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/nodesource.gpg >>"/dev/null" 2>&1
+			NODE_MAJOR=18
+			echo "deb [signed-by=/etc/apt/trusted.gpg.d/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list >>"/dev/null" 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+			_execute "apt-get install -y nodejs"
 			_success "Node.js upgraded"
 		fi
 		_info "Reconfig Dashboard service..."

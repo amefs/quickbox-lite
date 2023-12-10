@@ -1,3 +1,26 @@
+## CHANGELOG v1.5.9
+
+*Changelog update Sunday, Dec 10, 2023*
+
+### General additions
+
+- facilitating the selection of the Transmission version during installation(`--transmission-version`)
+
+### Function improved
+
+- resolving dependency issues by installing DenyHosts using venv
+- only use released tag on acme.sh
+- apply new node.js repo
+
+### Function updated
+
+- add writable flag to [newer ttyd](https://github.com/tsl0922/ttyd/commit/f8efcddb0b615de7086fdb3c5f452d1ee42f32a3)
+- disable webUI UPNP on qBittorrent by default
+
+### Bug fixed
+
+---
+
 ## CHANGELOG v1.5.8
 
 *Changelog update Thursday, Jul 27, 2023*

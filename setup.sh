@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.8
+# Current version:  v1.5.9
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -822,27 +822,11 @@ function _insngx() {
 function _insnodejs() {
 	# install Nodejs for background service
 	cd /tmp || exit 1
-	curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh
-	bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-	exitstatus=$?
-	counter=0
-	while [[ ${exitstatus} -eq 1 ]]; do
-		if [[ ${counter} -gt 2 ]]; then
-			_errorcolor
-			echo -e "XXX\n00\n${ERROR_TEXT_NODEJS}\nXXX"
-			_defaultcolor
-			echo ">> ${ERROR_TEXT_NODEJS}" >>"${OUTTO}" 2>&1
-			exit 1
-		else
-			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-			exitstatus=$?
-			((counter++))
-		fi
-	done
+	curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/nodesource.gpg >>"/dev/null" 2>&1
+	NODE_MAJOR=18
+	echo "deb [signed-by=/etc/apt/trusted.gpg.d/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list >>"/dev/null" 2>&1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
 	apt-get install -y nodejs >>"${OUTTO}" 2>&1
-	if [[ -f /tmp/nodesource_setup.sh ]]; then
-		rm nodesource_setup.sh
-	fi
 }
 
 function _webconsole() {
@@ -986,7 +970,7 @@ function _insapps() {
 	sleep 1
 	if [[ "$app_list" =~ "transmission" ]]; then
 		echo -e "XXX\n36\n$INFO_TEXT_INSTALLAPP_2\nXXX"
-		bash ${local_setup_script}transmission.sh "${OUTTO}" "${cdn}" >/dev/null 2>&1
+		bash ${local_setup_script}transmission.sh "${OUTTO}" "${cdn}" "${tr_ver}" >/dev/null 2>&1
 		echo -e "XXX\n43\n$INFO_TEXT_INSTALLAPP_2$INFO_TEXT_DONE\nXXX"
 	else
 		echo -e "XXX\n43\n$INFO_TEXT_INSTALLAPP_2$INFO_TEXT_SKIP\nXXX"
@@ -1361,11 +1345,12 @@ de_ver=""
 qbit_libt_ver=""
 de_libt_ver=""
 rt_ver=""
+tr_ver=""
 
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o d:hrH:p:P:s:t:u: -l domain:,help,ftp-ip:,lang:,reboot,with-log,no-log,with-ftp,no-ftp,with-bbr,no-bbr,with-cf,with-sf,with-osdn,with-github,with-rtorrent,with-rutorrent,with-flood,with-transmission,with-qbittorrent,with-deluge,with-mktorrent,with-ffmpeg,with-filebrowser,with-linuxrar,qbittorrent-version:,deluge-version:,qbit-libt-version:,de-libt-version:,rtorrent-version:,hostname:,port:,username:,password:,source:,theme:,tz:,timezone: -- "$@")
+if ! ARGS=$(getopt -a -o d:hrH:p:P:s:t:u: -l domain:,help,ftp-ip:,lang:,reboot,with-log,no-log,with-ftp,no-ftp,with-bbr,no-bbr,with-cf,with-sf,with-osdn,with-github,with-rtorrent,with-rutorrent,with-flood,with-transmission,with-qbittorrent,with-deluge,with-mktorrent,with-ffmpeg,with-filebrowser,with-linuxrar,qbittorrent-version:,deluge-version:,qbit-libt-version:,de-libt-version:,rtorrent-version:,transmission-version:,hostname:,port:,username:,password:,source:,theme:,tz:,timezone: -- "$@")
 then
 	_usage
     exit 1
@@ -1505,6 +1490,7 @@ while true; do
 	--qbit-libt-version) qbit_libt_ver="--lt $2"; shift;;
 	--de-libt-version) de_libt_ver="--lt $2"; shift;;
 	--rtorrent-version) rt_ver="--version $2"; shift;;
+	--transmission-version) tr_ver="--version $2"; shift;;
 	--)
 		shift
 		break

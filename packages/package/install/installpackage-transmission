@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.8
+# Current version:  v1.5.9
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -316,7 +316,7 @@ function _configureApp() {
 	_execute "systemctl stop transmission-daemon"
 	sleep 2
 	# install enhancement WebUI
-	echo 1 | bash -c "$(wget -qO- https://github.com/ronggang/transmission-web-control/raw/master/release/install-tr-control.sh)" >>"${OUTTO}" 2>&1
+	echo 1 | bash -c "$(wget -qO- https://github.com/transmission-web-control/transmission-web-control/raw/master/release/install-tr-control.sh)" >>"${OUTTO}" 2>&1
 
 	# get userlist
 	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)

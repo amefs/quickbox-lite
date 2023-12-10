@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.8
+# Current version:  v1.5.9
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -602,6 +602,8 @@ function _installDeluge() {
 			_execute "pip2 install --upgrade wheel"
 			_info "Installing python2-twisted[tls]... "
 			_execute "pip2 install --upgrade twisted[tls]"
+			_info "Installing pyOpenSSL... "
+			_execute "pip2 install --upgrade --force-reinstall pyOpenSSL"
 			_info "Installing python2-future... "
 			_execute "pip2 install --upgrade future"
 			_success "${APP_TITLE} dependencies installed."
