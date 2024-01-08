@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "target": "es6",
+        "target": "ES6",
         "module": "commonjs",
         "moduleResolution": "node",
         "isolatedModules": false,
@@ -16,13 +16,22 @@
         "removeComments": true,
         "noLib": false,
         "preserveConstEnums": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "resolveJsonModule": true,
         "types": [
             "node"
         ]
     },
+    "ts-node": {
+        "esm": true,
+        "experimentalSpecifierResolution": "node"
+    },
     "include": [
         "src/**/*.ts",
+        "src/**/*.tsx",
         "tests/**/*.ts",
+        "lang/*.json"
     ],
     "exclude": [
         "node_modules",

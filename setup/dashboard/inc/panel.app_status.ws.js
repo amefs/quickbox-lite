@@ -6,154 +6,154 @@
 (function ($) {
   const service_status_list = [{
     key: "BTSYNC",
-    url: "/widgets/service_status.php?service=resilio-sync",
+    url: "/node/service_status.php?service=resilio-sync",
     id: "#appstat_resilio-sync",
     time: 5000
   }, {
     key: "CIFS",
-    url: "/widgets/service_status.php?service=smbd",
+    url: "/node/service_status.php?service=smbd",
     id: "#appstat_smbd",
     time: 5000
   }, {
     key: "DELUGED",
-    url: "/widgets/service_status.php?service=deluged",
+    url: "/node/service_status.php?service=deluged",
     id: "#appstat_deluged",
     time: 5000
   }, {
     key: "DELUGE_WEB",
-    url: "/widgets/service_status.php?service=deluge-web",
+    url: "/node/service_status.php?service=deluge-web",
     id: "#appstat_deluge-web",
     time: 5000
   }, {
     key: "DENYHOSTS",
-    url: "/widgets/service_status.php?service=denyhosts",
+    url: "/node/service_status.php?service=denyhosts",
     id: "#appstat_denyhosts",
     time: 5000
   }, {
     key: "EMBY",
-    url: "/widgets/service_status.php?service=emby-server",
+    url: "/node/service_status.php?service=emby-server",
     id: "#appstat_emby-server",
     time: 5000
   }, {
     key: "FAIL2BAN",
-    url: "/widgets/service_status.php?service=fail2ban",
+    url: "/node/service_status.php?service=fail2ban",
     id: "#appstat_fail2ban",
     time: 5000
   }, {
     key: "FILEBROWSER",
-    url: "/widgets/service_status.php?service=filebrowser",
+    url: "/node/service_status.php?service=filebrowser",
     id: "#appstat_filebrowser",
     time: 5000
   }, {
     key: "FILEBROWSEREE",
-    url: "/widgets/service_status.php?service=filebrowser-ee",
+    url: "/node/service_status.php?service=filebrowser-ee",
     id: "#appstat_filebrowser-ee",
     time: 5000
   }, {
     key: "FLEXGET",
-    url: "/widgets/service_status.php?service=flexget",
+    url: "/node/service_status.php?service=flexget",
     id: "#appstat_flexget",
     time: 5000
   }, {
     key: "FLOOD",
-    url: "/widgets/service_status.php?service=flood",
+    url: "/node/service_status.php?service=flood",
     id: "#appstat_flood",
     time: 5000
   }, {
     key: "JELLYFIN",
-    url: "/widgets/service_status.php?service=jellyfin",
+    url: "/node/service_status.php?service=jellyfin",
     id: "#appstat_jellyfin",
     time: 5000
   }, {
     key: "IRSSI",
-    url: "/widgets/service_status.php?service=irssi",
+    url: "/node/service_status.php?service=irssi",
     id: "#appstat_irssi",
     time: 5000
   }, {
     key: "NETDATA",
-    url: "/widgets/service_status.php?service=netdata",
+    url: "/node/service_status.php?service=netdata",
     id: "#appstat_netdata",
     time: 5000
   }, {
     key: "NFS",
-    url: "/widgets/service_status.php?service=nfs-server",
+    url: "/node/service_status.php?service=nfs-server",
     id: "#appstat_nfs-server",
     time: 5000
   }, {
     key: "NOVNC",
-    url: "/widgets/service_status.php?service=tightvnc",
+    url: "/node/service_status.php?service=tightvnc",
     id: "#appstat_tightvnc",
     time: 5000
   }, {
     key: "OPENVPN",
-    url: "/widgets/service_status.php?service=openvpn",
+    url: "/node/service_status.php?service=openvpn",
     id: "#appstat_openvpn",
     time: 5000
   }, {
     key: "PLEX",
-    url: "/widgets/service_status.php?service=plexmediaserver",
+    url: "/node/service_status.php?service=plexmediaserver",
     id: "#appstat_plexmediaserver",
     time: 5000
   }, {
     key: "RCLONE",
-    url: "/widgets/service_status.php?service=rclone-web",
+    url: "/node/service_status.php?service=rclone-web",
     id: "#appstat_rclone-web",
     time: 5000
   }, {
     key: "RTORRENT",
-    url: "/widgets/service_status.php?service=rtorrent",
+    url: "/node/service_status.php?service=rtorrent",
     id: "#appstat_rtorrent",
     time: 5000
   }, {
     key: "SABNZBD",
-    url: "/widgets/service_status.php?service=sabnzbd",
+    url: "/node/service_status.php?service=sabnzbd",
     id: "#appstat_sabnzbd",
     time: 5000
   }, {
     key: "SYNCTHING",
-    url: "/widgets/service_status.php?service=syncthing",
+    url: "/node/service_status.php?service=syncthing",
     id: "#appstat_syncthing",
     time: 5000
   }, {
     key: "TRANSMISSION",
-    url: "/widgets/service_status.php?service=transmission",
+    url: "/node/service_status.php?service=transmission",
     id: "#appstat_transmission",
     time: 5000
   }, {
     key: "QBITTORRENT",
-    url: "/widgets/service_status.php?service=qbittorrent",
+    url: "/node/service_status.php?service=qbittorrent",
     id: "#appstat_qbittorrent",
     time: 5000
   }, {
     key: "WEBDAV",
-    url: "/widgets/service_status.php?service=webdav",
+    url: "/node/service_status.php?service=webdav",
     id: "#appstat_webdav",
     time: 5000
   }, {
     key: "VSFTPD",
-    url: "/widgets/service_status.php?service=vsftpd",
+    url: "/node/service_status.php?service=vsftpd",
     id: "#appstat_vsftpd",
     time: 5000
   }, {
     key: "WEB_CONSOLE",
-    url: "/widgets/service_status.php?service=ttyd",
+    url: "/node/service_status.php?service=ttyd",
     id: "#appstat_ttyd",
     time: 5000
   }, {
     key: "X2GO",
-    url: "/widgets/service_status.php?service=x2go",
+    url: "/node/service_status.php?service=x2go",
     id: "#appstat_x2go",
     time: 5000
   }, {
     key: "ZNC",
-    url: "/widgets/service_status.php?service=znc",
+    url: "/node/service_status.php?service=znc",
     id: "#appstat_znc",
     time: 5000
   }];
 
   const system_status_list = [{
     key: "NETWORK",
-    url: "/widgets/net_status.php",
+    url: "/node/net_status.php",
     id: undefined,
     override: function (dataJSON) {
       function formatsize (length) {
@@ -203,22 +203,22 @@
     time: 1000
   }, {
     key: "UPTIME",
-    url: "/widgets/up.php",
+    url: "/node/up.php",
     id: "#uptime",
     time: 60000
   }, {
     key: "TOP",
-    url: "/widgets/load.php",
+    url: "/node/load.php",
     id: "#cpuload",
     time: 60000
   }, {
     key: "BANDWIDTH",
-    url: "/widgets/bw_tables.php",
-    url_template: "/widgets/bw_tables.php?page={0}",
+    url: "/node/bw_tables.php",
+    url_template: "/node/bw_tables.php?page={0}",
     id: "#bw_tables",
     before: function () {
       const page = localStorage.getItem("bw_tables:page");
-      if (page && page.length === 1 && "shdm".includes(page)) {
+      if (page && page.length === 1 && "shdmt".includes(page)) {
         this.url = this.url_template.replace("{0}", page);
       }
       return true;
@@ -226,12 +226,12 @@
     time: 60000
   }, {
     key: "DISK_USAGE",
-    url: "/widgets/disk_data.php",
+    url: "/node/disk_data.php",
     id: "#disk_data",
     time: 15000
   }, {
     key: "RAM_USAGE",
-    url: "/widgets/ram_stats.php",
+    url: "/node/ram_stats.php",
     id: "#meterram",
     time: 10000
   }, {
@@ -337,4 +337,5 @@
   document.addEventListener("DOMContentLoaded", function () {
     Visibility.afterPrerendering(start_status_update);
   });
+  // socket.emit("i18n", "zh");
 })(window.jQuery);

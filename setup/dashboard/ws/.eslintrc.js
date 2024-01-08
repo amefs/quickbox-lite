@@ -86,6 +86,7 @@ module.exports = {
         "@typescript-eslint/type-annotation-spacing": "error",
         "@typescript-eslint/unbound-method": "error",
         "@typescript-eslint/unified-signatures": "error",
+        "@typescript-eslint/adjacent-overload-signatures": "off",
         "arrow-body-style": "error",
         "arrow-parens": [
             "off",
@@ -135,12 +136,7 @@ module.exports = {
         "no-redeclare": "error",
         "no-return-await": "error",
         "no-sequences": "error",
-        "no-shadow": [
-            "error",
-            {
-                "hoist": "all"
-            }
-        ],
+        "no-shadow": "off",
         "no-sparse-arrays": "error",
         "no-template-curly-in-string": "error",
         "no-throw-literal": "error",
