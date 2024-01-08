@@ -822,11 +822,27 @@ function _insngx() {
 function _insnodejs() {
 	# install Nodejs for background service
 	cd /tmp || exit 1
-	curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/nodesource.gpg >>"/dev/null" 2>&1
-	NODE_MAJOR=18
-	echo "deb [signed-by=/etc/apt/trusted.gpg.d/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list >>"/dev/null" 2>&1
-	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+	curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh
+	bash nodesource_setup.sh >>"${OUTTO}" 2>&1
+	exitstatus=$?
+	counter=0
+	while [[ ${exitstatus} -eq 1 ]]; do
+		if [[ ${counter} -gt 2 ]]; then
+			_errorcolor
+			echo -e "XXX\n00\n${ERROR_TEXT_NODEJS}\nXXX"
+			_defaultcolor
+			echo ">> ${ERROR_TEXT_NODEJS}" >>"${OUTTO}" 2>&1
+			exit 1
+		else
+			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
+			exitstatus=$?
+			((counter++))
+		fi
+	done
 	apt-get install -y nodejs >>"${OUTTO}" 2>&1
+	if [[ -f /tmp/nodesource_setup.sh ]]; then
+		rm nodesource_setup.sh
+	fi
 }
 
 function _webconsole() {
