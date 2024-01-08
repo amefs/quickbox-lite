@@ -16,7 +16,7 @@
     "datatables": "^1.10.18",
     "font-awesome": "^4.7.0",
     "gritter": "^1.7.4",
-    "jquery": "^3.7.0",
+    "jquery": "^3.7.1",
     "jquery-toggles": "^4.0.0",
     "jquery-ui": "^1.13.2",
     "jquery-ui-touch-punch": "^0.2.3",
@@ -24,14 +24,14 @@
     "lobipanel": "^1.0.0",
     "perfect-scrollbar": "^1.5.5",
     "select2": "^4.0.13",
-    "socket.io-client": "^4.7.1",
+    "socket.io-client": "^4.7.3",
     "visibilityjs": "^2.0.2"
   },
   "devDependencies": {
-    "eslint": "^8.45.0",
+    "eslint": "^8.56.0",
     "eslint-config-standard": "^17.1.0",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-n": "^16.0.1",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-n": "^16.6.1",
     "eslint-plugin-promise": "^6.1.1"
   }
 }
