@@ -19,3 +19,6 @@ setup/templates/**/* text eol=lf
 *.ttf           binary
 *.woff          binary
 *.woff2         binary
+
+# config for bun lock file
+*.lockb binary diff=lockb

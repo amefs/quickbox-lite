@@ -85,7 +85,7 @@ async function renderTorrentInfo() {
         </div>
     );
 
-    const ret = [];
+    const ret: React.JSX.Element[] = [];
 
     if (await processExists("rtorrent", username) && await exists("/install/.rtorrent.lock")) {
         const rtorrents = await countTorrent(`/home/.${username}/.sessions/`);
