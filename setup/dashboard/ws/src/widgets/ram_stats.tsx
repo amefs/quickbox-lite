@@ -33,7 +33,7 @@ export async function ramStats() {
 
     const memBuffers = formatSize(mem.buffers);
     const memCached = formatSize(mem.cached);
-    const memCachedPercent = mem.cached / mem.total * 100;
+    const memCachedPercent = toNumber((mem.cached / mem.total * 100).toFixed(2));
 
     const memSwapUsed = formatSize(mem.swapused);
     const memSwapFree = formatSize(mem.swapfree);

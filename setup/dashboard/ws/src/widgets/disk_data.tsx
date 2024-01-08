@@ -118,7 +118,7 @@ export async function diskData() {
     const fsData = await si.fsSize();
     return ReactDOMServer.renderToString(
         <div>
-            {fsData.filter(data=>data.size > 1<<30).map(renderFileSystem)}
+            {fsData.filter(data => data.size > 1<<30 && !data.mount.startsWith("/var/lib/docker/overlay")).map(renderFileSystem)}
             {await renderTorrentInfo()}
         </div>
     );
