@@ -18,7 +18,7 @@ $rules = [
     // Basic
     'single_space_around_construct' => false,
     'control_structure_braces' => true,
-    'curly_braces_position' => [
+    'braces_position' => [
         'functions_opening_brace' => 'same_line',
         'classes_opening_brace' => 'same_line'
     ],
