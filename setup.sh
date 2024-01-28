@@ -803,7 +803,9 @@ function _insngx() {
 
 	cp ${local_setup_template}nginx/proxy.conf.template /etc/nginx/snippets/proxy.conf
 
-	svn export https://github.com/Naereen/Nginx-Fancyindex-Theme/trunk/Nginx-Fancyindex-Theme-dark /srv/fancyindex >>"${OUTTO}" 2>&1
+	# Download nginx fancyindex theme
+	wget -t3 -T20 -q -O /tmp/fancyindex.zip https://codeload.github.com/Naereen/Nginx-Fancyindex-Theme/zip/refs/heads/master >>"${OUTTO}" 2>&1
+	unzip -o -j /tmp/fancyindex.zip "Nginx-Fancyindex-Theme-master/Nginx-Fancyindex-Theme-dark/*" -d "/srv/fancyindex" >>"${OUTTO}" 2>&1
 	cp ${local_setup_template}nginx/fancyindex.conf.template /etc/nginx/snippets/fancyindex.conf
 	sed -i 's/href="\/[^\/]*/href="\/fancyindex/g' /srv/fancyindex/header.html
 	sed -i 's/src="\/[^\/]*/src="\/fancyindex/g' /srv/fancyindex/footer.html

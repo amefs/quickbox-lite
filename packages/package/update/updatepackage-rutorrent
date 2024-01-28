@@ -130,18 +130,26 @@ function _updateApp() {
 	plugin_lib="/usr/local/bin/quickbox/rutorrent/plugins/"
 	rm -rf ${plugin_lib}
 	if [[ ! -d ${plugin_lib} ]]; then
-		_execute "sudo svn co https://github.com/Novik/ruTorrent/trunk/plugins ${plugin_lib}"
+		cp -R /srv/$APP_NAME/plugins ${plugin_lib}
+
+		wget -t3 -T20 -q -O /tmp/rutorrent-thirdparty-plugins.zip https://codeload.github.com/nelu/rutorrent-thirdparty-plugins/zip/refs/heads/stable >>"${OUTTO}" 2>&1
+		unzip -o /tmp/rutorrent-thirdparty-plugins.zip -d /tmp/ >>"${OUTTO}" 2>&1
 		if [[ ! -d ${plugin_lib}fileupload ]]; then
-			_execute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileupload ${plugin_lib}fileupload"
+			cp -Rfv /tmp/rutorrent-thirdparty-plugins-stable/fileupload/. "${plugin_lib}fileupload" >>"${OUTTO}" 2>&1
 		fi
 		if [[ ! -d ${plugin_lib}fileshare ]]; then
-			_execute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/fileshare ${plugin_lib}fileshare"
+			cp -Rfv /tmp/rutorrent-thirdparty-plugins-stable/fileshare/. "${plugin_lib}fileshare" >>"${OUTTO}" 2>&1
 		fi
 		if [[ ! -d ${plugin_lib}pausewebui ]]; then
-			_execute "sudo svn co https://github.com/Gyran/rutorrent-pausewebui/trunk/ ${plugin_lib}pausewebui"
+			wget -t3 -T20 -q -O /tmp/rutorrent-pausewebui.zip https://codeload.github.com/Gyran/rutorrent-pausewebui/zip/refs/heads/master >>"${OUTTO}" 2>&1
+			unzip -o /tmp/rutorrent-pausewebui.zip -d /tmp/ >>"${OUTTO}" 2>&1
+			cp -Rfv /tmp/rutorrent-pausewebui-master/. "${plugin_lib}pausewebui" >>"${OUTTO}" 2>&1
 		fi
 		if [[ ! -d ${plugin_lib}filemanager ]]; then
-			_execute "sudo svn co https://github.com/nelu/rutorrent-thirdparty-plugins/trunk/filemanager ${plugin_lib}filemanager"
+			# Pin to v1.0 ref: https://github.com/nelu/rutorrent-filemanager/issues/30
+			wget -t3 -T20 -q -O /tmp/rutorrent-filemanager.zip https://codeload.github.com/nelu/rutorrent-filemanager/zip/refs/tags/v1.0 >>"${OUTTO}" 2>&1
+			unzip -o /tmp/rutorrent-filemanager.zip -d /tmp/ >>"${OUTTO}" 2>&1
+			cp -Rfv /tmp/rutorrent-filemanager-1.0/. "${plugin_lib}filemanager" >>"${OUTTO}" 2>&1
 			cat >${plugin_lib}filemanager/conf.php <<EOF
 <?php
 
@@ -168,7 +176,9 @@ EOF
 		fi
 
 		if [[ ! -d ${plugin_lib}ratiocolor ]]; then
-			_execute "sudo svn co https://github.com/Gyran/rutorrent-ratiocolor.git/trunk ${plugin_lib}ratiocolor"
+			wget -t3 -T20 -q -O /tmp/rutorrent-ratiocolor.zip https://codeload.github.com/Gyran/rutorrent-ratiocolor/zip/refs/heads/master >>"${OUTTO}" 2>&1
+			unzip -o /tmp/rutorrent-ratiocolor.zip -d /tmp/ >>"${OUTTO}" 2>&1
+			cp -Rfv /tmp/rutorrent-ratiocolor-master/. "${plugin_lib}ratiocolor" >>"${OUTTO}" 2>&1
 			sed -i "s/changeWhat = \"cell-background\";/changeWhat = \"font\";/g" ${plugin_lib}ratiocolor/init.js
 		fi
 		if [[ ! -d ${plugin_lib}logoff ]]; then
@@ -178,10 +188,14 @@ EOF
 			rm -rf logoff-1.3.tar.gz
 		fi
 		if [[ ! -d ${plugin_lib}mobile ]]; then
-			_execute "sudo git clone https://github.com/xombiemp/rutorrentMobile.git ${plugin_lib}mobile"
+			wget -t3 -T20 -q -O /tmp/rutorrent-mobile.zip https://codeload.github.com/xombiemp/rutorrentMobile/zip/refs/heads/master >>"${OUTTO}" 2>&1
+			unzip -o /tmp/rutorrent-mobile.zip -d /tmp/ >>"${OUTTO}" 2>&1
+			cp -Rfv /tmp/rutorrentMobile-master/. "${plugin_lib}mobile" >>"${OUTTO}" 2>&1
 		fi
 		if [[ ! -d ${plugin_lib}stream ]]; then
-			_execute "sudo svn co https://github.com/hashknot/rutorrent-stream/trunk/stream ${plugin_lib}stream"
+			wget -t3 -T20 -q -O /tmp/rutorrent-stream.zip https://codeload.github.com/autodl-community/autodl-rutorrent/zip/refs/heads/master >>"${OUTTO}" 2>&1
+			unzip -o /tmp/rutorrent-stream.zip -d /tmp/ >>"${OUTTO}" 2>&1
+			cp -Rfv /tmp/autodl-rutorrent-master/. "${plugin_lib}stream" >>"${OUTTO}" 2>&1
 		fi
 	fi
 	rm -rf /srv/rutorrent/plugins/_cloudflare
