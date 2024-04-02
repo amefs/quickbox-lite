@@ -12,7 +12,6 @@ import { diskData } from "../widgets/disk_data";
 import { ramStats } from "../widgets/ram_stats";
 import { getIfaceConfig } from "../utils/vnstat";
 import { bwTables } from "../widgets/bw_tables";
-import { serviceStatus } from "../widgets/service_status";
 
 interface Payload {
     key: string;
@@ -82,9 +81,6 @@ const messageHandler = async (payload: Payload, client: Socket) => {
                 break;
             case "/node/bw_tables.php":
                 ret.response = await bwTables(iface, req.args["page"] as "h"|"d"|"m"|"t");
-                break;
-            case "/node/service_status.php":
-                ret.response = await serviceStatus(req.args["service"] as string);
                 break;
             default:
                 ret.response = (await afetch.get(req.pathname, { params: req.args })).data;

@@ -6,147 +6,147 @@
 (function ($) {
   const service_status_list = [{
     key: "BTSYNC",
-    url: "/node/service_status.php?service=resilio-sync",
+    url: "/widgets/service_status.php?service=resilio-sync",
     id: "#appstat_resilio-sync",
     time: 5000
   }, {
     key: "CIFS",
-    url: "/node/service_status.php?service=smbd",
+    url: "/widgets/service_status.php?service=smbd",
     id: "#appstat_smbd",
     time: 5000
   }, {
     key: "DELUGED",
-    url: "/node/service_status.php?service=deluged",
+    url: "/widgets/service_status.php?service=deluged",
     id: "#appstat_deluged",
     time: 5000
   }, {
     key: "DELUGE_WEB",
-    url: "/node/service_status.php?service=deluge-web",
+    url: "/widgets/service_status.php?service=deluge-web",
     id: "#appstat_deluge-web",
     time: 5000
   }, {
     key: "DENYHOSTS",
-    url: "/node/service_status.php?service=denyhosts",
+    url: "/widgets/service_status.php?service=denyhosts",
     id: "#appstat_denyhosts",
     time: 5000
   }, {
     key: "EMBY",
-    url: "/node/service_status.php?service=emby-server",
+    url: "/widgets/service_status.php?service=emby-server",
     id: "#appstat_emby-server",
     time: 5000
   }, {
     key: "FAIL2BAN",
-    url: "/node/service_status.php?service=fail2ban",
+    url: "/widgets/service_status.php?service=fail2ban",
     id: "#appstat_fail2ban",
     time: 5000
   }, {
     key: "FILEBROWSER",
-    url: "/node/service_status.php?service=filebrowser",
+    url: "/widgets/service_status.php?service=filebrowser",
     id: "#appstat_filebrowser",
     time: 5000
   }, {
     key: "FILEBROWSEREE",
-    url: "/node/service_status.php?service=filebrowser-ee",
+    url: "/widgets/service_status.php?service=filebrowser-ee",
     id: "#appstat_filebrowser-ee",
     time: 5000
   }, {
     key: "FLEXGET",
-    url: "/node/service_status.php?service=flexget",
+    url: "/widgets/service_status.php?service=flexget",
     id: "#appstat_flexget",
     time: 5000
   }, {
     key: "FLOOD",
-    url: "/node/service_status.php?service=flood",
+    url: "/widgets/service_status.php?service=flood",
     id: "#appstat_flood",
     time: 5000
   }, {
     key: "JELLYFIN",
-    url: "/node/service_status.php?service=jellyfin",
+    url: "/widgets/service_status.php?service=jellyfin",
     id: "#appstat_jellyfin",
     time: 5000
   }, {
     key: "IRSSI",
-    url: "/node/service_status.php?service=irssi",
+    url: "/widgets/service_status.php?service=irssi",
     id: "#appstat_irssi",
     time: 5000
   }, {
     key: "NETDATA",
-    url: "/node/service_status.php?service=netdata",
+    url: "/widgets/service_status.php?service=netdata",
     id: "#appstat_netdata",
     time: 5000
   }, {
     key: "NFS",
-    url: "/node/service_status.php?service=nfs-server",
+    url: "/widgets/service_status.php?service=nfs-server",
     id: "#appstat_nfs-server",
     time: 5000
   }, {
     key: "NOVNC",
-    url: "/node/service_status.php?service=tightvnc",
+    url: "/widgets/service_status.php?service=tightvnc",
     id: "#appstat_tightvnc",
     time: 5000
   }, {
     key: "OPENVPN",
-    url: "/node/service_status.php?service=openvpn",
+    url: "/widgets/service_status.php?service=openvpn",
     id: "#appstat_openvpn",
     time: 5000
   }, {
     key: "PLEX",
-    url: "/node/service_status.php?service=plexmediaserver",
+    url: "/widgets/service_status.php?service=plexmediaserver",
     id: "#appstat_plexmediaserver",
     time: 5000
   }, {
     key: "RCLONE",
-    url: "/node/service_status.php?service=rclone-web",
+    url: "/widgets/service_status.php?service=rclone-web",
     id: "#appstat_rclone-web",
     time: 5000
   }, {
     key: "RTORRENT",
-    url: "/node/service_status.php?service=rtorrent",
+    url: "/widgets/service_status.php?service=rtorrent",
     id: "#appstat_rtorrent",
     time: 5000
   }, {
     key: "SABNZBD",
-    url: "/node/service_status.php?service=sabnzbd",
+    url: "/widgets/service_status.php?service=sabnzbd",
     id: "#appstat_sabnzbd",
     time: 5000
   }, {
     key: "SYNCTHING",
-    url: "/node/service_status.php?service=syncthing",
+    url: "/widgets/service_status.php?service=syncthing",
     id: "#appstat_syncthing",
     time: 5000
   }, {
     key: "TRANSMISSION",
-    url: "/node/service_status.php?service=transmission",
+    url: "/widgets/service_status.php?service=transmission",
     id: "#appstat_transmission",
     time: 5000
   }, {
     key: "QBITTORRENT",
-    url: "/node/service_status.php?service=qbittorrent",
+    url: "/widgets/service_status.php?service=qbittorrent",
     id: "#appstat_qbittorrent",
     time: 5000
   }, {
     key: "WEBDAV",
-    url: "/node/service_status.php?service=webdav",
+    url: "/widgets/service_status.php?service=webdav",
     id: "#appstat_webdav",
     time: 5000
   }, {
     key: "VSFTPD",
-    url: "/node/service_status.php?service=vsftpd",
+    url: "/widgets/service_status.php?service=vsftpd",
     id: "#appstat_vsftpd",
     time: 5000
   }, {
     key: "WEB_CONSOLE",
-    url: "/node/service_status.php?service=ttyd",
+    url: "/widgets/service_status.php?service=ttyd",
     id: "#appstat_ttyd",
     time: 5000
   }, {
     key: "X2GO",
-    url: "/node/service_status.php?service=x2go",
+    url: "/widgets/service_status.php?service=x2go",
     id: "#appstat_x2go",
     time: 5000
   }, {
     key: "ZNC",
-    url: "/node/service_status.php?service=znc",
+    url: "/widgets/service_status.php?service=znc",
     id: "#appstat_znc",
     time: 5000
   }];
