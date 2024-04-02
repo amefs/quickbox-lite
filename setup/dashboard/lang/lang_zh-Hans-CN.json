@@ -134,7 +134,7 @@
   "Summary": "概要",
   "THEME_CHANGE_TXT": "即将改变主题. 如果主题在刷新后没有正确显示, 则可能需要清除浏览器缓存并重试.",
   "THEME_SELECT": "选择主题",
-  "TORRENTS_LOADED": "总计加载了 <b>{loaded}</b> 个种子",
+  "TORRENTS_LOADED": "总计加载了 <b>{{loaded}}</b>  个种子",
   "TOTAL_L": "总计 {{total}}",
   "TOTAL_RAM": "系统内存总计",
   "TRANSMISSION": "Transmission 被设计为功能强大而易于使用的客户端. 它的默认设置即可直接运行, 只需要简单的点击就可以配置例如如监视目录，不良 peers 拦截列表和 Web 界面等高级功能. Ubuntu 以它作为默认的 BitTorrent 客户端, 其中最重要的理由就是它简单易学.",

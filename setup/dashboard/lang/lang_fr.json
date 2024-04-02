@@ -134,7 +134,7 @@
   "Summary": "Sommaire",
   "THEME_CHANGE_TXT": "Vous allez changer de thème. Si le thème ne s'affiche pas correctement après le rafraîchissement, il vous faudra probablement effacer le cache de votre navigateur et réessayer.",
   "THEME_SELECT": "Thème",
-  "TORRENTS_LOADED": "Il y a <b>{loaded}</b> torrents chargés",
+  "TORRENTS_LOADED": "Il y a <b>{{loaded}}</b>  torrents chargés",
   "TOTAL_L": "total {{total}}",
   "TOTAL_RAM": "RAM Totale du Système: ",
   "TRANSMISSION": "Transmission est conçue pour une utilisation facile et puissante. Les valeurs par défaut sont définies sur 'Just Work' et il suffit de quelques clics pour configurer les fonctionnalités avancées telles que les répertoires de surveillance, les listes de blocage des pairs et l'interface Web. Quand Ubuntu a choisi Transmission comme client BitTorrent par défaut, l'une des raisons les plus citées était sa courbe d'apprentissage facile.",

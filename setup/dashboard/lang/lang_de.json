@@ -134,7 +134,7 @@
   "Summary": "Zusammenfassung",
   "THEME_CHANGE_TXT": "Sie sind dabei, Themen zu ändern. Wenn das Thema nach der Aktualisierung nicht korrekt für Sie erscheint, müssen Sie wahrscheinlich Ihren Browser-Cache löschen und erneut versuchen.",
   "THEME_SELECT": "Thema wählen",
-  "TORRENTS_LOADED": "Es sind <b>{loaded}</b> Torrents im Moment geladen",
+  "TORRENTS_LOADED": "Es sind <b>{{loaded}}</b>  Torrents im Moment geladen",
   "TOTAL_L": "gesamt {{total}}",
   "TOTAL_RAM": "Gesamter Arbeitsspeicher",
   "TRANSMISSION": "Transmission ist für eine einfache, leistungsstarke verwendung ausgelegt. Die Standardeinstellungen sind auf „Just Work“ (Just Work) eingestellt. Die Konfiguration erweiterter Funktionen wie Watch-Verzeichnisse, fehlerhafte Peer-Blocklisten und die Webschnittstelle erfordert nur wenige Klicks. Als Ubuntu Transmission als Standard-BitTorrent-Client auswählte, war einer der am häufigsten genannten Gründe die einfache Lernkurve.",

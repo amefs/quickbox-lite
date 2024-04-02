@@ -32,8 +32,13 @@ function getDiskClass(percent: number) {
 }
 
 async function countTorrent(path: string) {
-    const fileList = await fs.readdir(path);
-    return fileList.filter((file) => file.endsWith(".torrent")).length;
+    try {
+        const fileList = await fs.readdir(path);
+        return fileList.filter((file) => file.endsWith(".torrent")).length;
+    } catch (ex) {
+        console.error("Failed to count torrent", ex);
+        return 0;
+    }
 }
 
 async function exists(path: string) {
@@ -81,22 +86,22 @@ async function renderTorrentInfo() {
     const torrentElement = (title: string, loaded: number) => (
         <div>
             <h4>{i18n.t(title)}</h4>
-            <p className="nomargin">{i18n.t("TORRENTS_LOADED", {loaded})}</p>
+            <p className="nomargin" dangerouslySetInnerHTML={{__html: i18n.t("TORRENTS_LOADED", {loaded})}}></p>
         </div>
     );
 
     const ret: React.JSX.Element[] = [];
 
     if (await processExists("rtorrent", username) && await exists("/install/.rtorrent.lock")) {
-        const rtorrents = await countTorrent(`/home/.${username}/.sessions/`);
+        const rtorrents = await countTorrent(`/home/${username}/.sessions/`);
         ret.push(torrentElement("RTORRENTS_TITLE", rtorrents));
     }
-    if (await processExists("deluged", username) && await exists("/install/.deluge.lock")) {
-        const dtorrents = await countTorrent(`/home/.${username}/.config/deluge/state/`);
+    if (await processExists("deluge-web", username) && await exists("/install/.deluge.lock")) {
+        const dtorrents = await countTorrent(`/home/${username}/.config/deluge/state/`);
         ret.push(torrentElement("DTORRENTS_TITLE", dtorrents));
     }
-    if (await processExists("transmission", username) && await exists("/install/.transmission.lock")) {
-        const transtorrents = await countTorrent(`/home/.${username}/.config/transmission/torrents/`);
+    if (await processExists("transmission-daemon", username) && await exists("/install/.transmission.lock")) {
+        const transtorrents = await countTorrent(`/home/${username}/.config/transmission/torrents/`);
         ret.push(torrentElement("TRTORRENTS_TITLE", transtorrents));
     }
     if (await processExists("qbittorrent-nox", username) && await exists("/install/.qbittorrent.lock")) {

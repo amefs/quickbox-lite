@@ -134,7 +134,7 @@
   "Summary": "Resumen",
   "THEME_CHANGE_TXT": "Estás a punto de cambiar de tema. Si el tema selecciona no se muestra correctamente después de refrescar la página, probablemente necesitas limpiar la memoria caché de tu navegador y reintentarlo.",
   "THEME_SELECT": "Elige un tema",
-  "TORRENTS_LOADED": "Tienes <b>{loaded}</b> torrents compartiendo",
+  "TORRENTS_LOADED": "Tienes <b>{{loaded}}</b>  torrents compartiendo",
   "TOTAL_L": "total {{total}}",
   "TOTAL_RAM": "RAM total del sistema",
   "TRANSMISSION": "Transmission está diseñado para un uso sencillo pero potente. La configuración por defecto está establecida para funcionar de inicio, pero con unos pocos clicks se pueden añadir funciones avanzadas como monitorización de directorios, listas de bloqueo para pares malintencionados, y una interfaz web. Cuando Ubuntu establece Transmission como su cliente web por defecto, es debido a su cómoda curva de aprendizaje.",
