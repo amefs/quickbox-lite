@@ -117,7 +117,7 @@ export async function bwTables(iface: string, page: "h"|"d"|"m"|"t") {
     return ReactDOMServer.renderToString(
         <div className="col-sm-12" style={{ paddingLeft: 0, paddingRight: 0 }}>
             <div className="table-responsive">
-                {writeSummary(vnstatData)} {/* Assuming you have a corresponding React component for write_summary */}
+                {writeSummary(vnstatData)}
             </div>
             <div className="col-sm-12" style={{ paddingLeft: 0, paddingRight: 0 }}>
                 <div className="table-responsive">{renderDataTable()}</div>
