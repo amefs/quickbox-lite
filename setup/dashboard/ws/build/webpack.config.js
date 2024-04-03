@@ -45,6 +45,10 @@ module.exports = {
                 ],
                 exclude: /node_modules/,
             },
+            {
+                test: /.js$/,
+                exclude: /node_modules/,
+            },
         ],
     },
     plugins: [

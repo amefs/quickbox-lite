@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { exec } from "child_process";
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs";
+import path from "path";
 import { Socket } from "socket.io";
 
 
-import Constant from "../constant";
+import Constant, { username } from "../constant";
 import { WatchedConfig } from "../watchedConfig";
 import { CommandType, buildCommand } from "./utils/command";
 
@@ -15,7 +15,7 @@ let baseDir = __dirname;
 let configPath = "";
 let lookupDepth = 3;
 while (lookupDepth-- > 0) {
-    const filePath = path.join(baseDir, "commands.json");
+    const filePath = path.join(baseDir, "config", "commands.json");
     if (fs.existsSync(filePath)) {
         configPath = filePath;
         break;
@@ -27,18 +27,6 @@ if (!configPath) {
 }
 
 const config = new WatchedConfig<CommandType>(configPath);
-let username = "";
-try {
-    const masterConfigPath = "/srv/dashboard/db/master.txt";
-    if (!fs.existsSync(masterConfigPath)) {
-        console.error("Quickbox-Lite user info not found");
-    } else {
-        const content = fs.readFileSync(masterConfigPath, { encoding: "utf8" });
-        username = content.split("\n")[0].trim();
-    }
-} catch (err) {
-    console.error("Failed to read Quickbox-Lite user info", err);
-}
 
 const execOption = {
     env: { TERM: "xterm", ...process.env },

@@ -153,7 +153,7 @@
 
   const system_status_list = [{
     key: "NETWORK",
-    url: "/widgets/net_status.php",
+    url: "/node/net_status.php",
     id: undefined,
     override: function (dataJSON) {
       function formatsize (length) {
@@ -203,22 +203,22 @@
     time: 1000
   }, {
     key: "UPTIME",
-    url: "/widgets/up.php",
+    url: "/node/up.php",
     id: "#uptime",
     time: 60000
   }, {
     key: "TOP",
-    url: "/widgets/load.php",
+    url: "/node/load.php",
     id: "#cpuload",
     time: 60000
   }, {
     key: "BANDWIDTH",
-    url: "/widgets/bw_tables.php",
-    url_template: "/widgets/bw_tables.php?page={0}",
+    url: "/node/bw_tables.php",
+    url_template: "/node/bw_tables.php?page={0}",
     id: "#bw_tables",
     before: function () {
       const page = localStorage.getItem("bw_tables:page");
-      if (page && page.length === 1 && "shdm".includes(page)) {
+      if (page && page.length === 1 && "shdmt".includes(page)) {
         this.url = this.url_template.replace("{0}", page);
       }
       return true;
@@ -226,12 +226,12 @@
     time: 60000
   }, {
     key: "DISK_USAGE",
-    url: "/widgets/disk_data.php",
+    url: "/node/disk_data.php",
     id: "#disk_data",
     time: 15000
   }, {
     key: "RAM_USAGE",
-    url: "/widgets/ram_stats.php",
+    url: "/node/ram_stats.php",
     id: "#meterram",
     time: 10000
   }, {
@@ -337,4 +337,5 @@
   document.addEventListener("DOMContentLoaded", function () {
     Visibility.afterPrerendering(start_status_update);
   });
+  // socket.emit("i18n", "zh");
 })(window.jQuery);

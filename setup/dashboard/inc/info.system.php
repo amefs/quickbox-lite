@@ -103,14 +103,15 @@ class SystemInfo {
      * @return array<int,string>
      */
     public static function enuminterface() {
-        $output = shell_exec('basename -a /sys/class/net/*');
-        if (!is_string($output)) {
+        $interfaces = net_get_interfaces();
+        if ($interfaces === false) {
             return [];
         }
-
-        $ret = preg_split("/\n/", $output, -1, \PREG_SPLIT_NO_EMPTY);
-        if ($ret === false) {
-            return [];
+        $ret = [];
+        foreach ($interfaces as $key => $value) {
+            if ($value['up'] === true) {
+                $ret[] = $key;
+            }
         }
 
         return $ret;
