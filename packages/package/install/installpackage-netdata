@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.5.9
+# Current version:  v1.5.10
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -66,7 +66,7 @@ function _error() {
 APP_TITLE="Netdata"
 APP_NAME="netdata"
 APP_SERVICE="netdata"
-APP_BASEDEPS="autoconf autoconf-archive autogen automake cmake gcc libjson-c-dev libjudy-dev liblz4-dev libmnl-dev libssl-dev libuv1-dev make pkg-config python3-pymongo uuid-dev zlib1g-dev git"
+APP_BASEDEPS="zlib1g-dev uuid-dev libuv1-dev liblz4-dev libssl-dev libelf-dev libmnl-dev libprotobuf-dev protobuf-compiler gcc g++ make git autoconf autoconf-archive autogen automake pkg-config curl python3 cmake"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
@@ -158,17 +158,7 @@ function _installSystemUpdates() {
 
 function _installDepends() {
 	_info "Installing ${APP_TITLE} dependencies..."
-	local DEPLIST="${APP_BASEDEPS}"
-	for depend in $DEPLIST; do
-		_info "Installing ${depend}... "
-		_execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}." && dependError=1; }
-	done
-	if [[ $dependError != "1" ]]; then
-		_success "${APP_TITLE} dependencies installed."
-	else
-		_error "${APP_TITLE} dependencies failed to install."
-		exit 1
-	fi
+	bash <(curl -sSL https://raw.githubusercontent.com/netdata/netdata/master/packaging/installer/install-required-packages.sh) --non-interactive >>"${OUTTO}" 2>&1
 }
 
 function _installApp() {

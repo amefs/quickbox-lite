@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.5.9
+# Current version:  v1.5.10
 # Author:           Mischief, JMSolo
 # Credits to:       QuickBox.io
 #
@@ -176,7 +176,7 @@ function _installFpm() {
 	if [[ ! $exit == '0' ]]; then
 		_info "Installing fpm package management..."
 		_execute "apt-get install -yqq ruby ruby-dev rubygems build-essential"
-		_execute "gem install --no-ri --no-rdoc fpm"
+		_execute "gem install -N fpm"
 		_success "fpm installed."
 	fi
 }
@@ -189,11 +189,11 @@ function _installApp() {
 	_execute "passwd znc -l"
 	mkdir -p /tmp/znc-latest
 	cd /tmp
+	local ZNCVERSION=$(curl -s https://api.github.com/repos/znc/znc/tags | jq -r '.[].name' | grep -v "rc" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
 	_execute "wget -q http://znc.in/releases/znc-latest.tar.gz"
 	_execute "tar -zxvf znc-latest.tar.gz -C /tmp/znc-latest --strip-components=1"
 	cd /tmp/znc-latest || { _error "Can not download ZNC" && exit 1; }
 	_execute "./configure --prefix=/tmp/dist/znc/usr/local"
-	ZNCVERSION=$(grep -Eo "AC_INIT\(\[znc\],.*" configure.ac | grep -Eo "[0-9.]+" | head -n1)
 	_execute "make -j$(nproc)"
 	mkdir -p /tmp/dist/znc/usr/local
 	mkdir -p /root/pool

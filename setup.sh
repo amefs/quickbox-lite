@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.9
+# Current version:  v1.5.10
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -199,7 +199,7 @@ function _checkdistro() {
 		whiptail --title "$ERROR_TITLE_OS" --msgbox "${ERROR_TEXT_DESTRO_1}${DISTRO}${ERROR_TEXT_DESTRO_2}" --ok-button "$BUTTON_OK" 8 72
 		_defaultcolor
 		exit 1
-	elif [[ ! "$CODENAME" =~ ("bionic"|"buster"|"bullseye"|"focal"|"jammy"|"bookworm") ]]; then
+	elif [[ ! "$CODENAME" =~ ("buster"|"bullseye"|"focal"|"jammy"|"bookworm") ]]; then
 		_errorcolor
 		whiptail --title "$ERROR_TITLE_OS" --msgbox "${ERROR_TEXT_CODENAME_1}${DISTRO}${ERROR_TEXT_CODENAME_2}" --ok-button "$BUTTON_OK" 8 72
 		_defaultcolor

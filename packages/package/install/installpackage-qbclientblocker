@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# [QuickBox Lite File Browser Installer]
+# [QuickBox Lite qBittorrent-ClientBlocker Installer]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
@@ -69,17 +69,15 @@ function _error() {
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="File Browser"
-APP_NAME="filebrowser"
-APP_SERVICE="filebrowser"
+APP_TITLE="qBittorrent-ClientBlocker"
+APP_NAME="qbittorrent-clientblocker"
+APP_SERVICE="qbittorrent-clientblocker"
 APP_BASEDEPS=""
 APP_HOST="127.0.0.1"
 
-# RANDOM PORT
-APP_WEB_PORT_LOW="15251"
-APP_WEB_PORT_HIGH="15300"
 
 APP_LOCK=.$APP_NAME.lock
+username=$(cat /root/.admin.info | cut -d: -f1)
 OUTTO=/srv/dashboard/db/output.log
 
 ################################################################################
@@ -104,7 +102,7 @@ function _lockCheck() {
 		_error "Exiting..."
 		exit 1
 	fi
-	if [[ -f "/install/$APP_LOCK" ]]; then
+	if [[ -f "/install/.${username}.${APP_NAME}.lock" ]]; then
 		_error "${APP_TITLE} already installed !"
 		exit 1
 	fi
@@ -181,107 +179,59 @@ function _installDepends() {
 }
 
 function _installApp() {
-	_info "Building ${APP_TITLE}..."
+	_info "Installing ${APP_TITLE}..."
 	cd /tmp || exit 1
-	/usr/local/bin/quickbox/system/auxiliary/getfb.sh >/dev/null 2>&1
-	_success "${APP_TITLE} Built."
+	local latest_release_version=$(curl -sL https://api.github.com/repos/Simple-Tracker/qBittorrent-ClientBlocker/releases/latest | jq -r ".tag_name")
+	local URL="https://github.com/Simple-Tracker/qBittorrent-ClientBlocker/releases/download/${latest_release_version}/qBittorrent-ClientBlocker-${latest_release_version}-linux-amd64.tar.gz"
+	wget -t3 -T20 -q -O qBittorrent-ClientBlocker-${latest_release_version}-linux-amd64.tar.gz "${URL}"
+	mkdir -p /tmp/qBittorrent-ClientBlocker
+	_execute "tar zxvf qBittorrent-ClientBlocker-*-linux-amd64.tar.gz -C /tmp/qBittorrent-ClientBlocker"
+	_execute "cp /tmp/qBittorrent-ClientBlocker/qBittorrent-ClientBlocker /usr/local/bin"
+	_execute "chmod +x  /usr/local/bin/qBittorrent-ClientBlocker"
+	rm -rf /tmp/{qBittorrent-ClientBlocker,qBittorrent-ClientBlocker-${latest_release_version}-linux-amd64.tar.gz}
+	_success "${APP_TITLE} Installed."
 }
 
 function _configureApp() {
 	_info "Configuring ${APP_TITLE}..."
-
-	if [[ -f /install/.lang_da.lock ]]; then
-		UIlang=en
-	elif [[ -f /install/.lang_en.lock ]]; then
-		UIlang=en
-	elif [[ -f /install/.lang_de.lock ]]; then
-		UIlang=de
-	elif [[ -f /install/.lang_es.lock ]]; then
-		UIlang=es
-	elif [[ -f /install/.lang_fr.lock ]]; then
-		UIlang=fr
-	elif [[ -f /install/.lang_zh.lock ]]; then
-		UIlang=zh-cn
+	URL="https://raw.githubusercontent.com/Simple-Tracker/qBittorrent-ClientBlocker/master/config.json"
+	mkdir -p /home/${username}/.config/qBittorrent-ClientBlocker
+	cd /home/${username}/.config/qBittorrent-ClientBlocker || exit 1
+	wget -t3 -T20 -q -O config.json "${URL}"
+	chown -R ${username}:${username} /home/${username}/.config/qBittorrent-ClientBlocker
+	if [[ -f /install/.qbittorrent.lock ]]; then
+		qBURL="http://127.0.0.1:$(cat /install/${username}.qbittorrent.port)"
+	else
+		qBURL=""
 	fi
-
-	# get userlist
-	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-	for username in $userlist; do
-		# get used port
-		local usedport=""
-		if (find /install/ -type f | grep -q .$APP_NAME.port); then
-			usedport=$(cat $(find /install/ -type f | grep .$APP_NAME.port))
-		fi
-		# generate available port
-		PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
-		while [[ "$(netstat -ln | grep ':'"$PORT"'' | grep -c 'LISTEN')" -eq "1" || $usedport =~ $PORT ]]; do
-			PORT=$(shuf -i ${APP_WEB_PORT_LOW}-${APP_WEB_PORT_HIGH} -n 1)
-		done
-		echo "$PORT" >/install/$username.$APP_NAME.port
-		passphrase=$(cat /root/.ssh/local_user)
-		passtext=$(cat /root/.qbuser/${username}.info | cut -d: -f2)
-		password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:${passphrase} -nosalt)
-
-		mkdir -p /home/${username}/.config/filebrowser/
-		mkdir -p /home/${username}/.config/filebrowser/log
-		chown ${username}:${username} -R /home/${username}/.config/filebrowser/
-		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser/filebrowser.db config init" >>"${OUTTO}" 2>&1
-		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser/filebrowser.db config set \
-		--address ${APP_HOST} \
-		--port ${PORT} \
-		--locale ${UIlang} \
-		--log \"/home/${username}/.config/filebrowser/log/filebrowser.log\" \
-		--root=\"/home/${username}/\" \
-		--auth.method=noauth \
-		--baseurl=\"/filebrowser/\"" >>"${OUTTO}" 2>&1
-		sudo -u ${username} -H bash -c "/usr/local/bin/filebrowser -d /home/${username}/.config/filebrowser/filebrowser.db users add ${username} ${password} --perm.admin" >>"${OUTTO}" 2>&1
-		chown ${username}:${username} -R /home/${username}/.config/filebrowser/
-
-		# Generate reverse proxy upstream
-		cat >/etc/nginx/conf.d/${username}.filebrowser.conf <<EOF
-upstream ${username}.filebrowser {
-  server 127.0.0.1:${PORT};
-}
-EOF
-	done
-
-	cat >/etc/nginx/apps/filebrowser.conf <<'EOF'
-location /filebrowser {
-  return 301 /filebrowser/;
-}
-
-location /filebrowser/ {
-  client_max_body_size 0;
-  auth_basic "Password Required";
-  auth_basic_user_file /etc/htpasswd.d/htpasswd.$remote_user;
-  rewrite ^/filebrowser/(.*) /$1 break;
-  proxy_pass http://$remote_user.filebrowser;
-}
-EOF
-
-	cat >/etc/systemd/system/filebrowser@.service <<'EOF'
+	
+	sed -i "s|\"qBURL\": \"\"|\"qBURL\": \"${qBURL}\"|g" /home/${username}/.config/qBittorrent-ClientBlocker/config.json
+	
+	cat >/etc/systemd/system/qbittorrent-clientblocker@${username}.service <<EOF
 [Unit]
-Description=File Browser
-After=network.target
+Description=qBittorrent-ClientBlocker service
+Wants=network-online.target
+After=qbittorrent-nox.service
 
 [Service]
+Type=simple
+Restart=always
+PrivateTmp=false
 User=%I
-ExecStart=/usr/local/bin/filebrowser -d /home/%i/.config/filebrowser/filebrowser.db
-ExecStop=/usr/bin/killall -w -s 9 /usr/local/bin/filebrowser
+WorkingDirectory=/home/%I/.config/qBittorrent-ClientBlocker/
+ExecStart=/usr/local/bin/qBittorrent-ClientBlocker --nochdir -c /home/%I/.config/qBittorrent-ClientBlocker/config.json
 Restart=on-failure
-TimeoutStopSec=300
 
 [Install]
 WantedBy=multi-user.target
 EOF
 	_execute "systemctl daemon-reload"
-	_execute "nginx -s reload"
 	_success "${APP_TITLE} configured."
 }
 
 function _installAppLock() {
 	_info "Configuring ${APP_TITLE} lock..."
-	touch /install/${APP_LOCK}
+	touch /install/.${username}.${APP_NAME}.lock
 	_success "${APP_TITLE} lock configured."
 }
 
@@ -298,7 +248,7 @@ function _installAppStart() {
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
+if ! ARGS=$(getopt -a -o hl:u: -l help,old,log:,user: -- "$@")
 then
     _usage
     exit 1
@@ -313,6 +263,13 @@ while true; do
 	-l | --log)
 		OUTTO="$2"
 		shift
+		;;
+	-u | --user)
+		username="$2"
+		shift
+		;;
+	--old)
+		old=1
 		;;
 	--)
 		shift

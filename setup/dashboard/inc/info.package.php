@@ -394,6 +394,20 @@ $packageList = [
             ],
         ],
     ], [
+        'package'     => 'qbclientblocker',
+        'name'        => 'qBittorrent-ClientBlocker',
+        'description' => 'QBITTORRENTCLIENTBLOCKER',
+        'lockfile'    => "/install/.{$username}.qbittorrent-clientblocker.lock",
+        'uninstall'   => 'UNINSTALL_QBITTORRENTCLIENTBLOCKER_TXT',
+        'boxonly'     => false,
+        'services'    => [
+            'qbittorrent-clientblocker' => [
+                'process'  => 'qBittorrent-ClientBlocker',
+                'name'     => 'qBittorrent-ClientBlocker',
+                'username' => $username,
+            ],
+        ],
+    ], [
         'package'     => 'x2go',
         'name'        => 'x2go',
         'description' => 'X2GO',

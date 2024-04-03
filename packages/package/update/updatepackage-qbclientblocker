@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# [QuickBox Lite Rclone Installer]
+# [QuickBox Lite qBittorrent-ClientBlocker Updater]
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
@@ -12,6 +12,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 #################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+CODENAME=$(lsb_release -cs)
+
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -61,14 +66,15 @@ function _error() {
 	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
 }
 
+function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 #################################################################################
 # APP VARIABLE
 #################################################################################
-APP_TITLE="Rclone"
-APP_NAME="rclone"
-APP_SERVICE="rclone-web"
+APP_TITLE="qBittorrent-ClientBlocker"
+APP_NAME="qbittorrent-clientblocker"
+APP_SERVICE="qbittorrent-clientblocker"
 APP_BASEDEPS=""
-APP_DAEMON_PORT="15450"
+APP_HOST="127.0.0.1"
 
 OUTTO=/srv/dashboard/db/output.log
 username=$(cat /root/.admin.info | cut -d: -f1)
@@ -77,26 +83,27 @@ username=$(cat /root/.admin.info | cut -d: -f1)
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
-	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-gh] [-l logfile] [-u username] [-v version]"
+	echo -e "\nQuickBox Lite $APP_TITLE Updater"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-u username]"
 	echo -e "\nOptions:\n"
-	echo "-g, --gui                 use a menu configuration to install"
 	echo "-l, --log <logfile>       specific log file"
-	# not required by multi-user applications
-	echo "-u, --user <username>     the user for this installer"
-	echo "-v, --version <version>   the application version you want to install"
+	echo "-u, --user <username>     the user for this updater"
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
 ################################################################################
-# INSTALL FUNCTIONS
+# REMOVE FUNCTIONS
 ################################################################################
 function _lockCheck() {
-	if [[ -f "/install/.${username}.${APP_NAME}.lock" ]]; then
+	if [[ -f "/install/.install.lock" ]]; then
 		prevApp=$(cat /install/.install.lock)
 		_info "$prevApp process running."
 		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
 		_error "Exiting..."
+		exit 1
+	fi
+	if [[ ! -f "/install/.${username}.${APP_NAME}.lock" ]]; then
+		_error "${APP_TITLE} haven't installed ..."
 		exit 1
 	fi
 }
@@ -104,16 +111,12 @@ function _setLock() {
 	echo "${APP_TITLE}" >/install/.install.lock
 }
 function _lockCleanup() {
-	echo "$APP_TITLE Install Complete!
-
-
-Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
 	rm -f /install/.install.lock
 }
 
-function _installInfo() {
+function _updateInfo() {
 	_print "
-$APP_TITLE will now be installed.
+$APP_TITLE will now be updated.
 
 This process may take a few minutes
 Please wait until the process is completed
@@ -149,77 +152,45 @@ function _installSystemUpdates() {
 	_success "System updated."
 }
 
-function _installApp() {
-	if [[ -z "$(rclone --version 2> /dev/null | awk 'NR==1{print $2}')" ]]; then
-		_info "Installing ${APP_TITLE}..."
-		cd /tmp || exit 1
-		_execute "curl -o rclone.sh https://rclone.org/install.sh"
-		_execute "chmod +x rclone.sh"
-		/tmp/rclone.sh >>"${OUTTO}" 2>&1
-		_success "${APP_TITLE} installed."
-	else
-		_success "${APP_TITLE} already installed, Skipping."
-	fi
+function _updateApp() {
+	_info "Stop old ${APP_TITLE}..."
+	_execute "systemctl disable ${APP_SERVICE}@${username}"
+	_execute "systemctl stop ${APP_SERVICE}@${username}"
+	_info "Uninstall old ${APP_TITLE}..."
+	rm /usr/local/bin/qBittorrent-ClientBlocker
+	
+	_info "Installing ${APP_TITLE}..."
+	local latest_release_version=$(curl -sL https://api.github.com/repos/Simple-Tracker/qBittorrent-ClientBlocker/releases/latest | jq -r ".tag_name")
+	local URL="https://github.com/Simple-Tracker/qBittorrent-ClientBlocker/releases/download/${latest_release_version}/qBittorrent-ClientBlocker-${latest_release_version}-linux-amd64.tar.gz"
+	wget -t3 -T20 -q -O qBittorrent-ClientBlocker-${latest_release_version}-linux-amd64.tar.gz "${URL}"
+	mkdir -p /tmp/qBittorrent-ClientBlocker
+	_execute "tar zxvf qBittorrent-ClientBlocker-*-linux-amd64.tar.gz -C /tmp/qBittorrent-ClientBlocker"
+	_execute "cp /tmp/qBittorrent-ClientBlocker/qBittorrent-ClientBlocker /usr/local/bin"
+	_execute "chmod +x  /usr/local/bin/qBittorrent-ClientBlocker"
+	rm -rf /tmp/{qBittorrent-ClientBlocker,qBittorrent-ClientBlocker-${latest_release_version}-linux-amd64.tar.gz}
+
+	_success "${APP_TITLE} Installed."
 }
 
-function _configureApp() {
+function _reconfigureApp() {
 	_info "Configuring ${APP_TITLE}..."
-    cat >/etc/nginx/apps/${username}.rclone.conf <<EOF
-location /rclone {
-  return 301 /rclone/;
-}
 
-location /rclone/ {
-    client_max_body_size 0;
-    auth_basic "Password Required";
-    auth_basic_user_file /etc/htpasswd.d/htpasswd.\$remote_user;
-    proxy_request_buffering on;
-    proxy_redirect off;
-    proxy_pass http://127.0.0.1:${APP_DAEMON_PORT}/rclone/;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host \$http_host;
-    proxy_set_header X-Real-IP \$remote_addr;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-}
-EOF
+	URL="https://raw.githubusercontent.com/Simple-Tracker/qBittorrent-ClientBlocker/master/config.json"
+	mkdir -p /home/${username}/.config/qBittorrent-ClientBlocker
+	cd /home/${username}/.config/qBittorrent-ClientBlocker || exit 1
+	wget -t3 -T20 -q -O config.json "${URL}"
+	chown -R ${username}:${username} /home/${username}/.config/qBittorrent-ClientBlocker
+	if [[ -f /install/.qbittorrent.lock ]]; then
+		qBURL="http://127.0.0.1:$(cat /install/${username}.qbittorrent.port)"
+	else
+		qBURL=""
+	fi
+	
+	sed -i "s|\"qBURL\": \"\"|\"qBURL\": \"${qBURL}\"|g" /home/${username}/.config/qBittorrent-ClientBlocker/config.json
 
-	cat >/etc/systemd/system/rclone-web@${username}.service <<EOF
-[Unit]
-Description=Rclone RCD WebUI Service
-After=network-online.target
-
-[Service]
-Type=simple
-User=${username}
-Group=${username}
-UMask=002
-ExecStart=/usr/bin/rclone rcd --rc-web-gui --rc-web-gui-no-open-browser \\
-          --rc-addr 127.0.0.1:${APP_DAEMON_PORT} \\
-		  --rc-no-auth \\
-          --rc-baseurl /rclone
-Restart=on-abort
-
-[Install]
-WantedBy=multi-user.target
-EOF
-	_execute "systemctl daemon-reload"
-	_execute "nginx -s reload"
-	_success "${APP_TITLE} configured."
-}
-
-function _installAppLock() {
-	_info "Configuring ${APP_TITLE} lock..."
-    	touch /install/.${username}.${APP_NAME}.lock
-	_success "${APP_TITLE} lock configured."
-}
-
-function _installAppStart() {
-	_info "Starting ${APP_TITLE}..."
 	_execute "systemctl enable ${APP_SERVICE}@${username}"
 	_execute "systemctl start ${APP_SERVICE}@${username}"
-	_success "${APP_TITLE} started."
+	_success "${APP_TITLE} configured."
 }
 
 #################################################################################
@@ -258,10 +229,7 @@ done
 #################################################################################
 _lockCheck
 _setLock
-_installInfo
-_installSystemUpdates
-_installApp
-_configureApp
-_installAppLock
-_installAppStart
+_updateInfo
+_updateApp
+_reconfigureApp
 _lockCleanup

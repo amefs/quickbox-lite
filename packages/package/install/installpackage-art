@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.9
+# Current version:  v1.5.10
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -222,8 +222,8 @@ function _installApp() {
 	_info "Building ${APP_TITLE}..."
 
 	# Install for single user
-	_installPy 3.9.13
-	_initPyVenv 3.9.13 /home/${username}/.local/autoremovetorrents ${username}
+	_installPy 3.11.8
+	_initPyVenv 3.11.8 /home/${username}/.local/autoremovetorrents ${username}
 	chown -R ${username}:${username} /home/${username}/.local
 	cd /home/${username}/.local/autoremovetorrents
 	_info "Installing requirements... "

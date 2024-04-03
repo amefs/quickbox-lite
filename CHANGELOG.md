@@ -1,3 +1,32 @@
+## CHANGELOG v1.5.10
+
+*Changelog update Wednesday, Apr 3, 2024*
+
+### General additions
+
+- Support qBittorrent-Clientblocker
+
+### Important changes
+
+- Discarding the Ubuntu 18.04 installation ([Release EOL](https://wiki.ubuntu.com/Releases))
+
+### Function improved
+
+- Migrating Panel State Refresh to React (by Tautcony)
+
+### Function updated
+
+- qBittorrent default version upgraded to v4.5.5
+- Transmission default version upgrade to v3.0
+- Python dependency default version upgraded to v3.11.x
+
+### Bug fixed
+
+- Fix broken Netdata installer
+- Fix broken ZNC installer
+
+---
+
 ## CHANGELOG v1.5.9
 
 *Changelog update Sunday, Dec 10, 2023*

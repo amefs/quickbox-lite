@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.9
+# Current version:  v1.5.10
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -256,11 +256,11 @@ EOF
 			unzip -o /tmp/rutorrent-mobile.zip -d /tmp/ >>"${OUTTO}" 2>&1
 			cp -Rfv /tmp/rutorrentMobile-master/. "${plugin_lib}mobile" >>"${OUTTO}" 2>&1
 		fi
-		if [[ ! -d ${plugin_lib}stream ]]; then
-			wget -t3 -T20 -q -O /tmp/rutorrent-stream.zip https://codeload.github.com/autodl-community/autodl-rutorrent/zip/refs/heads/master >>"${OUTTO}" 2>&1
-			unzip -o /tmp/rutorrent-stream.zip -d /tmp/ >>"${OUTTO}" 2>&1
-			cp -Rfv /tmp/autodl-rutorrent-master/. "${plugin_lib}stream" >>"${OUTTO}" 2>&1
-		fi
+		# if [[ ! -d ${plugin_lib}stream ]]; then
+		# 	wget -t3 -T20 -q -O /tmp/rutorrent-stream.zip https://codeload.github.com/autodl-community/autodl-rutorrent/zip/refs/heads/master >>"${OUTTO}" 2>&1
+		# 	unzip -o /tmp/rutorrent-stream.zip -d /tmp/ >>"${OUTTO}" 2>&1
+		# 	cp -Rfv /tmp/autodl-rutorrent-master/. "${plugin_lib}stream" >>"${OUTTO}" 2>&1
+		# fi
 	fi
 	rm -rf /srv/rutorrent/plugins/_cloudflare
 
@@ -273,8 +273,9 @@ EOF
 	if [[ ! -d /srv/rutorrent/plugins/theme/themes/club-QuickBox ]]; then
 		cd /srv/rutorrent/plugins/theme/themes || { _error "Can not install ruTorrent theme " && exit 1; }
 		_execute "sudo git clone https://lab.quickbox.io/QuickBox/club-QuickBox.git club-QuickBox"
-		sudo perl -pi -e "s/\$defaultTheme \= \"\"\;/\$defaultTheme \= \"club-QuickBox\"\;/g" /srv/rutorrent/plugins/theme/conf.php
 	fi
+
+	sudo perl -pi -e "s/\$defaultTheme \= \"\"\;/\$defaultTheme \= \"MaterialDesign\"\;/g" /srv/rutorrent/plugins/theme/conf.php
 
 	if [[ ! -d /srv/rutorrent/plugins/filemanager ]]; then
 		cd /srv/rutorrent/plugins/ || { _error "Can not install ruTorrent filemanager" && exit 1; }

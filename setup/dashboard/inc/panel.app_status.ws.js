@@ -125,6 +125,11 @@
     id: "#appstat_qbittorrent",
     time: 5000
   }, {
+    key: "QBITTORRENTCLIENTBLOCKER",
+    url: "/widgets/service_status.php?service=qbittorrent-clientblocker",
+    id: "#appstat_qbittorrent-clientblocker",
+    time: 5000
+  }, {
     key: "WEBDAV",
     url: "/widgets/service_status.php?service=webdav",
     id: "#appstat_webdav",

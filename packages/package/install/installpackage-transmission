@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.9
+# Current version:  v1.5.10
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -293,10 +293,10 @@ function _installApp() {
 		# get deb packages
 		PACKAGE="transmission"
 		cd /tmp
-		if [[ ${version} == 3 ]]; then
-			DEBASE="transmission-common_3.00-1mod1_all.deb transmission-cli_3.00-1mod1_amd64.deb transmission-daemon_3.00-1mod1_amd64.deb"
-		else
+		if [[ ${version} == 2 ]]; then
 			DEBASE="transmission-common_2.94-1mod1_all.deb transmission-cli_2.94-1mod1_amd64.deb transmission-daemon_2.94-1mod1_amd64.deb"
+		else
+			DEBASE="transmission-common_3.00-1mod1_all.deb transmission-cli_3.00-1mod1_amd64.deb transmission-daemon_3.00-1mod1_amd64.deb"
 		fi
 		for DEB in $DEBASE; do
 			_download ${PACKAGE} ${DEB}
