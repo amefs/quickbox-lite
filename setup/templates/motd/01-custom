@@ -26,3 +26,6 @@ printf " * Support:        https://github.com/amefs/quickbox-lite/issues\n"
 printf "\n"
 [ -x /usr/bin/screenfetch ] && /usr/bin/screenfetch -a /etc/QuickBox/packages/system/auxiliary/quickbox-logo
 printf "\n"
+if [ -f /var/run/reboot-required ]; then
+	printf "*** System restart required ***\n"
+fi
