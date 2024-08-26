@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-literal-enum-member */
 import BigNumber from "bignumber.js";
 import { RoundingMode } from "../typing";
 

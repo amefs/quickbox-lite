@@ -11,7 +11,7 @@ async function enuminterface() {
 
 export const netStatus = async () => {
     const interfaces = await enuminterface();
-    const ret: {[key: string]: {rx_bytes: number; tx_bytes: number}} = {};
+    const ret: Record<string, {rx_bytes: number; tx_bytes: number}> = {};
     for(const iface of interfaces) {
         const stats = await si.networkStats(iface);
         if (stats.length > 0) {

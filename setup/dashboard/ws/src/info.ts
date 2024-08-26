@@ -3,7 +3,7 @@ import pkgList from "../config/packages.json";
 
 import { username } from "./constant";
 
-export const packageMap: { [key: string]: Service } = {};
+export const packageMap: Record<string, Service> = {};
 export const packageList = pkgList as Service[];
 
 interface ServiceDetail {
@@ -14,9 +14,7 @@ interface ServiceDetail {
     tooltipsicon?: string;
 }
 
-interface ServiceDetailList {
-    [key: string]: ServiceDetail;
-}
+type ServiceDetailList = Record<string, ServiceDetail>;
 
 export interface Service {
     package: string;

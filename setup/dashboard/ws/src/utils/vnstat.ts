@@ -96,6 +96,7 @@ function execAsync(cmd: string): Promise<string> {
 /**
  * Get vnstat data.
  */
+// eslint-disable-next-line complexity
 export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
     const ret = {
         hour: [] as ParsedTrafficEntry[],

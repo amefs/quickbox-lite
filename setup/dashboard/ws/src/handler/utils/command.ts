@@ -6,13 +6,11 @@ import Constant from "../../constant";
 import { WatchedConfig } from "../../watchedConfig";
 
 
-export interface CommandType {
-    [key: string]: {
-        template: string;
-        operations: string[];
-        targets: string[];
-    };
-}
+export type CommandType = Record<string, {
+    template: string;
+    operations: string[];
+    targets: string[];
+}>;
 
 /**
  * get file list from given directory

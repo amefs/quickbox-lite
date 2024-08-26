@@ -45,6 +45,7 @@ async function exists(path: string) {
     try {
         await fs.access(path, fs.constants.F_OK);
         return true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
         return false;
     }

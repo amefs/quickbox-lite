@@ -2,7 +2,7 @@
   "name": "quickbox-dashboard",
   "version": "1.0.0",
   "scripts": {
-    "lint": "eslint ./inc ./js --ext .js",
+    "lint": "eslint ./inc ./js",
     "audit": "npm audit --registry=https://registry.npmjs.org",
     "upgrade": "npx npm-check -u"
   },
@@ -28,10 +28,13 @@
     "visibilityjs": "^2.0.2"
   },
   "devDependencies": {
-    "eslint": "^8.57.0",
+    "@eslint/eslintrc": "^3.1.0",
+    "@eslint/js": "^9.9.1",
+    "eslint": "^9.9.1",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-n": "^16.6.2",
-    "eslint-plugin-promise": "^6.1.1"
+    "eslint-plugin-n": "^17.10.2",
+    "eslint-plugin-promise": "^7.1.0",
+    "globals": "^15.9.0"
   }
 }

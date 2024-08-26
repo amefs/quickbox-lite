@@ -4,10 +4,8 @@ import { I18n } from "./I18n";
 
 export type MakePlural = (count: number, ordinal?: boolean) => string;
 
-export interface Dict {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Dict = Record<string, any>;
 
 export type DateTime = string | number | Date;
 
@@ -67,9 +65,7 @@ FormatNumberOptions,
 "format" | "negativeFormat" | "raise"
 >;
 
-export interface NumberToHumanUnits {
-    [key: string]: string;
-}
+export type NumberToHumanUnits = Record<string, string>;
 
 export type NumberToHumanOptions = Omit<
 FormatNumberOptions,

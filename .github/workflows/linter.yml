@@ -11,12 +11,12 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install nodejs
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: 20
   
     - name: Install dependencies
       run: |
@@ -32,17 +32,17 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install nodejs
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: 20
   
     - name: Install dependencies
       run: |
         cd setup/dashboard || exit 1
-        npm ci
+        npm ci --legacy-peer-deps
 
     - name: Run linter
       run: |
@@ -55,7 +55,7 @@ jobs:
       PHP_CS_FIXER_IGNORE_ENV: 1
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       uses: php-actions/composer@v6
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Run linter
       uses: azohra/shell-linter@latest
@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:

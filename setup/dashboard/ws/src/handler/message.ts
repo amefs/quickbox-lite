@@ -36,7 +36,7 @@ const parseUrl = (url: string) => {
         u = new URL(url, "http://localhost");
     }
     const pathname = u.pathname;
-    const args: {[key: string]: string} = {};
+    const args: Record<string, string> = {};
     u.searchParams.forEach((v, k) => {
         args[k] = v;
     });
@@ -94,8 +94,6 @@ const messageHandler = async (payload: Payload, client: Socket) => {
     }
 };
 
-// eslint-disable-next-line no-unused-vars
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export default (client: Socket, next?: (err?: Error) => void) => {
     client.on(Constant.EVENT_MESSAGE, payload => messageHandler(payload, client));
     if (next) {
