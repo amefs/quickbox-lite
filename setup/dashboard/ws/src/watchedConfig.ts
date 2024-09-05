@@ -24,7 +24,7 @@ export class WatchedConfig<T> {
     }
 
     private loadConfig() {
-        this.config = JSON.parse(readFileSync(this.path).toString(this.encoding));
+        this.config = JSON.parse(readFileSync(this.path).toString(this.encoding)) as T;
     }
 
     private watch() {

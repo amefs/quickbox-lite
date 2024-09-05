@@ -6,7 +6,7 @@ import { processExists } from "../utils";
 
 const packageWithService = packageList.filter((pkg) => pkg.services !== undefined);
 
-export async function serviceStatus(service: string) {
+export async function serviceStatus(service: string | undefined) {
     let status = false;
 
     for (const pkg of packageWithService) {

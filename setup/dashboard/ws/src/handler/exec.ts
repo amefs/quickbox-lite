@@ -34,7 +34,7 @@ const execOption = {
     maxBuffer: 5 * 1024 * 1024, // 5 MiB
 };
 
-const execHandler = async (payload: string, client: Socket) => {
+const execHandler = (payload: string, client: Socket) => {
     const ret = {
         cmd: payload,
         success: true,
@@ -69,7 +69,8 @@ const execHandler = async (payload: string, client: Socket) => {
 };
 
 export default (client: Socket, next?: (err?: Error) => void) => {
-    client.on(Constant.EVENT_EXEC, payload => execHandler(payload, client));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    client.on(Constant.EVENT_EXEC, payload => { execHandler(payload, client); });
     if (next) {
         next();
     }

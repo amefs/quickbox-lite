@@ -10,7 +10,7 @@ export type CommandType = Record<string, {
     template: string;
     operations: string[];
     targets: string[];
-}>;
+} | undefined>;
 
 /**
  * get file list from given directory
@@ -37,6 +37,7 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
         throw new Error(`Invalid config with type '${Object.prototype.toString.call(config)}'`);
     }
     let [command, operation, target] = payload.split(":");
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (command === undefined || operation === undefined || target === undefined) {
         throw new Error(`Invalid payload '${payload}'`);
     }

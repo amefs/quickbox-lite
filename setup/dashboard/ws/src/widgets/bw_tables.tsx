@@ -98,7 +98,7 @@ function writeSummary(data: ParsedVnstatData) {
     return writeDataTable(i18n.t("Summary"), sum);
 }
 
-export async function bwTables(iface: string, page: "h"|"d"|"m"|"t") {
+export async function bwTables(iface: string, page: "h"|"d"|"m"|"t"|undefined) {
     const vnstatData = await getVnstatData(iface);
 
     const renderDataTable = () => {
@@ -108,10 +108,9 @@ export async function bwTables(iface: string, page: "h"|"d"|"m"|"t") {
             return writeDataTable(i18n.t("Last 30 days"), vnstatData.day);
         } else if (page === "m") {
             return writeDataTable(i18n.t("Last 12 months"), vnstatData.month);
-        } else if (page === "t") {
+        } else {
             return writeDataTable(i18n.t("Top 10 days"), vnstatData.top);
         }
-        return null;
     };
 
     return ReactDOMServer.renderToString(

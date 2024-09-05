@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 
 export default tseslint.config(
   {
-    ignores: ["**/build", "**/dist", "**/*.js"],
+    ignores: ["**/build", "**/dist", "**/*.js", "**/*.mjs", "src/libs/i18n/**/*.ts"],
   },
   {
     plugins: {
@@ -23,10 +23,9 @@ export default tseslint.config(
     },
   },
   eslint.configs.recommended,
-  // ...tseslint.configs.recommended,
   ...tseslint.configs.strict,
-  // ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylistic,
+  ...tseslint.configs.strictTypeChecked,
   {
     files: ["**/*.ts", "**/*.tsx"],
     languageOptions: {
@@ -78,15 +77,9 @@ export default tseslint.config(
       "@typescript-eslint/no-empty-function": "error",
       "@typescript-eslint/no-empty-interface": "error",
       "@typescript-eslint/no-explicit-any": "error",
-      // "@typescript-eslint/no-namespace": "off",
       "@typescript-eslint/no-non-null-assertion": "error",
-      // "@typescript-eslint/no-parameter-properties": "off",
-      // "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-this-alias": "error",
       "@typescript-eslint/no-unnecessary-qualifier": "error",
-      // "@typescript-eslint/no-unnecessary-type-assertion": "off",
-      // "@typescript-eslint/no-use-before-define": "off",
-      // "@typescript-eslint/no-var-requires": "off",
       "@typescript-eslint/prefer-for-of": "error",
       "@typescript-eslint/prefer-function-type": "error",
       "@typescript-eslint/unbound-method": "error",
@@ -102,7 +95,8 @@ export default tseslint.config(
           accessibility: "explicit",
         },
       ],
-      // "@typescript-eslint/interface-name-prefix": "off",
+      "@typescript-eslint/restrict-template-expressions": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
 
       camelcase: "error",
       "class-methods-use-this": "error",

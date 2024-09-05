@@ -96,7 +96,6 @@ function execAsync(cmd: string): Promise<string> {
 /**
  * Get vnstat data.
  */
-// eslint-disable-next-line complexity
 export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
     const ret = {
         hour: [] as ParsedTrafficEntry[],
@@ -124,10 +123,10 @@ export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
         const filePath = `${dataDir}/vnstat_dump_${iface}`;
         if (fs.existsSync(filePath)) {
             const fileData = fs.readFileSync(filePath, "utf8");
-            vnstatData = JSON.parse(fileData);
+            vnstatData = JSON.parse(fileData) as VnstatData;
         }
     } else {
-        vnstatData = JSON.parse(await execAsync(`${vnstatBin} --json -i ${iface}`));
+        vnstatData = JSON.parse(await execAsync(`${vnstatBin} --json -i ${iface}`)) as VnstatData;
     }
 
     const jsonVersion = vnstatData.jsonversion;
@@ -174,9 +173,8 @@ export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
     const dayData = sortBy((jsonVersion === "1" ? trafficData.days : trafficData.day) ?? [],
         (d) => d.date.year * 10000 + (d.date.month??0) * 100 + (d.date.day??0));
 
-    const dayDataCount = dayData?.length ?? 0;
-    const displayDayLength = Math.min(30, dayDataCount);
-    for (let i = dayDataCount - displayDayLength; i < dayDataCount; i++) {
+    const displayDayLength = Math.min(30, dayData.length);
+    for (let i = dayData.length - displayDayLength; i < dayData.length; i++) {
         const d = dayData[i];
         const ts = new Date(d.date.year, d.date.month as number - 1, d.date.day, 0, 0, 0);
         const diffTime = Math.min((Date.now() - ts.getTime()) / 1000, 86400); // at most one day
@@ -195,9 +193,8 @@ export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
     }
 
     const monthData = (jsonVersion === "1" ? trafficData.months : trafficData.month) ?? [];
-    const monthDataCount = monthData?.length ?? 0;
-    const displayMonthLength = Math.min(12, monthDataCount);
-    for (let i = monthDataCount - displayMonthLength; i < monthDataCount; i++) {
+    const displayMonthLength = Math.min(12, monthData.length);
+    for (let i = monthData.length - displayMonthLength; i < monthData.length; i++) {
         const d = monthData[i];
         const firstDay = new Date(d.date.year, d.date.month as number - 1, 1, 0, 0, 0);
         const lastDay = new Date(d.date.year, d.date.month as number, 1, 0, 0, 0);

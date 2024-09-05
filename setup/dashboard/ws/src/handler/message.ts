@@ -95,7 +95,8 @@ const messageHandler = async (payload: Payload, client: Socket) => {
 };
 
 export default (client: Socket, next?: (err?: Error) => void) => {
-    client.on(Constant.EVENT_MESSAGE, payload => messageHandler(payload, client));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    client.on(Constant.EVENT_MESSAGE, async payload => { await messageHandler(payload, client); });
     if (next) {
         next();
     }
