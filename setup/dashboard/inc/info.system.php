@@ -33,6 +33,7 @@ class SystemInfo {
         @preg_match_all("/model\s+name\s{0,}\:+\s{0,}([^\:]+)[\r\n]+/s", $info, $model);
         @preg_match_all("/cpu\s+MHz\s{0,}\:+\s{0,}([\d\.]+)[\r\n]+/", $info, $mhz);
         @preg_match_all("/cache\s+size\s{0,}\:+\s{0,}([\d\.]+\s{0,}[A-Z]+[\r\n]+)/", $info, $cache);
+        /** @phpstan-ignore-next-line */
         if (is_array($model[1]) !== false) {
             $cpu_count     = count($model[1]);
             $cpu_model     = $model[1][0];

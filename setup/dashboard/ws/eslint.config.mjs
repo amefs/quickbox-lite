@@ -97,6 +97,12 @@ export default tseslint.config(
       ],
       "@typescript-eslint/restrict-template-expressions": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-misused-promises": [
+        "error",
+        {
+          checksVoidReturn: false,
+        },
+      ],
 
       camelcase: "error",
       "class-methods-use-this": "error",
