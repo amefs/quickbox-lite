@@ -205,16 +205,17 @@ function _configureApp() {
 		sudo chmod 775 /home/${username}/sync_folder
 
 		mkdir -p /home/${username}/.config/resilio-sync/
-		mkdir -p /home/${username}/.config/resilio-sync/run
-		mkdir -p /home/${username}/.config/resilio-sync/lib
+		mkdir -p /home/${username}/.config/resilio-sync/storage
 		cp -r /var/lib/resilio-sync/* /home/${username}/.config/resilio-sync/lib >>"${OUTTO}" 2>&1
 
 		cat >/home/${username}/.config/resilio-sync/config.json <<EOF
 {
     "listening_port" : 0,
-    "storage_path" : "/home/${username}/.config/resilio-sync/lib",
-    "pid_file" : "/home/${username}/.config/resilio-sync/run/sync.pid",
+    "storage_path" : "/home/${username}/.config/resilio-sync/storage",
+    "pid_file" : "/home/${username}/.config/resilio-sync/sync.pid",
     "agree_to_EULA": "yes",
+
+	"directory_root" : "/home/${username}/",
 
     "webui" :
     {
@@ -252,24 +253,15 @@ Documentation=https://help.resilio.com
 After=network.target network-online.target
 
 [Service]
+User=%I
+Group=%I
 Type=forking
 UMask=0002
 Restart=on-failure
-PermissionsStartOnly=true
-
-User=%I
-Group=%I
-Environment="SYNC_USER=%I"
-Environment="SYNC_GROUP=%I"
-
-Environment="SYNC_RUN_DIR=/home/%I/.config/resilio-sync/run"
-Environment="SYNC_LIB_DIR=/home/%I/.config/resilio-sync/lib"
-Environment="SYNC_CONF_DIR=/home/%I/.config/resilio-sync"
-
-ExecStartPre=/bin/mkdir -p ${SYNC_RUN_DIR} ${SYNC_LIB_DIR}
-ExecStartPre=/bin/chown -R ${SYNC_USER}:${SYNC_GROUP} ${SYNC_RUN_DIR} ${SYNC_LIB_DIR}
-PIDFile=${SYNC_RUN_DIR}/sync.pid
+PIDFile=/home/%I/.config/resilio-sync/sync.pid
 ExecStart=/usr/bin/rslsync --config /home/%I/.config/resilio-sync/config.json
+ExecStartPre=/etc/resilio-sync/init_user_config.sh
+ExecStartPost=/bin/sleep 1
 
 [Install]
 WantedBy=multi-user.target
