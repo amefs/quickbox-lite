@@ -92,6 +92,7 @@ return $config
     ->setRiskyAllowed(true)
     ->setRules($rules)
     ->setFinder($finder)
+    ->setParallelConfig(PhpCsFixer\Runner\Parallel\ParallelConfigFactory::detect())
 ;
 
 // util functions

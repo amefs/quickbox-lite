@@ -5,5 +5,4 @@ parameters:
     excludePaths:
         - setup/dashboard/node_modules
         - setup/dashboard/ws/node_modules
-        - setup/dashboard/lib/node_modules
     treatPhpDocTypesAsCertain: false

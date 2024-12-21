@@ -244,6 +244,7 @@
     url: "/db/output.log",
     id: "#sshoutput",
     time: 2500,
+    // eslint-disable-next-line no-unused-vars
     before: function (task) {
       return $("#sysResponse").is(":visible");
     },

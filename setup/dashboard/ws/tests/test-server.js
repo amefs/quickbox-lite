@@ -29,4 +29,21 @@ const phpServer = {
 const app = express();
 app.use('/ws/*', createProxyMiddleware(wsServer));
 app.all('/*', createProxyMiddleware(phpServer));
-app.listen(80);
+const server = app.listen(80);
+
+const cleanup = () => {
+    const phpResult = php.kill();
+    const wsResult = ws.kill();
+    server.close((err) => {
+        console.log('Express', err, 'PHP:', phpResult, 'WS:', wsResult);
+        process.exit(0);
+    });
+};
+
+process.on('exit', cleanup);
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    cleanup();
+});

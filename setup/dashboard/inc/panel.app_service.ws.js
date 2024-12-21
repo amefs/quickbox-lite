@@ -3,6 +3,7 @@
 /* global bootbox, AnsiUp, socket */
 "use strict";
 
+// eslint-disable-next-line no-unused-vars
 (function ($) {
   function showAlert (message) {
     bootbox.alert({
