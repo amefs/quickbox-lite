@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.10
+# Current version:  v1.5.11
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -321,17 +321,21 @@ EOF
 		chown -R www-data: mobile
 	fi
 
+	dumptorrent_url=$(curl -s https://api.github.com/repos/TheGoblinHero/dumptorrent/releases/latest | jq -r '.assets[] | select(.name | match("^dumptorrent_linux_amd64.tar.gz$")) | .browser_download_url') >>"${OUTTO}" 2>&1
+	wget -qO /opt/dumptorrent.tar.gz ${dumptorrent_url} >>"${OUTTO}" 2>&1
+	tar -zxvf /opt/dumptorrent.tar.gz -C /usr/local/bin
+
 	# if [[ ! -d /srv/rutorrent/plugins/logoff ]]; then
 	# 	cd /srv/rutorrent/plugins || { _error "Can not install ruTorrent logoff" && exit 1; }
 	# 	cp -R ${plugin_lib}logoff .
 	# 	chown -R www-data: logoff
 	# fi
 
-	if [[ ! -d /srv/rutorrent/plugins/stream ]]; then
-		cd /srv/rutorrent/plugins || { _error "Can not install ruTorrent stream" && exit 1; }
-		cp -R ${plugin_lib}stream .
-		chown -R www-data: stream
-	fi
+	#if [[ ! -d /srv/rutorrent/plugins/stream ]]; then
+	#	cd /srv/rutorrent/plugins || { _error "Can not install ruTorrent stream" && exit 1; }
+	#	cp -R ${plugin_lib}stream .
+	#	chown -R www-data: stream
+	#fi
 
 	_info "Setting up configs for ruTorrent... "
 

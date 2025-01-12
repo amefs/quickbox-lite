@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.10
+# Current version:  v1.5.11
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -76,7 +76,8 @@ APP_SERVICE="qbittorrent"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-qbitversion=4.3.9
+qbitversion_default=4.6.7
+libtversion_default=1.2.19
 cdn=$(cat /install/.cdn.lock)
 use_static=false
 
@@ -92,8 +93,8 @@ function _usage() {
 	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-s static] [--qb]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
-	echo "--qb <version>            the qbittorrent version you want to install"
-	echo "-s, --static              install qBittorrent with static build"
+	echo "--lt <version>            the Libtorrent version you want to install"
+	echo "--qb <version>            the qBittorrent version you want to install"
 	echo "--force                   force downgrade qBittorrent"
 	echo "--with-cf                 use cloudflare instead of github"
 	echo "--with-sf                 use sourceforge instead of github"
@@ -257,140 +258,12 @@ function _download() {
 	esac
 }
 
-function _updateLibt() {
-	_warning "Use Libtorrent ${libtversion} for qBittorrent ${qbit_major_version}.x"
-	_info "Upgrading libtorrent-rasterbar..."
-	PACKAGE="libtorrent-rasterbar"
-	cd /tmp || exit 1
-	if [[ ${libt_major_version} == "1.1" ]]; then
-		LIBTBIN=libtorrent-rasterbar9_${libtversion}-1build1_amd64.deb
-	elif [[ ${libt_major_version} == "1.2" ]]; then
-		LIBTBIN=libtorrent-rasterbar10_${libtversion}-1build1_amd64.deb
-	fi
-	DEB=${LIBTBIN}
-	_download ${PACKAGE} ${DEB}
-	_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTBIN}"
-	LIBTDEVBIN=libtorrent-rasterbar-dev_${libtversion}-1build1_amd64.deb
-	DEB=${LIBTDEVBIN}
-	_download ${PACKAGE} ${DEB}
-	_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTDEVBIN}"
-	rm -rf {${LIBTBIN},${LIBTDEVBIN}}
-	touch /install/.libtorrent-rasterbar10.lock
-	libt_installed_version=${libtversion}
-	libt_installed_major_version=${libt_major_version}
-}
-
-function _updateqBit() {
-	_info "Upgrading ${APP_TITLE}..."
-	_info "Removing old ${APP_TITLE}..."
-	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-	for username in $userlist; do
-		_execute "systemctl stop ${APP_SERVICE}@${username}"
-	done
-	if [[ -n $(dpkg -s qbittorrent-nox 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1) ]]; then						
-		_execute "apt-mark unhold qbittorrent-nox"
-		_execute "apt remove -y qbittorrent-nox"		
-	else
-		rm -f /usr/local/bin/qbittorrent-nox
-	fi
-	if $(echo "${qbit_version_list[@]}" | grep -wq "${qbitversion}") && [ ! -f /install/.libtorrent-rasterbar.lock ]; then
-		cd /tmp || exit 1
-		if (_version_gt ${qbitversion} 4.1.9.1); then
-			if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
-				PACKAGE="qt5"
-				cd /tmp
-				QTBIN=qt512base_5.12.6-1basyskom1_amd64.deb
-				DEB=${QTBIN}
-				_download ${PACKAGE} ${DEB}
-				_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${QTBIN}"
-				rm -rf ${QTBIN}
-			fi
-		fi
-		PACKAGE="qbittorrent"
-		QBITBIN=qbittorrent-nox_${qbitversion}-libt${libt_installed_major_version}-1build1_amd64.deb
-		DEB=${QBITBIN}
-		_download ${PACKAGE} ${DEB}
-		_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install /tmp/${QBITBIN}"
-		rm -rf ${QBITBIN}
-
-		# disable auto upgrade
-		_execute "apt-mark hold qbittorrent-nox"
-	else
-		# prepare package toolchain
-		APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev qtbase5-dev qttools5-dev-tools libqt5svg5-dev zlib1g-dev"
-		_info "Adding additional keys and sources ${APP_TITLE}..."
-		if [ $CODENAME == "xenial" ] && $(grep -qv 'xenial-updates'< /etc/apt/sources.list); then
-			cat > /etc/apt/sources.list.d/xenial-updates.list <<LIST
-deb http://us.archive.ubuntu.com/ubuntu/ xenial-updates main
-LIST
-		elif [ $CODENAME == "stretch" ] && $(grep -qv 'stretch-backports'< /etc/apt/sources.list); then
-			cat > /etc/apt/sources.list.d/stretch-backports.list <<LIST
-deb http://deb.debian.org/debian stretch-backports main	
-LIST
-		fi
-		_success "Keys and sources added."
-		DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-		_installDepends
-		_installFpm
-		if (_version_gt ${qbitversion} 4.1.9.1); then
-			if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
-				PACKAGE="qt5"
-				cd /tmp
-				DEBASE="qt512base_5.12.6-1basyskom1_amd64.deb qt512xmlpatterns_5.12.6-1basyskom1_amd64.deb qt512declarative_5.12.6-1basyskom1_amd64.deb qt512svg_5.12.6-1basyskom1_amd64.deb qt512tools_5.12.6-1basyskom1_amd64.deb"
-				for DEB in $DEBASE; do
-					_download ${PACKAGE} ${DEB}
-					_execute "apt-get -y --allow-unauthenticated -f install /tmp/${DEB}"
-					rm -rf /tmp/${DEB}
-				done
-				source /opt/qt512/bin/qt512-env.sh
-				if [[ ! -f /usr/bin/lrelease-qt5 ]]; then
-					ln -s /usr/lib/x86_64-linux-gnu/qt5/bin/lrelease /usr/bin/lrelease-qt5
-				fi
-			fi
-		fi
-		cd /tmp || exit 1
-		_info "Building $APP_TITLE ... "
-		_execute "git clone ${BRANCH_QBIT} qBittorrent"
-		cd qBittorrent || { _error "Can not download qBittorrent" && exit 1; }
-		_execute "git checkout release-${qbitversion}"
-		_execute "./configure --disable-gui --disable-debug --prefix=/tmp/dist/qbittorrent"
-		_execute "make -j$(nproc)"
-		mkdir -p /tmp/dist/qbittorrent
-		mkdir -p /root/pool/
-		_execute "make install"
-		fpm -f -C /tmp/dist/qbittorrent -p /root/pool/qbittorrent_${qbitversion}.deb -s dir -t deb -n qbittorrent-nox --version ${qbitversion} --description "qBittorrent compiled by QuickBox Lite" >/dev/null 2>&1
-		_execute "dpkg -i /root/pool/qbittorrent_${qbitversion}.deb"
-		cd /tmp || exit 1
-		rm -rf {qBittorrent,libtorrent,dist}
-		# disable auto upgrade
-		_execute "apt-mark hold qbittorrent-nox"
-	fi
-}
-
 function _updateStatic() {
 	if [[ -n ${static_binary} ]]; then
 		cd /tmp || exit 1
 		wget -t3 -T20 -q -O /usr/local/bin/qbittorrent-nox https://qbit-static.ezapi.net/${static_binary}
 		chmod +x /usr/local/bin/qbittorrent-nox
 	else
-		# version check
-		if (_version_gt ${qbit_major_version} "4.2"); then
-			libtversion="1.2.11"
-			libt_major_version="1.2"
-		fi
-		if (_version_gt ${qbitversion} "4.3.1"); then
-			libtversion="1.2.12"
-			libt_major_version="1.2"
-		fi
-		if (_version_gt ${qbitversion} "4.3.9"); then
-			libtversion="2.0.5"
-			libt_major_version="2.0"
-		fi
-		if (_version_gt "4.2" ${qbit_major_version}); then
-			libtversion="1.1.14"
-			libt_major_version="1.1"
-		fi
-		_warning "Use Libtorrent ${libtversion} for qBittorrent ${qbit_major_version}.x"
 		if [[ ! -f /install/.docker.lock ]]; then
 			_info "Install docker for building qBittorrent... "
 			rm -f /install/.install.lock
@@ -411,6 +284,8 @@ function _updateStatic() {
 			1.2.10) libttag="libtorrent-1.2.10" ;;
 			1.2.11) libttag="v1.2.11" ;;
 			1.2.12) libttag="v1.2.12" ;;
+			1.2.13) libttag="v1.2.13" ;;
+			1.2.14) libttag="v1.2.14" ;;
 			1.1.0) libttag="libtorrent-1_1" ;;
 			1.1.1) libttag="libtorrent-1_1_1" ;;
 			1.1.2) libttag="libtorrent-1_1_2" ;;
@@ -426,14 +301,14 @@ function _updateStatic() {
 			1.1.12) libttag="libtorrent-1_1_12" ;;
 			1.1.13) libttag="libtorrent-1_1_13" ;;
 			1.1.14) libttag="libtorrent-1_1_14" ;;
-			*) libttag="libtorrent-1_1_14" ;;
+			*) libttag="v${libtversion}" ;;
 			esac
 		_info "building static qBittorrent... "
 		cd /tmp || exit 1
 		mkdir -p /tmp/qb-static
-		\cp -rf /etc/QuickBox/packages/system/auxiliary/qbittorrent-nox-static.sh /tmp/qb-static/qbittorrent-nox-static.sh
-		docker run -it -v /tmp/qb-static:/root alpine:latest /bin/ash -c "apk update && apk add bash curl && cd && bash ./qbittorrent-nox-static.sh all -i --lt \"${libttag}\" --qt \"release-${qbitversion}\" -v" >> $OUTTO 2>&1
-		cp /tmp/qb-static/qb-build/completed/qbittorrent-nox /usr/local/bin/qbittorrent-nox
+		curl -sLo /tmp/qb-static/qbittorrent-nox-static.sh git.io/qbstatic && chmod +x /tmp/qb-static/qbittorrent-nox-static.sh
+		docker run -it -v /tmp/qb-static:/root alpine:latest /bin/ash -c "apk update && apk add bash curl && cd && bash ./qbittorrent-nox-static.sh all -i -lt \"${libttag}\" -qt \"release-${qbitversion}\" --cmake" >> $OUTTO 2>&1
+		cp /tmp/qb-static/qbt-build/completed/qbittorrent-nox /usr/local/bin/qbittorrent-nox
 		chmod +x /usr/local/bin/qbittorrent-nox
 		_info "cleaning up... "
 		rm -rf /tmp/qb-static
@@ -443,89 +318,35 @@ function _updateStatic() {
 
 function _updateApp() {
 	# get current version
+	if [ -z "${qbitversion}" ]; then
+		qbitversion=${qbitversion_default}
+	fi
+	if [ -z "${libtversion}" ]; then
+		libtversion=${libtversion_default}
+	fi
 	qbit_major_version=$(echo ${qbitversion}| cut -d. -f1,2)
+	libt_major_version=$(echo ${libtversion}| cut -d. -f1,2)
 	cur_version=$(dpkg -s qbittorrent-nox 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
 	if [[ -z ${cur_version} ]]; then cur_version=$(qbittorrent-nox -v 2>/dev/null | grep '^qBittorrent ' | grep -Eo "[0-9.]+" | head -n1); fi
 	if (_version_gt ${qbitversion} ${cur_version}) ||  [[ $FORCE == 1 ]] ; then
-		if (_version_gt ${qbit_major_version} "4.2"); then
-			use_static=true
-		fi
-		# Static / Dynamic linking
-		if $use_static; then
-			_info "Upgrading ${APP_TITLE}..."
-			_info "Removing old ${APP_TITLE}..."
-			userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
-			for username in $userlist; do
-				_execute "systemctl stop ${APP_SERVICE}@${username}"
-			done
-			if [[ -n $(dpkg -s qbittorrent-nox 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1) ]]; then						
-				_execute "apt-mark unhold qbittorrent-nox"
-				_execute "apt remove -y qbittorrent-nox"		
-			else
-				rm -f /usr/local/bin/qbittorrent-nox
-			fi
-			_info "Fetching package list..."
-			cd /tmp || exit 1
-			wget -t3 -T20 -q -O file.lst https://qbit-static.ezapi.net/file.lst
-			static_binary=$(cat file.lst | grep ".amd64" | grep "qbittorrent-nox.qbit${qbitversion}" | awk '{ print $4}')
-			rm -f file.lst
-			_updateStatic
+		_info "Upgrading ${APP_TITLE}..."
+		_info "Removing old ${APP_TITLE}..."
+		userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+		for username in $userlist; do
+			_execute "systemctl stop ${APP_SERVICE}@${username}"
+		done
+		if [[ -n $(dpkg -s qbittorrent-nox 2>/dev/null | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1) ]]; then						
+			_execute "apt-mark unhold qbittorrent-nox"
+			_execute "apt remove -y qbittorrent-nox"		
 		else
-			_info "Fetching package list..."
-			cd /tmp || exit 1
-			wget -t3 -T20 -q -O packages.lst https://deb.ezapi.net/packages.lst
-			if [ $? -ne 0 ]; then
-				_github
-				wget -t5 -T10 -q -O packages.lst https://raw.githubusercontent.com/amefs/quickbox-files/master/packages.lst
-				if [ $? -ne 0 ]; then
-					_sf
-					wget -t5 -T10 -q -O packages.lst https://sourceforge.net/projects/seedbox-software-for-linux/files/packages.lst/download
-				fi
-			fi
-			qbit_version_list=$(cat packages.lst | grep -w qbittorrent-nox | grep ${CODENAME} | grep amd64 | awk '{ print $5}')
-			rm -f packages.lst
-			# version check
-			# detect installed version
-			if [[ -f /install/.libtorrent-rasterbar9.lock ]]; then
-				libt_installed_version=$(dpkg -s libtorrent-rasterbar9 | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
-				libt_installed_major_version=$(echo ${libt_installed_version}| cut -d. -f1,2)
-			elif [[ -f /install/.libtorrent-rasterbar10.lock ]]; then
-				libt_installed_version=$(dpkg -s libtorrent-rasterbar10 | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
-				libt_installed_major_version=$(echo ${libt_installed_version}| cut -d. -f1,2)
-			elif [[ -f /install/.libtorrent-rasterbar.lock ]]; then
-				libt_installed_version=$(dpkg -s libtorrent-rasterbar | grep '^Version:' | grep -Eo "[0-9.]+" | head -n1)
-				libt_installed_major_version=$(echo ${libt_installed_version}| cut -d. -f1,2)
-			else
-				libt_installed_version=0
-				libt_installed_major_version=0
-			fi
-			libt_upgrade=false
-			if (_version_gt ${qbit_major_version} "4.2"); then
-				if (_version_gt "1.2.11" ${libt_installed_version}); then
-					libtversion="1.2.11"
-					libt_major_version="1.2"
-					libt_upgrade=true
-				fi
-			fi
-			if (_version_gt ${qbitversion} "4.3.1"); then
-				if (_version_gt "1.2.12" ${libt_installed_version}); then
-					libtversion="1.2.12"
-					libt_major_version="1.2"
-					libt_upgrade=true
-				fi
-			fi
-			if (_version_gt "4.2" ${qbit_major_version}); then
-				if (_version_gt ${libt_installed_version} "1.2"); then
-					libtversion="1.1.14"
-					libt_major_version="1.1"
-					libt_upgrade=true
-				fi
-			fi
-			if ${libt_upgrade}; then
-				_updateLibt
-			fi
-			_updateqBit
-		fi	
+			rm -f /usr/local/bin/qbittorrent-nox
+		fi
+		_info "Fetching package list..."
+		cd /tmp || exit 1
+		wget -t3 -T20 -q -O file.lst https://qbit-static.ezapi.net/file.lst
+		static_binary=$(cat file.lst | grep -w "qbittorrent-nox.qbit${qbitversion}_lt${libtversion}.amd64" | awk '{ print $4}')
+		rm -f file.lst
+		_updateStatic
 		# Update qbittorrent-nox binary location
 		BINPATH=$(which qbittorrent-nox)
 		if [[ $CODENAME == bionic ]]; then
@@ -653,8 +474,9 @@ while true; do
 		qbitversion="$2"
 		shift
 		;;
-	-s | --static)
-		use_static=true
+	--lt)
+		libtversion="$2"
+		shift
 		;;
 	--with-cf)
 		cdn="cf"

@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.10
+# Current version:  v1.5.11
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -135,6 +135,7 @@ function _removeDepends() {
 	local DEPLIST="${APP_BASEDEPS}"
 	for depend in $DEPLIST; do
 		_info "Removing ${depend}... "
+		_execute "apt-mark unhold ${depend}"
 		_execute "apt-get -y purge ${depend}"
 		_execute "apt-get -y autoremove"
 		_execute "apt-get -y autoclean"
@@ -149,7 +150,7 @@ function _removeDepends() {
 		_execute "apt-get -y purge python3-libtorrent"
 		rm -f /install/.libtorrent-rasterbar-python3.lock
 	fi
-	if [[ ! -f /install/.qbittorrent.lock ]]; then
+	if [[ ! -f /install/.qbittorrent.lock ]] || [[ -f /usr/local/bin/qbittorrent-nox ]]; then
 		_execute "apt-mark unhold libtorrent-rasterbar*"
 		_execute "apt-get -y purge libtorrent-rasterbar*"
 		_execute "apt-get -y autoremove"

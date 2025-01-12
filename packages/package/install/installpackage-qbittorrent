@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.10
+# Current version:  v1.5.11
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -81,10 +81,9 @@ APP_WEB_PORT_HIGH="15200"
 
 APP_LOCK=.$APP_NAME.lock
 OUTTO=/srv/dashboard/db/output.log
-qbitversion_default=4.5.5
+qbitversion_default=4.6.7
 libtversion_default=1.2.19
 cdn=$(cat /install/.cdn.lock)
-use_static=0
 
 BRANCH_LT="https://github.com/arvidn/libtorrent.git"
 BRANCH_QBIT="https://github.com/qbittorrent/qBittorrent.git"
@@ -99,7 +98,6 @@ function _usage() {
 	echo "-l, --log <logfile>       specific log file"
 	echo "--lt <version>            the Libtorrent version you want to install"
 	echo "--qb <version>            the qBittorrent version you want to install"
-	echo "-s, --static              install qBittorrent with static build"
 	echo "--with-cf                 use cloudflare instead of github"
 	echo "--with-sf                 use sourceforge instead of github"
 	echo "--with-osdn               use osdn(jp)  instead of github"
@@ -294,176 +292,6 @@ function _download() {
 	esac
 }
 
-function _installLibt() {
-	# Libtorrent
-	APP_TITLE="Libtorrent"
-	if [[ ${libt_deb_req} == 1 ]]; then
-		_info "Installing ${APP_TITLE}..."
-		PACKAGE="libtorrent-rasterbar"
-		cd /tmp || exit 1
-		if [[ ${libt_major_version} == "1.1" ]]; then
-			LIBTBIN=libtorrent-rasterbar9_${libtversion}-1build1_amd64.deb
-		elif [[ ${libt_major_version} == "1.2" ]]; then
-			LIBTBIN=libtorrent-rasterbar10_${libtversion}-1build1_amd64.deb
-		fi
-		DEB=${LIBTBIN}
-		_download ${PACKAGE} ${DEB}
-		_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTBIN}"
-		# disable auto upgrade
-		if [[ ${libt_major_version} == "1.1" ]]; then
-			_execute "apt-mark hold libtorrent-rasterbar9"
-		elif [[ ${libt_major_version} == "1.2" ]]; then
-			_execute "apt-mark hold libtorrent-rasterbar10"
-		fi
-		LIBTDEVBIN=libtorrent-rasterbar-dev_${libtversion}-1build1_amd64.deb
-		DEB=${LIBTDEVBIN}
-		_download ${PACKAGE} ${DEB}
-		_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install  /tmp/${LIBTDEVBIN}"
-		# disable auto upgrade
-		_execute "apt-mark hold libtorrent-rasterbar-dev"
-		rm -rf {${LIBTBIN},${LIBTDEVBIN}}
-		if [[ ${libt_major_version} == "1.1" ]]; then
-			touch /install/.libtorrent-rasterbar9.lock
-		elif [[ ${libt_major_version} == "1.2" ]]; then
-			touch /install/.libtorrent-rasterbar10.lock
-		fi
-	elif [ ${libt_compile_req} == 1 ]; then
-		cd /tmp || exit 1
-		APP_TITLE="Libtorrent"
-		# prepare package toolchain
-		APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git libgeoip-dev zlib1g-dev"
-		_installDepends
-		_installFpm
-		_info "Build libtorrent for qBittorrent ... "
-		if [[ ${libt_major_version} == "1.2" ]]; then
-			LTRC=RC_1_2
-			case ${libtversion} in
-			1.2.0) LTCIMMIT="3a1e546" ;;
-			1.2.1) LTCIMMIT="4b26829" ;;
-			1.2.2) LTCIMMIT="9c97055" ;;
-			1.2.3) LTCIMMIT="078f7b9" ;;
-			1.2.4) LTCIMMIT="ad83b1c" ;;
-			1.2.5) LTCIMMIT="bc66605" ;;
-			1.2.6) LTCIMMIT="b9b5443" ;;
-			1.2.7) LTCIMMIT="8e71015" ;;
-			1.2.8) LTCIMMIT="7dcd091" ;;
-			1.2.9) LTCIMMIT="a80f458" ;;
-			1.2.10) LTCIMMIT="70f1de3" ;;
-			1.2.11) LTCIMMIT="471e772" ;;
-			1.2.12) LTCIMMIT="e3f2b01" ;;
-			1.2.13) LTCIMMIT="e00a152" ;;
-			1.2.14) LTCIMMIT="33a10d5" ;;
-			*) LTCIMMIT="." ;;
-			esac
-		elif [[ ${libt_major_version} == "1.1" ]]; then
-			LTRC=RC_1_1
-			case ${libtversion} in
-			1.1.0) LTCIMMIT="2921caf" ;;
-			1.1.1) LTCIMMIT="599967c" ;;
-			1.1.2) LTCIMMIT="a42d439" ;;
-			1.1.3) LTCIMMIT="b065536" ;;
-			1.1.4) LTCIMMIT="5188c19" ;;
-			1.1.5) LTCIMMIT="6214103" ;;
-			1.1.6) LTCIMMIT="b45acf2" ;;
-			1.1.7) LTCIMMIT="aaf9304" ;;
-			1.1.8) LTCIMMIT="4576723" ;;
-			1.1.9) LTCIMMIT="19df645" ;;
-			1.1.10) LTCIMMIT="200bb49" ;;
-			1.1.11) LTCIMMIT="25a1f12" ;;
-			1.1.12) LTCIMMIT="4342725" ;;
-			1.1.13) LTCIMMIT="6f1250c" ;;
-			1.1.14) LTCIMMIT="244f0f1" ;;
-			*) LTCIMMIT="." ;;
-			esac
-		elif [[ ${libt_major_version} == "1.0" ]]; then
-			LTRC=RC_1_0
-			case ${libtversion} in
-			1.0.0) LTCIMMIT="1633ee2" ;;
-			1.0.1) LTCIMMIT="49c2ec9" ;;
-			1.0.2) LTCIMMIT="8f2c17c" ;;
-			1.0.3) LTCIMMIT="edfe81b" ;;
-			1.0.4) LTCIMMIT="a586deb" ;;
-			1.0.5) LTCIMMIT="45521a3" ;;
-			1.0.6) LTCIMMIT="b709199" ;;
-			1.0.7) LTCIMMIT="15b1cd9" ;;
-			1.0.8) LTCIMMIT="e44e8da" ;;
-			1.0.9) LTCIMMIT="b342192" ;;
-			1.0.10) LTCIMMIT="e650ecc" ;;
-			1.0.11) LTCIMMIT="4e90eb1" ;;
-			*) LTCIMMIT="." ;;
-			esac
-		fi
-		mkdir -p /root/pool
-		mkdir -p /tmp/dist
-
-		cd /tmp || exit 1
-		_execute "git clone -b ${LTRC} ${BRANCH_LT} libtorrent"
-		cd libtorrent || { _error "Can not download libtorrent-rasterbar" && exit 1; }
-		_execute "git checkout ${LTCIMMIT}"
-		# compile base package
-		if [[ ${libt_major_version} == "1.0" ]] || [[ ${libt_major_version} == "1.1" ]]; then
-			wget --no-check-certificate -q -O libtorrent-rasterbar-${LTRC}.patch https://raw.githubusercontent.com/amefs/QB/master/setup/sources/libtorrent-rasterbar-${LTRC}.patch
-			patch -p1 <libtorrent-rasterbar-${LTRC}.patch >/dev/null
-			_execute "./autotool.sh"
-			_execute "./configure --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++11 CPPFLAGS=-std=c++11 --prefix=/tmp/dist/libtorrent-rasterbar/usr/local"
-		elif [[ ${libt_major_version} == "1.2" ]]; then
-			_execute "./autotool.sh"
-			_execute "./configure --with-lib-geoip --with-libiconv CXXFLAGS=-std=c++14 CPPFLAGS=-std=c++14 --prefix=/tmp/dist/libtorrent-rasterbar/usr/local"
-		fi
-		_execute "make -j$(nproc)"
-		mkdir -p /tmp/dist/libtorrent-rasterbar/usr/local
-		_execute "make install"
-		fpm -f -C /tmp/dist/libtorrent-rasterbar -p /root/pool/libtorrent-rasterbar_${libtversion}.deb -s dir -t deb -n libtorrent-rasterbar --version ${libtversion} --description "libtorrent-rasterbar compiled by QuickBox Lite" >>${OUTTO} 2>&1
-		_execute "dpkg -i /root/pool/libtorrent-rasterbar_${libtversion}.deb"
-		# disable auto upgrade
-		_execute "apt-mark hold libtorrent-rasterbar"
-		echo ${libtversion} >/install/.libtorrent-rasterbar.lock
-		_success "Libtorrent built ..."
-		ldconfig
-	fi
-}
-
-function _installqBit() {
-	# qBittorrent
-	APP_TITLE="qBittorrent"
-	if $(echo "${qbit_version_list[@]}" | grep -wq "${qbitversion}"); then
-		_info "Installing ${APP_TITLE}..."
-		cd /tmp
-		PACKAGE="qbittorrent"
-		QBITBIN=qbittorrent-nox_${qbitversion}-libt${libt_major_version}-1build1_amd64.deb
-		DEB=${QBITBIN}
-		_download ${PACKAGE} ${DEB}
-		_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install /tmp/${QBITBIN}"
-		rm -rf ${QBITBIN}
-
-		# disable auto upgrade
-		_execute "apt-mark hold qbittorrent-nox"
-	else
-		# prepare package toolchain
-		APP_BASEDEPS="build-essential libgl1-mesa-dev libssl-dev libboost-dev libboost-system-dev libboost-chrono-dev libboost-random-dev libboost-python-dev python python-dev python3 python3-dev pkg-config automake libtool git screen libgeoip-dev qtbase5-dev qttools5-dev-tools libqt5svg5-dev zlib1g-dev"
-		_info "Adding additional keys and sources ${APP_TITLE}..."
-		DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
-		_installDepends
-		_installFpm
-		cd /tmp
-		_info "Building $APP_TITLE ... "
-		_execute "git clone ${BRANCH_QBIT} qBittorrent"
-		cd qBittorrent || { _error "Can not download qBittorrent" && exit 1; }
-		_execute "git checkout release-${qbitversion}"
-		./configure CXXFLAGS="-std=c++14" --disable-gui --disable-debug --prefix=/tmp/dist/qbittorrent >> $OUTTO 2>&1
-		_execute "make -j$(nproc)"
-		mkdir -p /tmp/dist/qbittorrent
-		mkdir -p /root/pool/
-		_execute "make install"
-		fpm -f -C /tmp/dist/qbittorrent -p /root/pool/qbittorrent_${qbitversion}.deb -s dir -t deb -n qbittorrent-nox --version ${qbitversion} --description "qBittorrent compiled by QuickBox Lite" >/dev/null 2>&1
-		_execute "dpkg -i /root/pool/qbittorrent_${qbitversion}.deb"
-		cd /tmp
-		rm -rf {qBittorrent,libtorrent,dist}
-		# disable auto upgrade
-		_execute "apt-mark hold qbittorrent-nox"
-	fi
-}
-
 function _installStatic() {
 	if [[ -n ${static_binary} ]]; then
 		cd /tmp || exit 1
@@ -507,14 +335,14 @@ function _installStatic() {
 			1.1.12) libttag="libtorrent-1_1_12" ;;
 			1.1.13) libttag="libtorrent-1_1_13" ;;
 			1.1.14) libttag="libtorrent-1_1_14" ;;
-			*) libttag="libtorrent-1_1_14" ;;
+			*) libttag="v${libtversion}" ;;
 			esac
 		_info "building static qBittorrent... "
 		cd /tmp || exit 1
 		mkdir -p /tmp/qb-static
-		\cp -rf /etc/QuickBox/packages/system/auxiliary/qbittorrent-nox-static.sh /tmp/qb-static/qbittorrent-nox-static.sh
-		docker run -it -v /tmp/qb-static:/root alpine:latest /bin/ash -c "apk update && apk add bash curl && cd && bash ./qbittorrent-nox-static.sh all -i --lt \"${libttag}\" --qt \"release-${qbitversion}\" -v" >> $OUTTO 2>&1
-		cp /tmp/qb-static/qb-build/completed/qbittorrent-nox /usr/local/bin/qbittorrent-nox
+		curl -sLo /tmp/qb-static/qbittorrent-nox-static.sh git.io/qbstatic && chmod +x /tmp/qb-static/qbittorrent-nox-static.sh
+		docker run -it -v /tmp/qb-static:/root alpine:latest /bin/ash -c "apk update && apk add bash curl && cd && bash ./qbittorrent-nox-static.sh all -i -lt \"${libttag}\" -qt \"release-${qbitversion}\" --cmake" >> $OUTTO 2>&1
+		cp /tmp/qb-static/qbt-build/completed/qbittorrent-nox /usr/local/bin/qbittorrent-nox
 		chmod +x /usr/local/bin/qbittorrent-nox
 		_info "cleaning up... "
 		rm -rf /tmp/qb-static
@@ -526,96 +354,28 @@ function _installApp() {
 	if [ -z "${qbitversion}" ]; then
 		qbitversion=${qbitversion_default}
 	fi
-	if [[ "$CODENAME" =~ ("bullseye"|"bookworm") ]] && (_version_gt "4.2.0"  ${qbitversion}); then
-		qbitversion=${qbitversion_default}
-		_warning "Use qBittorrent ${qbitversion}"
+	if [ -z "${libtversion}" ]; then
+		libtversion=${libtversion_default}
 	fi
 	qbit_major_version=$(echo ${qbitversion}| cut -d. -f1,2)
-	if [ -z "${libtversion}" ]; then
-		if (_version_gt ${qbitversion} "4.3.1"); then
-			_info "Fetching package list..."
-			cd /tmp || exit 1
-			wget -t3 -T20 -q -O file.lst https://qbit-static.ezapi.net/file.lst
-			libtversion=$(cat file.lst | grep -wE "qbittorrent-nox\.qbit${qbitversion}_lt.*\.amd64" | awk '{ print $3}' | sort -r | head -n 1)
-			_warning "Use Libtorrent ${libtversion} for ${qbit_major_version}.x"
-		else
-			libtversion=${libtversion_default}
-		fi
-	fi
 	libt_major_version=$(echo ${libtversion}| cut -d. -f1,2)
 	# version check
 	libt_fallback=false
-	if (_version_gt ${qbit_major_version} "4.2"); then
-		if (_version_gt "1.2.11" ${libtversion}); then
-			libtversion="1.2.11"
-			libt_major_version="1.2"
-			libt_fallback=true
-		fi
-	fi
-	if (_version_gt ${qbitversion} "4.3.1"); then
-		if (_version_gt "1.2.12" ${libtversion}); then
-			libtversion="1.2.12"
-			libt_major_version="1.2"
+	if [[ ${qbit_major_version} == "4.1" ]]; then
+		if [[ ${libtversion_default} != "1.1" ]]; then
+			libtversion="1.1.14"
+			libt_major_version="1.1"
 			libt_fallback=true
 		fi
 	fi
 	if ${libt_fallback}; then _warning "Use Libtorrent ${libtversion} for ${qbit_major_version}.x"; fi
-	if (_version_gt ${qbit_major_version} "4.2"); then
-		use_static=1
-	fi
-	# Static / Dynamic linking
-	if [[ ${use_static} == 1 ]]; then
-		_info "Fetching package list..."
-		cd /tmp || exit 1
-		wget -t3 -T20 -q -O file.lst https://qbit-static.ezapi.net/file.lst
-		if [ -z "${libtversion}" ]; then
-			static_binary=$(cat file.lst | grep -wE "qbittorrent-nox\.qbit${qbitversion}_lt.*\.amd64" | awk '{ print $4}' | sort -r | head -n 1)
-		else
-			static_binary=$(cat file.lst | grep -w "qbittorrent-nox.qbit${qbitversion}_lt${libtversion}.amd64" | awk '{ print $4}')
-		fi
-		rm -f file.lst
-		_installStatic
-	else
-		_info "Fetching package list..."
-		cd /tmp || exit 1
-		wget -t3 -T20 -q -O packages.lst https://deb.ezapi.net/packages.lst
-		if [ $? -ne 0 ]; then
-			_github
-			wget -t5 -T10 -q -O packages.lst https://raw.githubusercontent.com/amefs/quickbox-files/master/packages.lst
-			if [ $? -ne 0 ]; then
-				_sf
-				wget -t5 -T10 -q -O packages.lst https://sourceforge.net/projects/seedbox-software-for-linux/files/packages.lst/download
-			fi
-		fi
-		if [[ ${libt_major_version} == "1.1" ]]; then
-			qbit_version_list=$(cat packages.lst | grep -w qbittorrent-nox | grep ${CODENAME} | grep amd64 | grep libt1.1 | awk '{ print $5}' | cut -d '-' -f1)
-		elif [[ ${libt_major_version} == "1.2" ]]; then
-			qbit_version_list=$(cat packages.lst | grep -w qbittorrent-nox | grep ${CODENAME} | grep amd64 | grep libt1.2 | awk '{ print $5}' | cut -d '-' -f1)
-		fi
-		libt_version_list=$(cat packages.lst | grep -wE 'libtorrent-rasterbar[0-9]{1,2}' | grep ${CODENAME} | grep amd64 | awk '{ print $5}')
-		rm -f packages.lst
-		# lock check
-		libt_compile_req=0
-		libt_deb_req=0
-		# .libtorrent-rasterbar.lock libtorrent-rasterbar by compiled
-		# .libtorrent-rasterbar9.lock libtorrent-rasterbar 1.1.x
-		# .libtorrent-rasterbar10.lock libtorrent-rasterbar 1.2.x
-		if [[ -f /install/.libtorrent-rasterbar.lock ]]; then
-			_success "Libtorrent already installed, Skip..."
-			##TODO check if version > request, block installation if not match
-		else
-			APP_TITLE="Libtorrent"
-			if $(echo "${libt_version_list[@]}" | grep -wq "${libtversion}"); then
-				if ([[ ${libt_major_version} == "1.1" ]] && [[ ! -f /install/.libtorrent-rasterbar9.lock ]]) || ([[ ${libt_major_version} == "1.2" ]] && [[ ! -f /install/.libtorrent-rasterbar10.lock ]]); then
-					libt_deb_req=1
-				fi
-			else
-				libt_compile_req=1
-			fi
-		fi
-		_installLibt
-		_installqBit
-	fi
+	# Static linking
+	_info "Fetching package list..."
+	cd /tmp || exit 1
+	wget -t3 -T20 -q -O file.lst https://qbit-static.ezapi.net/file.lst
+	static_binary=$(cat file.lst | grep -w "qbittorrent-nox.qbit${qbitversion}_lt${libtversion}.amd64" | awk '{ print $4}')
+	rm -f file.lst
+	_installStatic
 
 	_success "${APP_TITLE} Built."
 }
@@ -642,86 +402,8 @@ function _configureApp() {
 		password=$(echo ${passtext} | openssl enc -aes-128-ecb -pbkdf2 -a -d -pass pass:"${passphrase}" -nosalt)
 
 		mkdir -p /home/${username}/.config/qBittorrent
-		if (_version_gt ${qbitversion} 4.1.9.1); then
-			# get libqbpasswd
-			## See https://github.com/KozakaiAya/libqbpasswd
-			cd /tmp
-			_info "Building libqbpasswd ... "
-			_execute "apt-get install -yqq build-essential"
-			_execute "git clone ${BRANCH_LIBQBPASS} libqbpasswd"
-			cd libqbpasswd
-			_execute "make"
-			_execute "cp -f qb_password_gen /usr/local/bin/quickbox/system/auxiliary/qb_password_gen"
-			cd /tmp
-			rm -rf /tmp/libqbpasswd
-			pbkdf2pass=$(/usr/local/bin/quickbox/system/auxiliary/qb_password_gen ${password})
-			cat >/home/${username}/.config/qBittorrent/qBittorrent.conf <<QBC
-[AutoRun]
-enabled=false
-program=
-
-[Application]
-FileLogger\Enabled=true
-FileLogger\Age=6
-FileLogger\DeleteOld=true
-FileLogger\Backup=true
-FileLogger\AgeType=1
-FileLogger\MaxSize=20
-
-[LegalNotice]
-Accepted=true
-
-[Preferences]
-Bittorrent\AddTrackers=false
-Bittorrent\LSD=false
-Bittorrent\MaxRatioAction=0
-Bittorrent\PeX=true
-Bittorrent\Encryption=1
-Bittorrent\MaxConnecs=-1
-Bittorrent\MaxConnecsPerTorrent=-1
-Bittorrent\MaxRatioAction=0
-Bittorrent\uTP=false
-Bittorrent\uTP_rate_limited=false
-Connection\GlobalDLLimitAlt=0
-Connection\GlobalUPLimitAlt=0
-Connection\UPnP=false
-Downloads\DiskWriteCacheSize=64
-Downloads\DiskWriteCacheTTL=60
-Downloads\PreAllocation=true
-Downloads\SavePath=/home/${username}/torrents/qbittorrent
-Downloads\ScanDirsV2=@Variant(\0\0\0\x1c\0\0\0\0)
-Downloads\StartInPause=false
-General\Locale=
-General\UseRandomPort=true
-WebUI\Address=${APP_HOST}
-WebUI\AuthSubnetWhitelist=@Invalid()
-WebUI\AuthSubnetWhitelistEnabled=false
-WebUI\HTTPS\Enabled=false
-WebUI\LocalHostAuth=false
-WebUI\Password_PBKDF2="@ByteArray(${pbkdf2pass})"
-WebUI\Port=${PORT}
-WebUI\ServerDomains=*
-WebUI\UseUPnP=false
-WebUI\Username=${username}
-
-[BitTorrent]
-Session\GuidedReadCache=true
-Session\ChokingAlgorithm=FixedSlots
-Session\SeedChokingAlgorithm=FastestUpload
-Session\MultiConnectionsPerIp=true
-Session\BTProtocol=TCP
-Session\CreateTorrentSubfolder=true
-Session\DisableAutoTMMByDefault=true
-Session\DisableAutoTMMTriggers\CategoryChanged=true
-Session\DisableAutoTMMTriggers\CategorySavePathChanged=true
-Session\DisableAutoTMMTriggers\DefaultSavePathChanged=true
-Session\SendBufferWatermark=500
-Session\SendBufferLowWatermark=10
-Session\SendBufferWatermarkFactor=50
-QBC
-		else
-			ha1pass=$(echo -n "${password}" | md5sum | cut -f1 -d' ')
-			cat >/home/${username}/.config/qBittorrent/qBittorrent.conf <<QBC
+		ha1pass=$(echo -n "${password}" | md5sum | cut -f1 -d' ')
+		cat >/home/${username}/.config/qBittorrent/qBittorrent.conf <<QBC
 [AutoRun]
 enabled=false
 program=
@@ -770,7 +452,6 @@ Session\SendBufferWatermark=500
 Session\SendBufferLowWatermark=10
 Session\SendBufferWatermarkFactor=50
 QBC
-		fi
 		
 		chown -R ${username}:${username} /home/${username}/.config/
 		mkdir -p /home/${username}/qbwatch
@@ -824,28 +505,7 @@ location /qbittorrent/ {
 QBRP
 
 	BINPATH=$(which qbittorrent-nox)
-	if [[ $CODENAME == bionic ]]; then
-		cat >/etc/systemd/system/qbittorrent@.service <<QBS
-[Unit]
-Description=qBittorrent Daemon Service
-After=network.target
-
-[Service]
-Environment="SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
-Environment="SSL_CERT_DIR=/etc/ssl/certs"
-Type=simple
-User=%I
-LimitNOFILE=infinity
-ExecStart=${BINPATH}
-ExecStop=/usr/bin/killall -w -s 9 ${BINPATH}
-TimeoutSec=300
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-QBS
-	else
-		cat >/etc/systemd/system/qbittorrent@.service <<QBS
+	cat >/etc/systemd/system/qbittorrent@.service <<QBS
 [Unit]
 Description=qBittorrent Daemon Service
 After=network.target
@@ -864,7 +524,6 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 QBS
-	fi
 
 	_execute "systemctl daemon-reload"
 	_execute "nginx -s reload"
@@ -924,9 +583,6 @@ while true; do
 	--lt)
 		libtversion="$2"
 		shift
-		;;
-	-s | --static)
-		use_static=1
 		;;
 	--with-cf)
 		cdn="cf"

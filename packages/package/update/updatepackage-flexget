@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   Amefs
-# Current version:  v1.5.10
+# Current version:  v1.5.11
 # URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
@@ -77,6 +77,7 @@ APP_BASEDEPS="python3-pip"
 
 OUTTO=/srv/dashboard/db/output.log
 username=$(cat /root/.admin.info | cut -d: -f1)
+fgversion=""
 APP_LOCK=.${username}.${APP_NAME}.lock
 
 ################################################################################
@@ -227,8 +228,9 @@ function _updateApp() {
 	fi
 	_info "Building ${APP_TITLE}..."
 	# Install for single user
-	_installPy 3.11.8
-	_initPyVenv 3.11.8 /home/${username}/.local/flexget3 ${username}
+	python_ver="3.12.8"
+	_installPy ${python_ver}
+	_initPyVenv ${python_ver} /home/${username}/.local/flexget3 ${username}
 	cd /home/${username}/.local/flexget3
 	_info "Installing requirements... "
 	sudo -u ${username} -H bash -c "wget -q -O get-pip.py https://bootstrap.pypa.io/get-pip.py" >>"${OUTTO}" 2>&1
@@ -239,7 +241,11 @@ function _updateApp() {
 	sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade pyopenssl" >>"${OUTTO}" 2>&1
 	sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade cryptography" >>"${OUTTO}" 2>&1
 	_info "Installing ${APP_TITLE}... "
-	sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade flexget" >>"${OUTTO}" 2>&1
+	if [[ -z ${fgversion} ]]; then
+		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade flexget" >>"${OUTTO}" 2>&1
+	else
+		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install --upgrade flexget==${fgversion}" >>"${OUTTO}" 2>&1
+	fi
 	if [[ -f /install/.transmission.lock ]]; then
 		sudo -u ${username} -H bash -c "/home/${username}/.local/flexget3/bin/pip install transmission-rpc" >>"${OUTTO}" 2>&1
 	fi
@@ -290,10 +296,10 @@ diff -Nur '--exclude=.git' '--exclude=.vs' flexget/webserver.py flexget-patched/
      session.commit()
 EOF
 	sed -i "s/username='replace'/username='${username}'/g" /tmp/flexget-user-passwd.patch
-	patch -p1 -d ${pylib}/python3.11/site-packages/flexget/ </tmp/flexget-user-passwd.patch >>"${OUTTO}" 2>&1
-	sudo -u ${username} -H bash -c "${pybin}/python -m compileall ${pylib}/python3.11/site-packages/flexget/webserver.py" >>"${OUTTO}" 2>&1
+	patch -p1 -d ${pylib}/python$(echo ${python_ver}| cut -d. -f1,2)/site-packages/flexget/ </tmp/flexget-user-passwd.patch >>"${OUTTO}" 2>&1
+	sudo -u ${username} -H bash -c "${pybin}/python -m compileall ${pylib}/python$(echo ${python_ver}| cut -d. -f1,2)/site-packages/flexget/webserver.py" >>"${OUTTO}" 2>&1
 	rm -rf /tmp/flexget-user-passwd.patch
-	jspath=$(grep -rnw "${pylib}/python3.11/site-packages/flexget/ui/v2/dist/assets/" -e '"flexget"' | cut -d: -f1)
+	jspath=$(grep -rnw "${pylib}/python$(echo ${python_ver}| cut -d. -f1,2)/site-packages/flexget/ui/v2/dist/assets/" -e '"flexget"' | cut -d: -f1)
 	sed -i "s/initialValues:{username:\"flexget\"/initialValues:{username:\"\"/g" ${jspath}
 
 	PORT=$(cat /install/$username.flexget.port)
@@ -332,7 +338,7 @@ EOF
 #################################################################################
 # OPT GENERATOR
 #################################################################################
-if ! ARGS=$(getopt -a -o hl:u: -l help,log:,user: -- "$@")
+if ! ARGS=$(getopt -a -o hl:u:v: -l help,log:,user:,version: -- "$@")
 then
     _usage
     exit 1
@@ -350,6 +356,10 @@ while true; do
 		;;
 	-u | --user)
 		username="$2"
+		shift
+		;;
+	-v | --version)
+		fgversion="$2"
 		shift
 		;;
 	--)

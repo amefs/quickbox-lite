@@ -1,3 +1,38 @@
+## CHANGELOG v1.5.11
+
+*Changelog update Friday, Jan 10, 2025*
+
+### General additions
+
+- Support Ubuntu 24.04
+
+### Important changes
+
+- Discarding the Debian 10 LTS installation ([Release EOL](https://lists.debian.org/debian-lts-announce/2024/05/msg00002.html))
+- Discarding Deluge 1.3.15 on all OS versions
+
+### Function improved
+
+- Use Static build for all qBitTorrent version
+- Transmission 4 is available
+
+### Function updated
+
+- quickbox backend dependency (by Tautcony)
+- qBittorrent default version upgraded to v4.6.7
+- Transmission WebUI now use TrguiNG by default
+- Python dependency default version upgraded to v3.12.x
+- `box update flexget -v <VERSION>` can be used to specify version
+
+### Bug fixed
+
+- Fix broken btsync installer
+- Fix broken ruTorrent installer
+- Fix broken noVNC installer
+- Fix broken h5ai download url
+
+---
+
 ## CHANGELOG v1.5.10
 
 *Changelog update Wednesday, Apr 3, 2024*

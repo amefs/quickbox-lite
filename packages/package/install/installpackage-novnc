@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.5.10
+# Current version:  v1.5.11
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -71,7 +71,7 @@ function _error() {
 #################################################################################
 APP_TITLE="noVNC"
 APP_NAME="novnc"
-APP_BASEDEPS="expect xfce4 xfce4-goodies xfonts-base dbus-x11 xinit xserver-xorg xserver-xorg-legacy x11-xserver-utils tightvncserver fonts-noto iptables-persistent firefox-esr"
+APP_BASEDEPS="expect xfce4 xfce4-goodies xfonts-base dbus-x11 xinit xserver-xorg xserver-xorg-legacy x11-xserver-utils tightvncserver fonts-noto iptables-persistent firefox-esr python3-numpy"
 APP_WEB_PORT="6080"
 APP_DAEMON_PORT="5901"
 
@@ -215,7 +215,7 @@ Group=${username}
 Type=forking
 PIDFile=/home/${username}/.vnc/%H:1.pid
 ExecStartPre=/bin/sh -c '/usr/bin/vncserver -kill :1 > /dev/null 2>&1 || :'
-ExecStart=/usr/bin/vncserver -depth 24 -geometry 1440x900 :1
+ExecStart=/usr/bin/vncserver -depth 24 -geometry 1440x900 :1 -localhost
 ExecStop=/usr/bin/vncserver -kill :1
 KillMode=mixed
 Restart=on-failure
@@ -248,7 +248,7 @@ upstream novnc {
 EOF
 
 	cat >/etc/nginx/apps/vnc.conf <<EOF
-location /websockify {
+location /vnc/websockify {
   proxy_http_version 1.1;
   proxy_pass http://novnc;
   proxy_set_header Upgrade \$http_upgrade;
@@ -260,7 +260,7 @@ location /websockify {
 location /vnc {
   index vnc.html;
   alias /srv/novnc/;
-  try_files \$uri \$uri/ /index.php?q=\$uri&\$args;
+  try_files \$uri \$uri/ /vnc.html;
   auth_basic "Password Required";
   auth_basic_user_file /etc/htpasswd.d/htpasswd.${username};
 }
@@ -310,9 +310,6 @@ function _installAppStart() {
 	_execute "systemctl enable tightvnc.service"
 	_execute "systemctl start novnc.service"
 	_execute "systemctl enable novnc.service"
-	_execute "iptables -A INPUT -p tcp -s localhost --dport $APP_DAEMON_PORT -j ACCEPT"
-	_execute "iptables -A INPUT -p tcp --dport $APP_DAEMON_PORT -j DROP"
-	_execute "iptables-save > /etc/iptables/rules.v4"
 	_success "${APP_TITLE} started."
 }
 

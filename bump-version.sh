@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Author:   TautCony
-# Current version:  v1.5.10
+# Current version:  v1.5.11
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
@@ -55,6 +55,7 @@ function _update_version() {
         onekey.sh
         setup.sh
         bump-version.sh
+        setup/templates/motd/01-custom
     )
 
     for file in "${FILE_LIST[@]}"; do

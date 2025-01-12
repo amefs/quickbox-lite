@@ -4,7 +4,7 @@
 #
 # GitHub:   https://github.com/amefs/quickbox-lite
 # Maintainer:   Amefs
-# Current version:  v1.5.10
+# Current version:  v1.5.11
 # Author:           Mischief
 # Credits to:       QuickBox.io
 #
@@ -176,7 +176,7 @@ function _installApp() {
 	mkdir -p /tmp/quickbox
 	cd /tmp/quickbox || exit 1
 	if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
-		_execute "curl -sL https://deb.nodesource.com/setup_14.x -o nodesource_setup.sh"
+		_execute "curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh"
 		_execute "sudo bash nodesource_setup.sh"
 		_execute "apt-get install -y --force-reinstall true nodejs"
 	fi
