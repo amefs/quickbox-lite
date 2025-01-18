@@ -1,0 +1,391 @@
+#!/bin/bash
+# shellcheck disable=SC2034
+#
+# [QuickBox Lite Transmission Updater]
+#
+# GitHub:   https://github.com/amefs/quickbox-lite
+# Author:   Amefs
+# Current version:  v1.5.11
+# URL:
+# Original Repo:    https://github.com/QuickBox/QB
+# Credits to:       QuickBox.io
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+#################################################################################
+#################################################################################
+# CORE VARIABLE
+#################################################################################
+DISTRO=$(lsb_release -is)
+CODENAME=$(lsb_release -cs)
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _execute() {
+	($1 >>"${OUTTO}" 2>&1)
+}
+function _print() {
+	printf "${_norm}%s${_norm}\n" "$@"
+	printf "%s\n" "$@" >>"${OUTTO}"
+}
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
+
+#################################################################################
+# APP VARIABLE
+#################################################################################
+APP_TITLE="Transmission"
+APP_NAME="transmission"
+APP_SERVICE="transmission"
+APP_BASEDEPS="transmission-daemon transmission-cli transmission-common"
+
+version=3
+alt_webui=2
+ui_only=0
+
+APP_LOCK=$(echo .$APP_NAME.lock)
+OUTTO=/srv/dashboard/db/output.log
+cdn=$(cat /install/.cdn.lock)
+
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+	echo -e "\nQuickBox Lite $APP_TITLE Updater"
+	echo -e "\nUsage: \n$(basename "$0") [-h help] [-l logfile] [-u username] [-v version] [ui-only]"
+	echo -e "\nOptions:\n"
+	echo "-l, --log <logfile>       specific log file"
+	echo "--ui-only                 upgrade to tuing"
+	echo "-v, --version <version>   the application version you want to update"
+	echo ""
+	echo "-h, --help                display this help and exit"
+}
+################################################################################
+# REMOVE FUNCTIONS
+################################################################################
+function _lockCheck() {
+	if [[ -f "/install/.install.lock" ]]; then
+		prevApp=$(cat /install/.install.lock)
+		_info "$prevApp process running."
+		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
+		_error "Exiting..."
+		exit 1
+	fi
+	if [[ ! -f "/install/$APP_LOCK" ]]; then
+		_error "${APP_TITLE} haven't installed ..."
+		exit 1
+	fi
+}
+function _setLock() {
+	echo "${APP_TITLE}" >/install/.install.lock
+}
+function _lockCleanup() {
+	rm -f /install/.install.lock
+}
+
+function _updateInfo() {
+	_print "
+$APP_TITLE will now be updated.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _installSystemUpdates() {
+	_info "Checking and performing updates to system... "
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+	## auto solve lock
+	if [ "$?" -eq 2 ]; then
+		_warning "dpkg database is locked."
+		_info "fixing dpkg lock..."
+		rm -f /var/lib/dpkg/updates/0*
+		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
+		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
+			for l in ${locks}; do
+				rm -rf ${l}
+			done
+			_execute "dpkg --configure -a"
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >/dev/null 2>&1
+			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >/dev/null 2>&1
+		fi
+		if ! (apt-get check >/dev/null); then
+			apt-get install -f >>"${OUTTO}" 2>&1
+			if ! (apt-get check >/dev/null); then
+				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
+				exit 1
+			fi
+		fi
+	fi
+	_success "System updated."
+}
+
+function _cf() {
+	DOMAIN="deb.ezapi.net"
+	SUBFOLDER=""
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _sf() {
+	DOMAIN="sourceforge.net"
+	SUBFOLDER="projects/seedbox-software-for-linux/files/"
+	ARCH="amd64"
+	SUFFIX="/download"
+}
+
+function _osdn() {
+	DOMAIN="osdn.dl.osdn.net"
+	SUBFOLDER="storage/g/s/se/seedbox-software-for-linux/"
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _github() {
+	DOMAIN="raw.githubusercontent.com"
+	SUBFOLDER="amefs/quickbox-files/master/"
+	ARCH="amd64"
+	SUFFIX=""
+}
+
+function _download() {
+	# init download url
+	PACKAGE=$1
+	DEB=$2
+	case "$cdn" in
+	"cf")
+		_cf
+		wget -t3 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_github
+			wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"sf")
+		_sf
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_github
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_cf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"osdn")
+		_osdn
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_github
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_cf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	"github")
+		_github
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	*)
+		_github
+		wget -t3 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+		if [ $? -ne 0 ]; then
+			_cf
+			wget -t5 -T20 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			if [ $? -ne 0 ]; then
+				_sf
+				wget -t5 -T10 -q -O ${DEB} https://${DOMAIN}/${SUBFOLDER}${CODENAME}/binary-${ARCH}/${PACKAGE}/${DEB}${SUFFIX}
+			fi
+		fi
+		;;
+	esac
+}
+
+function _updateApp() {
+	_info "Updating ${APP_TITLE}..."
+	# get deb packages
+	PACKAGE="transmission"
+	_execute "apt-mark unhold transmission-cli"
+	_execute "apt-mark unhold transmission-common"
+	_execute "apt-mark unhold transmission-daemon"
+	cd /tmp || exit 1
+	if [[ ${version} == 2 ]]; then
+		DEBASE="transmission-common_2.94-1mod1_all.deb transmission-cli_2.94-1mod1_amd64.deb transmission-daemon_2.94-1mod1_amd64.deb"
+	elif [[ ${version} == 3 ]]; then
+		DEBASE="transmission-common_3.00-1mod1_all.deb transmission-cli_3.00-1mod1_amd64.deb transmission-daemon_3.00-1mod1_amd64.deb"
+	elif [[ ${version} == 4 ]]; then
+		DEBASE="transmission-common_4.0.6-1build1_amd64.deb transmission-cli_4.0.6-1build1_amd64.deb transmission-daemon_4.0.6-1build1_amd64.deb"
+	fi
+	for DEB in $DEBASE; do
+		_download ${PACKAGE} ${DEB}
+		_execute "apt-get -y --allow-unauthenticated --allow-downgrades -f install /tmp/${DEB}"
+		rm -rf /tmp/${DEB}
+	done
+	_execute "apt-mark hold transmission-cli"
+	_execute "apt-mark hold transmission-common"
+	_execute "apt-mark hold transmission-daemon"
+	_success "${APP_TITLE} is now update to date."
+}
+
+function _configureApp() {
+	_info "Updating ${APP_TITLE} alternative WebUI..."
+	_execute "systemctl disable transmission-daemon"
+	_execute "systemctl stop transmission-daemon"
+	sleep 2
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		_execute "systemctl disable ${APP_SERVICE}@${username}"
+		_execute "systemctl stop ${APP_SERVICE}@${username}"
+	done
+	# install enhancement WebUI
+	if [[ ${alt_webui} == "1" ]]; then
+		echo 1 | bash -c "$(wget -qO- https://github.com/ronggang/transmission-web-control/raw/master/release/install-tr-control.sh)" >>"${OUTTO}" 2>&1
+	elif [[ ${alt_webui} == "2" ]]; then
+		if [[ -f /install/.lang_zh.lock ]]; then
+			trguing_url=$(curl -s https://api.github.com/repos/jayzcoder/TrguiNG/releases/latest | jq -r '.assets[] | select(.name | match("^trguing-web-v[0-9]+\\.[0-9]+\\.[0-9]+-zh-[0-9a-z]+\\.zip$")) | .browser_download_url') >>"${OUTTO}" 2>&1
+		else
+			trguing_url=$(curl -s https://api.github.com/repos/openscopeproject/TrguiNG/releases/latest | jq -r '.assets[] | select(.name | match("^trguing-web-v[0-9]+\\.[0-9]+\\.[0-9]+\\.zip$")) | .browser_download_url') >>"${OUTTO}" 2>&1
+		fi
+		cd /opt || exit 1
+		wget -qO /opt/trgui.zip "${trguing_url}"
+		if [[ -d /opt/trgui ]]; then
+			rm -rf /opt/trgui
+		fi
+		mkdir /opt/trgui >>"${OUTTO}" 2>&1
+		unzip trgui.zip -d /opt/trgui >>"${OUTTO}" 2>&1
+	fi
+	cat >/etc/systemd/system/transmission@.service <<'TSD'
+[Unit]
+Description=Transmission BitTorrent Daemon
+After=network.target
+
+[Service]
+User=%I
+Type=simple
+LimitNOFILE=infinity
+TSD
+	if [[ ${alt_webui} == "2" ]]; then
+		echo "Environment=TRANSMISSION_WEB_HOME=/opt/trgui" >> /etc/systemd/system/transmission@.service
+	fi
+	cat >>/etc/systemd/system/transmission@.service <<'TSD'
+ExecStart=/usr/bin/transmission-daemon -f --log-error -g /home/%i/.config/transmission
+ExecReload=/bin/kill -s HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+TSD
+	_execute "systemctl daemon-reload"
+	_success "${APP_TITLE} configured."
+}
+
+function _installAppStart() {
+	_info "Starting ${APP_TITLE}..."
+	userlist=$(cat $(find /root/.qbuser/ -type f) | cut -d: -f1)
+	for username in $userlist; do
+		_execute "systemctl enable ${APP_SERVICE}@${username}"
+		_execute "systemctl start ${APP_SERVICE}@${username}"
+	done
+	_success "${APP_TITLE} started."
+}
+
+#################################################################################
+# OPT GENERATOR
+#################################################################################
+if ! ARGS=$(getopt -a -o hl:u:v: -l help,log:,version:,ui-only -- "$@")
+then
+    _usage
+    exit 1
+fi
+eval set -- "${ARGS}"
+while true; do
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 1
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	--ui-only)
+		ui_only=1
+		;;
+	-v | --version)
+		version="$2"
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
+done
+
+#################################################################################
+# MAIN PROCESS
+#################################################################################
+_lockCheck
+_setLock
+_updateInfo
+if [[ ${ui_only} == 0 ]]; then
+	_installSystemUpdates
+	_updateApp
+fi
+_configureApp
+_installAppStart
+_lockCleanup
