@@ -335,10 +335,8 @@ function _askchport() {
 }
 
 function _changeport() {
-	if [[ -e /etc/ssh/sshd_config ]]; then
-		sed -i "s/#*Port\s[0-9]*/Port $chport/g" /etc/ssh/sshd_config
-		service ssh restart >>"${OUTTO}" 2>&1
-	fi
+	echo "Port $chport" >>/etc/ssh/sshd_config.d/10-quickbox.conf
+	service ssh restart >>"${OUTTO}" 2>&1
 }
 
 function _askusrname() {
