@@ -173,9 +173,7 @@ function _main() {
 		fi
 		_info "pre-Loading TCP BBR ..."
 		[ ! -f /etc/sysctl.d/90-quickbox.conf ] && touch /etc/sysctl.d/90-quickbox.conf
-		sed -i '/net.core.default_qdisc.*/d' /etc/sysctl.d/90-quickbox.conf
 		sed -i '/net.ipv4.tcp_congestion_control.*/d' /etc/sysctl.d/90-quickbox.conf
-		echo "net.core.default_qdisc=fq" >>/etc/sysctl.d/90-quickbox.conf
 		echo "net.ipv4.tcp_congestion_control=bbr" >>/etc/sysctl.d/90-quickbox.conf
 	fi
 	if [[ $replacekernel == 1 ]]; then
