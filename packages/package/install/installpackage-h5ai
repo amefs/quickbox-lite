@@ -225,8 +225,9 @@ EOF
         if [[ ${lecert} == 0 ]]; then
         cat >/etc/nginx/sites-enabled/h5ai.conf <<EOF
 server {
-    listen              443 ssl http2;
-    listen              [::]:443 ssl http2;
+    listen              443 ssl;
+    listen              [::]:443 ssl;
+    http2               on;
     server_name         ${domain};
     root                ${target};
 
@@ -323,8 +324,9 @@ EOF
             sock='php7.4-fpm'
             cat >/etc/nginx/sites-enabled/h5ai.conf <<EOF
 server {
-    listen              443 ssl http2;
-    listen              [::]:443 ssl http2;
+    listen              443 ssl;
+    listen              [::]:443 ssl;
+    http2               on;
     server_name         ${domain};
     root                ${target};
 
@@ -423,8 +425,9 @@ EOF
 
             cat >/etc/nginx/sites-enabled/h5ai.conf <<EOF
 server {
-    listen              443 ssl http2;
-    listen              [::]:443 ssl http2;
+    listen              443 ssl;
+    listen              [::]:443 ssl;
+    http2               on;
     server_name         ${domain};
     root                ${target};
 
