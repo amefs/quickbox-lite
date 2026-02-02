@@ -74,6 +74,7 @@ $rules = [
     'single_quote' => true,
     // Whitespace
     'array_indentation' => true,
+    'no_useless_else' => false,
 ];
 
 $excludes = [

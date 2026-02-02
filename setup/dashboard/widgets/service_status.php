@@ -7,7 +7,7 @@ assert(isset($packageList));
 
 $service = $_GET['service'];
 
-$packageWithService = array_filter($packageList, function ($package) {
+$packageWithService = array_filter($packageList, static function ($package) {
     return isset($package['services']);
 });
 
