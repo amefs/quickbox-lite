@@ -3,7 +3,7 @@
 import express from "express";
 import http from "http";
 import { Server as socketio } from "socket.io";
-import ws from "ws";
+import { WebSocketServer } from "ws";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 
@@ -17,7 +17,7 @@ const app = express();
 app.set("trust proxy", true);
 
 const server = http.createServer(app);
-const io = new socketio(server, { wsEngine: ws.Server });
+const io = new socketio(server, { wsEngine: WebSocketServer });
 
 io.use(logHandler);
 io.use(messageHandler);
