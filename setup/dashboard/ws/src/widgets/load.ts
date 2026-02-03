@@ -1,5 +1,6 @@
 import os from "os";
 import si from "systeminformation";
+
 export const widgetsLoad = async () => {
     const loadavg = os.loadavg();
     const processes = await si.processes();

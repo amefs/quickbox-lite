@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOMServer from "react-dom/server";
 
 import { packageList } from "../info";
-import { processExists } from "../utils";
+import { processExists } from "../utils/helpers";
 
 const packageWithService = packageList.filter((pkg) => pkg.services !== undefined);
 

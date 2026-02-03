@@ -3,7 +3,7 @@
 import "mocha";
 import { expect } from "chai";
 
-import { CommandType, buildCommand } from "../src/handler/utils/command";
+import { CommandType, buildCommand } from "../../../src/handler/utils/command";
 
 const config = {
     "systemctl": {

@@ -5,7 +5,7 @@ import { expect } from "chai";
 import fs from "fs";
 import path from "path";
 
-import { getVnstatData } from "../src/utils/vnstat";
+import { getVnstatData } from "../../src/utils/vnstat";
 
 const dumpsDir = path.join(process.cwd(), "dumps");
 

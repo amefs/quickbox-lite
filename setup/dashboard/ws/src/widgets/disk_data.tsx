@@ -6,7 +6,7 @@ import fs from "fs/promises";
 
 import { username } from "../constant";
 import i18n from "../i18n";
-import { processExists, formatSize } from "../utils";
+import { processExists, formatSize } from "../utils/helpers";
 
 
 function getProgressColor(percent: number) {

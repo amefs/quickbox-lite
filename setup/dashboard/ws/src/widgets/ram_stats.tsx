@@ -3,7 +3,7 @@ import React from "react";
 import ReactDOMServer from "react-dom/server";
 import { toNumber } from "lodash";
 import i18n from "../i18n";
-import { formatSize } from "../utils";
+import { formatSize } from "../utils/helpers";
 
 function getRamColor(percent: number | string) {
     percent = toNumber(percent);

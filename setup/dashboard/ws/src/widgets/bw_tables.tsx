@@ -4,7 +4,7 @@ import ReactDOMServer from "react-dom/server";
 
 import i18n from "../i18n";
 import { getVnstatData, ParsedTrafficEntry, ParsedVnstatData } from "../utils/vnstat";
-import { formatSize, formatSpeed } from "../utils";
+import { formatSize, formatSpeed } from "../utils/helpers";
 
 function writeDataTable(caption: string, tab: ParsedTrafficEntry[]) {
 
