@@ -84,8 +84,8 @@ function renderFileSystem(data: si.Systeminformation.FsSizeData) {
 }
 
 async function renderTorrentInfo() {
-    const torrentElement = (title: string, loaded: number) => (
-        <div>
+    const torrentElement = (key: string, title: string, loaded: number) => (
+        <div key={key}>
             <h4>{i18n.t(title)}</h4>
             <p className="nomargin" dangerouslySetInnerHTML={{__html: i18n.t("TORRENTS_LOADED", {loaded})}}></p>
         </div>
@@ -95,22 +95,22 @@ async function renderTorrentInfo() {
 
     if (await processExists("rtorrent", username) && await exists("/install/.rtorrent.lock")) {
         const rtorrents = await countTorrent(`/home/${username}/.sessions/`);
-        ret.push(torrentElement("RTORRENTS_TITLE", rtorrents));
+        ret.push(torrentElement("rtorrent", "RTORRENTS_TITLE", rtorrents));
     }
     if (await processExists("deluge-web", username) && await exists("/install/.deluge.lock")) {
         const dtorrents = await countTorrent(`/home/${username}/.config/deluge/state/`);
-        ret.push(torrentElement("DTORRENTS_TITLE", dtorrents));
+        ret.push(torrentElement("deluge", "DTORRENTS_TITLE", dtorrents));
     }
     if (await processExists("transmission-daemon", username) && await exists("/install/.transmission.lock")) {
         const transtorrents = await countTorrent(`/home/${username}/.config/transmission/torrents/`);
-        ret.push(torrentElement("TRTORRENTS_TITLE", transtorrents));
+        ret.push(torrentElement("transmission", "TRTORRENTS_TITLE", transtorrents));
     }
     if (await processExists("qbittorrent-nox", username) && await exists("/install/.qbittorrent.lock")) {
         const path = existsSync(`/home/${username}/.local/share/data/qBittorrent`) ?
             `/home/${username}/.local/share/data/qBittorrent/BT_backup` :
             `/home/${username}/.local/share/qBittorrent/BT_backup`;
         const qtorrents = await countTorrent(path);
-        ret.push(torrentElement("QTORRENTS_TITLE", qtorrents));
+        ret.push(torrentElement("qbittorrent", "QTORRENTS_TITLE", qtorrents));
     }
 
     return (
