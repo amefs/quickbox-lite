@@ -167,10 +167,17 @@
     id: undefined,
     override: function (dataJSON) {
       function formatsize (length) {
-        const value = isNaN(length) ? 0 : length;
         const suffixList = ["B/s", "KB/s", "MB/s", "GB/s", "TB/s"];
-        const idx = Math.min(Math.max(Math.floor(Math.log2(value) / 10), 0), suffixList.length - 1);
-        return (value / Math.pow(2, idx * 10)).toFixed(idx > 0 ? 2 : 0).toString() + " " + suffixList[idx];
+        let numeric = Number(length);
+        if (!isFinite(numeric) || numeric <= 0) {
+          return "0 B/s";
+        }
+        let idx = 0;
+        while (numeric >= 1024 && idx < suffixList.length - 1) {
+          numeric /= 1024;
+          ++idx;
+        }
+        return numeric.toFixed(idx > 0 ? 2 : 0) + " " + suffixList[idx];
       }
 
       if (window.ts === undefined || window.net === undefined) {
