@@ -829,7 +829,7 @@ function _insngx() {
 function _insnodejs() {
 	# install Nodejs for background service
 	cd /tmp || exit 1
-	curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh
+	curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh
 	bash nodesource_setup.sh >>"${OUTTO}" 2>&1
 	exitstatus=$?
 	counter=0
