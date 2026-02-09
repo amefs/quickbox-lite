@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import fs from "fs";
-
 import Constant from "../../constant";
 import { WatchedConfig } from "../../watchedConfig";
 
@@ -11,19 +9,6 @@ export type CommandType = Record<string, {
     operations: string[];
     targets: string[];
 } | undefined>;
-
-/**
- * get file list from given directory
- * @param dir directory path
- */
-export function getFiles(dir: string): string[] {
-    const files: string[] = [];
-    if (!fs.existsSync(dir)) {
-        return files;
-    }
-    return fs.readdirSync(dir, { withFileTypes: true })
-        .filter(file => file.isFile()).map(file => file.name);
-}
 
 /**
  * validate and build command
@@ -56,7 +41,7 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
     if (template.includes(Constant.TEMPLATE_OPERATION)) {
         const configOperation = commandConfig.operations.find(value => value === operation);
         if (configOperation !== undefined) {
-            template = template.replace(Constant.TEMPLATE_OPERATION, configOperation);
+            template = template.replaceAll(Constant.TEMPLATE_OPERATION, configOperation);
         } else {
             throw new Error(`Operation '${operation}' not found`);
         }
@@ -70,7 +55,7 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
     if (template.includes(Constant.TEMPLATE_TARGET)) {
         const configTarget = commandConfig.targets.find(value => value === target || value === target + `@${Constant.TEMPLATE_USERNAME}`);
         if (configTarget !== undefined) {
-            template = template.replace(Constant.TEMPLATE_TARGET, configTarget);
+            template = template.replaceAll(Constant.TEMPLATE_TARGET, configTarget);
         } else {
             throw new Error(`Target '${target}' not found`);
         }
@@ -85,7 +70,7 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
         if (!username) {
             throw new Error(`Invalid username with type '${Object.prototype.toString.call(username)}'`);
         }
-        template = template.replace(Constant.TEMPLATE_USERNAME, username);
+        template = template.replaceAll(Constant.TEMPLATE_USERNAME, username);
     }
 
     // check template status, no place holder should exist

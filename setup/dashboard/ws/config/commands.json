@@ -1,5 +1,5 @@
 {
-    "command-example": ["systemctl:start:nginx", "installapckage::deluge", "box:clean:log"],
+    "command-example": ["systemctl:start:nginx", "installpackage::deluge", "box:clean:log"],
     "systemctl": {
         "template": "systemctl $operation$ $target$",
         "operations": ["enable", "start", "stop" , "disable", "restart", "status"],
@@ -26,6 +26,6 @@
     "ping": {
         "template": "printf pong",
         "operations": [],
-        "target": []
+        "targets": []
     }
 }

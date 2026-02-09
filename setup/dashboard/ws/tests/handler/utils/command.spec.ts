@@ -72,9 +72,9 @@ describe("exec", () => {
             expect(() => { buildCommand("installpackage:error:btsync", config, username); })
                 .to.throw(Error, "Unexpected operation 'error' is provided");
         });
-        it("should throw invalid template", () => {
-            expect(() => { buildCommand("multi-target::target", config, username); })
-                .to.throw(Error, /Invalid template/);
+        it("should build with multiple target placeholders", () => {
+            expect(buildCommand("multi-target::target", config, username))
+                .to.equal("multi target target");
         });
         it("should throw error for unexpected target", () => {
             expect(() => { buildCommand("no-operation-target::target", config, username); })

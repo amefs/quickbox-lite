@@ -6,13 +6,11 @@ export class WatchedConfig<T> {
     private path: string;
     private encoding: BufferEncoding;
 
-    private timestamp: Date;
     private config: T;
 
     public constructor(path: string, encoding: BufferEncoding = "utf-8") {
         this.path = path;
         this.encoding = encoding;
-        this.timestamp = new Date();
         this.config = {} as T;
 
         this.loadConfig();
@@ -24,15 +22,18 @@ export class WatchedConfig<T> {
     }
 
     private loadConfig() {
-        this.config = JSON.parse(readFileSync(this.path).toString(this.encoding)) as T;
+        try {
+            this.config = JSON.parse(readFileSync(this.path).toString(this.encoding)) as T;
+        } catch (err) {
+            console.error(`Failed to load config from ${this.path}`, err);
+        }
     }
 
     private watch() {
         watchFile(this.path, (curr, prev) => {
             if (curr.mtime > prev.mtime) {
-                this.timestamp = curr.mtime;
                 this.loadConfig();
-                console.log(`Config reloaded at ${new Date()}`);
+                console.log(`Config reloaded at ${new Date().toISOString()}`);
             }
         });
     }

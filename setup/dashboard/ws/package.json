@@ -2,7 +2,7 @@
   "name": "quickbox-ws",
   "version": "1.0.0",
   "description": "QuickBox Status Update WebSocket Interface",
-  "main": "server.ts",
+  "main": "dist/server.js",
   "scripts": {
     "build": "webpack --config build/webpack.config.js",
     "test": "mocha -r tsx --extensions ts 'tests/**/*.{mts,ts}'",

@@ -6,8 +6,10 @@ const WebpackBar = require("webpackbar");
 const TerserPlugin = require("terser-webpack-plugin");
 const ESLintPlugin = require('eslint-webpack-plugin');
 
+const mode = "production";
+
 module.exports = {
-    mode: "production",
+    mode,
     target: "node",
     node: {
         __dirname: false,
@@ -27,7 +29,7 @@ module.exports = {
             }),
         ],
     },
-    devtool: this.mode === "development" ? "source-map" : false,
+    devtool: mode === "development" ? "source-map" : false,
     module: {
         rules: [
             {

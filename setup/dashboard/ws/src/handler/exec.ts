@@ -23,7 +23,7 @@ while (lookupDepth-- > 0) {
     baseDir = path.join(baseDir, "..");
 }
 if (!configPath) {
-    console.error("commonds.json not found for quickbox-ws");
+    console.error("commands.json not found for quickbox-ws");
 }
 
 const config = new WatchedConfig<CommandType>(configPath);

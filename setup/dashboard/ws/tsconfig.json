@@ -1,14 +1,12 @@
 {
     "compilerOptions": {
-        "target": "ES6",
+        "target": "ES2022",
         "module": "commonjs",
         "moduleResolution": "node",
         "isolatedModules": false,
         "allowJs": true,
         "sourceMap": true,
         "jsx": "react",
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
         "declaration": false,
         "strict": true,
         "noImplicitAny": true,

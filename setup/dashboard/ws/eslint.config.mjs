@@ -32,7 +32,7 @@ export default defineConfig(
         ...globals.browser,
         ...globals.node,
       },
-      ecmaVersion: 5,
+      ecmaVersion: 2022,
       sourceType: "module",
       parserOptions: {
         // projectService: true,
