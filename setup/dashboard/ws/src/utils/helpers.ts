@@ -1,9 +1,16 @@
 import si from "systeminformation";
 
+export async function getProcessList() {
+    return (await si.processes()).list;
+}
+
+export function processExistsIn(processList: si.Systeminformation.ProcessesProcessData[], processName: string, username: string) {
+    return processList.some((process) => process.name === processName && process.user === username);
+}
+
 export async function processExists(processName: string, username: string) {
-    const processes = await si.processes();
-    const idx = processes.list.findIndex((process) => process.name === processName && process.user === username);
-    return idx !== -1;
+    const processList = await getProcessList();
+    return processExistsIn(processList, processName, username);
 }
 
 export function formatSize(length: number) {

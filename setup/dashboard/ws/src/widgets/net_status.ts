@@ -9,10 +9,11 @@ async function enuminterface() {
 export const netStatus = async () => {
     const interfaces = await enuminterface();
     const ret: Record<string, {rx_bytes: number; tx_bytes: number}> = {};
-    for(const iface of interfaces) {
-        const stats = await si.networkStats(iface);
+    const statsResults = await Promise.all(interfaces.map(iface => si.networkStats(iface)));
+    for (let i = 0; i < interfaces.length; i++) {
+        const stats = statsResults[i];
         if (stats.length > 0) {
-            ret[iface] = {
+            ret[interfaces[i]] = {
                 rx_bytes: stats[0].rx_bytes,
                 tx_bytes: stats[0].tx_bytes,
             };

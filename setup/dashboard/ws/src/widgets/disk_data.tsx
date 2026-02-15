@@ -6,7 +6,7 @@ import fs from "fs/promises";
 
 import { username } from "../constant";
 import i18n from "../i18n";
-import { processExists, formatSize } from "../utils/helpers";
+import { getProcessList, processExistsIn, formatSize } from "../utils/helpers";
 
 
 function getProgressColor(percent: number) {
@@ -92,25 +92,47 @@ async function renderTorrentInfo() {
     );
 
     const ret: React.JSX.Element[] = [];
+    const processList = await getProcessList();
 
-    if (await processExists("rtorrent", username) && await exists("/install/.rtorrent.lock")) {
-        const rtorrents = await countTorrent(`/home/${username}/.sessions/`);
-        ret.push(torrentElement("rtorrent", "RTORRENTS_TITLE", rtorrents));
-    }
-    if (await processExists("deluge-web", username) && await exists("/install/.deluge.lock")) {
-        const dtorrents = await countTorrent(`/home/${username}/.config/deluge/state/`);
-        ret.push(torrentElement("deluge", "DTORRENTS_TITLE", dtorrents));
-    }
-    if (await processExists("transmission-daemon", username) && await exists("/install/.transmission.lock")) {
-        const transtorrents = await countTorrent(`/home/${username}/.config/transmission/torrents/`);
-        ret.push(torrentElement("transmission", "TRTORRENTS_TITLE", transtorrents));
-    }
-    if (await processExists("qbittorrent-nox", username) && await exists("/install/.qbittorrent.lock")) {
-        const path = existsSync(`/home/${username}/.local/share/data/qBittorrent`) ?
-            `/home/${username}/.local/share/data/qBittorrent/BT_backup` :
-            `/home/${username}/.local/share/qBittorrent/BT_backup`;
-        const qtorrents = await countTorrent(path);
-        ret.push(torrentElement("qbittorrent", "QTORRENTS_TITLE", qtorrents));
+    const checks = [
+        {
+            key: "rtorrent",
+            process: "rtorrent",
+            lock: "/install/.rtorrent.lock",
+            title: "RTORRENTS_TITLE",
+            path: `/home/${username}/.sessions/`,
+        },
+        {
+            key: "deluge",
+            process: "deluge-web",
+            lock: "/install/.deluge.lock",
+            title: "DTORRENTS_TITLE",
+            path: `/home/${username}/.config/deluge/state/`,
+        },
+        {
+            key: "transmission",
+            process: "transmission-daemon",
+            lock: "/install/.transmission.lock",
+            title: "TRTORRENTS_TITLE",
+            path: `/home/${username}/.config/transmission/torrents/`,
+        },
+        {
+            key: "qbittorrent",
+            process: "qbittorrent-nox",
+            lock: "/install/.qbittorrent.lock",
+            title: "QTORRENTS_TITLE",
+            path: existsSync(`/home/${username}/.local/share/data/qBittorrent`)
+                ? `/home/${username}/.local/share/data/qBittorrent/BT_backup`
+                : `/home/${username}/.local/share/qBittorrent/BT_backup`,
+        },
+    ];
+
+    const lockChecks = await Promise.all(checks.map(c => exists(c.lock)));
+    const activeClients = checks.filter((c, i) => lockChecks[i] && processExistsIn(processList, c.process, username));
+    const torrentCounts = await Promise.all(activeClients.map(c => countTorrent(c.path)));
+
+    for (let i = 0; i < activeClients.length; i++) {
+        ret.push(torrentElement(activeClients[i].key, activeClients[i].title, torrentCounts[i]));
     }
 
     return (
@@ -120,12 +142,73 @@ async function renderTorrentInfo() {
     );
 }
 
+const MINIMUM_DISK_SIZE = 1 << 30; // 1GB
+
+const LINUX_TMP_FILESYSTEMS = [
+    "rootfs",
+    "unionfs",
+    "squashfs",
+    "cramfs",
+    "initrd",
+    "initramfs",
+    "devtmpfs",
+    "tmpfs",
+    "udev",
+    "devfs",
+    "specfs",
+    "type",
+    "appimaged",
+    // 额外的容器/虚拟文件系统
+    "overlay",
+    "aufs",
+    "proc",
+    "sysfs",
+    "cgroup",
+    "nsfs",
+];
+
+const EXCLUDED_MOUNT_PREFIXES = [
+    "/var/lib/docker/",
+    "/snap/",
+    "/run/",
+    "/dev",
+    "/sys",
+    "/proc",
+    "/var/lib/kubelet/",
+    "/run/containerd/",
+    "/var/lib/containers/",
+];
+
+function isLinuxTmpFs(fs: string): boolean {
+    const fsLower = fs.toLowerCase();
+    return LINUX_TMP_FILESYSTEMS.some(tmpFs => fsLower.includes(tmpFs));
+}
+
+function shouldShowFileSystem(fs: si.Systeminformation.FsSizeData): boolean {
+    if (fs.size < MINIMUM_DISK_SIZE) {
+        return false;
+    }
+
+    if (isLinuxTmpFs(fs.type)) {
+        return false;
+    }
+
+    const mountLower = fs.mount.toLowerCase();
+    if (EXCLUDED_MOUNT_PREFIXES.some(prefix => mountLower.startsWith(prefix))) {
+        return false;
+    }
+
+    return true;
+}
+
 export async function diskData() {
     const fsData = await si.fsSize();
+    const filteredFsData = fsData.filter(shouldShowFileSystem);
+    
     return ReactDOMServer.renderToString(
         <div>
-            {fsData.filter(data => data.size > 1<<30 && !data.mount.startsWith("/var/lib/docker/overlay")).map(renderFileSystem)}
+            {filteredFsData.map(renderFileSystem)}
             {await renderTorrentInfo()}
-        </div>
+        </div>,
     );
 }

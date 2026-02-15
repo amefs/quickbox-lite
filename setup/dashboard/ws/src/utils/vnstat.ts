@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 // SPDX-License-Identifier: GPL-3.0-or-later
 import fs from "fs";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { sortBy } from "lodash";
 
 interface VnstatData {
@@ -107,7 +107,7 @@ async function loadVnstatData(iface: string): Promise<VnstatData | undefined> {
         }
         return undefined;
     }
-    return JSON.parse(await execAsync(`${VNSTAT_BIN} --json -i ${iface}`)) as VnstatData;
+    return JSON.parse(await execAsync(VNSTAT_BIN, ["--json", "-i", iface])) as VnstatData;
 }
 
 const selectInterface = (vnstatData: VnstatData, iface: string) =>
@@ -242,13 +242,18 @@ const buildSummary = (trafficData: TrafficData, ifaceData: InterfaceData, dataCo
     };
 };
 
-function execAsync(cmd: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        exec(cmd, (error, stdout, stderr) => {
+function execAsync(cmd: string, args: string[]): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+        execFile(cmd, args, (error, stdout, stderr) => {
             if (error) {
-                reject(error);
+                reject(error as Error);
+                return;
             }
-            resolve(stdout? stdout : stderr);
+            if (stderr) {
+                reject(new Error(stderr));
+                return;
+            }
+            resolve(stdout);
         });
     });
 }

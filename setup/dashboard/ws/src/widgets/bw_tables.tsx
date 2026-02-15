@@ -121,6 +121,6 @@ export async function bwTables(iface: string, page: "h"|"d"|"m"|"t"|undefined) {
             <div className="col-sm-12" style={{ paddingLeft: 0, paddingRight: 0 }}>
                 <div className="table-responsive">{renderDataTable()}</div>
             </div>
-        </div>
+        </div>,
     );
 }
