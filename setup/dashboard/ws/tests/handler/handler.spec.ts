@@ -6,7 +6,6 @@ import { expect } from "chai";
 import logHandler from "../../src/handler/log";
 import i18nHandler from "../../src/handler/i18n";
 import Constant from "../../src/constant";
-import i18n from "../../src/i18n";
 
 describe("handler/log", () => {
     it("registers disconnect event and calls next", () => {
@@ -34,21 +33,19 @@ describe("handler/log", () => {
 });
 
 describe("handler/i18n", () => {
-    it("updates locale when EVENT_I18N fires", () => {
-        const previousLocale = i18n.locale;
+    it("ignores invalid locale values", () => {
         const listeners: Record<string, (value: string) => void> = {};
+        const clientData: Record<string, unknown> = {};
         const mockClient = {
-            id: "client-2",
+            id: "client-3",
+            data: clientData,
             on(event: string, cb: (value: string) => void) {
                 listeners[event] = cb;
             },
         };
 
         i18nHandler(mockClient as never);
-        listeners[Constant.EVENT_I18N]("zh");
-        expect(i18n.locale).to.equal("zh");
-
-        // reset locale to avoid leaking changes to other tests
-        i18n.locale = previousLocale;
+        listeners[Constant.EVENT_I18N]("../../malicious");
+        expect(clientData["locale"]).to.equal(undefined);
     });
 });

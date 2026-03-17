@@ -36,6 +36,12 @@ app.get("/", (req, res) => {
 });
 
 app.get("/set", (req, res) => {
+    const remoteAddr = req.ip ?? "";
+    const isLocal = remoteAddr === "127.0.0.1" || remoteAddr === "::1" || remoteAddr === "::ffff:127.0.0.1";
+    if (!isLocal) {
+        res.status(403).send("Forbidden");
+        return;
+    }
     const lang = req.query.lang;
     if (typeof lang === "string") {
         i18n.locale = lang;

@@ -214,7 +214,10 @@ function GetCpuPercentages($stat1, $stat2) {
  */
 function processExists($processName, $username) {
     $exists = false;
-    exec("ps axo user:20,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,comm,cmd | grep {$username} | grep -iE {$processName} | grep -v grep", $pids);
+    exec("ps axo user:20,pid,pcpu,pmem,vsz,rss,tty,stat,start,time,comm,cmd"
+        . " | grep " . escapeshellarg($username)
+        . " | grep -iE " . escapeshellarg($processName)
+        . " | grep -v grep", $pids);
     if (count($pids) > 0) {
         $exists = true;
     }

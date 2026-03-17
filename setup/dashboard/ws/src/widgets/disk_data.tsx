@@ -1,4 +1,5 @@
-import si from "systeminformation";
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 import { existsSync } from "fs";
@@ -7,6 +8,7 @@ import fs from "fs/promises";
 import { username } from "../constant";
 import i18n from "../i18n";
 import { getProcessList, processExistsIn, formatSize } from "../utils/helpers";
+import { type FsSizeData, filterDisplayedFileSystems, getFsSize } from "../utils/disk";
 
 
 function getProgressColor(percent: number) {
@@ -51,8 +53,7 @@ async function exists(path: string) {
     }
 }
 
-
-function renderFileSystem(data: si.Systeminformation.FsSizeData) {
+function renderFileSystem(data: FsSizeData) {
     const diskcolor = getProgressColor(data.use);
     const diskclass = getDiskClass(data.use);
     return (
@@ -142,68 +143,9 @@ async function renderTorrentInfo() {
     );
 }
 
-const MINIMUM_DISK_SIZE = 1 << 30; // 1GB
-
-const LINUX_TMP_FILESYSTEMS = [
-    "rootfs",
-    "unionfs",
-    "squashfs",
-    "cramfs",
-    "initrd",
-    "initramfs",
-    "devtmpfs",
-    "tmpfs",
-    "udev",
-    "devfs",
-    "specfs",
-    "type",
-    "appimaged",
-    // 额外的容器/虚拟文件系统
-    "overlay",
-    "aufs",
-    "proc",
-    "sysfs",
-    "cgroup",
-    "nsfs",
-];
-
-const EXCLUDED_MOUNT_PREFIXES = [
-    "/var/lib/docker/",
-    "/snap/",
-    "/run/",
-    "/dev",
-    "/sys",
-    "/proc",
-    "/var/lib/kubelet/",
-    "/run/containerd/",
-    "/var/lib/containers/",
-];
-
-function isLinuxTmpFs(fs: string): boolean {
-    const fsLower = fs.toLowerCase();
-    return LINUX_TMP_FILESYSTEMS.some(tmpFs => fsLower.includes(tmpFs));
-}
-
-function shouldShowFileSystem(fs: si.Systeminformation.FsSizeData): boolean {
-    if (fs.size < MINIMUM_DISK_SIZE) {
-        return false;
-    }
-
-    if (isLinuxTmpFs(fs.type)) {
-        return false;
-    }
-
-    const mountLower = fs.mount.toLowerCase();
-    if (EXCLUDED_MOUNT_PREFIXES.some(prefix => mountLower.startsWith(prefix))) {
-        return false;
-    }
-
-    return true;
-}
-
 export async function diskData() {
-    const fsData = await si.fsSize();
-    const filteredFsData = fsData.filter(shouldShowFileSystem);
+    const fsData = await getFsSize();
+    const filteredFsData = filterDisplayedFileSystems(fsData);
     
     return ReactDOMServer.renderToString(
         <div>
