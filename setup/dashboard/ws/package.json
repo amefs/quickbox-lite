@@ -9,7 +9,7 @@
     "check-type": "tsc --noemit",
     "eslint": "eslint .",
     "lint": "npm run check-type && npm run eslint",
-    "test/server": "tsx src/server.tsx",
+    "test/server": "tsx watch src/server.tsx",
     "test/client": "tsx tests/client.js",
     "audit": "npm audit --registry=https://registry.npmjs.org",
     "upgrade": "npx npm-check-updates -i"

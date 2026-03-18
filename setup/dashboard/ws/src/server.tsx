@@ -2,16 +2,18 @@
 
 import express from "express";
 import http from "http";
+import path from "path";
 import { Server as socketio } from "socket.io";
 import { WebSocketServer } from "ws";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 
 import logHandler from "./handler/log";
-import messageHandler from "./handler/message";
+import messageHandler, { resolveWidget } from "./handler/message";
 import execHandler from "./handler/exec";
 import i18nHandler from "./handler/i18n";
 import i18n from "./i18n";
+import { DebugPage } from "./debug";
 
 const app = express();
 app.set("trust proxy", true);
@@ -50,6 +52,27 @@ app.get("/set", (req, res) => {
     }
     res.send(i18n.locale);
 });
+
+if (process.env.NODE_ENV !== "production") {
+    const dashboardDir = path.resolve(__dirname, "..", "..");
+    app.use("/debug/assets/skins", express.static(path.join(dashboardDir, "skins")));
+    app.use("/debug/assets/lib", express.static(path.join(dashboardDir, "lib")));
+    app.use("/debug/assets/fonts", express.static(path.join(dashboardDir, "fonts")));
+
+    app.get("/debug/node", async (req, res) => {
+        const url = req.query.url;
+        if (typeof url !== "string" || !url) {
+            res.status(400).json({ error: "url query param required, e.g. /debug/node?url=/node/up.php" });
+            return;
+        }
+        const result = await resolveWidget(url);
+        res.send(result);
+    });
+
+    app.get("/debug", (_req, res) => {
+        res.send(ReactDOMServer.renderToString(<DebugPage />));
+    });
+}
 
 server.listen(8575, "127.0.0.1", () => {
     console.log("Quickbox-ws running...");

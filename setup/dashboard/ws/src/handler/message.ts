@@ -12,6 +12,7 @@ import { diskData } from "../widgets/disk_data";
 import { ramStats } from "../widgets/ram_stats";
 import { getIfaceConfig } from "../utils/vnstat";
 import { bwTables } from "../widgets/bw_tables";
+import { serviceStatus } from "../widgets/service_status";
 
 interface Payload {
     key: string;
@@ -47,6 +48,28 @@ const parseUrl = (url: string) => {
 };
 
 
+export const resolveWidget = async (url: string): Promise<string|object> => {
+    const req = parseUrl(url);
+    switch (req.pathname) {
+        case "/node/load.php":
+            return await widgetsLoad();
+        case "/node/net_status.php":
+            return await netStatus();
+        case "/node/up.php":
+            return upTime();
+        case "/node/disk_data.php":
+            return await diskData();
+        case "/node/ram_stats.php":
+            return await ramStats();
+        case "/node/bw_tables.php":
+            return await bwTables(iface, req.args["page"] as "h"|"d"|"m"|"t");
+        case "/node/service_status.php":
+            return await serviceStatus(req.args["service"]);
+        default:
+            return (await afetch.get(req.pathname, { params: req.args })).data as object;
+    }
+};
+
 const messageHandler = async (payload: Payload, client: Socket) => {
     const ret: {
         key: string;
@@ -62,30 +85,7 @@ const messageHandler = async (payload: Payload, client: Socket) => {
         response: "",
     };
     try {
-        const req = parseUrl(payload.url);
-        switch (req.pathname) {
-            case "/node/load.php":
-                ret.response = await widgetsLoad();
-                break;
-            case "/node/net_status.php":
-                ret.response = await netStatus();
-                break;
-            case "/node/up.php":
-                ret.response = upTime();
-                break;
-            case "/node/disk_data.php":
-                ret.response = await diskData();
-                break;
-            case "/node/ram_stats.php":
-                ret.response = await ramStats();
-                break;
-            case "/node/bw_tables.php":
-                ret.response = await bwTables(iface, req.args["page"] as "h"|"d"|"m"|"t");
-                break;
-            default:
-                ret.response = (await afetch.get(req.pathname, { params: req.args })).data;
-                break;
-        }
+        ret.response = await resolveWidget(payload.url);
     } catch (error) {
         ret.message = error instanceof Error ? error.toString() : "Unknown error";
         ret.success = false;
