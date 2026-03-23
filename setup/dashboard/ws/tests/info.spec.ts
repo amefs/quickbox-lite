@@ -69,4 +69,32 @@ describe("info", () => {
             expect(result).to.be.null;
         });
     });
+
+    // A6: replaceAll — no field in the loaded info should still contain raw "$username$" placeholder
+    describe("username placeholder replacement", () => {
+        it("should replace all $username$ placeholders in lockfile fields", () => {
+            for (const pkg of packageList) {
+                if (pkg.lockfile) {
+                    expect(pkg.lockfile).to.not.include("$username$",
+                        `lockfile of '${pkg.package}' still contains $username$`);
+                }
+            }
+        });
+
+        it("should replace all $username$ placeholders in service username fields", () => {
+            for (const [key, service] of serviceMap) {
+                expect(service.username).to.not.include("$username$",
+                    `service '${key}' username still contains $username$`);
+            }
+        });
+
+        it("should replace all $username$ placeholders in service tooltips fields", () => {
+            for (const [key, service] of serviceMap) {
+                if (service.tooltips) {
+                    expect(service.tooltips).to.not.include("$username$",
+                        `service '${key}' tooltips still contains $username$`);
+                }
+            }
+        });
+    });
 });

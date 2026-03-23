@@ -32,15 +32,15 @@ export const serviceMap = new Map<string, ServiceDetail>();
 
 for (const pkg of pkgList as Service[]) {
     if (pkg.lockfile && pkg.lockfile.includes("$username$")) {
-        pkg.lockfile = pkg.lockfile.replace("$username$", username);
+        pkg.lockfile = pkg.lockfile.replaceAll("$username$", username);
     }
     if (pkg.services) {
         for (const [key, service] of Object.entries(pkg.services)) {
             if (service.username && service.username.includes("$username$")) {
-                service.username = service.username.replace("$username$", username);
+                service.username = service.username.replaceAll("$username$", username);
             }
             if (service.tooltips && service.tooltips.includes("$username$")) {
-                service.tooltips = service.tooltips.replace("$username$", username);
+                service.tooltips = service.tooltips.replaceAll("$username$", username);
             }
             serviceMap.set(key, service);
         }

@@ -54,7 +54,7 @@ function writeSummary(data: ParsedVnstatData) {
 
     const trx = data.summary.totalrx;
     const ttx = data.summary.totaltx;
-    const ttime = Math.floor(Date.now() / 1000) - data.summary.created;
+    const ttime = Math.max(1, Math.floor(Date.now() / 1000) - data.summary.created);
     const trx_avg = Math.round(trx / ttime) * 8;
     const ttx_avg = Math.round(ttx / ttime) * 8;
 

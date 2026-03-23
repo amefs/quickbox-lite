@@ -145,4 +145,56 @@ describe("widgets/bw_tables", () => {
         expect(result).to.include("text-success");
         expect(result).to.include("text-primary");
     });
+
+    // A3: writeSummary divide-by-zero — created = today → ttime could be 0 at midnight
+    it("should render summary without 'Infinity' when created date is today", async () => {
+        const now = new Date();
+        const todayFixture = {
+            vnstatversion: "2.10",
+            jsonversion: "2",
+            interfaces: [
+                {
+                    name: testIface,
+                    alias: "",
+                    created: {
+                        date: { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() },
+                        time: { hour: 0, minute: 0 },
+                    },
+                    updated: {
+                        date: { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() },
+                        time: { hour: now.getHours(), minute: 0 },
+                    },
+                    traffic: {
+                        total: { rx: 1024, tx: 512 },
+                        fiveminute: [],
+                        hour: [{
+                            id: 0,
+                            date: { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() },
+                            time: { hour: Math.max(0, now.getHours() - 1), minute: 0 },
+                            rx: 1024,
+                            tx: 512,
+                        }],
+                        day: [{
+                            id: 0,
+                            date: { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() },
+                            rx: 1024,
+                            tx: 512,
+                        }],
+                        month: [{
+                            id: 0,
+                            date: { year: now.getFullYear(), month: now.getMonth() + 1 },
+                            rx: 1024,
+                            tx: 512,
+                        }],
+                        top: [],
+                    },
+                },
+            ],
+        };
+        fs.writeFileSync(dumpPath, JSON.stringify(todayFixture), "utf8");
+        const result = await bwTables(testIface, undefined);
+        expect(result).to.be.a("string");
+        expect(result).to.not.include("Infinity");
+        expect(result).to.not.include("NaN");
+    });
 });

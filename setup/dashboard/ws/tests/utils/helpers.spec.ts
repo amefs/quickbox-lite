@@ -50,6 +50,13 @@ describe("utils/helpers", () => {
         it("should cap at maximum suffix (YB)", () => {
             expect(formatSize(Math.pow(1024, 10))).to.match(/\d+\.\d+\s+YB/);
         });
+
+        // A1: negative values should return "0 B" rather than "NaN undefined"
+        it("should return '0 B' for negative values", () => {
+            expect(formatSize(-1)).to.equal("0 B");
+            expect(formatSize(-100)).to.equal("0 B");
+            expect(formatSize(-1e9)).to.equal("0 B");
+        });
     });
 
     describe("formatSpeed", () => {
@@ -86,6 +93,19 @@ describe("utils/helpers", () => {
         it("should respect startWith parameter for unit offset", () => {
             expect(formatSpeed(1024 * 1024, 2, 1)).to.equal("1.00 Gbps");
             expect(formatSpeed(1, 2, 1)).to.equal("1.00 Kbps");
+        });
+
+        // A2: Infinity and extreme values should not produce "undefined" in output
+        it("should not return 'undefined' for Infinity or extreme values", () => {
+            const result = formatSpeed(Infinity);
+            expect(result).to.not.include("undefined");
+            expect(result).to.be.a("string");
+        });
+
+        it("should cap unit at Ybps for extreme values", () => {
+            const result = formatSpeed(Math.pow(1024, 10));
+            expect(result).to.include("Ybps");
+            expect(result).to.not.include("undefined");
         });
 
         it("should format high-order units", () => {

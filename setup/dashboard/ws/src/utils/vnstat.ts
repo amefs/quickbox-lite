@@ -138,7 +138,7 @@ const buildHourEntries = (
         const d = todayHourData[i];
         const hours = jsonVersion === "1" ? d.id : d.time?.hour;
         const ts = new Date(d.date.year, (d.date.month as number) - 1, d.date.day, hours ?? 0, 0, 0);
-        const diffTime = Math.min((Date.now() - ts.getTime()) / 1000, 3600); // at most one hour
+        const diffTime = Math.max(1, Math.min((Date.now() - ts.getTime()) / 1000, 3600)); // at most one hour, at least 1s to avoid division by zero
         const rx = d.rx * dataCoefficient;
         const tx = d.tx * dataCoefficient;
 
@@ -250,8 +250,7 @@ function execAsync(cmd: string, args: string[]): Promise<string> {
                 return;
             }
             if (stderr) {
-                reject(new Error(stderr));
-                return;
+                console.warn("vnstat stderr:", stderr);
             }
             resolve(stdout);
         });
