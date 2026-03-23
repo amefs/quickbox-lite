@@ -288,6 +288,10 @@ export function getIfaceConfig() {
         console.error("Interface info not found, use eth0 instead");
         return "eth0";
     }
-    const config = fs.readFileSync(configPath, "utf8");
-    return config.trim();
+    const config = fs.readFileSync(configPath, "utf8").trim();
+    if (!/^[a-zA-Z0-9._-]+$/.test(config)) {
+        console.warn(`Invalid interface name '${config}', use eth0 instead`);
+        return "eth0";
+    }
+    return config;
 }

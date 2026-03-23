@@ -2,8 +2,7 @@
 
 import Constant from "../constant";
 import { Socket } from "socket.io";
-import i18n from "../i18n";
-const VALID_LOCALES = ["en", "zh", "de", "da", "fr", "es"];
+import i18n, { VALID_LOCALES } from "../i18n";
 
 export default (client: Socket, next?: (err?: Error) => void) => {
     client.on(Constant.EVENT_I18N, (locale) => {

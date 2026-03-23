@@ -7,13 +7,8 @@ import es from "../lang/lang_es.json";
 import fr from "../lang/lang_fr.json";
 import zh from "../lang/lang_zh-Hans-CN.json";
 
-const i18n = new I18n({
-    da,
-    de,
-    en,
-    es,
-    fr,
-    zh,
-});
+const translations = { da, de, en, es, fr, zh };
+const i18n = new I18n(translations);
 
+export const VALID_LOCALES = Object.keys(translations);
 export default i18n;

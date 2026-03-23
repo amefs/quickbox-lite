@@ -51,9 +51,12 @@ describe("handler/exec", () => {
             mockClient._trigger!("notexist::");
         });
 
+        // C2: non-string payload validation
         it("should emit {success:false} for non-string payload (null)", (done) => {
             const mockClient = buildMockClient((data) => {
-                expect(data).to.have.property("success", false);
+                const d = data as Record<string, unknown>;
+                expect(d).to.have.property("success", false);
+                expect(d).to.have.property("message", "Invalid payload");
                 done();
             });
             execHandler(mockClient as never);
@@ -62,11 +65,24 @@ describe("handler/exec", () => {
 
         it("should emit {success:false} for non-string payload (object)", (done) => {
             const mockClient = buildMockClient((data) => {
-                expect(data).to.have.property("success", false);
+                const d = data as Record<string, unknown>;
+                expect(d).to.have.property("success", false);
+                expect(d).to.have.property("message", "Invalid payload");
                 done();
             });
             execHandler(mockClient as never);
             mockClient._trigger!({ command: "ping" });
+        });
+
+        it("should emit {success:false} for non-string payload (number)", (done) => {
+            const mockClient = buildMockClient((data) => {
+                const d = data as Record<string, unknown>;
+                expect(d).to.have.property("success", false);
+                expect(d).to.have.property("message", "Invalid payload");
+                done();
+            });
+            execHandler(mockClient as never);
+            mockClient._trigger!(42);
         });
     });
 

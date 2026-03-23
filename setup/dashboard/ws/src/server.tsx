@@ -12,7 +12,7 @@ import logHandler from "./handler/log";
 import messageHandler, { resolveWidget } from "./handler/message";
 import execHandler from "./handler/exec";
 import i18nHandler from "./handler/i18n";
-import i18n from "./i18n";
+import i18n, { VALID_LOCALES } from "./i18n";
 import { DebugPage } from "./debug";
 
 const app = express();
@@ -45,7 +45,7 @@ app.get("/set", (req, res) => {
         return;
     }
     const lang = req.query.lang;
-    if (typeof lang === "string") {
+    if (typeof lang === "string" && VALID_LOCALES.includes(lang)) {
         i18n.locale = lang;
     } else {
         i18n.locale = "en";

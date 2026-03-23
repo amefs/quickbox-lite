@@ -43,6 +43,17 @@ describe("server routes", () => {
             expect(res.status).to.equal(200);
             expect(res.text).to.equal("en");
         });
+
+        // C5: invalid locale should be rejected
+        it("should reject invalid locale values", async () => {
+            // Set to a known good locale first
+            await request(app).get("/set?lang=en");
+
+            const res = await request(app).get("/set?lang=../../etc/passwd");
+            expect(res.status).to.equal(200);
+            // Should fall back to 'en', not accept the malicious value
+            expect(res.text).to.equal("en");
+        });
     });
 
     describe("GET /debug (available when NODE_ENV !== production)", () => {

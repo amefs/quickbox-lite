@@ -23,8 +23,10 @@ export class WatchedConfig<T> {
 
     private loadConfig() {
         try {
-            this.config = JSON.parse(readFileSync(this.path).toString(this.encoding)) as T;
+            const parsed = JSON.parse(readFileSync(this.path).toString(this.encoding)) as T;
+            this.config = parsed;
         } catch (err) {
+            // On failure, keep previous config (or {} on first load)
             console.error(`Failed to load config from ${this.path}`, err);
         }
     }

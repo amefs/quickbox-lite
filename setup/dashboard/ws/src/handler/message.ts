@@ -61,8 +61,11 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
             return await diskData();
         case "/node/ram_stats.php":
             return await ramStats();
-        case "/node/bw_tables.php":
-            return await bwTables(iface, req.args["page"] as "h"|"d"|"m"|"t");
+        case "/node/bw_tables.php": {
+            const validPages = ["h", "d", "m", "t"];
+            const page = validPages.includes(req.args["page"]) ? req.args["page"] as "h"|"d"|"m"|"t" : undefined;
+            return await bwTables(iface, page);
+        }
         case "/node/service_status.php":
             return await serviceStatus(req.args["service"]);
         default:
@@ -70,7 +73,17 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
     }
 };
 
-const messageHandler = async (payload: Payload, client: Socket) => {
+const isValidPayload = (payload: unknown): payload is Payload => {
+    return payload !== null && typeof payload === "object" &&
+        "key" in payload && typeof (payload as Payload).key === "string" &&
+        "url" in payload && typeof (payload as Payload).url === "string";
+};
+
+const messageHandler = async (payload: unknown, client: Socket) => {
+    if (!isValidPayload(payload)) {
+        client.send({ key: "", pathName: "", success: false, message: "Invalid payload", response: "" });
+        return;
+    }
     const ret: {
         key: string;
         pathName: string;
@@ -95,7 +108,6 @@ const messageHandler = async (payload: Payload, client: Socket) => {
 };
 
 export default (client: Socket, next?: (err?: Error) => void) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     client.on(Constant.EVENT_MESSAGE, async payload => { await messageHandler(payload, client); });
     if (next) {
         next();

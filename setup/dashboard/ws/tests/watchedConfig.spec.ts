@@ -74,4 +74,22 @@ describe("watchedConfig", () => {
         const config = new WatchedConfig<typeof data>(configPath, "utf-8");
         expect(config.Value.msg).to.equal("hello");
     });
+
+    // C3: preserve old config when reload fails
+    it("should keep old config when file becomes invalid JSON", () => {
+        const data = { key: "original", num: 1 };
+        fs.writeFileSync(configPath, JSON.stringify(data));
+
+        const config = new WatchedConfig<{ key: string; num: number }>(configPath);
+        expect(config.Value.key).to.equal("original");
+
+        // Now corrupt the file and force a reload via loadConfig
+        fs.writeFileSync(configPath, "NOT VALID JSON{{{");
+        // Access the private method via bracket notation
+        (config as unknown as { loadConfig: () => void }).loadConfig();
+
+        // Old config should be preserved
+        expect(config.Value.key).to.equal("original");
+        expect(config.Value.num).to.equal(1);
+    });
 });

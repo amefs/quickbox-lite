@@ -34,7 +34,11 @@ const execOption = {
     maxBuffer: 5 * 1024 * 1024, // 5 MiB
 };
 
-const execHandler = (payload: string, client: Socket) => {
+const execHandler = (payload: unknown, client: Socket) => {
+    if (typeof payload !== "string") {
+        client.emit(Constant.EVENT_EXEC, { cmd: "", success: false, message: "Invalid payload", stdout: "", stderr: "" });
+        return;
+    }
     const ret = {
         cmd: payload,
         success: true,
@@ -69,7 +73,6 @@ const execHandler = (payload: string, client: Socket) => {
 };
 
 export default (client: Socket, next?: (err?: Error) => void) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     client.on(Constant.EVENT_EXEC, payload => { execHandler(payload, client); });
     if (next) {
         next();

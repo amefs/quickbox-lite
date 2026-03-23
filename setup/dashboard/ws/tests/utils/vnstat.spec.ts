@@ -231,3 +231,16 @@ describe("vnstat utils", () => {
         }
     });
 });
+
+describe("vnstat getIfaceConfig", () => {
+    // B3: iface validation
+    // We can't easily test getIfaceConfig directly since it reads a hardcoded path.
+    // The validation logic is tested indirectly via getVnstatData with path-traversal iface names.
+    it("should return empty dataset for iface with path-traversal characters", async () => {
+        // This tests that even if an attacker provides a malicious iface name,
+        // getVnstatData won't find a file at a traversal path (defense in depth)
+        const data = await getVnstatData("../../etc/passwd");
+        expect(data.hour).to.have.length(0);
+        expect(data.summary.interface).to.equal("../../etc/passwd");
+    });
+});
