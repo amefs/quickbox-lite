@@ -50,26 +50,31 @@ export function DebugPage() {
                 <meta charSet="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <title>QuickBox WS Debug Console</title>
+                <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
                 <style dangerouslySetInnerHTML={{ __html: STYLES }} />
             </head>
             <body>
                 <div className="debug-container">
                     <header className="debug-header">
+                        <div className="header-badge">DEV</div>
                         <h1>QuickBox WS Debug Console</h1>
                         <p className="subtitle">Click any endpoint to fetch and preview its output</p>
                     </header>
 
                     <div className="controls">
-                        <label className="auto-refresh">
-                            <input type="checkbox" id="auto-refresh-toggle" />
-                            Auto-refresh
-                        </label>
-                        <select id="refresh-interval">
-                            <option value="2000">2s</option>
-                            <option value="5000" selected>5s</option>
-                            <option value="10000">10s</option>
-                            <option value="30000">30s</option>
-                        </select>
+                        <div className="controls-left">
+                            <label className="auto-refresh">
+                                <input type="checkbox" id="auto-refresh-toggle" />
+                                <span className="toggle-track"><span className="toggle-thumb" /></span>
+                                Auto-refresh
+                            </label>
+                            <select id="refresh-interval">
+                                <option value="2000">2s</option>
+                                <option value="5000" selected>5s</option>
+                                <option value="10000">10s</option>
+                                <option value="30000">30s</option>
+                            </select>
+                        </div>
                         <span id="status-indicator" className="status-idle">idle</span>
                     </div>
 
@@ -84,6 +89,7 @@ export function DebugPage() {
                                         data-url={ep.url}
                                         data-name={ep.name}
                                         title={ep.description}
+                                        style={{ animationDelay: `${i * 40}ms` }}
                                     >
                                         <span className="btn-name">{ep.name}</span>
                                         <span className="btn-url">{ep.url}</span>
@@ -100,6 +106,7 @@ export function DebugPage() {
                                         data-url={ep.url}
                                         data-name={ep.name}
                                         title={ep.description}
+                                        style={{ animationDelay: `${(widgetEndpoints.length + i) * 40}ms` }}
                                     >
                                         <span className="btn-name">{ep.name.replace("Service: ", "")}</span>
                                     </button>
@@ -109,7 +116,7 @@ export function DebugPage() {
                             <h2>Packages</h2>
                             <div className="endpoint-group packages-info">
                                 {installedPackages.map((p, i) => (
-                                    <span key={i} className="package-tag">{p.name}</span>
+                                    <span key={i} className="package-tag" style={{ animationDelay: `${i * 30}ms` }}>{p.name}</span>
                                 ))}
                             </div>
                         </nav>
@@ -118,8 +125,14 @@ export function DebugPage() {
                             <div className="result-header">
                                 <h2 id="result-title">Select an endpoint</h2>
                                 <div className="result-actions">
-                                    <button id="btn-refresh" className="action-btn" disabled>Refresh</button>
-                                    <button id="btn-raw" className="action-btn" disabled>Raw</button>
+                                    <button id="btn-refresh" className="action-btn" disabled title="Refresh (R)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                                        Refresh
+                                    </button>
+                                    <button id="btn-raw" className="action-btn" disabled>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                                        Raw
+                                    </button>
                                 </div>
                             </div>
                             <div className="result-meta">
@@ -132,6 +145,12 @@ export function DebugPage() {
                             </div>
                         </main>
                     </div>
+
+                    <footer className="debug-footer">
+                        <span>Press <kbd>R</kbd> to refresh</span>
+                        <span className="separator">·</span>
+                        <span>Development mode only</span>
+                    </footer>
                 </div>
                 <script dangerouslySetInnerHTML={{ __html: CLIENT_SCRIPT }} />
             </body>
@@ -140,50 +159,425 @@ export function DebugPage() {
 }
 
 const STYLES = `
+    :root {
+        --color-primary: #259dab;
+        --color-primary-light: #2bb8ca;
+        --color-primary-dim: rgba(37, 157, 171, 0.15);
+        --color-bg: #1c1f2e;
+        --color-panel: #1a2340;
+        --color-surface: #232942;
+        --color-surface-hover: #2c3352;
+        --color-border: #2e3550;
+        --color-border-hover: #3d4565;
+        --color-text: #d8dce4;
+        --color-text-muted: #7a8194;
+        --color-text-dim: #545b72;
+        --color-success: #4ade80;
+        --color-error: #f87171;
+        --space-xs: 4px;
+        --space-sm: 8px;
+        --space-md: 16px;
+        --space-lg: 24px;
+        --space-xl: 40px;
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+        --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
-    .debug-container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-    .debug-header { text-align: center; padding: 20px 0; border-bottom: 1px solid #333; margin-bottom: 20px; }
-    .debug-header h1 { font-size: 24px; color: #00d4ff; }
-    .subtitle { font-size: 13px; color: #888; margin-top: 6px; }
-    .controls { display: flex; align-items: center; gap: 12px; padding: 10px 0; margin-bottom: 16px; }
-    .auto-refresh { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
-    .auto-refresh input { cursor: pointer; }
-    #refresh-interval { background: #2a2a4a; color: #e0e0e0; border: 1px solid #444; border-radius: 4px; padding: 4px 8px; font-size: 13px; }
-    .status-idle { font-size: 12px; padding: 2px 10px; border-radius: 10px; background: #333; color: #888; }
-    .status-loading { font-size: 12px; padding: 2px 10px; border-radius: 10px; background: #1a3a5c; color: #00d4ff; animation: pulse 1s infinite; }
-    .status-done { font-size: 12px; padding: 2px 10px; border-radius: 10px; background: #1a3c1a; color: #4ade80; }
-    .status-error { font-size: 12px; padding: 2px 10px; border-radius: 10px; background: #3c1a1a; color: #f87171; }
+
+    body {
+        font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--color-bg);
+        color: var(--color-text);
+        min-height: 100vh;
+        line-height: 1.5;
+    }
+
+    .debug-container {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: var(--space-lg);
+        animation: fadeIn 500ms var(--ease-out-expo) both;
+    }
+
+    /* Header */
+    .debug-header {
+        text-align: left;
+        padding: var(--space-lg) 0 var(--space-lg);
+        border-bottom: 1px solid var(--color-border);
+        margin-bottom: var(--space-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+        flex-wrap: wrap;
+    }
+    .header-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 10px;
+        background: var(--color-primary-dim);
+        color: var(--color-primary-light);
+        border: 1px solid rgba(37, 157, 171, 0.3);
+        border-radius: var(--radius-sm);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+    }
+    .debug-header h1 {
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--color-text);
+        letter-spacing: -0.3px;
+    }
+    .subtitle {
+        width: 100%;
+        font-size: 13px;
+        color: var(--color-text-muted);
+        margin-top: -4px;
+    }
+
+    /* Controls bar */
+    .controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-md);
+        padding: var(--space-sm) var(--space-md);
+        margin-bottom: var(--space-lg);
+        background: var(--color-panel);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+    }
+    .controls-left {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+    }
+
+    /* Custom toggle switch */
+    .auto-refresh {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        font-size: 13px;
+        cursor: pointer;
+        color: var(--color-text-muted);
+        user-select: none;
+        transition: color 250ms var(--ease-out-quart);
+    }
+    .auto-refresh:hover { color: var(--color-text); }
+    .auto-refresh input { position: absolute; opacity: 0; pointer-events: none; }
+    .toggle-track {
+        position: relative;
+        display: inline-block;
+        width: 32px;
+        height: 18px;
+        background: var(--color-border);
+        border-radius: 9px;
+        transition: background 250ms var(--ease-out-quart);
+        flex-shrink: 0;
+    }
+    .toggle-thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 14px;
+        height: 14px;
+        background: var(--color-text-muted);
+        border-radius: 50%;
+        transition: transform 250ms var(--ease-out-quart), background 250ms var(--ease-out-quart);
+    }
+    .auto-refresh input:checked ~ .toggle-track {
+        background: var(--color-primary-dim);
+    }
+    .auto-refresh input:checked ~ .toggle-track .toggle-thumb {
+        transform: translateX(14px);
+        background: var(--color-primary);
+    }
+    .auto-refresh input:focus-visible ~ .toggle-track {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
+    #refresh-interval {
+        background: var(--color-surface);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        padding: 4px 10px;
+        font-size: 13px;
+        font-family: inherit;
+        transition: border-color 200ms var(--ease-out-quart);
+    }
+    #refresh-interval:hover { border-color: var(--color-border-hover); }
+    #refresh-interval:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+
+    /* Status badge */
+    [id="status-indicator"] {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 3px 12px;
+        border-radius: 12px;
+        transition: all 300ms var(--ease-out-quart);
+        white-space: nowrap;
+    }
+    .status-idle { background: var(--color-surface); color: var(--color-text-muted); }
+    .status-loading { background: var(--color-primary-dim); color: var(--color-primary-light); animation: pulse 1.2s ease-in-out infinite; }
+    .status-done { background: rgba(74, 222, 128, 0.12); color: var(--color-success); }
+    .status-error { background: rgba(248, 113, 113, 0.12); color: var(--color-error); }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .main-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
-    .endpoint-list { background: #16213e; border-radius: 8px; padding: 16px; overflow-y: auto; max-height: calc(100vh - 200px); }
-    .endpoint-list h2 { font-size: 14px; color: #00d4ff; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
-    .endpoint-list h2:first-child { margin-top: 0; }
-    .endpoint-group { display: flex; flex-direction: column; gap: 4px; }
+
+    /* Main grid */
+    .main-layout {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: var(--space-lg);
+        align-items: start;
+    }
+
+    /* Sidebar */
+    .endpoint-list {
+        background: var(--color-panel);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-md);
+        overflow-y: auto;
+        max-height: calc(100vh - 240px);
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-border) transparent;
+    }
+    .endpoint-list h2 {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--color-text-muted);
+        margin: var(--space-lg) 0 var(--space-sm);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+    }
+    .endpoint-list h2:first-child { margin-top: var(--space-xs); }
+    .endpoint-group { display: flex; flex-direction: column; gap: var(--space-xs); }
     .services-group { flex-direction: row; flex-wrap: wrap; gap: 6px; }
-    .endpoint-btn { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; background: #1a1a2e; border: 1px solid #333; border-radius: 6px; cursor: pointer; text-align: left; transition: all 0.15s; color: #e0e0e0; font-size: 13px; }
-    .endpoint-btn:hover { background: #2a2a4a; border-color: #00d4ff; }
-    .endpoint-btn.active { background: #0a2a4a; border-color: #00d4ff; box-shadow: 0 0 8px rgba(0, 212, 255, 0.2); }
-    .btn-name { font-weight: 600; }
-    .btn-url { font-size: 11px; color: #666; font-family: monospace; }
-    .endpoint-btn-service { flex-direction: row; padding: 6px 12px; }
+
+    /* Endpoint buttons — entrance animation */
+    .endpoint-btn {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 10px 14px;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        text-align: left;
+        color: var(--color-text);
+        font-size: 13px;
+        font-family: inherit;
+        transition: background 200ms var(--ease-out-quart),
+                    border-color 200ms var(--ease-out-quart),
+                    transform 150ms var(--ease-out-quart),
+                    box-shadow 200ms var(--ease-out-quart);
+        animation: slideIn 400ms var(--ease-out-expo) both;
+    }
+    .endpoint-btn:hover {
+        background: var(--color-surface);
+        border-color: var(--color-border);
+    }
+    .endpoint-btn:active {
+        transform: scale(0.98);
+    }
+    .endpoint-btn:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: -1px;
+    }
+    .endpoint-btn.active {
+        background: var(--color-primary-dim);
+        border-color: rgba(37, 157, 171, 0.35);
+    }
+    .endpoint-btn.active .btn-name { color: var(--color-primary-light); }
+    .btn-name { font-weight: 600; transition: color 200ms var(--ease-out-quart); }
+    .btn-url { font-size: 11px; color: var(--color-text-dim); font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace; }
+    .endpoint-btn-service {
+        flex-direction: row;
+        padding: 6px 12px;
+        border-radius: 16px;
+        border: 1px solid var(--color-border);
+    }
+    .endpoint-btn-service:hover {
+        border-color: var(--color-border-hover);
+        background: var(--color-surface);
+    }
+    .endpoint-btn-service.active {
+        background: var(--color-primary-dim);
+        border-color: rgba(37, 157, 171, 0.35);
+    }
     .endpoint-btn-service .btn-name { font-weight: 500; font-size: 12px; }
-    .package-tag { display: inline-block; padding: 3px 10px; background: #2a2a4a; border-radius: 12px; font-size: 11px; color: #aaa; }
+
+    /* Package tags */
+    .package-tag {
+        display: inline-block;
+        padding: 3px 10px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        font-size: 11px;
+        color: var(--color-text-muted);
+        animation: fadeInUp 350ms var(--ease-out-expo) both;
+    }
     .packages-info { flex-direction: row; flex-wrap: wrap; gap: 6px; }
-    .result-panel { background: #16213e; border-radius: 8px; padding: 16px; min-height: 400px; overflow: auto; }
-    .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .result-header h2 { font-size: 16px; color: #e0e0e0; }
-    .result-actions { display: flex; gap: 8px; }
-    .action-btn { padding: 5px 14px; background: #2a2a4a; border: 1px solid #444; border-radius: 4px; color: #ccc; cursor: pointer; font-size: 12px; transition: all 0.15s; }
-    .action-btn:hover:not(:disabled) { background: #3a3a5a; border-color: #00d4ff; color: #fff; }
-    .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .action-btn.active { background: #0a2a4a; border-color: #00d4ff; color: #00d4ff; }
-    .result-meta { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #2a2a4a; }
-    .result-meta span { font-family: monospace; }
-    .result-content { padding: 12px; background: #1a1a2e; border-radius: 6px; min-height: 200px; }
-    .result-raw { padding: 12px; background: #0d0d1a; border-radius: 6px; min-height: 200px; }
-    .result-raw pre { white-space: pre-wrap; word-break: break-all; font-size: 12px; color: #aaa; line-height: 1.6; }
-    @media (max-width: 800px) { .main-layout { grid-template-columns: 1fr; } .endpoint-list { max-height: none; } }
+
+    /* Result panel */
+    .result-panel {
+        background: var(--color-panel);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        min-height: 480px;
+        overflow: auto;
+        animation: fadeIn 600ms var(--ease-out-expo) 200ms both;
+    }
+    .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-sm);
+    }
+    .result-header h2 { font-size: 16px; font-weight: 600; color: var(--color-text); }
+
+    .result-actions { display: flex; gap: var(--space-sm); }
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        color: var(--color-text-muted);
+        cursor: pointer;
+        font-size: 12px;
+        font-family: inherit;
+        font-weight: 500;
+        transition: all 200ms var(--ease-out-quart);
+    }
+    .action-btn svg { flex-shrink: 0; }
+    .action-btn:hover:not(:disabled) {
+        background: var(--color-surface-hover);
+        border-color: var(--color-border-hover);
+        color: var(--color-text);
+    }
+    .action-btn:active:not(:disabled) { transform: scale(0.96); }
+    .action-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+    .action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .action-btn.active {
+        background: var(--color-primary-dim);
+        border-color: rgba(37, 157, 171, 0.35);
+        color: var(--color-primary-light);
+    }
+
+    .result-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--color-text-dim);
+        margin-bottom: var(--space-md);
+        padding-bottom: var(--space-sm);
+        border-bottom: 1px solid var(--color-border);
+    }
+    .result-meta span { font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace; font-size: 11px; }
+
+    .result-content {
+        padding: var(--space-md);
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        min-height: 240px;
+        transition: opacity 200ms var(--ease-out-quart);
+    }
+    .result-raw {
+        padding: var(--space-md);
+        background: #13152a;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        min-height: 240px;
+    }
+    .result-raw pre {
+        white-space: pre-wrap;
+        word-break: break-all;
+        font-size: 12px;
+        color: var(--color-text-muted);
+        line-height: 1.7;
+        font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    }
+
+    /* Footer */
+    .debug-footer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-sm);
+        padding: var(--space-lg) 0 var(--space-sm);
+        font-size: 12px;
+        color: var(--color-text-dim);
+    }
+    .debug-footer kbd {
+        display: inline-block;
+        padding: 1px 6px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        font-family: inherit;
+        font-size: 11px;
+        color: var(--color-text-muted);
+    }
+    .debug-footer .separator { opacity: 0.4; }
+
+    /* Entrance animations */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(-8px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Content load fade */
+    .result-content.is-loading { opacity: 0.4; }
+
+    /* Refresh spin animation */
+    .action-btn.is-spinning svg {
+        animation: spin 600ms linear;
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+
+    /* Responsive */
+    @media (max-width: 860px) {
+        .main-layout { grid-template-columns: 1fr; }
+        .endpoint-list { max-height: none; }
+        .debug-header { text-align: center; justify-content: center; }
+        .controls { flex-direction: column; gap: var(--space-sm); }
+        .controls-left { width: 100%; justify-content: center; }
+    }
 `;
 
 const CLIENT_SCRIPT = `
@@ -220,15 +614,17 @@ const CLIENT_SCRIPT = `
 
     var scopeStyle = document.createElement('style');
     scopeStyle.textContent = ':host { display: block; } '
-        + '.widget-content { background: #f6f8fa; color: #333; padding: 12px; border-radius: 6px; min-height: 100px; '
-        + 'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; line-height: 1.42857; } '
+        + '.widget-content { background: #f6f8fa; color: #333; padding: 14px; border-radius: 8px; min-height: 100px; '
+        + 'font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; line-height: 1.42857; '
+        + 'transition: opacity 300ms cubic-bezier(0.25, 1, 0.5, 1); } '
         + '.widget-content .row::after { content: ""; display: table; clear: both; } '
-        + '.placeholder-text { color: #999; font-style: italic; text-align: center; padding: 60px 0; }';
+        + '.placeholder-text { color: #8b92a5; font-style: normal; text-align: center; padding: 80px 20px; font-size: 14px; } '
+        + '.placeholder-icon { display: block; font-size: 32px; margin-bottom: 12px; opacity: 0.4; }';
     shadow.appendChild(scopeStyle);
 
     var widgetContent = document.createElement('div');
     widgetContent.className = 'widget-content';
-    widgetContent.innerHTML = '<p class="placeholder-text">Click an endpoint on the left to preview its output here.</p>';
+    widgetContent.innerHTML = '<p class="placeholder-text"><span class="placeholder-icon">&#9776;</span>Select an endpoint from the sidebar to preview its output</p>';
     shadow.appendChild(widgetContent);
 
     function setStatus(state, text) {
@@ -247,7 +643,9 @@ const CLIENT_SCRIPT = `
             b.classList.toggle('active', b.getAttribute('data-url') === url);
         });
 
-        setStatus('loading', 'loading...');
+        setStatus('loading', 'loading\u2026');
+        resultRendered.classList.add('is-loading');
+        btnRefresh.classList.add('is-spinning');
         var startTime = performance.now();
 
         fetch('/debug/node?url=' + encodeURIComponent(url))
@@ -270,20 +668,24 @@ const CLIENT_SCRIPT = `
 
                 if (result.type === 'json') {
                     var formatted = JSON.stringify(result.data, null, 2);
-                    widgetContent.innerHTML = '<pre style="color:#333;font-size:12px;white-space:pre-wrap">' + escapeHtml(formatted) + '</pre>';
+                    widgetContent.innerHTML = '<pre style="color:#333;font-size:12px;white-space:pre-wrap;line-height:1.7;font-family:SF Mono,Cascadia Code,Fira Code,monospace">' + escapeHtml(formatted) + '</pre>';
                     resultRawCode.textContent = formatted;
                 } else {
                     widgetContent.innerHTML = result.data;
                     resultRawCode.textContent = result.data;
                 }
 
+                resultRendered.classList.remove('is-loading');
+                btnRefresh.classList.remove('is-spinning');
                 updateRawView();
             })
             .catch(function(err) {
                 var elapsed = (performance.now() - startTime).toFixed(0);
                 resultTime.textContent = elapsed + 'ms';
                 setStatus('error', 'error');
-                widgetContent.innerHTML = '<p style="color:#f87171">Error: ' + escapeHtml(err.message) + '</p>';
+                resultRendered.classList.remove('is-loading');
+                btnRefresh.classList.remove('is-spinning');
+                widgetContent.innerHTML = '<p style="color:#f87171;padding:20px;text-align:center">' + escapeHtml(err.message) + '</p>';
                 resultRawCode.textContent = 'Error: ' + err.message;
             });
     }
@@ -344,7 +746,8 @@ const CLIENT_SCRIPT = `
     refreshIntervalSelect.addEventListener('change', updateAutoRefresh);
 
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'r' && !e.ctrlKey && !e.metaKey && currentUrl) {
+        if (e.key === 'r' && !e.ctrlKey && !e.metaKey && currentUrl
+            && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
             e.preventDefault();
             fetchEndpoint(currentUrl, resultTitle.textContent);
         }
