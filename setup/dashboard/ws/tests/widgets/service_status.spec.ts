@@ -42,4 +42,22 @@ describe("widgets/service_status", () => {
         expect(dotMatch).to.not.be.null;
         expect(pulseMatch).to.not.be.null;
     });
+
+    describe("running state", () => {
+        // eslint-disable-next-line @typescript-eslint/require-await
+        const alwaysRunning = async () => true;
+
+        it("should render running badge when processExists returns true", async () => {
+            // irssi is in serviceMap; with alwaysRunning mock it will appear as running
+            const result = await serviceStatus("irssi", alwaysRunning);
+            expect(result).to.include("badge-service-running-dot");
+            expect(result).to.include("badge-service-running-pulse");
+            expect(result).to.not.include("badge-service-disabled");
+        });
+
+        it("should render running badge for any known service when process is found", async () => {
+            const result = await serviceStatus("qbittorrent", alwaysRunning);
+            expect(result).to.include("badge-service-running");
+        });
+    });
 });

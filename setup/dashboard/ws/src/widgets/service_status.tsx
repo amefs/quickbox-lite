@@ -4,13 +4,13 @@ import ReactDOMServer from "react-dom/server";
 import { serviceMap } from "../info";
 import { processExists } from "../utils/helpers";
 
-export async function serviceStatus(service: string | undefined) {
+export async function serviceStatus(service: string | undefined, checkProcess = processExists) {
     let status = false;
 
     if (service !== undefined) {
         const info = serviceMap.get(service);
         if (info) {
-            status = await processExists(info.process, info.username);
+            status = await checkProcess(info.process, info.username);
         }
     }
 

@@ -80,5 +80,29 @@ describe("exec", () => {
             expect(() => { buildCommand("no-operation-target::target", config, username); })
                 .to.throw(Error, "Unexpected target 'target' is provided");
         });
+
+        // A7: empty string target is required for operations like enable-dev/disable-dev that don't need a target
+        it("should allow empty string target when it is in the whitelist", () => {
+            const configWithEmptyTarget = {
+                box: {
+                    template: "bash quickbox $operation$ $target$",
+                    operations: ["enable-dev"],
+                    targets: ["", "mem"],
+                },
+            } as CommandType;
+            expect(buildCommand("box:enable-dev:", configWithEmptyTarget, username))
+                .to.equal("bash quickbox enable-dev ");
+        });
+        it("should reject empty string target when it is not in the whitelist", () => {
+            const configWithoutEmptyTarget = {
+                box: {
+                    template: "bash quickbox $operation$ $target$",
+                    operations: ["enable-dev"],
+                    targets: ["mem"],
+                },
+            } as CommandType;
+            expect(() => { buildCommand("box:enable-dev:", configWithoutEmptyTarget, username); })
+                .to.throw(Error, /Target .+ not found/);
+        });
     });
 });

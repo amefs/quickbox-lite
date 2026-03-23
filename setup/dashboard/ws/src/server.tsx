@@ -74,6 +74,10 @@ if (process.env.NODE_ENV !== "production") {
     });
 }
 
-server.listen(8575, "127.0.0.1", () => {
-    console.log("Quickbox-ws running...");
-});
+export { app };
+
+if (process.env.NODE_ENV !== "test") {
+    server.listen(8575, "127.0.0.1", () => {
+        console.log("Quickbox-ws running...");
+    });
+}
