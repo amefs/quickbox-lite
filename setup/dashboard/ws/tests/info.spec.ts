@@ -3,6 +3,9 @@
 
 import "mocha";
 import { expect } from "chai";
+import { execFileSync } from "child_process";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
 import { packageMap, packageList, serviceMap, getPackage, Service } from "../src/info";
 
@@ -95,6 +98,23 @@ describe("info", () => {
                         `service '${key}' tooltips still contains $username$`);
                 }
             }
+        });
+    });
+
+    describe("php compatibility", () => {
+        it("should load the same packages in php info.package.php", () => {
+            const dashboardRoot = resolve(__dirname, "../..");
+            const phpScript = `$_SERVER['DOCUMENT_ROOT'] = ${JSON.stringify(dashboardRoot)}; require 'inc/info.package.php'; echo json_encode($packageList, JSON_UNESCAPED_SLASHES);`;
+            const phpResult = execFileSync("php", ["-r", phpScript], {
+                cwd: dashboardRoot,
+                encoding: "utf8",
+            });
+            const phpPackageList = JSON.parse(phpResult) as Service[];
+            const username = readFileSync(resolve(dashboardRoot, "db/master.txt"), "utf8").split("\n")[0].trim();
+            const rawPackageConfig = readFileSync(resolve(dashboardRoot, "ws/config/packages.json"), "utf8");
+            const normalizedPackageList = JSON.parse(rawPackageConfig.replaceAll("$username$", username)) as Service[];
+
+            expect(phpPackageList).to.deep.equal(normalizedPackageList);
         });
     });
 });

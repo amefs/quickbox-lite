@@ -4,164 +4,158 @@
 "use strict";
 
 (function ($) {
-  const service_status_list = [{
-    key: "BTSYNC",
-    url: "/widgets/service_status.php?service=resilio-sync",
-    id: "#appstat_resilio-sync",
-    time: 5000
+  const service_status_items = [{
+    service: "resilio-sync",
+    id: "#appstat_resilio-sync"
   }, {
-    key: "CIFS",
-    url: "/widgets/service_status.php?service=smbd",
-    id: "#appstat_smbd",
-    time: 5000
+    service: "smbd",
+    id: "#appstat_smbd"
   }, {
-    key: "DELUGED",
-    url: "/widgets/service_status.php?service=deluged",
-    id: "#appstat_deluged",
-    time: 5000
+    service: "deluged",
+    id: "#appstat_deluged"
   }, {
-    key: "DELUGE_WEB",
-    url: "/widgets/service_status.php?service=deluge-web",
-    id: "#appstat_deluge-web",
-    time: 5000
+    service: "deluge-web",
+    id: "#appstat_deluge-web"
   }, {
-    key: "DENYHOSTS",
-    url: "/widgets/service_status.php?service=denyhosts",
-    id: "#appstat_denyhosts",
-    time: 5000
+    service: "denyhosts",
+    id: "#appstat_denyhosts"
   }, {
-    key: "EMBY",
-    url: "/widgets/service_status.php?service=emby-server",
-    id: "#appstat_emby-server",
-    time: 5000
+    service: "emby-server",
+    id: "#appstat_emby-server"
   }, {
-    key: "FAIL2BAN",
-    url: "/widgets/service_status.php?service=fail2ban",
-    id: "#appstat_fail2ban",
-    time: 5000
+    service: "fail2ban",
+    id: "#appstat_fail2ban"
   }, {
-    key: "FILEBROWSER",
-    url: "/widgets/service_status.php?service=filebrowser",
-    id: "#appstat_filebrowser",
-    time: 5000
+    service: "filebrowser",
+    id: "#appstat_filebrowser"
   }, {
-    key: "FILEBROWSEREE",
-    url: "/widgets/service_status.php?service=filebrowser-ee",
-    id: "#appstat_filebrowser-ee",
-    time: 5000
+    service: "filebrowser-ee",
+    id: "#appstat_filebrowser-ee"
   }, {
-    key: "FLEXGET",
-    url: "/widgets/service_status.php?service=flexget",
-    id: "#appstat_flexget",
-    time: 5000
+    service: "flexget",
+    id: "#appstat_flexget"
   }, {
-    key: "FLOOD",
-    url: "/widgets/service_status.php?service=flood",
-    id: "#appstat_flood",
-    time: 5000
+    service: "flood",
+    id: "#appstat_flood"
   }, {
-    key: "JELLYFIN",
-    url: "/widgets/service_status.php?service=jellyfin",
-    id: "#appstat_jellyfin",
-    time: 5000
+    service: "jellyfin",
+    id: "#appstat_jellyfin"
   }, {
-    key: "IRSSI",
-    url: "/widgets/service_status.php?service=irssi",
-    id: "#appstat_irssi",
-    time: 5000
+    service: "irssi",
+    id: "#appstat_irssi"
   }, {
-    key: "NETDATA",
-    url: "/widgets/service_status.php?service=netdata",
-    id: "#appstat_netdata",
-    time: 5000
+    service: "netdata",
+    id: "#appstat_netdata"
   }, {
-    key: "NFS",
-    url: "/widgets/service_status.php?service=nfs-server",
-    id: "#appstat_nfs-server",
-    time: 5000
+    service: "nfs-server",
+    id: "#appstat_nfs-server"
   }, {
-    key: "NOVNC",
-    url: "/widgets/service_status.php?service=tightvnc",
-    id: "#appstat_tightvnc",
-    time: 5000
+    service: "tightvnc",
+    id: "#appstat_tightvnc"
   }, {
-    key: "OPENVPN",
-    url: "/widgets/service_status.php?service=openvpn",
-    id: "#appstat_openvpn",
-    time: 5000
+    service: "openvpn",
+    id: "#appstat_openvpn"
   }, {
-    key: "PBH",
-    url: "/widgets/service_status.php?service=peerbanhelper",
-    id: "#appstat_peerbanhelper",
-    time: 5000
+    service: "peerbanhelper",
+    id: "#appstat_peerbanhelper"
   }, {
-    key: "PLEX",
-    url: "/widgets/service_status.php?service=plexmediaserver",
-    id: "#appstat_plexmediaserver",
-    time: 5000
+    service: "plexmediaserver",
+    id: "#appstat_plexmediaserver"
   }, {
-    key: "RCLONE",
-    url: "/widgets/service_status.php?service=rclone-web",
-    id: "#appstat_rclone-web",
-    time: 5000
+    service: "rclone-web",
+    id: "#appstat_rclone-web"
   }, {
-    key: "RTORRENT",
-    url: "/widgets/service_status.php?service=rtorrent",
-    id: "#appstat_rtorrent",
-    time: 5000
+    service: "rtorrent",
+    id: "#appstat_rtorrent"
   }, {
-    key: "SABNZBD",
-    url: "/widgets/service_status.php?service=sabnzbd",
-    id: "#appstat_sabnzbd",
-    time: 5000
+    service: "sabnzbd",
+    id: "#appstat_sabnzbd"
   }, {
-    key: "SYNCTHING",
-    url: "/widgets/service_status.php?service=syncthing",
-    id: "#appstat_syncthing",
-    time: 5000
+    service: "syncthing",
+    id: "#appstat_syncthing"
   }, {
-    key: "TRANSMISSION",
-    url: "/widgets/service_status.php?service=transmission",
-    id: "#appstat_transmission",
-    time: 5000
+    service: "transmission",
+    id: "#appstat_transmission"
   }, {
-    key: "QBITTORRENT",
-    url: "/widgets/service_status.php?service=qbittorrent",
-    id: "#appstat_qbittorrent",
-    time: 5000
+    service: "qbittorrent",
+    id: "#appstat_qbittorrent"
   }, {
-    key: "QBITTORRENTCLIENTBLOCKER",
-    url: "/widgets/service_status.php?service=qbittorrent-clientblocker",
-    id: "#appstat_qbittorrent-clientblocker",
-    time: 5000
+    service: "qbittorrent-clientblocker",
+    id: "#appstat_qbittorrent-clientblocker"
   }, {
-    key: "WEBDAV",
-    url: "/widgets/service_status.php?service=webdav",
-    id: "#appstat_webdav",
-    time: 5000
+    service: "webdav",
+    id: "#appstat_webdav"
   }, {
-    key: "VSFTPD",
-    url: "/widgets/service_status.php?service=vsftpd",
-    id: "#appstat_vsftpd",
-    time: 5000
+    service: "vsftpd",
+    id: "#appstat_vsftpd"
   }, {
-    key: "WEB_CONSOLE",
-    url: "/widgets/service_status.php?service=ttyd",
-    id: "#appstat_ttyd",
-    time: 5000
+    service: "ttyd",
+    id: "#appstat_ttyd"
   }, {
-    key: "X2GO",
-    url: "/widgets/service_status.php?service=x2go",
-    id: "#appstat_x2go",
-    time: 5000
+    service: "x2go",
+    id: "#appstat_x2go"
   }, {
-    key: "ZNC",
-    url: "/widgets/service_status.php?service=znc",
-    id: "#appstat_znc",
-    time: 5000
+    service: "znc",
+    id: "#appstat_znc"
   }];
 
   const system_status_list = [{
+    key: "SERVICE_STATUS_ALL",
+    url: "/node/service_status_all.php",
+    override: function (response) {
+      for (let i = 0; i < service_status_items.length; ++i) {
+        const item = service_status_items[i];
+        if (response[item.service] !== undefined) {
+          $(item.id).html(response[item.service]);
+        }
+      }
+    },
+    bootstrap: false,
+    time: 5000
+  }, {
+    key: "SERVICE_CONTROL",
+    url: "/node/service_control.php",
+    id: "#service_control_widget",
+    after: function () {
+      $(".toggle-en, .toggle-dis").each(function () {
+        const $toggle = $(this);
+        if ($toggle.parent(".toggle-slide").length > 0 || $toggle.parent(".toggle-modern").length > 0) {
+          return;
+        }
+        $toggle.toggles({
+          on: $toggle.hasClass("toggle-en"),
+          height: 26,
+          width: 100,
+          text: $toggle.hasClass("toggle-en") ? {
+            on: "Enabled"
+          } : {
+            off: "Disabled"
+          }
+        });
+      });
+      $(".tooltips").tooltip();
+    },
+    bootstrap: true,
+    time: 15000
+  }, {
+    key: "PMC",
+    url: "/node/pmc.php",
+    id: "#pmc_widget",
+    after: function () {
+      let currentPage = 0;
+      if ($.fn.DataTable.isDataTable("#dataTable1")) {
+        currentPage = $("#dataTable1").DataTable().page();
+        $("#dataTable1").DataTable().destroy();
+      }
+      const table = $("#dataTable1").DataTable();
+      if (currentPage > 0) {
+        table.page(currentPage).draw(false);
+      }
+      $(".tooltips").tooltip();
+    },
+    bootstrap: true,
+    time: 30000
+  }, {
     key: "NETWORK",
     url: "/node/net_status.php",
     id: undefined,
@@ -217,16 +211,19 @@
         window.ts = dataJSON.ts;
       }
     },
+    bootstrap: true,
     time: 1000
   }, {
     key: "UPTIME",
     url: "/node/up.php",
     id: "#uptime",
+    bootstrap: true,
     time: 60000
   }, {
     key: "TOP",
     url: "/node/load.php",
     id: "#cpuload",
+    bootstrap: true,
     time: 60000
   }, {
     key: "BANDWIDTH",
@@ -240,29 +237,56 @@
       }
       return true;
     },
+    bootstrap: true,
     time: 60000
   }, {
     key: "DISK_USAGE",
     url: "/node/disk_data.php",
     id: "#disk_data",
+    bootstrap: true,
     time: 15000
   }, {
     key: "RAM_USAGE",
     url: "/node/ram_stats.php",
     id: "#meterram",
+    bootstrap: true,
     time: 10000
   }, {
     key: "SSH_OUTPUT",
     url: "/db/output.log",
     id: "#sshoutput",
     time: 2500,
+    _endOffset: -1,
     // eslint-disable-next-line no-unused-vars
     before: function (task) {
-      return $("#sysResponse").is(":visible");
+      if (!$("#sysResponse").is(":visible")) {
+        return false;
+      }
+      // First request: no offset → auto-mode (server returns tail)
+      // Subsequent: use end offset from last response for incremental read
+      if (this._endOffset >= 0) {
+        this.url = "/db/output.log?offset=" + this._endOffset;
+      } else {
+        this.url = "/db/output.log";
+      }
+      return true;
     },
-    after: function () {
-      const element = $("#sysPre");
-      element.scrollTop(element.prop("scrollHeight"));
+    override: function (response) {
+      var el = $(this.id);
+      if (typeof response === "object" && response !== null && "content" in response) {
+        // end < _endOffset means file was truncated/rotated, replace content
+        if (response.end < this._endOffset) {
+          el.text(response.content);
+        } else if (response.content) {
+          el.append(document.createTextNode(response.content));
+        }
+        this._endOffset = response.end;
+      } else {
+        el.text(response);
+        this._endOffset = -1;
+      }
+      var container = $("#sysPre");
+      container.scrollTop(container.prop("scrollHeight"));
     }
   }];
 
@@ -275,10 +299,11 @@
 
   let first_request = true;
   let error_count = 0;
+  let bootstrap_dispatched = false;
 
   function start_status_update () {
     const task_mapping = {};
-    const status_list = [].concat(service_status_list, system_status_list);
+    const status_list = system_status_list.slice();
     for (let i = 0; i < status_list.length; ++i) {
       const status = status_list[i];
       if (status.key in task_mapping) {
@@ -287,6 +312,35 @@
       }
       task_mapping[status.key] = status;
     }
+
+    function queueTask(task, delay) {
+      setTimeout(function () {
+        if (task.before && typeof (task.before) === "function") {
+          if (task.before(task) === false) {
+            return;
+          }
+        }
+        if ((task.id && $(task.id).length > 0) || task.override) {
+          socket.send(task);
+        }
+      }, delay);
+    }
+
+    function dispatchBootstrapTasks () {
+      if (bootstrap_dispatched) {
+        return;
+      }
+      bootstrap_dispatched = true;
+      const bootstrapTasks = status_list.filter(function (task) { return task.bootstrap; });
+      for (let i = 0; i < bootstrapTasks.length; ++i) {
+        queueTask(bootstrapTasks[i], i * 50);
+      }
+      const batchTask = task_mapping.SERVICE_STATUS_ALL;
+      if (batchTask) {
+        queueTask(batchTask, bootstrapTasks.length * 50 + 100);
+      }
+    }
+
     // add event listener
     socket.on("message", function (response) {
       if (response.success) {
@@ -317,6 +371,17 @@
       }
     });
 
+    socket.on("connect", function () {
+      dispatchBootstrapTasks();
+    });
+    if (socket.connected) {
+      dispatchBootstrapTasks();
+    } else {
+      setTimeout(function () {
+        dispatchBootstrapTasks();
+      }, 500);
+    }
+
     // group task with time
     const task_info = groupBy(status_list, "time");
     for (const time_str in task_info) {
@@ -326,19 +391,11 @@
         let delay = 0;
         for (let i = 0; i < task_list.length; ++i) {
           const task = task_list[i];
+          if (first_request === true && (task.bootstrap || task.key === "SERVICE_STATUS_ALL")) {
+            continue;
+          }
           // set a delay for each task.
-          setTimeout(function () {
-            if (task.before && typeof (task.before) === "function") {
-              // skip if before task failed
-              if (task.before(task) === false) {
-                return;
-              }
-            }
-            // only displayed element or override will be updated
-            if ((task.id && $(task.id).length > 0) || task.override) {
-              socket.send(task);
-            }
-          }, delay);
+          queueTask(task, delay);
           // let all requests sent in half cycle evenly except first round.
           if (first_request === false) {
             delay += time_interval / (task_list.length * 2);

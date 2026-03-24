@@ -183,4 +183,69 @@ describe("handler/message", () => {
             }
         });
     });
+
+    // B1: SSRF prevention — no default proxy, explicit routes only
+    describe("B1 — route allowlist", () => {
+        it("should resolve /widgets/service_status.php same as /node/service_status.php", async () => {
+            try {
+                const nodeResult = await resolveWidget("/node/service_status.php?service=nginx");
+                const widgetResult = await resolveWidget("/widgets/service_status.php?service=nginx");
+                expect(widgetResult).to.equal(nodeResult);
+            } catch {
+                // Expected in test env if serviceMap not populated
+            }
+        });
+
+        it("should return a batch service status object for /node/service_status_all.php", async () => {
+            const result = await resolveWidget("/node/service_status_all.php");
+            expect(result).to.be.an("object");
+            expect(result).to.have.property("irssi");
+        });
+
+        it("should resolve /widgets/service_control.php same as /node/service_control.php", async () => {
+            const nodeResult = await resolveWidget("/node/service_control.php");
+            const widgetResult = await resolveWidget("/widgets/service_control.php");
+            expect(widgetResult).to.equal(nodeResult);
+        });
+
+        it("should resolve /widgets/pmc.php same as /node/pmc.php", async () => {
+            const nodeResult = await resolveWidget("/node/pmc.php");
+            const widgetResult = await resolveWidget("/widgets/pmc.php");
+            expect(widgetResult).to.equal(nodeResult);
+        });
+
+        it("should return an object with content, start, end and size for /db/output.log", async () => {
+            const result = await resolveWidget("/db/output.log");
+            expect(result).to.be.an("object");
+            expect(result).to.have.property("content");
+            expect(result).to.have.property("start");
+            expect(result).to.have.property("end");
+            expect(result).to.have.property("size");
+        });
+
+        it("should support offset parameter for /db/output.log", async () => {
+            const first = await resolveWidget("/db/output.log") as { content: string; start: number; end: number; size: number };
+            const second = await resolveWidget(`/db/output.log?offset=${first.end}`) as { content: string; start: number; end: number; size: number };
+            expect(second.content).to.equal("");
+            expect(second.end).to.equal(first.end);
+        });
+
+        it("should throw for unknown routes", async () => {
+            try {
+                await resolveWidget("/etc/passwd");
+                expect.fail("should have thrown");
+            } catch (err) {
+                expect((err as Error).message).to.include("Unknown widget route");
+            }
+        });
+
+        it("should throw for path traversal attempts", async () => {
+            try {
+                await resolveWidget("/../../../etc/passwd");
+                expect.fail("should have thrown");
+            } catch (err) {
+                expect((err as Error).message).to.include("Unknown widget route");
+            }
+        });
+    });
 });

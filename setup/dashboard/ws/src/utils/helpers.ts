@@ -5,7 +5,8 @@ export async function getProcessList() {
 }
 
 export function processExistsIn(processList: si.Systeminformation.ProcessesProcessData[], processName: string, username: string) {
-    return processList.some((process) => process.name === processName && process.user === username);
+    const lowerName = processName.toLowerCase();
+    return processList.some((process) => process.name.toLowerCase() === lowerName && process.user === username);
 }
 
 export async function processExists(processName: string, username: string) {

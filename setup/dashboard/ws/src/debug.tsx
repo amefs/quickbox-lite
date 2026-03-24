@@ -21,6 +21,7 @@ function getWidgetEndpoints(): WidgetEndpoint[] {
         { name: "Bandwidth - Daily", url: "/node/bw_tables.php?page=d", description: "Bandwidth tables (daily)", category: "widget" },
         { name: "Bandwidth - Monthly", url: "/node/bw_tables.php?page=m", description: "Bandwidth tables (monthly)", category: "widget" },
         { name: "Bandwidth - Top 10", url: "/node/bw_tables.php?page=t", description: "Bandwidth tables (top 10 days)", category: "widget" },
+        { name: "SSH Output Log", url: "/db/output.log", description: "Incremental output log (supports ?offset=N&length=N)", category: "widget" },
     ];
 
     for (const [key] of serviceMap) {
@@ -68,9 +69,9 @@ export function DebugPage() {
                                 <span className="toggle-track"><span className="toggle-thumb" /></span>
                                 Auto-refresh
                             </label>
-                            <select id="refresh-interval">
+                            <select id="refresh-interval" defaultValue="5000">
                                 <option value="2000">2s</option>
-                                <option value="5000" selected>5s</option>
+                                <option value="5000">5s</option>
                                 <option value="10000">10s</option>
                                 <option value="30000">30s</option>
                             </select>
@@ -141,7 +142,15 @@ export function DebugPage() {
                             </div>
                             <div id="result-rendered" className="result-content"></div>
                             <div id="result-raw" className="result-raw" style={{ display: "none" }}>
-                                <pre><code id="result-raw-code"></code></pre>
+                                <div className="raw-toolbar">
+                                    <div className="raw-toolbar-title">Raw Output</div>
+                                    <div className="raw-toolbar-actions">
+                                        <button id="btn-history-clear" className="action-btn action-btn-small" disabled>Clear All</button>
+                                        <button id="btn-history-reload" className="action-btn action-btn-small" disabled>Reload</button>
+                                    </div>
+                                </div>
+                                <div id="result-raw-history" className="raw-history" style={{ display: "none" }}></div>
+                                <pre id="result-raw-pre"><code id="result-raw-code"></code></pre>
                             </div>
                         </main>
                     </div>
@@ -512,6 +521,68 @@ const STYLES = `
         line-height: 1.7;
         font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
     }
+    .raw-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-md);
+        padding-bottom: var(--space-sm);
+        border-bottom: 1px solid var(--color-border);
+    }
+    .raw-toolbar-title {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-text-dim);
+    }
+    .raw-toolbar-actions {
+        display: flex;
+        gap: var(--space-sm);
+    }
+    .action-btn-small {
+        padding: 4px 10px;
+        font-size: 11px;
+    }
+    .raw-history {
+        display: grid;
+        gap: var(--space-sm);
+    }
+    .raw-history-entry {
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: rgba(255, 255, 255, 0.02);
+        overflow: hidden;
+    }
+    .raw-history-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space-sm);
+        padding: 8px 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid var(--color-border);
+        font-size: 11px;
+        color: var(--color-text-dim);
+        font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    }
+    .raw-history-body {
+        padding: 10px 12px;
+        font-size: 12px;
+        line-height: 1.7;
+        color: var(--color-text-muted);
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    }
+    .raw-history-empty {
+        padding: 18px 14px;
+        border: 1px dashed var(--color-border);
+        border-radius: var(--radius-sm);
+        color: var(--color-text-dim);
+        text-align: center;
+        font-size: 12px;
+    }
 
     /* Footer */
     .debug-footer {
@@ -585,6 +656,13 @@ const CLIENT_SCRIPT = `
     var currentUrl = '';
     var refreshTimer = null;
     var showingRaw = false;
+    var requestHistory = [];
+    var currentEndpointName = '';
+    var logState = {
+        content: '',
+        end: -1,
+        size: 0
+    };
 
     var buttons = document.querySelectorAll('.endpoint-btn');
     var resultTitle = document.getElementById('result-title');
@@ -592,9 +670,13 @@ const CLIENT_SCRIPT = `
     var resultTime = document.getElementById('result-time');
     var resultRendered = document.getElementById('result-rendered');
     var resultRaw = document.getElementById('result-raw');
+    var resultRawHistory = document.getElementById('result-raw-history');
+    var resultRawPre = document.getElementById('result-raw-pre');
     var resultRawCode = document.getElementById('result-raw-code');
     var btnRefresh = document.getElementById('btn-refresh');
     var btnRaw = document.getElementById('btn-raw');
+    var btnHistoryClear = document.getElementById('btn-history-clear');
+    var btnHistoryReload = document.getElementById('btn-history-reload');
     var statusIndicator = document.getElementById('status-indicator');
     var autoRefreshToggle = document.getElementById('auto-refresh-toggle');
     var refreshIntervalSelect = document.getElementById('refresh-interval');
@@ -632,12 +714,97 @@ const CLIENT_SCRIPT = `
         statusIndicator.textContent = text || state;
     }
 
-    function fetchEndpoint(url, name) {
+    function isLogEndpoint(url) {
+        return typeof url === 'string' && url.indexOf('/db/output.log') === 0;
+    }
+
+    function buildRequestUrl(url, forceReload) {
+        if (!isLogEndpoint(url)) {
+            return url;
+        }
+        if (forceReload || logState.end < 0) {
+            return '/db/output.log';
+        }
+        return '/db/output.log?offset=' + encodeURIComponent(logState.end);
+    }
+
+    function resetLogState() {
+        logState.content = '';
+        logState.end = -1;
+        logState.size = 0;
+    }
+
+    function pushHistory(entry) {
+        requestHistory.unshift(entry);
+        if (requestHistory.length > 50) {
+            requestHistory.length = 50;
+        }
+        renderRawPanel();
+    }
+
+    function renderHistoryList() {
+        if (!requestHistory.length) {
+            resultRawHistory.innerHTML = '<div class="raw-history-empty">No request history yet</div>';
+            return;
+        }
+        resultRawHistory.innerHTML = requestHistory.map(function(entry) {
+            return '<div class="raw-history-entry">'
+                + '<div class="raw-history-meta">'
+                + '<span>' + escapeHtml(entry.time) + '</span>'
+                + '<span>' + escapeHtml(entry.url) + '</span>'
+                + '</div>'
+                + '<div class="raw-history-body">' + escapeHtml(entry.body) + '</div>'
+                + '</div>';
+        }).join('');
+    }
+
+    function renderRawPanel() {
+        var logMode = isLogEndpoint(currentUrl);
+        btnHistoryClear.disabled = !requestHistory.length;
+        btnHistoryReload.disabled = !currentUrl;
+
+        if (logMode) {
+            resultRawHistory.style.display = 'grid';
+            resultRawPre.style.display = 'none';
+            renderHistoryList();
+        } else {
+            resultRawHistory.style.display = 'none';
+            resultRawPre.style.display = 'block';
+        }
+    }
+
+    function renderLogContent() {
+        if (!logState.content) {
+            widgetContent.innerHTML = '<p class="placeholder-text"><span class="placeholder-icon">&#128221;</span>No log output yet</p>';
+            return;
+        }
+        widgetContent.innerHTML = '<pre style="color:#333;font-size:12px;white-space:pre-wrap;line-height:1.7;font-family:SF Mono,Cascadia Code,Fira Code,monospace">' + escapeHtml(logState.content) + '</pre>';
+    }
+
+    function updateLogState(data, forceReload) {
+        if (forceReload || data.end < logState.end) {
+            resetLogState();
+        }
+        if (typeof data.content === 'string' && data.content.length > 0) {
+            logState.content += data.content;
+        }
+        if (typeof data.end === 'number') {
+            logState.end = data.end;
+        }
+        if (typeof data.size === 'number') {
+            logState.size = data.size;
+        }
+        renderLogContent();
+    }
+
+    function fetchEndpoint(url, name, forceReload) {
         currentUrl = url;
+        currentEndpointName = name || url;
         resultTitle.textContent = name || url;
         resultUrl.textContent = url;
         btnRefresh.disabled = false;
         btnRaw.disabled = false;
+        btnHistoryReload.disabled = false;
 
         buttons.forEach(function(b) {
             b.classList.toggle('active', b.getAttribute('data-url') === url);
@@ -647,8 +814,13 @@ const CLIENT_SCRIPT = `
         resultRendered.classList.add('is-loading');
         btnRefresh.classList.add('is-spinning');
         var startTime = performance.now();
+        var requestUrl = buildRequestUrl(url, !!forceReload);
 
-        fetch('/debug/node?url=' + encodeURIComponent(url))
+        if (forceReload && isLogEndpoint(url)) {
+            resetLogState();
+        }
+
+        fetch('/debug/node?url=' + encodeURIComponent(requestUrl))
             .then(function(resp) {
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 var ct = resp.headers.get('content-type') || '';
@@ -666,17 +838,36 @@ const CLIENT_SCRIPT = `
                 resultTime.textContent = elapsed + 'ms';
                 setStatus('done', elapsed + 'ms');
 
-                if (result.type === 'json') {
+                if (isLogEndpoint(url) && result.type === 'json') {
+                    updateLogState(result.data, !!forceReload);
+                    pushHistory({
+                        time: new Date().toLocaleTimeString(),
+                        url: requestUrl,
+                        body: JSON.stringify(result.data, null, 2)
+                    });
+                    resultRawCode.textContent = logState.content;
+                } else if (result.type === 'json') {
                     var formatted = JSON.stringify(result.data, null, 2);
                     widgetContent.innerHTML = '<pre style="color:#333;font-size:12px;white-space:pre-wrap;line-height:1.7;font-family:SF Mono,Cascadia Code,Fira Code,monospace">' + escapeHtml(formatted) + '</pre>';
                     resultRawCode.textContent = formatted;
+                    pushHistory({
+                        time: new Date().toLocaleTimeString(),
+                        url: requestUrl,
+                        body: formatted
+                    });
                 } else {
                     widgetContent.innerHTML = result.data;
                     resultRawCode.textContent = result.data;
+                    pushHistory({
+                        time: new Date().toLocaleTimeString(),
+                        url: requestUrl,
+                        body: result.data
+                    });
                 }
 
                 resultRendered.classList.remove('is-loading');
                 btnRefresh.classList.remove('is-spinning');
+                renderRawPanel();
                 updateRawView();
             })
             .catch(function(err) {
@@ -687,6 +878,12 @@ const CLIENT_SCRIPT = `
                 btnRefresh.classList.remove('is-spinning');
                 widgetContent.innerHTML = '<p style="color:#f87171;padding:20px;text-align:center">' + escapeHtml(err.message) + '</p>';
                 resultRawCode.textContent = 'Error: ' + err.message;
+                pushHistory({
+                    time: new Date().toLocaleTimeString(),
+                    url: requestUrl,
+                    body: 'Error: ' + err.message
+                });
+                renderRawPanel();
             });
     }
 
@@ -718,7 +915,24 @@ const CLIENT_SCRIPT = `
 
     btnRefresh.addEventListener('click', function() {
         if (currentUrl) {
-            fetchEndpoint(currentUrl, resultTitle.textContent);
+            fetchEndpoint(currentUrl, currentEndpointName);
+        }
+    });
+
+    btnHistoryClear.addEventListener('click', function() {
+        requestHistory = [];
+        if (isLogEndpoint(currentUrl)) {
+            resetLogState();
+            renderLogContent();
+        } else {
+            resultRawCode.textContent = '';
+        }
+        renderRawPanel();
+    });
+
+    btnHistoryReload.addEventListener('click', function() {
+        if (currentUrl) {
+            fetchEndpoint(currentUrl, currentEndpointName, true);
         }
     });
 
@@ -736,7 +950,7 @@ const CLIENT_SCRIPT = `
             var interval = parseInt(refreshIntervalSelect.value, 10);
             refreshTimer = setInterval(function() {
                 if (currentUrl) {
-                    fetchEndpoint(currentUrl, resultTitle.textContent);
+                    fetchEndpoint(currentUrl, currentEndpointName);
                 }
             }, interval);
         }
@@ -749,7 +963,7 @@ const CLIENT_SCRIPT = `
         if (e.key === 'r' && !e.ctrlKey && !e.metaKey && currentUrl
             && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
             e.preventDefault();
-            fetchEndpoint(currentUrl, resultTitle.textContent);
+            fetchEndpoint(currentUrl, currentEndpointName);
         }
     });
 })();

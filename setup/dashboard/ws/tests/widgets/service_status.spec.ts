@@ -4,7 +4,7 @@
 import "mocha";
 import { expect } from "chai";
 
-import { serviceStatus } from "../../src/widgets/service_status";
+import { serviceStatus, serviceStatusAll } from "../../src/widgets/service_status";
 
 describe("widgets/service_status", () => {
     it("should render disabled badge when service is undefined", async () => {
@@ -58,6 +58,16 @@ describe("widgets/service_status", () => {
         it("should render running badge for any known service when process is found", async () => {
             const result = await serviceStatus("qbittorrent", alwaysRunning);
             expect(result).to.include("badge-service-running");
+        });
+    });
+
+    describe("batch state", () => {
+        it("should return a keyed service badge map", async () => {
+            const result = await serviceStatusAll();
+
+            expect(result).to.be.an("object");
+            expect(result).to.have.property("irssi");
+            expect(result.irssi).to.include("badge-service-");
         });
     });
 });

@@ -62,13 +62,22 @@ $sysInterfaceInfo = SystemInfo::enuminterface();
           </div>
         </div>
 
-        <!--SERVICE CONTROL CENTER-->
-        <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/service_control.php'); ?>
-        <!-- panel -->
-
-        <!--PACKAGE MANAGEMENT CENTER-->
-        <?php require($_SERVER['DOCUMENT_ROOT'].'/widgets/pmc.php'); ?>
-        <!-- panel -->
+        <div id="service_control_widget">
+          <div class="panel panel-inverse" data-inner-id="panel-server-service-control">
+            <div class="panel-heading">
+              <h4 class="panel-title"><?php echo T('SERVICE_CONTROL_CENTER'); ?></h4>
+            </div>
+            <div class="panel-body text-center" style="padding: 24px; color: #999;"><?php echo T('REFRESH'); ?>...</div>
+          </div>
+        </div>
+        <div id="pmc_widget">
+          <div class="panel panel-main panel-inverse" data-inner-id="panel-server-package-management">
+            <div class="panel-heading">
+              <h4 class="panel-title"><?php echo T('PACKAGE_MANAGEMENT_CENTER'); ?></h4>
+            </div>
+            <div class="panel-body text-center" style="padding: 24px; color: #999;"><?php echo T('REFRESH'); ?>...</div>
+          </div>
+        </div>
 
       </div>
 

@@ -31,7 +31,7 @@
     } else {
       if (response.cmd && (response.cmd.startsWith("systemctl") || response.cmd.startsWith("box:lang"))) {
         setTimeout(function () {
-          // service status is rendered by php, a force refresh is required
+          // service status is refreshed through the ws widget route, a force refresh is required
           location.reload();
         }, 100);
       }
@@ -121,4 +121,17 @@
   window.packageRemoveHandler = packageHandler("removepackage");
   window.serviceUpdateHandler = serviceUpdateHandler;
   window.boxHandler = boxHandler;
+
+  $(document).on("click", "[data-click-handler='packageInstall']", function (event) {
+    window.packageInstallHandler(event);
+  });
+  $(document).on("click", "[data-click-handler='packageRemove']", function (event) {
+    window.packageRemoveHandler(event);
+  });
+  $(document).on("click", "[data-click-handler='serviceUpdate']", function (event) {
+    window.serviceUpdateHandler(event);
+  });
+  $(document).on("click", "[data-click-handler='boxHandler']", function (event) {
+    window.boxHandler(event);
+  });
 })(window.jQuery);

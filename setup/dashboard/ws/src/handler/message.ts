@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import axios from "axios";
-import https from "https";
 import { Socket } from "socket.io";
 
 import Constant from "../constant";
@@ -12,20 +10,15 @@ import { diskData } from "../widgets/disk_data";
 import { ramStats } from "../widgets/ram_stats";
 import { getIfaceConfig } from "../utils/vnstat";
 import { bwTables } from "../widgets/bw_tables";
-import { serviceStatus } from "../widgets/service_status";
+import { serviceStatus, serviceStatusAll } from "../widgets/service_status";
+import { readOutputLog } from "../widgets/output_log";
+import { serviceControl } from "../widgets/service_control";
+import { packageManagementCenter } from "../widgets/pmc";
 
 interface Payload {
     key: string;
     url: string;
 }
-
-const afetch = axios.create({
-    baseURL: "http://127.0.0.1",
-    timeout: 5000,
-    httpsAgent: new https.Agent({
-        rejectUnauthorized: false,
-    }),
-});
 
 const iface = getIfaceConfig();
 
@@ -67,9 +60,28 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
             return await bwTables(iface, page);
         }
         case "/node/service_status.php":
+        case "/widgets/service_status.php":
             return await serviceStatus(req.args["service"]);
+        case "/node/service_status_all.php":
+            return await serviceStatusAll();
+        case "/node/service_control.php":
+        case "/widgets/service_control.php":
+            return await serviceControl();
+        case "/node/pmc.php":
+        case "/widgets/pmc.php":
+            return await packageManagementCenter();
+        case "/db/output.log": {
+            const rawOffset = req.args["offset"];
+            const rawLength = req.args["length"];
+            const offset = rawOffset ? parseInt(rawOffset, 10) : undefined;
+            const length = rawLength ? parseInt(rawLength, 10) : undefined;
+            return readOutputLog(
+                Number.isNaN(offset) ? undefined : offset,
+                Number.isNaN(length) ? undefined : length,
+            );
+        }
         default:
-            return (await afetch.get(req.pathname, { params: req.args })).data as object;
+            throw new Error(`Unknown widget route: ${req.pathname}`);
     }
 };
 

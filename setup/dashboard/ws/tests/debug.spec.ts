@@ -42,12 +42,16 @@ describe("debug page", () => {
         expect(html).to.include("result-raw");
         expect(html).to.include("btn-refresh");
         expect(html).to.include("btn-raw");
+        expect(html).to.include("btn-history-clear");
+        expect(html).to.include("btn-history-reload");
     });
 
     it("should include client-side script", () => {
         const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
         expect(html).to.include("fetchEndpoint");
         expect(html).to.include("/debug/node");
+        expect(html).to.include("requestHistory");
+        expect(html).to.include("renderHistoryList");
     });
 
     it("should include CSS styles", () => {
