@@ -331,8 +331,8 @@
         if ((request.id && $(request.id).length > 0) || request.override) {
           request.requestId = request.key + ":" + (++request_seq);
           pending_requests[request.requestId] = {
-            request: request,
-            task: task
+            request,
+            task
           };
           socket.send(request);
         }
