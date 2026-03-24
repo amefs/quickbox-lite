@@ -25,6 +25,7 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
     const { getActiveProfile } = require("./mockAdapter") as {
         getActiveProfile: () => import("./mockProfiles").MockProfile;
     };
+    const getPrimaryInterface = () => getActiveProfile().networkInterfaces[0]?.iface ?? "eth0";
 
     // ── systeminformation ──────────────────────────────────
 
@@ -55,7 +56,7 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         const p = getActiveProfile();
         return p.networkInterfaces.map((ni: { iface: string; operstate: string }) => ({
             iface: ni.iface, ifaceName: ni.iface,
-            default: ni.iface === "eth0",
+            default: ni.iface === getPrimaryInterface(),
             ip4: "10.0.0.2", ip4subnet: "255.255.255.0",
             ip6: "", ip6subnet: "",
             mac: "00:11:22:33:44:55",
@@ -148,7 +149,7 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
             }
 
             if (filePath === "/srv/dashboard/db/interface.txt") {
-                return "eth0\n";
+                return getPrimaryInterface() + "\n";
             }
 
             // Vnstat dump files

@@ -255,32 +255,37 @@
     key: "SSH_OUTPUT",
     url: "/db/output.log",
     id: "#sshoutput",
-    time: 2500,
+    time: 500,
     _endOffset: -1,
+    _requestLength: 65536,
     // eslint-disable-next-line no-unused-vars
     before: function (task) {
       if (!$("#sysResponse").is(":visible")) {
         return false;
       }
-      // First request: no offset → auto-mode (server returns tail)
-      // Subsequent: use end offset from last response for incremental read
+      const lengthQuery = "?length=" + this._requestLength;
       if (this._endOffset >= 0) {
-        this.url = "/db/output.log?offset=" + this._endOffset;
+        this.url = "/db/output.log?offset=" + this._endOffset + "&length=" + this._requestLength;
       } else {
-        this.url = "/db/output.log";
+        this.url = "/db/output.log" + lengthQuery;
       }
       return true;
     },
     override: function (response) {
       var el = $(this.id);
       if (typeof response === "object" && response !== null && "content" in response) {
-        // end < _endOffset means file was truncated/rotated, replace content
-        if (response.end < this._endOffset) {
+        const previousEnd = this._endOffset;
+        if (previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
           el.text(response.content);
-        } else if (response.content) {
-          el.append(document.createTextNode(response.content));
+          this._endOffset = response.end;
+        } else if (response.end > previousEnd && response.content) {
+          const overlap = Math.max(0, previousEnd - response.start);
+          const nextContent = overlap > 0 ? response.content.slice(overlap) : response.content;
+          if (nextContent) {
+            el.append(document.createTextNode(nextContent));
+          }
+          this._endOffset = response.end;
         }
-        this._endOffset = response.end;
       } else {
         el.text(response);
         this._endOffset = -1;
@@ -300,9 +305,11 @@
   let first_request = true;
   let error_count = 0;
   let bootstrap_dispatched = false;
+  let request_seq = 0;
 
   function start_status_update () {
     const task_mapping = {};
+    const pending_requests = {};
     const status_list = system_status_list.slice();
     for (let i = 0; i < status_list.length; ++i) {
       const status = status_list[i];
@@ -315,13 +322,19 @@
 
     function queueTask(task, delay) {
       setTimeout(function () {
-        if (task.before && typeof (task.before) === "function") {
-          if (task.before(task) === false) {
+        const request = Object.assign({}, task);
+        if (request.before && typeof (request.before) === "function") {
+          if (request.before(request) === false) {
             return;
           }
         }
-        if ((task.id && $(task.id).length > 0) || task.override) {
-          socket.send(task);
+        if ((request.id && $(request.id).length > 0) || request.override) {
+          request.requestId = request.key + ":" + (++request_seq);
+          pending_requests[request.requestId] = {
+            request: request,
+            task: task
+          };
+          socket.send(request);
         }
       }, delay);
     }
@@ -343,14 +356,19 @@
 
     // add event listener
     socket.on("message", function (response) {
+      const pending = response.requestId ? pending_requests[response.requestId] : undefined;
+      const request = pending ? pending.request : undefined;
+      const task = pending ? pending.task : task_mapping[response.key];
+      if (response.requestId) {
+        delete pending_requests[response.requestId];
+      }
       if (response.success) {
-        const task = task_mapping[response.key];
         if (task === undefined) {
           console.warn("[ws] task config not found,", response);
           return;
         }
         if (task.override && typeof (task.override) === "function") {
-          task.override(response.response);
+          task.override.call(task, response.response, response, request);
           return;
         }
         if (task.id !== undefined) {

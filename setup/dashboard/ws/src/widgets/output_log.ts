@@ -67,6 +67,14 @@ export interface OutputLogResult {
     size: number;
 }
 
+interface OutputLogCacheEntry extends OutputLogResult {
+    bytesToRead: number;
+    logPath: string;
+    mtimeMs: number;
+}
+
+let lastReadCache: OutputLogCacheEntry | undefined;
+
 /**
  * Read output.log with support for incremental and arbitrary-position reads.
  *
@@ -89,6 +97,7 @@ export function readOutputLog(offset?: number, length?: number): OutputLogResult
     }
 
     const fileSize = stat.size;
+    const mtimeMs = stat.mtimeMs;
     const maxLen = config.maxLength;
     const requestedLen = (length !== undefined && length > 0)
         ? Math.min(length, maxLen)
@@ -109,6 +118,21 @@ export function readOutputLog(offset?: number, length?: number): OutputLogResult
     }
 
     const bytesToRead = Math.min(requestedLen, fileSize - startPos);
+    const cached = lastReadCache;
+    if (cached &&
+        cached.logPath === logPath &&
+        cached.mtimeMs === mtimeMs &&
+        cached.size === fileSize &&
+        cached.start === startPos &&
+        cached.bytesToRead === bytesToRead) {
+        return {
+            content: cached.content,
+            start: cached.start,
+            end: cached.end,
+            size: cached.size,
+        };
+    }
+
     const buffer = Buffer.alloc(bytesToRead);
 
     const fd = openSync(logPath, "r");
@@ -118,10 +142,17 @@ export function readOutputLog(offset?: number, length?: number): OutputLogResult
         closeSync(fd);
     }
 
-    return {
+    const result = {
         content: buffer.toString("utf-8"),
         start: startPos,
         end: startPos + bytesToRead,
         size: fileSize,
     };
+    lastReadCache = {
+        ...result,
+        bytesToRead,
+        logPath,
+        mtimeMs,
+    };
+    return result;
 }

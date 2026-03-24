@@ -49,9 +49,16 @@ describe("debug page", () => {
     it("should include client-side script", () => {
         const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
         expect(html).to.include("fetchEndpoint");
-        expect(html).to.include("/debug/node");
+        expect(html).to.include("withDebugBase('/debug/node?url=' + encodeURIComponent(requestUrl))");
         expect(html).to.include("requestHistory");
         expect(html).to.include("renderHistoryList");
+    });
+
+    it("should derive debug base path for prefixed deployments", () => {
+        const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
+        expect(html).to.include("var debugBasePath = (function()");
+        expect(html).to.include("quickCss.href = withDebugBase('/debug/assets/skins/quick.css')");
+        expect(html).to.include("faCss.href = withDebugBase('/debug/assets/lib/font-awesome/css/font-awesome.min.css')");
     });
 
     it("should include CSS styles", () => {

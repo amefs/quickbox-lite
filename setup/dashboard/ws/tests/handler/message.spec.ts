@@ -67,11 +67,13 @@ describe("handler/message", () => {
                 on(event: string, cb: (p: unknown) => Promise<void>) {
                     if (event === Constant.EVENT_MESSAGE) {
                         // call it asynchronously with a valid payload
-                        setTimeout(() => void cb({ key: "test-key", url: "/node/up.php" }), 0);
+                        setTimeout(() => void cb({ key: "test-key", url: "/node/up.php", requestId: "req-1" }), 0);
                     }
                 },
                 send(data: unknown) {
                     expect(data).to.have.property("key", "test-key");
+                    expect(data).to.have.property("requestId", "req-1");
+                    expect(data).to.have.property("url", "/node/up.php");
                     expect(data).to.have.property("pathName", "/node/up.php");
                     expect(data).to.have.property("success").that.is.a("boolean");
                     expect(data).to.have.property("response");

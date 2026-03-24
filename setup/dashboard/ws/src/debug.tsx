@@ -680,18 +680,30 @@ const CLIENT_SCRIPT = `
     var statusIndicator = document.getElementById('status-indicator');
     var autoRefreshToggle = document.getElementById('auto-refresh-toggle');
     var refreshIntervalSelect = document.getElementById('refresh-interval');
+    var debugBasePath = (function() {
+        var pathname = window.location.pathname || '';
+        var debugIndex = pathname.lastIndexOf('/debug');
+        if (debugIndex <= 0) {
+            return '';
+        }
+        return pathname.slice(0, debugIndex);
+    })();
+
+    function withDebugBase(path) {
+        return debugBasePath + path;
+    }
 
     // Shadow DOM for scoped widget CSS rendering
     var shadow = resultRendered.attachShadow({mode: 'open'});
 
     var quickCss = document.createElement('link');
     quickCss.rel = 'stylesheet';
-    quickCss.href = '/debug/assets/skins/quick.css';
+    quickCss.href = withDebugBase('/debug/assets/skins/quick.css');
     shadow.appendChild(quickCss);
 
     var faCss = document.createElement('link');
     faCss.rel = 'stylesheet';
-    faCss.href = '/debug/assets/lib/font-awesome/css/font-awesome.min.css';
+    faCss.href = withDebugBase('/debug/assets/lib/font-awesome/css/font-awesome.min.css');
     shadow.appendChild(faCss);
 
     var scopeStyle = document.createElement('style');
@@ -820,7 +832,7 @@ const CLIENT_SCRIPT = `
             resetLogState();
         }
 
-        fetch('/debug/node?url=' + encodeURIComponent(requestUrl))
+        fetch(withDebugBase('/debug/node?url=' + encodeURIComponent(requestUrl)))
             .then(function(resp) {
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 var ct = resp.headers.get('content-type') || '';

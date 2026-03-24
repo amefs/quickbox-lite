@@ -43,13 +43,19 @@ app.get("/", (req, res) => {
 app.get("/set", (req, res) => {
     const remoteAddr = req.ip ?? "";
     const isLocal = remoteAddr === "127.0.0.1" || remoteAddr === "::1" || remoteAddr === "::ffff:127.0.0.1";
-    if (!isLocal) {
+    if (!isLocal && !isTestMode()) {
         res.status(403).send("Forbidden");
         return;
     }
     const lang = req.query.lang;
-    if (typeof lang === "string" && VALID_LOCALES.includes(lang)) {
-        i18n.locale = lang;
+    const normalizedLang = typeof lang === "string" ? lang.toLowerCase() : "";
+    const localeAliases: Record<string, string> = {
+        "zh-cn": "zh",
+        "zh-hans-cn": "zh",
+    };
+    const targetLocale = localeAliases[normalizedLang] ?? normalizedLang;
+    if (VALID_LOCALES.includes(targetLocale)) {
+        i18n.locale = targetLocale;
     } else {
         i18n.locale = "en";
     }

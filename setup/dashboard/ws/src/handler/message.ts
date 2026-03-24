@@ -18,6 +18,7 @@ import { packageManagementCenter } from "../widgets/pmc";
 interface Payload {
     key: string;
     url: string;
+    requestId?: string;
 }
 
 const iface = getIfaceConfig();
@@ -98,13 +99,17 @@ const messageHandler = async (payload: unknown, client: Socket) => {
     }
     const ret: {
         key: string;
+        requestId?: string;
+        url: string;
         pathName: string;
         success: boolean;
         message: string;
         response: string|object;
     } = {
         key: payload.key,
-        pathName: payload.url,
+        requestId: payload.requestId,
+        url: payload.url,
+        pathName: parseUrl(payload.url).pathname,
         success: true,
         message: "",
         response: "",

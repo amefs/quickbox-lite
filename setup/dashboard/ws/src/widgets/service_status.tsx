@@ -32,7 +32,6 @@ export async function serviceStatusAll() {
     const result: Record<string, string> = {};
 
     for (const [service, info] of serviceMap.entries()) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         result[service] = renderServiceBadge(processExistsIn(processList, info.process, info.username));
     }
 
