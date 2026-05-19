@@ -390,14 +390,11 @@
     });
 
     socket.on("connect", function () {
+      bootstrap_dispatched = false;
       dispatchBootstrapTasks();
     });
     if (socket.connected) {
       dispatchBootstrapTasks();
-    } else {
-      setTimeout(function () {
-        dispatchBootstrapTasks();
-      }, 500);
     }
 
     // group task with time
