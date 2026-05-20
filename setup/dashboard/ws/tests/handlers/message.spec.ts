@@ -250,4 +250,55 @@ describe("handlers/message", () => {
             }
         });
     });
+
+    describe("request-local locale", () => {
+        it("should render widget responses with payload locale", (done) => {
+            const mockClient = {
+                id: "client-locale-1",
+                data: {},
+                on(event: string, cb: (p: unknown) => Promise<void>) {
+                    if (event === Constant.EVENT_MESSAGE) {
+                        setTimeout(() => void cb({
+                            key: "pmc-locale",
+                            url: "/node/pmc.php",
+                            locale: "zh",
+                        }), 0);
+                    }
+                },
+                send(data: Record<string, unknown>) {
+                    expect(data.success).to.equal(true);
+                    expect(data.response).to.be.a("string");
+                    expect(data.response).to.include("组件管理中心");
+                    expect((mockClient.data as { locale?: string }).locale).to.equal("zh");
+                    done();
+                },
+            };
+
+            messageHandler(mockClient as never);
+        });
+
+        it("should not leak payload locale to clients without locale", (done) => {
+            const mockClient = {
+                id: "client-locale-2",
+                data: {},
+                on(event: string, cb: (p: unknown) => Promise<void>) {
+                    if (event === Constant.EVENT_MESSAGE) {
+                        setTimeout(() => void cb({
+                            key: "pmc-locale-default",
+                            url: "/node/pmc.php",
+                        }), 0);
+                    }
+                },
+                send(data: Record<string, unknown>) {
+                    expect(data.success).to.equal(true);
+                    expect(data.response).to.be.a("string");
+                    expect(data.response).to.include("Package Management Center");
+                    expect(data.response).to.not.include("组件管理中心");
+                    done();
+                },
+            };
+
+            messageHandler(mockClient as never);
+        });
+    });
 });

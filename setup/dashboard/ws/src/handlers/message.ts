@@ -3,6 +3,7 @@
 import { Socket } from "socket.io";
 
 import Constant from "../shared/constants";
+import { VALID_LOCALES, withLocale } from "../i18n";
 import { widgetsLoad } from "../widgets/load";
 import { netStatus } from "../widgets/network-status";
 import { upTime } from "../widgets/up";
@@ -19,6 +20,15 @@ interface Payload {
     key: string;
     url: string;
     requestId?: string;
+    locale?: string;
+}
+
+interface LocaleSocketData {
+    locale?: string;
+}
+
+function localeData(client: Socket): LocaleSocketData {
+    return (client as unknown as { data: LocaleSocketData }).data;
 }
 
 const iface = getIfaceConfig();
@@ -92,6 +102,18 @@ const isValidPayload = (payload: unknown): payload is Payload => {
         "url" in payload && typeof (payload as Payload).url === "string";
 };
 
+const resolvePayloadLocale = (payload: Payload, client: Socket) => {
+    const data = localeData(client);
+    if (typeof payload.locale === "string" && VALID_LOCALES.includes(payload.locale)) {
+        data.locale = payload.locale;
+        return payload.locale;
+    }
+    const clientLocale = data.locale;
+    return typeof clientLocale === "string" && VALID_LOCALES.includes(clientLocale)
+        ? clientLocale
+        : "en";
+};
+
 const messageHandler = async (payload: unknown, client: Socket) => {
     if (!isValidPayload(payload)) {
         client.send({ key: "", pathName: "", success: false, message: "Invalid payload", response: "" });
@@ -115,7 +137,8 @@ const messageHandler = async (payload: unknown, client: Socket) => {
         response: "",
     };
     try {
-        ret.response = await resolveWidget(payload.url);
+        const locale: string = resolvePayloadLocale(payload, client);
+        ret.response = await withLocale(locale, async () => await resolveWidget(payload.url));
     } catch (error) {
         ret.message = error instanceof Error ? error.toString() : "Unknown error";
         ret.success = false;

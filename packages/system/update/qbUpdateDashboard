@@ -29,10 +29,18 @@ function _updatedashboard() {
 	_info "Updating QuickBox dashboard..."
 	# Update dashboard config
 	cd /srv/dashboard || exit 1
-	_execute "rsync -aP --delete --exclude=output.log  --exclude=interface.txt --exclude=master.txt --exclude=.smoked.lock --exclude=.defaulted.lock --exclude=share.php --exclude=custom.menu.php --exclude=url.override.php --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
+	_execute "rsync -aP --delete --exclude=output.log  --exclude=interface.txt --exclude=master.txt --exclude=.smoked.lock --exclude=.defaulted.lock --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
+	username=$(cat /root/.admin.info | cut -d: -f1)
+	\cp -f ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
+	sed -i "s/\/etc\/htpasswd/\/etc\/htpasswd.d\/htpasswd.${username}/g" /etc/nginx/apps/dashboard.conf
+	cd /srv/dashboard/ws || exit 1
+	_execute "npm ci --production"
+	\cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service
+	_execute "systemctl daemon-reload"
+	_execute "systemctl enable quickbox-ws.service"
+	_execute "systemctl restart quickbox-ws.service"
+	touch /install/.quickbox-ws.lock
 
-	IFACE=$(cat /srv/dashboard/db/interface.txt)
-	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/inc/config.php
 	if [[ -f /srv/dashboard/db/.smoked.lock ]]; then
 		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"
 	elif [[ -f /srv/dashboard/db/.defaulted.lock ]]; then
@@ -41,6 +49,7 @@ function _updatedashboard() {
 		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"
 	fi
 	chown -R www-data:www-data /srv/dashboard
+	_execute "nginx -s reload"
 	_success "QuickBox dashboard updated"
 }
 

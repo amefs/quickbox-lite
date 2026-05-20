@@ -186,9 +186,6 @@ function _updateservice() {
 		sed -i "s/php7.2-fpm.sock/php7.4-fpm.sock/g" /etc/nginx/sites-enabled/default
 		_success "php version updated..."
 	fi
-	if (grep -c 'php7.2-fpm.sock' < /etc/nginx/apps/dashboard.conf > /dev/null); then
-		\cp -f ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
-	fi
 	if [[ -f /install/.rutorrent.lock ]]; then
 		if (grep -c 'php7.2-fpm.sock' < /etc/nginx/apps/rutorrent.conf > /dev/null); then
 			_info "updating rutorrent config..."

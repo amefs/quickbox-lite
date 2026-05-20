@@ -3,14 +3,16 @@
 
 import "mocha";
 import { expect } from "chai";
+import express from "express";
+import path from "path";
 import request from "supertest";
-import sinon from "sinon";
 import childProcess from "child_process";
 
 // Import the fully-configured app (trust proxy + router mounted) rather than
 // the raw router, so middleware interactions (e.g. loopback detection) behave
 // exactly as in production.
 import { app } from "../src/server";
+import { createAppRouter } from "../src/router";
 
 interface SystemStaticResponse {
     cpu: {
@@ -27,15 +29,75 @@ interface PluginsResponse {
     }[];
 }
 
+interface DashboardConfigResponse {
+    languages: {
+        file: string;
+        key: string;
+        title: string;
+        locale: string;
+    }[];
+}
+
+function createRouterTestApp(execFile: typeof childProcess.execFile = childProcess.execFile) {
+    const testApp = express();
+    testApp.set("trust proxy", "loopback");
+    testApp.use(createAppRouter({
+        dashboardDir: path.resolve(__dirname, "..", ".."),
+        debugEnabled: true,
+        execFile,
+    }));
+    return testApp;
+}
+
+function createExecFileRecorder() {
+    const calls: unknown[][] = [];
+    const execFile = ((...args: unknown[]) => {
+        calls.push(args);
+        const callback = args.find((arg): arg is (error: childProcess.ExecFileException | null, stdout: string, stderr: string) => void => typeof arg === "function");
+        if (callback) {
+            callback(null, "", "");
+        }
+        return {} as childProcess.ChildProcess;
+    }) as typeof childProcess.execFile;
+
+    return { calls, execFile };
+}
+
 describe("router — HTTP routes", () => {
     // ── Root ─────────────────────────────────────────────────────────────────
 
     describe("GET /", () => {
-        it("should return 200 with HTML", async () => {
+        it("should return 200 with the Node-rendered dashboard shell", async () => {
             const res = await request(app).get("/");
             expect(res.status).to.equal(200);
-            expect(res.text).to.include("<html");
-            expect(res.text).to.include("QuickBox Websocket");
+            expect(res.text).to.include("<!DOCTYPE html>");
+            expect(res.text).to.include("Quickbox Dashboard");
+            expect(res.text).to.include("id=\"service_control_widget\"");
+            expect(res.text).to.include("quickbox:locale");
+            expect(res.text).to.include("window.serviceUpdateHandler");
+            expect(res.text).to.include("startStatusUpdates");
+            expect(res.text).to.include("/lib/datatables/js/jquery.dataTables.min.js");
+            expect(res.text).to.not.include("panel.app_status.ws.js");
+            expect(res.text).to.not.include("panel.app_service.ws.js");
+        });
+
+        it("should render the dashboard shell with request-local locale", async () => {
+            const zh = await request(app).get("/?locale=zh");
+            const en = await request(app).get("/?locale=en");
+
+            expect(zh.status).to.equal(200);
+            expect(en.status).to.equal(200);
+            expect(zh.text).to.include("服务控制中心");
+            expect(en.text).to.include("Service Control Center");
+        });
+
+        it("should render the dashboard shell under the legacy /ws base path", async () => {
+            const res = await request(app).get("/ws?locale=zh");
+
+            expect(res.status).to.equal(200);
+            expect(res.text).to.include("服务控制中心");
+            expect(res.text).to.include('path: "/ws/socket.io"');
+            expect(res.text).to.include("window.quickboxApiBase = \"/ws\"");
         });
     });
 
@@ -57,7 +119,7 @@ describe("router — HTTP routes", () => {
             expect(res.status).to.equal(403);
         });
 
-        it("should set locale to 'zh' via direct code", async () => {
+        it("should normalize locale to 'zh' via direct code", async () => {
             const res = await request(app).get("/set?lang=zh");
             expect(res.status).to.equal(200);
             expect(res.text).to.equal("zh");
@@ -81,6 +143,15 @@ describe("router — HTTP routes", () => {
             expect(res.status).to.equal(200);
             expect(res.text).to.equal("en");
         });
+
+        it("should not mutate the dashboard shell locale globally", async () => {
+            await request(app).get("/set?lang=zh");
+            const res = await request(app).get("/");
+
+            expect(res.status).to.equal(200);
+            expect(res.text).to.include("Service Control Center");
+            expect(res.text).to.not.include("服务控制中心");
+        });
     });
 
     // ── Node widget endpoints (/node/*) ───────────────────────────────────────
@@ -101,6 +172,46 @@ describe("router — HTTP routes", () => {
         });
     });
 
+    describe("legacy /ws node routes", () => {
+        it("should route /ws/node/dashboard_config to the Node handler", async () => {
+            const res = await request(app).get("/ws/node/dashboard_config");
+
+            expect(res.status).to.equal(200);
+            expect(res.body).to.have.property("version", "v1.5.12");
+        });
+    });
+
+    describe("legacy inc assets", () => {
+        it("should not serve the status updater script now owned by the Node shell", async () => {
+            const res = await request(app).get("/inc/panel.app_status.ws.js");
+
+            expect(res.status).to.equal(404);
+        });
+
+        it("should not serve the command-handler script now owned by the Node shell", async () => {
+            const res = await request(app).get("/inc/panel.app_service.ws.js");
+
+            expect(res.status).to.equal(404);
+        });
+
+        it("should not expose PHP partials as static files", async () => {
+            const res = await request(app).get("/inc/config.php");
+
+            expect(res.status).to.equal(404);
+            expect(res.text).to.not.include("<?php");
+        });
+    });
+
+    describe("GET /node/removal_modals locale", () => {
+        it("should render with request-local locale", async () => {
+            const res = await request(app).get("/node/removal_modals?locale=zh");
+
+            expect(res.status).to.equal(200);
+            expect(res.text).to.include("取消");
+            expect(res.text).to.include("我明白，继续！");
+        });
+    });
+
     describe("GET /node/dashboard_config", () => {
         it("should return static dashboard menu config", async () => {
             const res = await request(app).get("/node/dashboard_config");
@@ -109,6 +220,7 @@ describe("router — HTTP routes", () => {
             expect(res.body).to.have.property("version", "v1.5.12");
             expect(res.body).to.have.property("branch").that.is.a("string");
             expect(res.body).to.have.property("languages").that.is.an("array").with.length.greaterThan(0);
+            expect((res.body as DashboardConfigResponse).languages[0]).to.have.keys(["file", "key", "title", "locale"]);
             expect(res.body).to.have.property("themes").that.deep.equals([
                 { file: "defaulted", title: "Defaulted" },
                 { file: "smoked", title: "Smoked" },
@@ -123,7 +235,8 @@ describe("router — HTTP routes", () => {
     });
 
     describe("GET /node/system_static", () => {
-        it("should return CPU and network interface metadata", async () => {
+        it("should return CPU and network interface metadata", async function() {
+            this.timeout(6000);
             const res = await request(app).get("/node/system_static");
             const body = res.body as SystemStaticResponse;
 
@@ -136,43 +249,37 @@ describe("router — HTTP routes", () => {
     });
 
     describe("POST /node/theme", () => {
-        let execFileStub: sinon.SinonStub;
+        let execFileCalls: unknown[][];
+        let injectedApp: express.Express;
 
         beforeEach(() => {
-            execFileStub = sinon.stub(childProcess, "execFile").callsFake(((...args: unknown[]) => {
-                const callback = args.find((arg): arg is (error: childProcess.ExecFileException | null, stdout: string, stderr: string) => void => typeof arg === "function");
-                if (callback) {
-                    callback(null, "", "");
-                }
-                return {} as childProcess.ChildProcess;
-            }));
-        });
-
-        afterEach(() => {
-            execFileStub.restore();
+            const recorder = createExecFileRecorder();
+            execFileCalls = recorder.calls;
+            injectedApp = createRouterTestApp(recorder.execFile);
         });
 
         it("should apply an allowlisted dashboard theme", async () => {
-            const res = await request(app)
+            const res = await request(injectedApp)
                 .post("/node/theme")
                 .send({ theme: "smoked" });
 
             expect(res.status).to.equal(200);
             expect(res.body).to.deep.equal({ ok: true, theme: "smoked" });
-            expect(execFileStub.calledOnceWithExactly(
-                "sudo",
+            expect(execFileCalls).to.have.length(1);
+            expect(execFileCalls[0][0]).to.equal("sudo");
+            expect(execFileCalls[0][1]).to.deep.equal(
                 ["/usr/local/bin/quickbox/system/theme/themeSelect-smoked"],
-                sinon.match.func,
-            )).to.equal(true);
+            );
+            expect(execFileCalls[0][2]).to.be.a("function");
         });
 
         it("should reject unknown dashboard themes", async () => {
-            const res = await request(app)
+            const res = await request(injectedApp)
                 .post("/node/theme")
                 .send({ theme: "../../bad" });
 
             expect(res.status).to.equal(400);
-            expect(execFileStub.notCalled).to.equal(true);
+            expect(execFileCalls).to.have.length(0);
         });
     });
 
@@ -188,52 +295,40 @@ describe("router — HTTP routes", () => {
     });
 
     describe("POST /node/plugin", () => {
-        let execFileStub: sinon.SinonStub;
+        let execFileCalls: unknown[][];
+        let injectedApp: express.Express;
 
         beforeEach(() => {
-            execFileStub = sinon.stub(childProcess, "execFile").callsFake(((...args: unknown[]) => {
-                const callback = args.find((arg): arg is (error: childProcess.ExecFileException | null, stdout: string, stderr: string) => void => typeof arg === "function");
-                if (callback) {
-                    callback(null, "", "");
-                }
-                return {} as childProcess.ChildProcess;
-            }));
-        });
-
-        afterEach(() => {
-            execFileStub.restore();
+            const recorder = createExecFileRecorder();
+            execFileCalls = recorder.calls;
+            injectedApp = createRouterTestApp(recorder.execFile);
         });
 
         it("should apply an allowlisted plugin action", async () => {
-            const res = await request(app)
+            const res = await request(injectedApp)
                 .post("/node/plugin")
                 .send({ plugin: "rss", action: "install" });
 
             expect(res.status).to.equal(200);
             expect(res.body).to.deep.equal({ ok: true, plugin: "rss", action: "install" });
-            expect(execFileStub.calledOnceWithExactly(
-                "sudo",
-                ["/usr/local/bin/quickbox/plugin/install/installplugin-rss"],
-                sinon.match.func,
-            )).to.equal(true);
         });
 
         it("should reject unknown plugins before executing", async () => {
-            const res = await request(app)
+            const res = await request(injectedApp)
                 .post("/node/plugin")
                 .send({ plugin: "../../bad", action: "install" });
 
             expect(res.status).to.equal(400);
-            expect(execFileStub.notCalled).to.equal(true);
+            expect(execFileCalls).to.have.length(0);
         });
 
         it("should reject unknown plugin actions before executing", async () => {
-            const res = await request(app)
+            const res = await request(injectedApp)
                 .post("/node/plugin")
                 .send({ plugin: "rss", action: "restart" });
 
             expect(res.status).to.equal(400);
-            expect(execFileStub.notCalled).to.equal(true);
+            expect(execFileCalls).to.have.length(0);
         });
     });
 

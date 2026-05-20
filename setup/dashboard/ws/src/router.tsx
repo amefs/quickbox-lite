@@ -2,53 +2,84 @@
 // HTTP route factory — owns all Express GET/POST routes; Socket.IO middleware lives in server.tsx.
 
 import express, { Router, type Request, type Response } from "express";
+import * as childProcess from "child_process";
 import path from "path";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 
 import { resolveWidget } from "./handlers/message";
-import i18n, { VALID_LOCALES } from "./i18n";
+import { normalizeLocale, withLocale } from "./i18n";
 import { DebugPage } from "./debug";
-import { applyDashboardTheme, dashboardConfig } from "./dashboard-config";
+import { DashboardPage } from "./dashboard-page";
+import { applyDashboardThemeWithExecFile, dashboardConfig } from "./dashboard-config";
 import { isTestMode, setActiveProfile } from "./testing";
 import { dashboardMenu } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
-import { applyRutorrentPluginAction, getRutorrentPlugins, isPluginAction } from "./plugins";
-import { systemStaticInfo } from "./system-static";
+import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAction } from "./plugins";
+import { systemStaticInfoWithProviders } from "./system-static";
 
 export interface AppRouterOptions {
     /** Absolute path to the dashboard root (setup/dashboard). Used by /debug/assets/* static routes. */
     dashboardDir: string;
     /** Whether debug endpoints (/debug, /debug/node, /debug/assets/*) should be registered. */
     debugEnabled: boolean;
+    /** Allows tests to inject command execution without shelling out. */
+    execFile?: typeof childProcess.execFile;
 }
 
 /**
  * Creates and returns an Express Router with all HTTP routes for the ws service.
  *
  * Route groups:
- *   /            — root info page
- *   /set         — locale switch (loopback-only in production)
- *   /node/*      — React SSR widget endpoints consumed by the PHP dashboard
+ *   /            — Node-rendered dashboard shell
+ *   /set         — legacy locale normalizer for older clients
+ *   /node/*      — React SSR widget endpoints consumed by the dashboard shell
  *   /debug*      — debug/introspection endpoints (gated by debugEnabled)
  *   /test/*      — test-only endpoints (gated by isTestMode())
  */
 export function createAppRouter(options: AppRouterOptions): Router {
     const router = Router();
+    const runExecFile = options.execFile ?? childProcess.execFile;
+    const renderWithLocale = async <T,>(req: Request, callback: () => T | Promise<T>): Promise<T> => {
+        const rawLocale = typeof req.query.locale === "string" ? req.query.locale : req.header("x-quickbox-locale");
+        return await withLocale(normalizeLocale(rawLocale), callback);
+    };
+
+    router.use((req, _res, next) => {
+        if (
+            req.url.startsWith("/ws/node/") ||
+            req.url.startsWith("/ws/debug") ||
+            req.url.startsWith("/ws/test/")
+        ) {
+            req.url = req.url.slice("/ws".length);
+        }
+        next();
+    });
+
+    router.use("/skins", express.static(path.join(options.dashboardDir, "skins")));
+    router.use("/lib", express.static(path.join(options.dashboardDir, "lib")));
+    router.use("/fonts", express.static(path.join(options.dashboardDir, "fonts")));
+    router.use("/img", express.static(path.join(options.dashboardDir, "img")));
+    router.use("/js", express.static(path.join(options.dashboardDir, "js")));
+    router.use("/lang", express.static(path.join(options.dashboardDir, "lang")));
 
     // ── Root ─────────────────────────────────────────────────────────────────
 
-    router.get("/", (req: Request, res: Response) => {
-        res.send(ReactDOMServer.renderToString(
-            <html>
-                <head>
-                    <title>QuickBox Websocket</title>
-                </head>
-                <body>
-                    <pre>Request from {req.ip}</pre>
-                </body>
-            </html>,
-        ));
+    const renderDashboard = async (req: Request, res: Response, basePath = "") => {
+        const html = await renderWithLocale(req, () => ReactDOMServer.renderToString(<DashboardPage basePath={basePath} />));
+        res.send(`<!DOCTYPE html>${html}`);
+    };
+
+    router.get("/", async (req: Request, res: Response) => {
+        await renderDashboard(req, res);
+    });
+
+    router.get("/ws", async (req: Request, res: Response) => {
+        await renderDashboard(req, res, "/ws");
+    });
+
+    router.get("/ws/", async (req: Request, res: Response) => {
+        await renderDashboard(req, res, "/ws");
     });
 
     // ── Locale ───────────────────────────────────────────────────────────────
@@ -60,25 +91,13 @@ export function createAppRouter(options: AppRouterOptions): Router {
             res.status(403).send("Forbidden");
             return;
         }
-        const lang = req.query.lang;
-        const normalizedLang = typeof lang === "string" ? lang.toLowerCase() : "";
-        const localeAliases: Record<string, string> = {
-            "zh-cn": "zh",
-            "zh-hans-cn": "zh",
-        };
-        const targetLocale = localeAliases[normalizedLang] ?? normalizedLang;
-        if (VALID_LOCALES.includes(targetLocale)) {
-            i18n.locale = targetLocale;
-        } else {
-            i18n.locale = "en";
-        }
-        res.send(i18n.locale);
+        res.send(normalizeLocale(req.query.lang));
     });
 
-    // ── Node widget HTTP endpoints (consumed by PHP dashboard via fetch) ──────
+    // ── Node widget HTTP endpoints consumed by the dashboard shell ───────────
 
-    router.get("/node/menu", async (_req: Request, res: Response) => {
-        const result = await dashboardMenu();
+    router.get("/node/menu", async (req: Request, res: Response) => {
+        const result = await renderWithLocale(req, async () => await dashboardMenu());
         res.json(result);
     });
 
@@ -86,8 +105,8 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.json(dashboardConfig());
     });
 
-    router.get("/node/system_static", async (_req: Request, res: Response) => {
-        res.json(await systemStaticInfo());
+    router.get("/node/system_static", async (req: Request, res: Response) => {
+        res.json(await renderWithLocale(req, async () => await systemStaticInfoWithProviders()));
     });
 
     router.post("/node/theme", express.json(), async (req: Request, res: Response) => {
@@ -97,7 +116,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
             return;
         }
         try {
-            await applyDashboardTheme(theme);
+            await applyDashboardThemeWithExecFile(theme, runExecFile);
             res.json({ ok: true, theme });
         } catch (error) {
             const status = error instanceof Error && error.message === "Invalid theme" ? 400 : 500;
@@ -116,7 +135,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
             return;
         }
         try {
-            await applyRutorrentPluginAction(plugin, action);
+            await applyRutorrentPluginActionWithExecFile(plugin, action, runExecFile);
             res.json({ ok: true, plugin, action });
         } catch (error) {
             const status = error instanceof Error && error.message.startsWith("Invalid ") ? 400 : 500;
@@ -124,8 +143,8 @@ export function createAppRouter(options: AppRouterOptions): Router {
         }
     });
 
-    router.get("/node/removal_modals", async (_req: Request, res: Response) => {
-        const result = await removalModals();
+    router.get("/node/removal_modals", async (req: Request, res: Response) => {
+        const result = await renderWithLocale(req, async () => await removalModals());
         res.send(result);
     });
 
@@ -142,7 +161,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
                 res.status(400).json({ error: "url query param required, e.g. /debug/node?url=/node/up.php" });
                 return;
             }
-            const result = await resolveWidget(url);
+            const result = await renderWithLocale(req, async () => await resolveWidget(url));
             res.send(result);
         });
 

@@ -778,23 +778,6 @@ function _insngx() {
 	rm -rf /etc/nginx/sites-enabled/default
 	cp ${local_setup_template}nginx/default.template /etc/nginx/sites-enabled/default
 
-	ln -nsf /usr/bin/php7.4 /usr/bin/php
-	sed -i.bak -e "s/post_max_size.*/post_max_size = 64M/" \
-		-e "s/upload_max_filesize.*/upload_max_filesize = 92M/" \
-		-e "s/expose_php.*/expose_php = Off/" \
-		-e "s/128M/768M/" \
-		-e "s/;cgi.fix_pathinfo.*/cgi.fix_pathinfo=1/" \
-		-e "s/;opcache.enable.*/opcache.enable=1/" \
-		-e "s/;opcache.memory_consumption.*/opcache.memory_consumption=128/" \
-		-e "s/;opcache.max_accelerated_files.*/opcache.max_accelerated_files=4000/" \
-		-e "s/;opcache.revalidate_freq.*/opcache.revalidate_freq=240/" /etc/php/7.4/fpm/php.ini
-
-	phpenmod -v 7.4 opcache
-	phpenmod -v 7.4 xml
-	phpenmod -v 7.4 mbstring
-	phpenmod -v 7.4 msgpack
-	phpenmod -v 7.4 memcached
-
 	mkdir -p /etc/nginx/ssl/
 	mkdir -p /etc/nginx/snippets/
 	mkdir -p /etc/nginx/apps/
@@ -823,7 +806,6 @@ function _insngx() {
 	mkdir -p /var/log/nginx/
 	chown -R www-data:www-data /var/log/nginx/
 	systemctl restart nginx
-	systemctl restart php7.4-fpm
 }
 
 function _insnodejs() {
@@ -904,7 +886,6 @@ function _insdashboard() {
 	/usr/local/bin/quickbox/system/theme/themeSelect-"${dash_theme}"
 	IFACE=$(ip link show | grep -i broadcast | grep -m1 UP | cut -d: -f 2 | cut -d@ -f 1 | sed -e 's/ //g')
 	echo "${IFACE}" >/srv/dashboard/db/interface.txt
-	sed -i "s/INETFACE/${IFACE}/g" /srv/dashboard/inc/config.php
 	echo "${username}" >/srv/dashboard/db/master.txt
 	chown -R www-data: /srv/dashboard
 	cp ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
@@ -1617,4 +1598,3 @@ elif [[ $onekey == 0 ]]; then
 
 	# Excute installation
 fi
-

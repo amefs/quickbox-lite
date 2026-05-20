@@ -77,6 +77,14 @@ export function getRutorrentPlugins() {
 }
 
 export function applyRutorrentPluginAction(plugin: string, action: PluginAction) {
+    return applyRutorrentPluginActionWithExecFile(plugin, action);
+}
+
+export function applyRutorrentPluginActionWithExecFile(
+    plugin: string,
+    action: PluginAction,
+    runExecFile: typeof execFile = execFile,
+) {
     if (!isRutorrentPlugin(plugin)) {
         return Promise.reject(new Error("Invalid plugin"));
     }
@@ -85,7 +93,7 @@ export function applyRutorrentPluginAction(plugin: string, action: PluginAction)
     }
 
     return new Promise<void>((resolve, reject) => {
-        execFile("sudo", [`/usr/local/bin/quickbox/plugin/${action}/${action}plugin-${plugin}`], (error) => {
+        runExecFile("sudo", [`/usr/local/bin/quickbox/plugin/${action}/${action}plugin-${plugin}`], (error) => {
             if (error) {
                 reject(new Error(error.message));
                 return;

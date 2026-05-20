@@ -13,18 +13,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-locale='zh_CN.UTF-8'
 language='lang_zh-Hans-CN'
-
-cat >/srv/dashboard/db/locale.php <<LCL
-<?php
-    \$locale   = '$locale';
-    \$language = '$language';
-LCL
 
 rm -f /install/.lang_*
 touch /install/.lang_zh.lock
-chown www-data: /srv/dashboard/db/locale.php
 nginx -s reload >/dev/null 2>&1
-/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'
 sleep 5

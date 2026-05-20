@@ -23,11 +23,14 @@ const dashboardDir = path.resolve(__dirname, "..", "..");
 
 const server = http.createServer(app);
 const io = new socketio(server, { wsEngine: WebSocketServer });
+const wsPathIo = new socketio(server, { path: "/ws/socket.io", wsEngine: WebSocketServer });
 
-io.use(logHandler);
-io.use(messageHandler);
-io.use(execHandler);
-io.use(i18nHandler);
+for (const socketServer of [io, wsPathIo]) {
+    socketServer.use(logHandler);
+    socketServer.use(messageHandler);
+    socketServer.use(execHandler);
+    socketServer.use(i18nHandler);
+}
 
 app.use(createAppRouter({ debugEnabled: debugEndpointsEnabled, dashboardDir }));
 

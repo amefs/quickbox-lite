@@ -10,9 +10,4 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-ADAPT=$(cat /srv/dashboard/db/interface.txt)
-
-sed -i "s/INETFACE/${ADAPT}/g" /srv/dashboard/inc/config.php
-
 nginx -s reload >/dev/null 2>&1
-/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'

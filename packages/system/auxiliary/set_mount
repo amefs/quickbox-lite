@@ -49,19 +49,12 @@ function _error() {
 # MAIN FUNCTIONS
 ################################################################################
 function _setMount() {
-	# fix Disk Widget
 	if [[ $device == "/home" ]]; then
-		rm -f /srv/dashboard/widgets/disk_data.php
-		cp /etc/QuickBox/setup/dashboard/widgets/disk_datah.php /srv/dashboard/widgets/disk_data.php
 		_success "Set primary mount to /home"
 	else
-		rm -f /srv/dashboard/widgets/disk_data.php
-		cp /etc/QuickBox/setup/dashboard/widgets/disk_data.php /srv/dashboard/widgets/disk_data.php
 		_success "Set primary mount to /"
 	fi
-	chown -R www-data: /srv/dashboard
 }
 
 _setMount
 nginx -s reload >/dev/null 2>&1
-/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();'

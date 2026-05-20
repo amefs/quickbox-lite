@@ -11,6 +11,28 @@ export interface CpuStaticInfo {
     cache?: string;
 }
 
+const SYSTEM_STATIC_TIMEOUT_MS = 1200;
+const UNKNOWN_CPU: CpuStaticInfo = {
+    modelHtml: "<h4>Unknown</h4>",
+    count: "-",
+};
+
+async function withTimeout<T>(task: Promise<T>, fallback: T): Promise<T> {
+    let timer: NodeJS.Timeout | undefined;
+    try {
+        return await Promise.race([
+            task,
+            new Promise<T>((resolve) => {
+                timer = setTimeout(() => { resolve(fallback); }, SYSTEM_STATIC_TIMEOUT_MS);
+            }),
+        ]);
+    } finally {
+        if (timer) {
+            clearTimeout(timer);
+        }
+    }
+}
+
 function escapeHtml(value: string) {
     return value
         .replaceAll("&", "&amp;")
@@ -32,7 +54,13 @@ async function readCpuCache() {
 
 export async function getCpuStaticInfo(): Promise<CpuStaticInfo> {
     try {
-        const [cpu, cache] = await Promise.all([si.cpu(), readCpuCache()]);
+        const [cpu, cache] = await withTimeout(Promise.all([
+            si.cpu(),
+            readCpuCache(),
+        ]), [undefined, undefined] as [Awaited<ReturnType<typeof si.cpu>> | undefined, string | undefined]);
+        if (!cpu) {
+            return UNKNOWN_CPU;
+        }
         const model = cpu.brand || cpu.manufacturer || "Unknown";
         const frequency = cpu.speed ? `${cpu.speed}` : undefined;
         const parts = [`<h4>${escapeHtml(model)}</h4>`];
@@ -50,16 +78,13 @@ export async function getCpuStaticInfo(): Promise<CpuStaticInfo> {
             cache,
         };
     } catch {
-        return {
-            modelHtml: "<h4>Unknown</h4>",
-            count: "-",
-        };
+        return UNKNOWN_CPU;
     }
 }
 
 export async function getNetworkInterfaces() {
     try {
-        const interfaces = await si.networkInterfaces();
+        const interfaces = await withTimeout(si.networkInterfaces(), []);
         const list = Array.isArray(interfaces) ? interfaces : [interfaces];
         return list
             .filter((iface) => iface.operstate === "up")
@@ -71,10 +96,25 @@ export async function getNetworkInterfaces() {
 }
 
 export async function systemStaticInfo() {
-    const [cpu, interfaces] = await Promise.all([
+    const [cpu, interfaces] = await withTimeout(Promise.all([
         getCpuStaticInfo(),
         getNetworkInterfaces(),
-    ]);
+    ]), [UNKNOWN_CPU, []] as [CpuStaticInfo, string[]]);
+
+    return {
+        cpu,
+        interfaces,
+    };
+}
+
+export async function systemStaticInfoWithProviders(
+    cpuProvider = getCpuStaticInfo,
+    networkProvider = getNetworkInterfaces,
+) {
+    const [cpu, interfaces] = await withTimeout(Promise.all([
+        cpuProvider(),
+        networkProvider(),
+    ]), [UNKNOWN_CPU, []] as [CpuStaticInfo, string[]]);
 
     return {
         cpu,
