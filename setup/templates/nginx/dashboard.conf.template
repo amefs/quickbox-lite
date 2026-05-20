@@ -43,7 +43,7 @@ location / {
         return 404;
     }
 
-    location /ws {
+    location ^~ /ws {
         satisfy any;
         allow 127.0.0.1;
         deny all;

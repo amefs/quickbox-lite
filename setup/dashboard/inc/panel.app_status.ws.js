@@ -255,7 +255,7 @@
     key: "SSH_OUTPUT",
     url: "/db/output.log",
     id: "#sshoutput",
-    time: 500,
+    time: 2000,
     _endOffset: -1,
     _requestLength: 65536,
     // eslint-disable-next-line no-unused-vars

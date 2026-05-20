@@ -74,12 +74,12 @@ export function createAppRouter(options: AppRouterOptions): Router {
 
     // ── Node widget HTTP endpoints (consumed by PHP dashboard via fetch) ──────
 
-    router.get("/node/menu.php", async (_req: Request, res: Response) => {
+    router.get("/node/menu", async (_req: Request, res: Response) => {
         const result = await dashboardMenu();
         res.json(result);
     });
 
-    router.get("/node/removal_modals.php", async (_req: Request, res: Response) => {
+    router.get("/node/removal_modals", async (_req: Request, res: Response) => {
         const result = await removalModals();
         res.send(result);
     });

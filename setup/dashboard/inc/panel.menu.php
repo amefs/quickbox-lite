@@ -176,7 +176,7 @@ assert(isset($plugins));
             if (!anchor) {
               return;
             }
-            fetch('/ws/node/menu.php', { credentials: 'same-origin' })
+            fetch('/ws/node/menu', { credentials: 'same-origin' })
               .then(function (response) {
                 if (!response.ok) {
                   throw new Error('Failed to fetch menu fragment');

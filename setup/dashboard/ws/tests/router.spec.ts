@@ -68,9 +68,9 @@ describe("router — HTTP routes", () => {
 
     // ── Node widget endpoints (/node/*) ───────────────────────────────────────
 
-    describe("GET /node/menu.php", () => {
+    describe("GET /node/menu", () => {
         it("should return 200 with JSON containing mainMenuHtml and showPluginTab", async () => {
-            const res = await request(app).get("/node/menu.php");
+            const res = await request(app).get("/node/menu");
             expect(res.status).to.equal(200);
             expect(res.body).to.be.an("object");
             expect(res.body).to.have.property("mainMenuHtml").that.is.a("string");
@@ -78,26 +78,26 @@ describe("router — HTTP routes", () => {
         });
 
         it("should not expose $username$ placeholders in the response", async () => {
-            const res = await request(app).get("/node/menu.php");
+            const res = await request(app).get("/node/menu");
             const body = res.body as { mainMenuHtml: string };
             expect(body.mainMenuHtml).to.not.include("$username$");
         });
     });
 
-    describe("GET /node/removal_modals.php", () => {
+    describe("GET /node/removal_modals", () => {
         it("should return 200 with an HTML fragment", async () => {
-            const res = await request(app).get("/node/removal_modals.php");
+            const res = await request(app).get("/node/removal_modals");
             expect(res.status).to.equal(200);
             expect(res.text).to.be.a("string");
         });
 
         it("should include at least one RemovalConfirm modal", async () => {
-            const res = await request(app).get("/node/removal_modals.php");
+            const res = await request(app).get("/node/removal_modals");
             expect(res.text).to.include("RemovalConfirm");
         });
 
         it("should set data-click-handler='packageRemove' on confirm buttons", async () => {
-            const res = await request(app).get("/node/removal_modals.php");
+            const res = await request(app).get("/node/removal_modals");
             expect(res.text).to.include('data-click-handler="packageRemove"');
         });
     });

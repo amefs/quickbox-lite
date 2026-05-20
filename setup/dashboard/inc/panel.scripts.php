@@ -14,7 +14,7 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
     if (!container) {
       return;
     }
-    fetch('/ws/node/removal_modals.php', { credentials: 'same-origin' })
+    fetch('/ws/node/removal_modals', { credentials: 'same-origin' })
       .then(function (response) {
         if (!response.ok) {
           throw new Error('Failed to fetch removal modals');
