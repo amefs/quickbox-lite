@@ -364,6 +364,12 @@
             if (pending_requests[request.requestId]) {
               console.warn(`[ws] request timed out: ${request.requestId}`);
               clearPendingRequestById(request.requestId);
+              // Re-queue immediately so the task is never left unserviced.
+              // Only send if the socket is still connected; on reconnect,
+              // dispatchBootstrapTasks / Visibility.every will handle it.
+              if (socket.connected) {
+                queueTask(task, 0);
+              }
             }
           }, PENDING_REQUEST_TIMEOUT_MS);
 
