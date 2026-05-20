@@ -246,6 +246,7 @@ function execAsync(cmd: string, args: string[]): Promise<string> {
     return new Promise<string>((resolve, reject) => {
         execFile(cmd, args, (error, stdout, stderr) => {
             if (error) {
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
                 reject(error as Error);
                 return;
             }
