@@ -31,10 +31,29 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 </script>
 
 <!-- THEME SELECT MODAL -->
-<?php
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.theme.php');
-assert(isset($themes));
-?>
+<script>
+  function applyDashboardTheme(theme) {
+    fetch('/ws/node/theme', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme: theme })
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('Failed to apply theme');
+        }
+        location.reload();
+      })
+      .catch(function (error) {
+        console.warn('[ws] failed to apply theme', error);
+      });
+  }
+</script>
+<?php $themes = [
+    ['file' => 'defaulted', 'title' => 'Defaulted'],
+    ['file' => 'smoked', 'title' => 'Smoked'],
+]; ?>
 <?php foreach ($themes as $theme) { ?>
 <div class="modal animate__bounceIn animate__animated" id="themeSelect<?php echo $theme['file']; ?>Confirm" tabindex="-1" role="dialog" aria-labelledby="ThemeSelect<?php echo $theme['file']; ?>Confirm" aria-hidden="true">
   <div class="modal-dialog">
@@ -48,7 +67,7 @@ assert(isset($themes));
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <a href="?themeSelect-<?php echo $theme['file']; ?>=true" id="themeSelect<?php echo $theme['file']; ?>Go" class="btn btn-primary"><?php echo T('AGREE'); ?></a>
+        <button type="button" onclick="applyDashboardTheme('<?php echo $theme['file']; ?>')" id="themeSelect<?php echo $theme['file']; ?>Go" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
       </div>
     </div><!-- modal-content -->
   </div><!-- modal-dialog -->

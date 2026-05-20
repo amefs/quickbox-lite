@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { existsSync, readFileSync } from "fs";
+import { execFile } from "child_process";
 
 import { username } from "./shared/constants";
 
@@ -33,6 +34,25 @@ export const dashboardThemes: DashboardTheme[] = [
     { file: "defaulted", title: "Defaulted" },
     { file: "smoked", title: "Smoked" },
 ];
+
+export function isDashboardTheme(theme: unknown): theme is string {
+    return typeof theme === "string" && dashboardThemes.some((entry) => entry.file === theme);
+}
+
+export function applyDashboardTheme(theme: string) {
+    if (!isDashboardTheme(theme)) {
+        return Promise.reject(new Error("Invalid theme"));
+    }
+    return new Promise<void>((resolve, reject) => {
+        execFile("sudo", [`/usr/local/bin/quickbox/system/theme/themeSelect-${theme}`], (error) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            resolve();
+        });
+    });
+}
 
 export const dashboardBandwidthPages: DashboardBandwidthPage[] = [
     { key: "t", title: "Top 10 days" },

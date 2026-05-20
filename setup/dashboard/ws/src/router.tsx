@@ -9,7 +9,7 @@ import ReactDOMServer from "react-dom/server";
 import { resolveWidget } from "./handlers/message";
 import i18n, { VALID_LOCALES } from "./i18n";
 import { DebugPage } from "./debug";
-import { dashboardConfig } from "./dashboard-config";
+import { applyDashboardTheme, dashboardConfig } from "./dashboard-config";
 import { isTestMode, setActiveProfile } from "./testing";
 import { dashboardMenu } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
@@ -82,6 +82,21 @@ export function createAppRouter(options: AppRouterOptions): Router {
 
     router.get("/node/dashboard_config", (_req: Request, res: Response) => {
         res.json(dashboardConfig());
+    });
+
+    router.post("/node/theme", express.json(), async (req: Request, res: Response) => {
+        const { theme } = req.body as { theme?: unknown };
+        if (typeof theme !== "string") {
+            res.status(400).json({ error: "theme field required" });
+            return;
+        }
+        try {
+            await applyDashboardTheme(theme);
+            res.json({ ok: true, theme });
+        } catch (error) {
+            const status = error instanceof Error && error.message === "Invalid theme" ? 400 : 500;
+            res.status(status).json({ error: error instanceof Error ? error.message : "Failed to apply theme" });
+        }
     });
 
     router.get("/node/removal_modals", async (_req: Request, res: Response) => {

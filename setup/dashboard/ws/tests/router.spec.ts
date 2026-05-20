@@ -4,6 +4,8 @@
 import "mocha";
 import { expect } from "chai";
 import request from "supertest";
+import sinon from "sinon";
+import childProcess from "child_process";
 
 // Import the fully-configured app (trust proxy + router mounted) rather than
 // the raw router, so middleware interactions (e.g. loopback detection) behave
@@ -102,6 +104,51 @@ describe("router — HTTP routes", () => {
                 { key: "d", title: "Last 30 days" },
                 { key: "m", title: "Last 12 months" },
             ]);
+        });
+    });
+
+    describe("POST /node/theme", () => {
+        let execFileStub: sinon.SinonStub;
+
+        beforeEach(() => {
+            execFileStub = sinon.stub(childProcess, "execFile").callsFake(((
+                _command: string,
+                _args?: readonly string[] | null,
+                _options?: childProcess.ExecFileOptions | null,
+                callback?: (error: childProcess.ExecFileException | null, stdout: string, stderr: string) => void,
+            ) => {
+                if (callback) {
+                    callback(null, "", "");
+                }
+                return {} as childProcess.ChildProcess;
+            }) as typeof childProcess.execFile);
+        });
+
+        afterEach(() => {
+            execFileStub.restore();
+        });
+
+        it("should apply an allowlisted dashboard theme", async () => {
+            const res = await request(app)
+                .post("/node/theme")
+                .send({ theme: "smoked" });
+
+            expect(res.status).to.equal(200);
+            expect(res.body).to.deep.equal({ ok: true, theme: "smoked" });
+            expect(execFileStub.calledOnceWithExactly(
+                "sudo",
+                ["/usr/local/bin/quickbox/system/theme/themeSelect-smoked"],
+                sinon.match.func,
+            )).to.equal(true);
+        });
+
+        it("should reject unknown dashboard themes", async () => {
+            const res = await request(app)
+                .post("/node/theme")
+                .send({ theme: "../../bad" });
+
+            expect(res.status).to.equal(400);
+            expect(execFileStub.notCalled).to.equal(true);
         });
     });
 
