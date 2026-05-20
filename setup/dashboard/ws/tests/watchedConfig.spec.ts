@@ -11,13 +11,17 @@ import { WatchedConfig } from "../src/watchedConfig";
 describe("watchedConfig", () => {
     let tmpDir: string;
     let configPath: string;
+    let originalConsoleError: typeof console.error;
 
     beforeEach(() => {
+        originalConsoleError = console.error;
+        console.error = () => undefined;
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "watchedconfig-test-"));
         configPath = path.join(tmpDir, "test-config.json");
     });
 
     afterEach(() => {
+        console.error = originalConsoleError;
         // Unwatch the file
         fs.unwatchFile(configPath);
         // Cleanup

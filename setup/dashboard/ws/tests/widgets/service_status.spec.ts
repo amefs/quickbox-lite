@@ -26,11 +26,11 @@ describe("widgets/service_status", () => {
     });
 
     it("should return valid HTML for known service (non-running)", async () => {
-        // irssi is defined in packages.json but won't be running in test env
-        const result = await serviceStatus("irssi");
+        // eslint-disable-next-line @typescript-eslint/require-await
+        const alwaysNotRunning = async () => false;
+        const result = await serviceStatus("irssi", alwaysNotRunning);
         expect(result).to.be.a("string");
         expect(result).to.include("<span");
-        // In test env, processes won't be running, so expect disabled
         expect(result).to.include("badge-service-disabled");
     });
 
