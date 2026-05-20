@@ -3,16 +3,12 @@
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.system.php');
 
 require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.header.php');
 require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.menu.php');
 
 assert(isset($version));
 assert(isset($branch));
-
-$sysCpuInfo       = SystemInfo::cpuinfo();
-$sysInterfaceInfo = SystemInfo::enuminterface();
 ?>
 
 <div class="mainpanel">
@@ -39,14 +35,10 @@ $sysInterfaceInfo = SystemInfo::enuminterface();
                       <th style="width:33%;padding: 4px 4px 4px 12px"><?php echo T('DOWNLOAD'); ?></th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <?php for ($i = 0; $i < count($sysInterfaceInfo); ++$i) { ?>
+                  <tbody id="node-network-interface-rows">
                     <tr>
-                      <td style="font-size:14px;font-weight:bold;padding: 2px 2px 2px 12px"><?php echo $sysInterfaceInfo[$i]; ?></td>
-                      <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-success"><span id="net_<?php echo $sysInterfaceInfo[$i]; ?>_tx">0B/s</span></span></td>
-                      <td style="font-size:11px;padding: 2px 2px 2px 12px"><span class="text-primary"><span id="net_<?php echo $sysInterfaceInfo[$i]; ?>_rx">0B/s</span></span></td>
+                      <td colspan="3" style="font-size:11px;padding: 4px 4px 4px 12px"><?php echo T('REFRESH'); ?>...</td>
                     </tr>
-                    <?php } ?>
                   </tbody>
                 </table>
               </div>
@@ -108,9 +100,8 @@ $sysInterfaceInfo = SystemInfo::enuminterface();
             <h4 class="panel-title"><?php echo T('CPU_STATUS'); ?></h4>
           </div>
           <div class="panel-body" style="overflow:hidden">
-            <span class="nomargin" style="font-size:14px">
-              <?php echo $sysCpuInfo['model']; ?><br/>
-              [<span style="color:#999;font-weight:600">x<?php echo $sysCpuInfo['count']; ?></span> core]
+            <span id="node-cpu-static" class="nomargin" style="font-size:14px">
+              <?php echo T('REFRESH'); ?>...
             </span>
           </div>
         </div><!-- CPU WIDGET -->
@@ -172,6 +163,74 @@ $sysInterfaceInfo = SystemInfo::enuminterface();
     </div>
   </div><!-- contentpanel -->
 </div><!-- mainpanel -->
+
+<script>
+  (function () {
+    function renderNetworkInterfaces(interfaces) {
+      var tbody = document.getElementById('node-network-interface-rows');
+      if (!tbody) {
+        return;
+      }
+      tbody.innerHTML = '';
+      if (!Array.isArray(interfaces) || !interfaces.length) {
+        var emptyRow = document.createElement('tr');
+        var emptyCell = document.createElement('td');
+        emptyCell.colSpan = 3;
+        emptyCell.style.fontSize = '11px';
+        emptyCell.style.padding = '4px 4px 4px 12px';
+        emptyCell.textContent = 'N/A';
+        emptyRow.appendChild(emptyCell);
+        tbody.appendChild(emptyRow);
+        return;
+      }
+      interfaces.forEach(function (iface) {
+        var row = document.createElement('tr');
+
+        var nameCell = document.createElement('td');
+        nameCell.style.fontSize = '14px';
+        nameCell.style.fontWeight = 'bold';
+        nameCell.style.padding = '2px 2px 2px 12px';
+        nameCell.textContent = iface;
+        row.appendChild(nameCell);
+
+        var txCell = document.createElement('td');
+        txCell.style.fontSize = '11px';
+        txCell.style.padding = '2px 2px 2px 12px';
+        txCell.innerHTML = '<span class="text-success"><span id="net_' + iface + '_tx">0B/s</span></span>';
+        row.appendChild(txCell);
+
+        var rxCell = document.createElement('td');
+        rxCell.style.fontSize = '11px';
+        rxCell.style.padding = '2px 2px 2px 12px';
+        rxCell.innerHTML = '<span class="text-primary"><span id="net_' + iface + '_rx">0B/s</span></span>';
+        row.appendChild(rxCell);
+
+        tbody.appendChild(row);
+      });
+    }
+
+    function renderSystemStatic(payload) {
+      var cpu = document.getElementById('node-cpu-static');
+      if (cpu && payload && payload.cpu) {
+        cpu.innerHTML = payload.cpu.modelHtml + '<br/>[<span style="color:#999;font-weight:600">x' + payload.cpu.count + '</span> core]';
+      }
+      renderNetworkInterfaces(payload ? payload.interfaces : []);
+    }
+
+    fetch('/ws/node/system_static', { credentials: 'same-origin' })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('Failed to fetch static system info');
+        }
+        return response.json();
+      })
+      .then(renderSystemStatic)
+      .catch(function (error) {
+        console.warn('[ws] failed to load static system info', error);
+        renderNetworkInterfaces([]);
+      });
+  })();
+</script>
 
 <?php
 require($_SERVER['DOCUMENT_ROOT'].'/inc/panel.scripts.php');

@@ -13,6 +13,8 @@ import { applyDashboardTheme, dashboardConfig } from "./dashboard-config";
 import { isTestMode, setActiveProfile } from "./testing";
 import { dashboardMenu } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
+import { applyRutorrentPluginAction, getRutorrentPlugins, isPluginAction } from "./plugins";
+import { systemStaticInfo } from "./system-static";
 
 export interface AppRouterOptions {
     /** Absolute path to the dashboard root (setup/dashboard). Used by /debug/assets/* static routes. */
@@ -84,6 +86,10 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.json(dashboardConfig());
     });
 
+    router.get("/node/system_static", async (_req: Request, res: Response) => {
+        res.json(await systemStaticInfo());
+    });
+
     router.post("/node/theme", express.json(), async (req: Request, res: Response) => {
         const { theme } = req.body as { theme?: unknown };
         if (typeof theme !== "string") {
@@ -96,6 +102,25 @@ export function createAppRouter(options: AppRouterOptions): Router {
         } catch (error) {
             const status = error instanceof Error && error.message === "Invalid theme" ? 400 : 500;
             res.status(status).json({ error: error instanceof Error ? error.message : "Failed to apply theme" });
+        }
+    });
+
+    router.get("/node/plugins", (_req: Request, res: Response) => {
+        res.json({ plugins: getRutorrentPlugins() });
+    });
+
+    router.post("/node/plugin", express.json(), async (req: Request, res: Response) => {
+        const { plugin, action } = req.body as { plugin?: unknown; action?: unknown };
+        if (typeof plugin !== "string" || !isPluginAction(action)) {
+            res.status(400).json({ error: "plugin and action fields required" });
+            return;
+        }
+        try {
+            await applyRutorrentPluginAction(plugin, action);
+            res.json({ ok: true, plugin, action });
+        } catch (error) {
+            const status = error instanceof Error && error.message.startsWith("Invalid ") ? 400 : 500;
+            res.status(status).json({ error: error instanceof Error ? error.message : "Failed to apply plugin action" });
         }
     });
 

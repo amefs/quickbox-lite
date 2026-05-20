@@ -107,16 +107,24 @@ describe("router — HTTP routes", () => {
         });
     });
 
+    describe("GET /node/system_static", () => {
+        it("should return CPU and network interface metadata", async () => {
+            const res = await request(app).get("/node/system_static");
+
+            expect(res.status).to.equal(200);
+            expect(res.body).to.have.property("cpu").that.is.an("object");
+            expect(res.body.cpu).to.have.property("modelHtml").that.is.a("string");
+            expect(res.body.cpu).to.have.property("count");
+            expect(res.body).to.have.property("interfaces").that.is.an("array");
+        });
+    });
+
     describe("POST /node/theme", () => {
         let execFileStub: sinon.SinonStub;
 
         beforeEach(() => {
-            execFileStub = sinon.stub(childProcess, "execFile").callsFake(((
-                _command: string,
-                _args?: readonly string[] | null,
-                _options?: childProcess.ExecFileOptions | null,
-                callback?: (error: childProcess.ExecFileException | null, stdout: string, stderr: string) => void,
-            ) => {
+            execFileStub = sinon.stub(childProcess, "execFile").callsFake(((...args: unknown[]) => {
+                const callback = args.find((arg): arg is (error: childProcess.ExecFileException | null, stdout: string, stderr: string) => void => typeof arg === "function");
                 if (callback) {
                     callback(null, "", "");
                 }
@@ -146,6 +154,66 @@ describe("router — HTTP routes", () => {
             const res = await request(app)
                 .post("/node/theme")
                 .send({ theme: "../../bad" });
+
+            expect(res.status).to.equal(400);
+            expect(execFileStub.notCalled).to.equal(true);
+        });
+    });
+
+    describe("GET /node/plugins", () => {
+        it("should return the ruTorrent plugin list with installation state", async () => {
+            const res = await request(app).get("/node/plugins");
+
+            expect(res.status).to.equal(200);
+            expect(res.body).to.have.property("plugins").that.is.an("array").with.length.greaterThan(0);
+            expect(res.body.plugins[0]).to.have.keys(["name", "installed"]);
+        });
+    });
+
+    describe("POST /node/plugin", () => {
+        let execFileStub: sinon.SinonStub;
+
+        beforeEach(() => {
+            execFileStub = sinon.stub(childProcess, "execFile").callsFake(((...args: unknown[]) => {
+                const callback = args.find((arg): arg is (error: childProcess.ExecFileException | null, stdout: string, stderr: string) => void => typeof arg === "function");
+                if (callback) {
+                    callback(null, "", "");
+                }
+                return {} as childProcess.ChildProcess;
+            }) as typeof childProcess.execFile);
+        });
+
+        afterEach(() => {
+            execFileStub.restore();
+        });
+
+        it("should apply an allowlisted plugin action", async () => {
+            const res = await request(app)
+                .post("/node/plugin")
+                .send({ plugin: "rss", action: "install" });
+
+            expect(res.status).to.equal(200);
+            expect(res.body).to.deep.equal({ ok: true, plugin: "rss", action: "install" });
+            expect(execFileStub.calledOnceWithExactly(
+                "sudo",
+                ["/usr/local/bin/quickbox/plugin/install/installplugin-rss"],
+                sinon.match.func,
+            )).to.equal(true);
+        });
+
+        it("should reject unknown plugins before executing", async () => {
+            const res = await request(app)
+                .post("/node/plugin")
+                .send({ plugin: "../../bad", action: "install" });
+
+            expect(res.status).to.equal(400);
+            expect(execFileStub.notCalled).to.equal(true);
+        });
+
+        it("should reject unknown plugin actions before executing", async () => {
+            const res = await request(app)
+                .post("/node/plugin")
+                .send({ plugin: "rss", action: "restart" });
 
             expect(res.status).to.equal(400);
             expect(execFileStub.notCalled).to.equal(true);

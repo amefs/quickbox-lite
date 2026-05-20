@@ -2,14 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.plugin.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
 
 $username = getMaster();
 
 assert(isset($version));
 assert(isset($branch));
-assert(isset($plugins));
 ?>
 <body class="body">
 <header>
@@ -247,6 +245,87 @@ assert(isset($plugins));
                 console.warn('[ws] failed to load dashboard config', error);
               });
 
+            function applyRutorrentPluginAction(plugin, action) {
+              fetch('/ws/node/plugin', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plugin: plugin, action: action })
+              })
+                .then(function (response) {
+                  if (!response.ok) {
+                    throw new Error('Failed to apply plugin action');
+                  }
+                  location.reload();
+                })
+                .catch(function (error) {
+                  console.warn('[ws] failed to apply plugin action', error);
+                });
+            }
+
+            function renderRutorrentPlugins(payload) {
+              var container = document.getElementById('node-plugin-options');
+              if (!container || !payload || !Array.isArray(payload.plugins)) {
+                return;
+              }
+              container.innerHTML = '';
+              payload.plugins.forEach(function (plugin) {
+                var item = document.createElement('li');
+
+                var label = document.createElement('a');
+                label.href = '#';
+                label.textContent = plugin.name;
+                label.onclick = function (event) { event.preventDefault(); };
+                item.appendChild(label);
+
+                var wrapper = document.createElement('div');
+                wrapper.className = 'toggle-wrapper pull-right';
+                wrapper.style.marginRight = '-10px';
+                wrapper.style.marginTop = '5px';
+
+                var toggle = document.createElement('div');
+                toggle.className = plugin.installed ? 'toggle-pen toggle-modern' : 'toggle-pdis toggle-modern';
+                toggle.onclick = function () {
+                  applyRutorrentPluginAction(plugin.name, plugin.installed ? 'remove' : 'install');
+                };
+                wrapper.appendChild(toggle);
+                item.appendChild(wrapper);
+                container.appendChild(item);
+              });
+              if (window.jQuery) {
+                window.jQuery('.toggle-pen').toggles({
+                  on: true,
+                  height: 16,
+                  width: 90,
+                  text: {
+                    on: <?php echo json_encode(T('INSTALLED')); ?>,
+                    off: <?php echo json_encode(T('UNINSTALLING')); ?>
+                  }
+                });
+                window.jQuery('.toggle-pdis').toggles({
+                  on: false,
+                  height: 16,
+                  width: 90,
+                  text: {
+                    off: <?php echo json_encode(T('UNINSTALLED')); ?>,
+                    on: <?php echo json_encode(T('INSTALLING')); ?>
+                  }
+                });
+              }
+            }
+
+            fetch('/ws/node/plugins', { credentials: 'same-origin' })
+              .then(function (response) {
+                if (!response.ok) {
+                  throw new Error('Failed to fetch plugin list');
+                }
+                return response.json();
+              })
+              .then(renderRutorrentPlugins)
+              .catch(function (error) {
+                console.warn('[ws] failed to load plugin list', error);
+              });
+
             var anchor = document.getElementById('node-menu-anchor');
             var loading = document.getElementById('node-menu-loading');
             var pluginTab = document.getElementById('node-plugin-tab');
@@ -345,22 +424,8 @@ assert(isset($plugins));
               <a href="#"><i class="fa fa-puzzle-piece"></i> <span><?php echo T('PLUGINS'); ?></span></a>
               <ul class="children">
                 <li class="info-quote"><p class="info-quote"><?php echo T('PMENU_NOTICE_TXT'); ?></p></li>
-                <?php foreach ($plugins as $plugin) {
-                    $installed = file_exists("/srv/rutorrent/plugins/{$plugin}/plugin.info");
-                    $action    = $installed ? "?removeplugin-{$plugin}=true" : "?installplugin-{$plugin}=true"; ?>
-                <li>
-                  <a href="javascript:void(0)"><?php echo $plugin; ?></a>
-                  <div class="toggle-wrapper pull-right" style="margin-right: -10px; margin-top: 5px;">
-                  <?php if ($installed) { ?>
-                    <div class="toggle-pen toggle-modern" onclick="location.href='<?php echo $action; ?>'">
-                  <?php } else { ?>
-                    <div class="toggle-pdis toggle-modern" onclick="location.href='<?php echo $action; ?>'">
-                  <?php } ?>
-                    </div>
-                  </div>
-                </li>
-                <?php
-                } ?>
+                <li id="node-plugin-loading" style="padding: 7px;"><?php echo T('REFRESH'); ?>...</li>
+                <span id="node-plugin-options"></span>
               </ul>
             </li>
           </ul>
