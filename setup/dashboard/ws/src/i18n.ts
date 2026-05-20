@@ -1,4 +1,4 @@
-import { I18n } from "./libs/i18n";
+import { I18n } from "./vendor/i18n";
 
 import da from "../lang/lang_da.json";
 import de from "../lang/lang_de.json";

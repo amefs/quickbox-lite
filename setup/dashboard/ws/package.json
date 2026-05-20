@@ -5,12 +5,13 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "webpack --config build/webpack.config.js",
-    "test": "NODE_ENV=test mocha -r tsx --extensions ts 'tests/**/*.{mts,ts}'",
+    "test": "NODE_ENV=test mocha --exit -r tsx --extensions ts 'tests/**/*.{mts,ts}'",
     "check-type": "tsc --noemit",
     "eslint": "eslint .",
     "lint": "npm run check-type && npm run eslint",
-    "test/server": "tsx watch src/server.tsx",
-    "test/client": "tsx tests/client.js",
+    "dev:server": "tsx watch src/server.tsx",
+    "dev:client": "tsx scripts/dev-client.js",
+    "dev:dashboard": "node scripts/dev-server.js",
     "audit": "npm audit --registry=https://registry.npmjs.org",
     "upgrade": "npx npm-check-updates -i"
   },

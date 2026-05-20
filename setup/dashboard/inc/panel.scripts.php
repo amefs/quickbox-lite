@@ -5,37 +5,30 @@
 </section>
 <?php
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.package.php');
-assert(isset($packageList));
 ?>
 
-<?php
-foreach ($packageList as &$package) {
-    if ((isset($package['boxonly']) && $package['boxonly']) || (isset($package['skip']) && $package['skip'])) {
-        continue;
+<div id="node-removal-modals"></div>
+<script>
+  (function () {
+    var container = document.getElementById('node-removal-modals');
+    if (!container) {
+      return;
     }
-    $packageLowercase = strtolower($package['package']);
-    $packageUppercase = strtoupper($package['package']); ?>
-<!-- <?php echo $packageUppercase; ?> UNINSTALL MODAL -->
-<div class="modal animate__bounceIn animate__animated" id="<?php echo $packageLowercase; ?>RemovalConfirm" tabindex="-1" role="dialog" aria-labelledby="<?php echo $packageUppercase; ?>RemovalConfirm" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="<?php echo $packageUppercase; ?>RemovalConfirm"><?php echo T('UNINSTALL_TITLE'); ?> <?php echo $package['name']; ?>?</h4>
-      </div>
-      <div class="modal-body">
-        <?php echo T($package['uninstall']); ?>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo T('CANCEL'); ?></button>
-        <button onclick="packageRemoveHandler(event)" data-dismiss="modal" data-toggle="modal" data-target="#sysResponse" data-package="<?php echo $packageLowercase; ?>" id="<?php echo $packageLowercase; ?>Remove" class="btn btn-primary"><?php echo T('AGREE'); ?></button>
-      </div>
-    </div><!-- modal-content -->
-  </div><!-- modal-dialog -->
-</div><!-- modal -->
-<?php
-} ?>
+    fetch('/ws/node/removal_modals.php', { credentials: 'same-origin' })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('Failed to fetch removal modals');
+        }
+        return response.text();
+      })
+      .then(function (html) {
+        container.innerHTML = html;
+      })
+      .catch(function (error) {
+        console.warn('[ws] failed to load removal modals', error);
+      });
+  })();
+</script>
 
 <!-- THEME SELECT MODAL -->
 <?php $option = [];
@@ -236,25 +229,16 @@ $(function() {
 $(function() {
   'use strict';
 
-  function gritterHandler(packagename, fullname) {
-    return function() {
-        $.gritter.add({
-        title: `<?php echo T('UNINSTALLING_TITLE'); ?> ${packagename}`,
-        text: `<?php echo T('UNINSTALLING_TXT_1'); ?> ${fullname || packagename} <?php echo T('UNINSTALLING_TXT_2'); ?>`,
-        class_name: 'with-icon times-circle danger',
-        sticky: true
-      });
-    }
-  }
-<?php
-  foreach ($packageList as &$package) {
-      if (isset($package['boxonly']) && $package['boxonly']) {
-          continue;
-      }
-      $packageLowercase = strtolower($package['package']); ?>
-  $('#<?php echo $packageLowercase; ?>Remove').click(gritterHandler('<?php echo $packageLowercase; ?>', '<?php echo $package['name']; ?>'));
-<?php
-  } ?>
+  $(document).on('click', "[data-click-handler='packageRemove']", function () {
+    const packageName = this.dataset.package || '';
+    const displayName = this.dataset.packageName || packageName;
+    $.gritter.add({
+      title: `<?php echo T('UNINSTALLING_TITLE'); ?> ${packageName}`,
+      text: `<?php echo T('UNINSTALLING_TXT_1'); ?> ${displayName} <?php echo T('UNINSTALLING_TXT_2'); ?>`,
+      class_name: 'with-icon times-circle danger',
+      sticky: true
+    });
+  });
 });
 // });
 </script>

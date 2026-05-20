@@ -22,8 +22,8 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
     const fs  = require("fs");
     const fsp = require("fs/promises");
 
-    const { getActiveProfile } = require("./mockAdapter") as {
-        getActiveProfile: () => import("./mockProfiles").MockProfile;
+    const { getActiveProfile } = require("./mock-adapter") as {
+        getActiveProfile: () => import("./mock-profiles").MockProfile;
     };
     const getPrimaryInterface = () => getActiveProfile().networkInterfaces[0]?.iface ?? "eth0";
 

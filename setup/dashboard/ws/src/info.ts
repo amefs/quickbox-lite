@@ -1,7 +1,7 @@
 
 import pkgList from "../config/packages.json";
 
-import { username } from "./constant";
+import { username } from "./shared/constants";
 
 export const packageMap: Record<string, Service> = {};
 export const packageList = pkgList as Service[];

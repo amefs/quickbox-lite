@@ -56,3 +56,4 @@ node_modules/
 
 # Key file for localazy
 localazy.keys.json
+!setup/dashboard/ws/src/vendor/

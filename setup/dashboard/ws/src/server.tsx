@@ -7,21 +7,19 @@ import http from "http";
 import path from "path";
 import { Server as socketio } from "socket.io";
 import { WebSocketServer } from "ws";
-import React from "react";
-import ReactDOMServer from "react-dom/server";
 
-import logHandler from "./handler/log";
-import messageHandler, { resolveWidget } from "./handler/message";
-import execHandler from "./handler/exec";
-import i18nHandler from "./handler/i18n";
-import i18n, { VALID_LOCALES } from "./i18n";
-import { DebugPage } from "./debug";
-import { isTestMode, setActiveProfile } from "./testing";
+import logHandler from "./handlers/log";
+import messageHandler from "./handlers/message";
+import execHandler from "./handlers/exec";
+import i18nHandler from "./handlers/i18n";
+import { isTestMode } from "./testing";
+import { createAppRouter } from "./router";
 
 const app = express();
 app.set("trust proxy", "loopback");
 
 const debugEndpointsEnabled = process.env.NODE_ENV !== "production" || process.env.WS_ENABLE_DEBUG_ENDPOINTS === "1";
+const dashboardDir = path.resolve(__dirname, "..", "..");
 
 const server = http.createServer(app);
 const io = new socketio(server, { wsEngine: WebSocketServer });
@@ -31,73 +29,7 @@ io.use(messageHandler);
 io.use(execHandler);
 io.use(i18nHandler);
 
-app.get("/", (req, res) => {
-    res.send(ReactDOMServer.renderToString(<html>
-        <head>
-            <title>QuickBox Websocket</title>
-        </head>
-        <body>
-            <pre>Request from {req.ip}</pre>
-        </body>
-    </html>));
-});
-
-app.get("/set", (req, res) => {
-    const remoteAddr = req.ip ?? "";
-    const isLocal = remoteAddr === "127.0.0.1" || remoteAddr === "::1" || remoteAddr === "::ffff:127.0.0.1";
-    if (!isLocal && !isTestMode()) {
-        res.status(403).send("Forbidden");
-        return;
-    }
-    const lang = req.query.lang;
-    const normalizedLang = typeof lang === "string" ? lang.toLowerCase() : "";
-    const localeAliases: Record<string, string> = {
-        "zh-cn": "zh",
-        "zh-hans-cn": "zh",
-    };
-    const targetLocale = localeAliases[normalizedLang] ?? normalizedLang;
-    if (VALID_LOCALES.includes(targetLocale)) {
-        i18n.locale = targetLocale;
-    } else {
-        i18n.locale = "en";
-    }
-    res.send(i18n.locale);
-});
-
-if (debugEndpointsEnabled) {
-    const dashboardDir = path.resolve(__dirname, "..", "..");
-    app.use("/debug/assets/skins", express.static(path.join(dashboardDir, "skins")));
-    app.use("/debug/assets/lib", express.static(path.join(dashboardDir, "lib")));
-    app.use("/debug/assets/fonts", express.static(path.join(dashboardDir, "fonts")));
-
-    app.get("/debug/node", async (req, res) => {
-        const url = req.query.url;
-        if (typeof url !== "string" || !url) {
-            res.status(400).json({ error: "url query param required, e.g. /debug/node?url=/node/up.php" });
-            return;
-        }
-        const result = await resolveWidget(url);
-        res.send(result);
-    });
-
-    app.get("/debug", (_req, res) => {
-        res.send(ReactDOMServer.renderToString(<DebugPage />));
-    });
-}
-
-// Test-only endpoint: switch mock profile
-if (isTestMode()) {
-    app.post("/test/profile", express.json(), (req, res) => {
-        const { profile } = req.body as { profile?: string };
-        if (typeof profile === "string") {
-            setActiveProfile(profile);
-            res.json({ ok: true, profile });
-        } else {
-            res.status(400).json({ error: "profile field required" });
-        }
-    });
-}
-
+app.use(createAppRouter({ debugEnabled: debugEndpointsEnabled, dashboardDir }));
 
 export { app };
 

@@ -3,7 +3,6 @@
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.lang.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.package.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.theme.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.plugin.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.bw_page.php');
@@ -12,9 +11,6 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
 $username = getMaster();
 
 assert(isset($languages));
-assert(isset($packageMap));
-assert(isset($menuList));
-assert(isset($downloadList));
 assert(isset($themes));
 assert(isset($bw_pages));
 assert(isset($version));
@@ -152,9 +148,7 @@ assert(isset($plugins));
     <div class="leftpanelinner">
       <ul class="nav nav-tabs nav-justified nav-sidebar">
         <li class="tooltips active" data-toggle="tooltip" title="<?php echo T('MAIN_MENU'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#mainmenu"><i class="tooltips fa fa-ellipsis-h"></i></a></li>
-        <?php if (is_package_installed($packageMap['rutorrent'])) { ?>
-          <li class="tooltips" data-toggle="tooltip" title="<?php echo T('RPLUGIN_MENU'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#plugins"><i class="tooltips fa fa-puzzle-piece"></i></a></li>
-        <?php } ?>
+        <li id="node-plugin-tab" class="tooltips" data-toggle="tooltip" title="<?php echo T('RPLUGIN_MENU'); ?>" data-placement="bottom" style="display:none;"><a data-toggle="tab" data-target="#plugins"><i class="tooltips fa fa-puzzle-piece"></i></a></li>
         <li class="tooltips" data-toggle="tooltip" title="<?php echo T('HELP_COMMANDS'); ?>" data-placement="bottom"><a data-toggle="tab" data-target="#help"><i class="tooltips fa fa-question-circle"></i></a></li>
       </ul>
       <div class="tab-content">
@@ -162,42 +156,8 @@ assert(isset($plugins));
         <div class="tab-pane active" id="mainmenu">
           <h5 class="sidebar-title"><?php echo T('MAIN_MENU'); ?></h5>
           <ul class="nav nav-pills nav-stacked nav-quirk">
-            <!--li class="active"><a href="index.php"><i class="fa fa-home"></i> <span>Dashboard</span></a></li-->
-            <!-- // RUTORRENT // -->
-            <?php
-            foreach ($menuList as $menu) {
-                if (!is_package_installed($menu)) {
-                    continue;
-                } ?>
-              <li><a class="grayscale" href="<?php echo $menu['url']; ?>" target="_blank" rel="noopenner noreferrer"><img data-src="<?php echo $menu['logo']; ?>" class="brand-ico lazyload"> <span><?php echo $menu['name']; ?></span></a></li>
-            <?php
-            } ?>
-            <?php
-            $require_download_menu = false;
-foreach ($downloadList as $download) {
-    if (is_package_installed($download)) {
-        $require_download_menu = true;
-        break;
-    }
-}
-?>
-            <?php if ($require_download_menu) { ?>
-              <li class="nav-parent">
-                <a href=""><i class="fa fa-download"></i> <span><?php echo T('DOWNLOADS'); ?></span></a>
-                <ul class="children">
-                <?php foreach ($downloadList as $download) {
-                    if (!is_package_installed($download)) {
-                        continue;
-                    } ?>
-                    <li><a href="<?php echo $download['url']; ?>" target="_blank" rel="noopenner noreferrer"><?php echo $download['name']; ?></a></li>
-                <?php
-                } ?>
-                </ul>
-              </li>
-            <?php } ?>
-            <?php if (is_package_running($packageMap['ttyd'])) { ?>
-            <li><a href="/<?php echo $username; ?>.console" target="_blank" rel="noopenner noreferrer"><i class="fa fa-keyboard-o"></i> <span><?php echo T('WEB_CONSOLE'); ?></span></a></li>
-            <?php } ?>
+            <li id="node-menu-loading" style="padding: 7px;"><?php echo T('REFRESH'); ?>...</li>
+            <li id="node-menu-anchor" style="display:none;"></li>
             <!-- /// BEGIN INSERT CUSTOM MENU /// -->
             <?php
                   if (file_exists($_SERVER['DOCUMENT_ROOT'].'/custom/custom.menu.php')) {
@@ -207,6 +167,47 @@ foreach ($downloadList as $download) {
             <!-- /// END INSERT CUSTOM MENU /// -->
           </ul>
         </div><!-- tab pane -->
+
+        <script>
+          (function () {
+            var anchor = document.getElementById('node-menu-anchor');
+            var loading = document.getElementById('node-menu-loading');
+            var pluginTab = document.getElementById('node-plugin-tab');
+            if (!anchor) {
+              return;
+            }
+            fetch('/ws/node/menu.php', { credentials: 'same-origin' })
+              .then(function (response) {
+                if (!response.ok) {
+                  throw new Error('Failed to fetch menu fragment');
+                }
+                return response.json();
+              })
+              .then(function (payload) {
+                if (payload && typeof payload.mainMenuHtml === 'string') {
+                  anchor.insertAdjacentHTML('beforebegin', payload.mainMenuHtml);
+                }
+                if (loading) {
+                  loading.remove();
+                }
+                if (pluginTab) {
+                  pluginTab.style.display = payload && payload.showPluginTab ? '' : 'none';
+                }
+                if (window.jQuery) {
+                  window.jQuery('.tooltips').tooltip({ container: 'body' });
+                }
+              })
+              .catch(function (error) {
+                console.warn('[ws] failed to load menu fragment', error);
+                if (loading) {
+                  loading.textContent = 'Menu unavailable';
+                }
+                if (pluginTab) {
+                  pluginTab.style.display = 'none';
+                }
+              });
+          })();
+        </script>
 
         <!-- ######################## HELP MENU TAB ##################### -->
         <div class="tab-pane" id="help">

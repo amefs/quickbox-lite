@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig(
   {
-    ignores: ["**/build", "**/dist", "**/*.js", "**/*.mjs", "**/*.cjs", "src/libs/i18n/**/*.ts"],
+    ignores: ["**/build", "**/dist", "**/*.js", "**/*.mjs", "**/*.cjs", "src/vendor/i18n/**/*.ts"],
   },
   {
     plugins: {
