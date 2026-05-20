@@ -36,7 +36,6 @@ export async function ramStats() {
     const memSwapUsed = formatSize(mem.swapused);
     const memSwapFree = formatSize(mem.swapfree);
     const memSwapTotal = formatSize(mem.swaptotal);
-    const swapPercent = Number((mem.swapused / mem.swaptotal * 100).toFixed(2));
 
     let ramcolor = getRamColor(memPercent);
     // PHYSICAL MEMORY USAGE
@@ -80,6 +79,7 @@ export async function ramStats() {
     }
 
     if (mem.swaptotal > 1e-5) {
+        const swapPercent = Number((mem.swapused / mem.swaptotal * 100).toFixed(2));
         // SWAP USAGE
         ramcolor = getRamColor(swapPercent);
         ret.push(<div key="swap" className="col-sm-12" style={{paddingTop:"10px"}}>

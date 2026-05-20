@@ -29,7 +29,6 @@ const TMP_FILESYSTEMS = [
     "udev",
     "devfs",
     "specfs",
-    "type",
     "appimaged",
     // Container/virtual filesystems (Linux)
     "overlay",
