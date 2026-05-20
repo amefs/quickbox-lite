@@ -31,10 +31,11 @@ require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
 </script>
 
 <!-- THEME SELECT MODAL -->
-<?php $option = [];
-$option[]     = ['file' => 'defaulted', 'title' => 'Defaulted'];
-$option[]     = ['file' => 'smoked', 'title' => 'Smoked']; ?>
-<?php foreach ($option as $theme) { ?>
+<?php
+require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.theme.php');
+assert(isset($themes));
+?>
+<?php foreach ($themes as $theme) { ?>
 <div class="modal animate__bounceIn animate__animated" id="themeSelect<?php echo $theme['file']; ?>Confirm" tabindex="-1" role="dialog" aria-labelledby="ThemeSelect<?php echo $theme['file']; ?>Confirm" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">

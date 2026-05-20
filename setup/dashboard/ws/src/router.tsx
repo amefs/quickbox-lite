@@ -9,6 +9,7 @@ import ReactDOMServer from "react-dom/server";
 import { resolveWidget } from "./handlers/message";
 import i18n, { VALID_LOCALES } from "./i18n";
 import { DebugPage } from "./debug";
+import { dashboardConfig } from "./dashboard-config";
 import { isTestMode, setActiveProfile } from "./testing";
 import { dashboardMenu } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
@@ -77,6 +78,10 @@ export function createAppRouter(options: AppRouterOptions): Router {
     router.get("/node/menu", async (_req: Request, res: Response) => {
         const result = await dashboardMenu();
         res.json(result);
+    });
+
+    router.get("/node/dashboard_config", (_req: Request, res: Response) => {
+        res.json(dashboardConfig());
     });
 
     router.get("/node/removal_modals", async (_req: Request, res: Response) => {

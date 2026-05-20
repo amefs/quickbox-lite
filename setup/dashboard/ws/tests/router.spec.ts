@@ -84,6 +84,27 @@ describe("router — HTTP routes", () => {
         });
     });
 
+    describe("GET /node/dashboard_config", () => {
+        it("should return static dashboard menu config", async () => {
+            const res = await request(app).get("/node/dashboard_config");
+
+            expect(res.status).to.equal(200);
+            expect(res.body).to.have.property("version", "v1.5.12");
+            expect(res.body).to.have.property("branch").that.is.a("string");
+            expect(res.body).to.have.property("languages").that.is.an("array").with.length.greaterThan(0);
+            expect(res.body).to.have.property("themes").that.deep.equals([
+                { file: "defaulted", title: "Defaulted" },
+                { file: "smoked", title: "Smoked" },
+            ]);
+            expect(res.body).to.have.property("bwPages").that.deep.equals([
+                { key: "t", title: "Top 10 days" },
+                { key: "h", title: "Recent hours" },
+                { key: "d", title: "Last 30 days" },
+                { key: "m", title: "Last 12 months" },
+            ]);
+        });
+    });
+
     describe("GET /node/removal_modals", () => {
         it("should return 200 with an HTML fragment", async () => {
             const res = await request(app).get("/node/removal_modals");

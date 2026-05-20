@@ -2,17 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/localize.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.lang.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.theme.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.plugin.php');
-require_once($_SERVER['DOCUMENT_ROOT'].'/inc/info.bw_page.php');
 require_once($_SERVER['DOCUMENT_ROOT'].'/inc/config.php');
 
 $username = getMaster();
 
-assert(isset($languages));
-assert(isset($themes));
-assert(isset($bw_pages));
 assert(isset($version));
 assert(isset($branch));
 assert(isset($plugins));
@@ -77,15 +72,11 @@ assert(isset($plugins));
                             <div class="col-xs-12">
                               <div class="col-xs-12 col-md-6" style="padding: 0">
                                 <h5><?php echo T('LANG_SELECT'); ?></h5>
-                                <?php foreach ($languages as $lang) { ?>
-                                  <small><div onclick="boxHandler(event)" data-package="<?php echo $lang['file']; ?>" data-operation="lang" style="cursor: pointer;"><img class="lang-flag lazyload" data-src="lang/flag_<?php echo $lang['file']; ?>.png" /><?php echo $lang['title']; ?></div></small>
-                                <?php } ?>
+                                <div id="node-language-options"></div>
                               </div>
                               <div class="col-xs-12 col-md-6" style="padding: 0">
                                 <h5><?php echo T('THEME_SELECT'); ?></h5>
-                                <?php foreach ($themes as $theme) { ?>
-                                  <small><div data-toggle="modal" data-target="#themeSelect<?php echo $theme['file']; ?>Confirm" style="cursor: pointer;"><img class="lang-flag lazyload" data-src="img/themes/opt_<?php echo $theme['file']; ?>.png" /><?php echo $theme['title']; ?></div></small>
-                                <?php } ?>
+                                <div id="node-theme-options"></div>
                               </div>
                             </div>
                           </div>
@@ -101,9 +92,7 @@ assert(isset($plugins));
                             <div class="col-xs-12">
                               <div class="col-xs-12 col-md-6" style="padding: 0">
                                 <h5><?php echo T('BW_SELECT'); ?></h5>
-                                <?php foreach ($bw_pages as $page) { ?>
-                                  <small><div onclick="localStorage.setItem('bw_tables:page', '<?php echo $page['key']; ?>');location.reload()" style="cursor: pointer;"><?php echo T($page['title']); ?></div></small>
-                                <?php } ?>
+                                <div id="node-bw-page-options"></div>
                               </div>
                               <div class="col-xs-12 col-md-6" style="padding: 0">
                                 <h5><?php echo T('PANEL_CONFIG'); ?></h5>
@@ -170,6 +159,95 @@ assert(isset($plugins));
 
         <script>
           (function () {
+            var labels = {
+              bwPages: {
+                t: <?php echo json_encode(T('Top 10 days')); ?>,
+                h: <?php echo json_encode(T('Recent hours')); ?>,
+                d: <?php echo json_encode(T('Last 30 days')); ?>,
+                m: <?php echo json_encode(T('Last 12 months')); ?>
+              }
+            };
+
+            function appendSmallOption(container, element) {
+              if (!container) {
+                return;
+              }
+              var wrapper = document.createElement('small');
+              wrapper.appendChild(element);
+              container.appendChild(wrapper);
+            }
+
+            function renderDashboardConfig(payload) {
+              var langContainer = document.getElementById('node-language-options');
+              var themeContainer = document.getElementById('node-theme-options');
+              var bwContainer = document.getElementById('node-bw-page-options');
+
+              if (langContainer && Array.isArray(payload.languages)) {
+                langContainer.innerHTML = '';
+                payload.languages.forEach(function (lang) {
+                  var option = document.createElement('div');
+                  option.style.cursor = 'pointer';
+                  option.dataset.package = lang.file;
+                  option.dataset.operation = 'lang';
+                  option.onclick = function (event) { boxHandler(event); };
+
+                  var img = document.createElement('img');
+                  img.className = 'lang-flag';
+                  img.src = 'lang/flag_' + lang.file + '.png';
+                  img.alt = '';
+                  img.setAttribute('aria-hidden', 'true');
+                  option.appendChild(img);
+                  option.appendChild(document.createTextNode(lang.title));
+                  appendSmallOption(langContainer, option);
+                });
+              }
+
+              if (themeContainer && Array.isArray(payload.themes)) {
+                themeContainer.innerHTML = '';
+                payload.themes.forEach(function (theme) {
+                  var option = document.createElement('div');
+                  option.style.cursor = 'pointer';
+                  option.setAttribute('data-toggle', 'modal');
+                  option.setAttribute('data-target', '#themeSelect' + theme.file + 'Confirm');
+
+                  var img = document.createElement('img');
+                  img.className = 'lang-flag';
+                  img.src = 'img/themes/opt_' + theme.file + '.png';
+                  img.alt = '';
+                  img.setAttribute('aria-hidden', 'true');
+                  option.appendChild(img);
+                  option.appendChild(document.createTextNode(theme.title));
+                  appendSmallOption(themeContainer, option);
+                });
+              }
+
+              if (bwContainer && Array.isArray(payload.bwPages)) {
+                bwContainer.innerHTML = '';
+                payload.bwPages.forEach(function (page) {
+                  var option = document.createElement('div');
+                  option.style.cursor = 'pointer';
+                  option.onclick = function () {
+                    localStorage.setItem('bw_tables:page', page.key);
+                    location.reload();
+                  };
+                  option.textContent = labels.bwPages[page.key] || page.title;
+                  appendSmallOption(bwContainer, option);
+                });
+              }
+            }
+
+            fetch('/ws/node/dashboard_config', { credentials: 'same-origin' })
+              .then(function (response) {
+                if (!response.ok) {
+                  throw new Error('Failed to fetch dashboard config');
+                }
+                return response.json();
+              })
+              .then(renderDashboardConfig)
+              .catch(function (error) {
+                console.warn('[ws] failed to load dashboard config', error);
+              });
+
             var anchor = document.getElementById('node-menu-anchor');
             var loading = document.getElementById('node-menu-loading');
             var pluginTab = document.getElementById('node-plugin-tab');
