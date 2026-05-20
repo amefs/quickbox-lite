@@ -265,7 +265,7 @@ assert(isset($plugins));
           <h5 class="sidebar-title"><?php echo T('PLUGIN_MENU'); ?></h5>
           <ul class="nav nav-pills nav-stacked nav-quirk">
             <li class="nav-parent nav-active">
-              <a href=""><i class="fa fa-puzzle-piece"></i> <span><?php echo T('PLUGINS'); ?></span></a>
+              <a href="#"><i class="fa fa-puzzle-piece"></i> <span><?php echo T('PLUGINS'); ?></span></a>
               <ul class="children">
                 <li class="info-quote"><p class="info-quote"><?php echo T('PMENU_NOTICE_TXT'); ?></p></li>
                 <?php foreach ($plugins as $plugin) {

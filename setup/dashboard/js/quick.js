@@ -38,7 +38,7 @@ $(document).ready(function () {
   $("#todayDate").text(getDateToday());
 
   // Toggle Left Menu
-  $(".nav-parent > a").on("click", function () {
+  $(document).on("click", ".nav-parent > a", function () {
     const gran = $(this).closest(".nav");
     const parent = $(this).parent();
     const sub = parent.find("> ul");

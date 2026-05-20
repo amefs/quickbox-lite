@@ -36,7 +36,7 @@ export async function removalModals() {
                                     {i18n.t("UNINSTALL_TITLE")} {pkg.name}?
                                 </h4>
                             </div>
-                            <div className="modal-body">{i18n.t(pkg.uninstall as string)}</div>
+                            <div className="modal-body" dangerouslySetInnerHTML={{ __html: i18n.t(pkg.uninstall as string) }} />
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-default" data-dismiss="modal">{i18n.t("CANCEL")}</button>
                                 <button

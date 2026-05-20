@@ -62,7 +62,7 @@ $option[]     = ['file' => 'smoked', 'title' => 'Smoked']; ?>
         <h4 class="modal-title" style="color:#fff"><?php echo T('SYSTEM_RESPONSE_TITLE'); ?></h4>
       </div>
       <div class="modal-body ps" style="background:rgba(0, 0, 0, 0.4); max-height:600px;" id="sysPre">
-        <pre style="color: rgb(83, 223, 131) !important;" class="sysout ps-child"><span id="sshoutput"></span></pre>
+        <pre style="color: rgb(83, 223, 131) !important; margin: 0; white-space: pre-wrap; word-break: break-word;" class="sysout"><span id="sshoutput"></span></pre>
       </div>
       <div class="modal-footer" style="background:rgba(0, 0, 0, 0.4);border:0!important">
         <button onclick="boxHandler(event)" data-package="log" data-operation="clean" data-dismiss="modal" class="btn btn-xs btn-danger"><?php echo T('CLOSE_REFRESH'); ?></button>
@@ -213,13 +213,14 @@ $(function() {
   const option = { wheelSpeed: 1, wheelPropagation: true, minScrollbarLength: 20 };
   const leftpanel = document.querySelector('.leftpanel');
   const modal_body = document.querySelector('.modal-body');
-  const sysout = document.querySelector('.sysout');
+  const sysPre = document.querySelector('#sysPre');
   const ps_leftpanel = new PerfectScrollbar(leftpanel, option);
   const ps_modal_body = new PerfectScrollbar(modal_body, option);
-  const ps_sysout = new PerfectScrollbar(sysout, option);
+  const ps_sysPre = sysPre ? new PerfectScrollbar(sysPre, option) : null;
+  window.__psSysPre = ps_sysPre;
   ps_leftpanel.update();
   ps_modal_body.update();
-  ps_sysout.update();
+  if (ps_sysPre) ps_sysPre.update();
 });
 </script>
 
@@ -252,6 +253,11 @@ $(document).ready(function() {
       // animate.css animation delaying Bootstrap's own removeAttr('aria-hidden').
       $(this).removeAttr('aria-hidden');
     })
+    .on('shown.bs.modal', function () {
+      if (window.__psSysPre) {
+        window.__psSysPre.update();
+      }
+    })
     .on('hidden.bs.modal', function () {
       location.reload();
     });
@@ -267,7 +273,15 @@ $(document).ready(function() {
 
   'use strict';
 
-  $('#dataTable1').DataTable();
+  function prepareDataTableSearchInput(table) {
+    var searchInput = $(table.table().container()).find('input[type="search"]');
+    searchInput.attr({
+      id: 'dataTable1-search',
+      name: 'dataTable1-search'
+    });
+  }
+
+  prepareDataTableSearchInput($('#dataTable1').DataTable());
 
   var exRowTable = $('#exRowTable').DataTable({
     responsive: true,

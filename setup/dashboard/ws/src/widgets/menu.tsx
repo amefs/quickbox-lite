@@ -90,7 +90,7 @@ export async function dashboardMenu() {
                 <li key={`menu-${entry.name}`}>
                     <a className="grayscale" href={resolveUsernameTemplate(entry.url)} target="_blank" rel="noopener noreferrer">
                         {entry.logo ? (
-                            <img data-src={entry.logo} className="brand-ico lazyload" alt={entry.name} />
+                            <img src={entry.logo} className="brand-ico" alt="" aria-hidden="true" />
                         ) : null}
                         <span>{entry.name}</span>
                     </a>
@@ -99,7 +99,7 @@ export async function dashboardMenu() {
 
             {installedDownloadEntries.length ? (
                 <li className="nav-parent">
-                    <a href=""><i className="fa fa-download"></i> <span>{i18n.t("DOWNLOADS")}</span></a>
+                    <a href="#"><i className="fa fa-download"></i> <span>{i18n.t("DOWNLOADS")}</span></a>
                     <ul className="children">
                         {installedDownloadEntries.map((entry) => (
                             <li key={`download-${entry.name}`}>

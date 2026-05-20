@@ -148,6 +148,10 @@
         $("#dataTable1").DataTable().destroy();
       }
       const table = $("#dataTable1").DataTable();
+      $(table.table().container()).find("input[type=\"search\"]").attr({
+        id: "dataTable1-search",
+        name: "dataTable1-search"
+      });
       if (currentPage > 0) {
         table.page(currentPage).draw(false);
       }
@@ -290,8 +294,11 @@
         el.text(response);
         this._endOffset = -1;
       }
-      var container = $("#sysPre");
-      container.scrollTop(container.prop("scrollHeight"));
+      var container = document.getElementById("sysPre");
+      if (window.__psSysPre) {
+        window.__psSysPre.update();
+      }
+      container.scrollTop = container.scrollHeight;
     }
   }];
 

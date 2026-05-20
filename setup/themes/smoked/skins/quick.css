@@ -12618,7 +12618,12 @@ img.grayscale:hover {
 .brand-ico {
   vertical-align: top;
   width: 18px;
+  margin-right: 9px;
   border-radius: 50%;
+}
+
+.package-action-btn {
+  min-width: 62px;
 }
 
 #sysPre {

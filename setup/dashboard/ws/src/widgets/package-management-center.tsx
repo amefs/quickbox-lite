@@ -41,7 +41,7 @@ export async function packageManagementCenter() {
                                                 <button
                                                     data-toggle="modal"
                                                     data-target={`#${packageLowercase}RemovalConfirm`}
-                                                    className="btn btn-xs btn-success"
+                                                    className="btn btn-xs btn-success package-action-btn"
                                                 >
                                                     {i18n.t("INSTALLED")}
                                                 </button>
@@ -50,7 +50,7 @@ export async function packageManagementCenter() {
                                                     data-toggle="tooltip"
                                                     title={pkg.install ? i18n.t(pkg.install) : ""}
                                                     data-placement="top"
-                                                    className="btn btn-xs btn-danger disabled tooltips"
+                                                    className="btn btn-xs btn-danger disabled tooltips package-action-btn"
                                                 >
                                                     {i18n.t("BOX")}
                                                 </button>
@@ -61,7 +61,7 @@ export async function packageManagementCenter() {
                                                     data-target="#sysResponse"
                                                     data-package={packageLowercase}
                                                     id={`${packageLowercase}Install`}
-                                                    className="btn btn-xs btn-default"
+                                                    className="btn btn-xs btn-default package-action-btn"
                                                 >
                                                     {i18n.t("INSTALL")}
                                                 </button>
