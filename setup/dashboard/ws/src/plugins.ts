@@ -87,7 +87,7 @@ export function applyRutorrentPluginAction(plugin: string, action: PluginAction)
     return new Promise<void>((resolve, reject) => {
         execFile("sudo", [`/usr/local/bin/quickbox/plugin/${action}/${action}plugin-${plugin}`], (error) => {
             if (error) {
-                reject(error);
+                reject(new Error(error.message));
                 return;
             }
             resolve();

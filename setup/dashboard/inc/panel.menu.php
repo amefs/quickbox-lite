@@ -264,13 +264,20 @@ assert(isset($branch));
             }
 
             function renderRutorrentPlugins(payload) {
-              var container = document.getElementById('node-plugin-options');
-              if (!container || !payload || !Array.isArray(payload.plugins)) {
+              var anchor = document.getElementById('node-plugin-options-anchor');
+              var loading = document.getElementById('node-plugin-loading');
+              if (!anchor || !payload || !Array.isArray(payload.plugins)) {
                 return;
               }
-              container.innerHTML = '';
+              var parent = anchor.parentNode;
+              if (!parent) {
+                return;
+              }
+              var oldItems = parent.querySelectorAll('[data-node-plugin-option="true"]');
+              oldItems.forEach(function (item) { item.remove(); });
               payload.plugins.forEach(function (plugin) {
                 var item = document.createElement('li');
+                item.dataset.nodePluginOption = 'true';
 
                 var label = document.createElement('a');
                 label.href = '#';
@@ -290,9 +297,16 @@ assert(isset($branch));
                 };
                 wrapper.appendChild(toggle);
                 item.appendChild(wrapper);
-                container.appendChild(item);
+                parent.insertBefore(item, anchor);
               });
-              if (window.jQuery) {
+              if (loading) {
+                loading.remove();
+              }
+              initialisePluginToggles(0);
+            }
+
+            function initialisePluginToggles(attempt) {
+              if (window.jQuery && window.jQuery.fn && window.jQuery.fn.toggles) {
                 window.jQuery('.toggle-pen').toggles({
                   on: true,
                   height: 16,
@@ -311,6 +325,12 @@ assert(isset($branch));
                     on: <?php echo json_encode(T('INSTALLING')); ?>
                   }
                 });
+                return;
+              }
+              if (attempt < 20) {
+                window.setTimeout(function () {
+                  initialisePluginToggles(attempt + 1);
+                }, 100);
               }
             }
 
@@ -425,7 +445,7 @@ assert(isset($branch));
               <ul class="children">
                 <li class="info-quote"><p class="info-quote"><?php echo T('PMENU_NOTICE_TXT'); ?></p></li>
                 <li id="node-plugin-loading" style="padding: 7px;"><?php echo T('REFRESH'); ?>...</li>
-                <span id="node-plugin-options"></span>
+                <li id="node-plugin-options-anchor" style="display:none;"></li>
               </ul>
             </li>
           </ul>

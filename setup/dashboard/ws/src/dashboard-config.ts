@@ -46,7 +46,7 @@ export function applyDashboardTheme(theme: string) {
     return new Promise<void>((resolve, reject) => {
         execFile("sudo", [`/usr/local/bin/quickbox/system/theme/themeSelect-${theme}`], (error) => {
             if (error) {
-                reject(error);
+                reject(new Error(error.message));
                 return;
             }
             resolve();

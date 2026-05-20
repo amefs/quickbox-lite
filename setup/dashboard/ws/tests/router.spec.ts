@@ -12,6 +12,21 @@ import childProcess from "child_process";
 // exactly as in production.
 import { app } from "../src/server";
 
+interface SystemStaticResponse {
+    cpu: {
+        modelHtml: string;
+        count: unknown;
+    };
+    interfaces: string[];
+}
+
+interface PluginsResponse {
+    plugins: {
+        name: string;
+        installed: boolean;
+    }[];
+}
+
 describe("router — HTTP routes", () => {
     // ── Root ─────────────────────────────────────────────────────────────────
 
@@ -110,12 +125,13 @@ describe("router — HTTP routes", () => {
     describe("GET /node/system_static", () => {
         it("should return CPU and network interface metadata", async () => {
             const res = await request(app).get("/node/system_static");
+            const body = res.body as SystemStaticResponse;
 
             expect(res.status).to.equal(200);
-            expect(res.body).to.have.property("cpu").that.is.an("object");
-            expect(res.body.cpu).to.have.property("modelHtml").that.is.a("string");
-            expect(res.body.cpu).to.have.property("count");
-            expect(res.body).to.have.property("interfaces").that.is.an("array");
+            expect(body).to.have.property("cpu").that.is.an("object");
+            expect(body.cpu).to.have.property("modelHtml").that.is.a("string");
+            expect(body.cpu).to.have.property("count");
+            expect(body).to.have.property("interfaces").that.is.an("array");
         });
     });
 
@@ -129,7 +145,7 @@ describe("router — HTTP routes", () => {
                     callback(null, "", "");
                 }
                 return {} as childProcess.ChildProcess;
-            }) as typeof childProcess.execFile);
+            }));
         });
 
         afterEach(() => {
@@ -163,10 +179,11 @@ describe("router — HTTP routes", () => {
     describe("GET /node/plugins", () => {
         it("should return the ruTorrent plugin list with installation state", async () => {
             const res = await request(app).get("/node/plugins");
+            const body = res.body as PluginsResponse;
 
             expect(res.status).to.equal(200);
-            expect(res.body).to.have.property("plugins").that.is.an("array").with.length.greaterThan(0);
-            expect(res.body.plugins[0]).to.have.keys(["name", "installed"]);
+            expect(body).to.have.property("plugins").that.is.an("array").with.length.greaterThan(0);
+            expect(body.plugins[0]).to.have.keys(["name", "installed"]);
         });
     });
 
@@ -180,7 +197,7 @@ describe("router — HTTP routes", () => {
                     callback(null, "", "");
                 }
                 return {} as childProcess.ChildProcess;
-            }) as typeof childProcess.execFile);
+            }));
         });
 
         afterEach(() => {
