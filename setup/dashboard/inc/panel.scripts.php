@@ -261,9 +261,16 @@ $(function() {
 
 <script>
 $(document).ready(function() {
-  $('#sysResponse').on('hidden.bs.modal', function () {
-    location.reload();
-  });
+  $('#sysResponse')
+    .on('show.bs.modal', function () {
+      // Remove aria-hidden before Bootstrap's enforceFocus() runs to avoid
+      // "aria-hidden on focused element" accessibility warning caused by the
+      // animate.css animation delaying Bootstrap's own removeAttr('aria-hidden').
+      $(this).removeAttr('aria-hidden');
+    })
+    .on('hidden.bs.modal', function () {
+      location.reload();
+    });
 });
 </script>
 
