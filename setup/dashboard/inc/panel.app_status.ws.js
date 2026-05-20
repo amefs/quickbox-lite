@@ -306,10 +306,35 @@
   let error_count = 0;
   let bootstrap_dispatched = false;
   let request_seq = 0;
+  const PENDING_REQUEST_TIMEOUT_MS = 15000;
 
   function start_status_update () {
     const task_mapping = {};
     const pending_requests = {};
+    const pending_request_by_key = {};
+
+    function clearPendingRequestById(requestId) {
+      const pending = pending_requests[requestId];
+      if (!pending) {
+        return;
+      }
+      clearTimeout(pending.timeoutId);
+      if (pending_request_by_key[pending.task.key] === requestId) {
+        delete pending_request_by_key[pending.task.key];
+      }
+      delete pending_requests[requestId];
+    }
+
+    function clearAllPendingRequests(reason) {
+      const requestIds = Object.keys(pending_requests);
+      for (let i = 0; i < requestIds.length; ++i) {
+        clearPendingRequestById(requestIds[i]);
+      }
+      if (requestIds.length > 0) {
+        console.warn(`[ws] cleared ${requestIds.length} pending request(s): ${reason}`);
+      }
+    }
+
     const status_list = system_status_list.slice();
     for (let i = 0; i < status_list.length; ++i) {
       const status = status_list[i];
@@ -329,11 +354,25 @@
           }
         }
         if ((request.id && $(request.id).length > 0) || request.override) {
+          const pendingRequestId = pending_request_by_key[request.key];
+          if (pendingRequestId && pending_requests[pendingRequestId]) {
+            return;
+          }
+
           request.requestId = request.key + ":" + (++request_seq);
+          const timeoutId = setTimeout(function () {
+            if (pending_requests[request.requestId]) {
+              console.warn(`[ws] request timed out: ${request.requestId}`);
+              clearPendingRequestById(request.requestId);
+            }
+          }, PENDING_REQUEST_TIMEOUT_MS);
+
           pending_requests[request.requestId] = {
             request,
-            task
+            task,
+            timeoutId
           };
+          pending_request_by_key[request.key] = request.requestId;
           socket.send(request);
         }
       }, delay);
@@ -360,7 +399,7 @@
       const request = pending ? pending.request : undefined;
       const task = pending ? pending.task : task_mapping[response.key];
       if (response.requestId) {
-        delete pending_requests[response.requestId];
+        clearPendingRequestById(response.requestId);
       }
       if (response.success) {
         if (task === undefined) {
@@ -390,9 +429,19 @@
     });
 
     socket.on("connect", function () {
+      clearAllPendingRequests("socket reconnected");
       bootstrap_dispatched = false;
       dispatchBootstrapTasks();
     });
+
+    socket.on("disconnect", function () {
+      clearAllPendingRequests("socket disconnected");
+    });
+
+    socket.on("connect_error", function () {
+      clearAllPendingRequests("socket connect error");
+    });
+
     if (socket.connected) {
       dispatchBootstrapTasks();
     }

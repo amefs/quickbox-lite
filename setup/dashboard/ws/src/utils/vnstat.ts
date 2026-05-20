@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 // SPDX-License-Identifier: GPL-3.0-or-later
 import fs from "fs";
+import path from "path";
 import { execFile } from "child_process";
 import { sortBy } from "lodash";
 
@@ -84,6 +85,7 @@ export interface ParsedVnstatData {
 
 const DATA_DIR = "./dumps";
 const VNSTAT_BIN = "/usr/bin/vnstat";
+const IFACE_NAME_REGEX = /^[a-zA-Z0-9._-]+$/;
 
 const createEmptyDataset = (iface: string): ParsedVnstatData => ({
     hour: [],
@@ -99,8 +101,13 @@ const createEmptyDataset = (iface: string): ParsedVnstatData => ({
 });
 
 async function loadVnstatData(iface: string): Promise<VnstatData | undefined> {
+    if (!IFACE_NAME_REGEX.test(iface)) {
+        console.warn(`Invalid interface name '${iface}'`);
+        return undefined;
+    }
+
     if (!fs.existsSync(VNSTAT_BIN)) {
-        const filePath = `${DATA_DIR}/vnstat_dump_${iface}`;
+        const filePath = path.join(DATA_DIR, `vnstat_dump_${iface}`);
         if (fs.existsSync(filePath)) {
             const fileData = fs.readFileSync(filePath, "utf8");
             return JSON.parse(fileData) as VnstatData;
@@ -290,7 +297,7 @@ export function getIfaceConfig() {
         return "eth0";
     }
     const config = fs.readFileSync(configPath, "utf8").trim();
-    if (!/^[a-zA-Z0-9._-]+$/.test(config)) {
+    if (!IFACE_NAME_REGEX.test(config)) {
         console.warn(`Invalid interface name '${config}', use eth0 instead`);
         return "eth0";
     }

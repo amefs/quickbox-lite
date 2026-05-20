@@ -19,7 +19,9 @@ import { DebugPage } from "./debug";
 import { isTestMode, setActiveProfile } from "./testing";
 
 const app = express();
-app.set("trust proxy", true);
+app.set("trust proxy", "loopback");
+
+const debugEndpointsEnabled = process.env.NODE_ENV !== "production" || process.env.WS_ENABLE_DEBUG_ENDPOINTS === "1";
 
 const server = http.createServer(app);
 const io = new socketio(server, { wsEngine: WebSocketServer });
@@ -62,25 +64,26 @@ app.get("/set", (req, res) => {
     res.send(i18n.locale);
 });
 
+if (debugEndpointsEnabled) {
+    const dashboardDir = path.resolve(__dirname, "..", "..");
+    app.use("/debug/assets/skins", express.static(path.join(dashboardDir, "skins")));
+    app.use("/debug/assets/lib", express.static(path.join(dashboardDir, "lib")));
+    app.use("/debug/assets/fonts", express.static(path.join(dashboardDir, "fonts")));
 
-const dashboardDir = path.resolve(__dirname, "..", "..");
-app.use("/debug/assets/skins", express.static(path.join(dashboardDir, "skins")));
-app.use("/debug/assets/lib", express.static(path.join(dashboardDir, "lib")));
-app.use("/debug/assets/fonts", express.static(path.join(dashboardDir, "fonts")));
+    app.get("/debug/node", async (req, res) => {
+        const url = req.query.url;
+        if (typeof url !== "string" || !url) {
+            res.status(400).json({ error: "url query param required, e.g. /debug/node?url=/node/up.php" });
+            return;
+        }
+        const result = await resolveWidget(url);
+        res.send(result);
+    });
 
-app.get("/debug/node", async (req, res) => {
-    const url = req.query.url;
-    if (typeof url !== "string" || !url) {
-        res.status(400).json({ error: "url query param required, e.g. /debug/node?url=/node/up.php" });
-        return;
-    }
-    const result = await resolveWidget(url);
-    res.send(result);
-});
-
-app.get("/debug", (_req, res) => {
-    res.send(ReactDOMServer.renderToString(<DebugPage />));
-});
+    app.get("/debug", (_req, res) => {
+        res.send(ReactDOMServer.renderToString(<DebugPage />));
+    });
+}
 
 // Test-only endpoint: switch mock profile
 if (isTestMode()) {

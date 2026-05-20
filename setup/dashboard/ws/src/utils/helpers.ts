@@ -25,12 +25,15 @@ export function formatSize(length: number) {
 }
 
 export function formatSpeed(length: number, decimals = 3, startWith = 0) {
-    if (length < 1e-5) {
+    if (!Number.isFinite(length) || length < 1e-5) {
         return "0 bps";
     }
     const siPrefix = ["bps", "Kbps", "Mbps", "Gbps", "Tbps", "Pbps", "Ebps", "Zbps", "Ybps"];
     const base = 1024;
-    const index = Math.floor(Math.log(length) / Math.log(base));
+    const index = Math.min(
+        Math.max(Math.floor(Math.log(length) / Math.log(base)), 0),
+        siPrefix.length - 1 - Math.max(startWith, 0),
+    );
 
     return (length / Math.pow(base, index)).toFixed(decimals) + " " + siPrefix[Math.min(index + startWith, siPrefix.length - 1)];
 }

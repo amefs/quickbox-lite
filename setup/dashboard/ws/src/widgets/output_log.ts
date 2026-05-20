@@ -136,16 +136,17 @@ export function readOutputLog(offset?: number, length?: number): OutputLogResult
     const buffer = Buffer.alloc(bytesToRead);
 
     const fd = openSync(logPath, "r");
+    let bytesRead = 0;
     try {
-        readSync(fd, buffer, 0, bytesToRead, startPos);
+        bytesRead = readSync(fd, buffer, 0, bytesToRead, startPos);
     } finally {
         closeSync(fd);
     }
 
     const result = {
-        content: buffer.toString("utf-8"),
+        content: buffer.toString("utf-8", 0, bytesRead),
         start: startPos,
-        end: startPos + bytesToRead,
+        end: startPos + bytesRead,
         size: fileSize,
     };
     lastReadCache = {
