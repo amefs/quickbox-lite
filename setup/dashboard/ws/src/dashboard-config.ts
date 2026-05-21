@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "fs";
 import { execFile } from "child_process";
 
 import { username } from "./shared/constants";
+import i18n from "./i18n";
 
 export interface DashboardLanguage {
     file: string;
@@ -91,6 +92,6 @@ export function dashboardConfig() {
         showDeveloper: existsSync("/install/.developer.lock"),
         languages: dashboardLanguages,
         themes: dashboardThemes,
-        bwPages: dashboardBandwidthPages,
+        bwPages: dashboardBandwidthPages.map((page) => ({ ...page, title: i18n.t(page.title) })),
     };
 }

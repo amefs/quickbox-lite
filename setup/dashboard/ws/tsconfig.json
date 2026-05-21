@@ -29,7 +29,7 @@
         "src/**/*.ts",
         "src/**/*.tsx",
         "tests/**/*.ts",
-        "lang/*.json"
+        "../lang/*.json"
     ],
     "exclude": [
         "node_modules",

@@ -6,7 +6,7 @@ import { expect } from "chai";
 import logHandler from "../../src/handlers/log";
 import i18nHandler from "../../src/handlers/i18n";
 import Constant from "../../src/shared/constants";
-import { VALID_LOCALES } from "../../src/i18n";
+import { normalizeLocale, resolveRequestLocale, VALID_LOCALES } from "../../src/i18n";
 
 describe("handlers/log", () => {
     it("registers disconnect event and calls next", () => {
@@ -85,6 +85,24 @@ describe("handlers/i18n", () => {
         listeners[Constant.EVENT_I18N]("../../malicious");
         expect(clientData["locale"]).to.equal(undefined);
     });
+
+    it("normalizes browser and legacy locale aliases", () => {
+        const listeners: Record<string, (value: string) => void> = {};
+        const clientData: Record<string, unknown> = {};
+        const mockClient = {
+            id: "client-4",
+            data: clientData,
+            on(event: string, cb: (value: string) => void) {
+                listeners[event] = cb;
+            },
+        };
+
+        i18nHandler(mockClient as never);
+        listeners[Constant.EVENT_I18N]("zh-CN");
+        expect(clientData["locale"]).to.equal("zh");
+        listeners[Constant.EVENT_I18N]("lang_zh");
+        expect(clientData["locale"]).to.equal("zh");
+    });
 });
 
 // C6: VALID_LOCALES derived from translations
@@ -100,5 +118,72 @@ describe("VALID_LOCALES (C6)", () => {
 
     it("should have exactly 6 locales", () => {
         expect(VALID_LOCALES).to.have.length(6);
+    });
+});
+
+describe("request locale resolution", () => {
+    it("should normalize legacy lang_ locale names", () => {
+        expect(normalizeLocale("lang_zh")).to.equal("zh");
+        expect(normalizeLocale("lang_en")).to.equal("en");
+    });
+
+    it("should normalize browser locale region tags to supported base languages", () => {
+        expect(normalizeLocale("fr-FR")).to.equal("fr");
+        expect(normalizeLocale("de-DE")).to.equal("de");
+        expect(normalizeLocale("es-ES")).to.equal("es");
+    });
+
+    it("should prefer query locale over cookie and accept-language", () => {
+        const locale = resolveRequestLocale({
+            query: { locale: "fr" },
+            headers: {
+                "cookie": "quickbox_locale=zh",
+                "accept-language": "de-DE,de;q=0.8,en;q=0.1",
+            },
+        });
+
+        expect(locale).to.equal("fr");
+    });
+
+    it("should use quickbox locale cookie for full-page browser requests", () => {
+        const locale = resolveRequestLocale({
+            headers: {
+                "cookie": "theme=smoked; quickbox_locale=zh; session=1",
+                "accept-language": "en-US,en;q=0.9",
+            },
+        });
+
+        expect(locale).to.equal("zh");
+    });
+
+    it("should ignore malformed locale cookies and use accepted browser language", () => {
+        const locale = resolveRequestLocale({
+            headers: {
+                "cookie": "quickbox_locale=%E0%A4%A",
+                "accept-language": "fr-FR",
+            },
+        });
+
+        expect(locale).to.equal("fr");
+    });
+
+    it("should fall back to accepted browser language", () => {
+        const locale = resolveRequestLocale({
+            headers: {
+                "accept-language": "fr-FR,fr;q=0.9,en;q=0.3",
+            },
+        });
+
+        expect(locale).to.equal("fr");
+    });
+
+    it("should use accepted browser language region when no base fallback is sent", () => {
+        const locale = resolveRequestLocale({
+            headers: {
+                "accept-language": "de-DE",
+            },
+        });
+
+        expect(locale).to.equal("de");
     });
 });

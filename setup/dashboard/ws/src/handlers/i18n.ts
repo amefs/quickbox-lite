@@ -2,7 +2,7 @@
 
 import Constant from "../shared/constants";
 import { Socket } from "socket.io";
-import { VALID_LOCALES } from "../i18n";
+import { parseLocale } from "../i18n";
 
 interface LocaleSocketData {
     locale?: string;
@@ -14,9 +14,10 @@ function localeData(client: Socket): LocaleSocketData {
 
 export default (client: Socket, next?: (err?: Error) => void) => {
     client.on(Constant.EVENT_I18N, (locale) => {
-        if (typeof locale === "string" && VALID_LOCALES.includes(locale)) {
-            console.log(`${client.id} set lang as ${locale}`);
-            localeData(client).locale = locale;
+        const normalizedLocale = parseLocale(locale);
+        if (normalizedLocale) {
+            console.log(`${client.id} set lang as ${normalizedLocale}`);
+            localeData(client).locale = normalizedLocale;
         }
     });
     if (next) {

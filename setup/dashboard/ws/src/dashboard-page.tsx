@@ -4,9 +4,13 @@ import React from "react";
 
 import { dashboardConfig } from "./dashboard-config";
 import i18n from "./i18n";
+import { DashboardMenu, type DashboardMenuState } from "./widgets/menu";
+import { RemovalModals } from "./widgets/removal-modals";
 
 export interface DashboardPageProps {
     basePath?: string;
+    locale: string;
+    menuState: DashboardMenuState;
 }
 
 function normalizeBasePath(basePath: string | undefined) {
@@ -16,12 +20,12 @@ function normalizeBasePath(basePath: string | undefined) {
     return basePath === "/ws" ? "/ws" : "";
 }
 
-export function DashboardPage({ basePath }: DashboardPageProps) {
+export function DashboardPage({ basePath, locale, menuState }: DashboardPageProps) {
     const config = dashboardConfig();
     const normalizedBasePath = normalizeBasePath(basePath);
 
     return (
-        <html lang="en">
+        <html lang={locale}>
             <head>
                 <meta charSet="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
@@ -47,7 +51,10 @@ export function DashboardPage({ basePath }: DashboardPageProps) {
                 <link rel="stylesheet" href="/lib/lobipanel/css/lobipanel.min.css" />
                 <link rel="stylesheet" href="/skins/quick.css" />
                 <script src="/lib/jquery/jquery.min.js"></script>
-                <script dangerouslySetInnerHTML={{ __html: CLIENT_BOOTSTRAP(normalizedBasePath) }} />
+                <script dangerouslySetInnerHTML={{ __html: CLIENT_BOOTSTRAP(normalizedBasePath, locale, {
+                    enabled: i18n.t("ENABLED"),
+                    disabled: i18n.t("DISABLED"),
+                }) }} />
             </head>
             <body className="body">
                 <header>
@@ -141,10 +148,10 @@ export function DashboardPage({ basePath }: DashboardPageProps) {
                                             </button>
                                             <ul className="dropdown-menu pull-right">
                                                 {config.branch === "master" ? (
-                                                    <li><a data-click-handler="boxHandler" data-package="" data-operation="enable-dev" data-toggle="modal" data-target="#sysResponse" style={{ cursor: "pointer" }}>{i18n.t("SWITCH_DEV")}</a></li>
+                                                    <li><a data-click-handler="boxHandler" data-package="" data-operation="enable-dev" data-toggle="modal" data-target="#sysResponse" style={{ cursor: "pointer" }} dangerouslySetInnerHTML={{ __html: i18n.t("SWITCH_DEV") }}></a></li>
                                                 ) : null}
                                                 {config.branch === "development" ? (
-                                                    <li><a data-click-handler="boxHandler" data-package="" data-operation="disable-dev" data-toggle="modal" data-target="#sysResponse" style={{ cursor: "pointer" }}>{i18n.t("SWITCH_MASTER")}</a></li>
+                                                    <li><a data-click-handler="boxHandler" data-package="" data-operation="disable-dev" data-toggle="modal" data-target="#sysResponse" style={{ cursor: "pointer" }} dangerouslySetInnerHTML={{ __html: i18n.t("SWITCH_MASTER") }}></a></li>
                                                 ) : null}
                                                 <li style={{ borderTop: "1px solid #444" }}>
                                                     <a href="https://github.com/amefs/quickbox-lite/issues/new" target="_blank" rel="noopener noreferrer"><i className="fa fa-warning text-warning"></i>{i18n.t("ISSUE_REPORT_TXT")}</a>
@@ -162,15 +169,14 @@ export function DashboardPage({ basePath }: DashboardPageProps) {
                         <div className="leftpanelinner">
                             <ul className="nav nav-tabs nav-justified nav-sidebar">
                                 <li className="tooltips active" data-toggle="tooltip" title={i18n.t("MAIN_MENU")} data-placement="bottom"><a data-toggle="tab" data-target="#mainmenu"><i className="tooltips fa fa-ellipsis-h"></i></a></li>
-                                <li id="node-plugin-tab" className="tooltips" data-toggle="tooltip" title={i18n.t("RPLUGIN_MENU")} data-placement="bottom" style={{ display: "none" }}><a data-toggle="tab" data-target="#plugins"><i className="tooltips fa fa-puzzle-piece"></i></a></li>
+                                <li id="node-plugin-tab" className="tooltips" data-toggle="tooltip" title={i18n.t("RPLUGIN_MENU")} data-placement="bottom" style={menuState.showPluginTab ? undefined : { display: "none" }}><a data-toggle="tab" data-target="#plugins"><i className="tooltips fa fa-puzzle-piece"></i></a></li>
                                 <li className="tooltips" data-toggle="tooltip" title={i18n.t("HELP_COMMANDS")} data-placement="bottom"><a data-toggle="tab" data-target="#help"><i className="tooltips fa fa-question-circle"></i></a></li>
                             </ul>
                             <div className="tab-content">
                                 <div className="tab-pane active" id="mainmenu">
                                     <h5 className="sidebar-title">{i18n.t("MAIN_MENU")}</h5>
                                     <ul className="nav nav-pills nav-stacked nav-quirk">
-                                        <li id="node-menu-loading" style={{ padding: "7px" }}>{i18n.t("REFRESH")}...</li>
-                                        <li id="node-menu-anchor" style={{ display: "none" }}></li>
+                                        <DashboardMenu menuState={menuState} />
                                     </ul>
                                 </div>
                                 <div className="tab-pane" id="plugins">
@@ -178,7 +184,28 @@ export function DashboardPage({ basePath }: DashboardPageProps) {
                                     <ul id="node-plugin-list" className="nav nav-pills nav-stacked nav-quirk"></ul>
                                 </div>
                                 <div className="tab-pane" id="help">
-                                    <h5 className="sidebar-title">{i18n.t("HELP_COMMANDS")}</h5>
+                                    <h5 className="sidebar-title">{i18n.t("QUICK_SYSTEM_TIPS")}</h5>
+                                    <ul className="nav nav-pills nav-stacked nav-quirk nav-mail">
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box update quickbox</span><br /><small>{i18n.t("SYS_UPGRADE_TXT")}</small></li>
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box lang COUNTRYCODE</span><br /><small>{i18n.t("SET_LANG_TXT")}</small></li>
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box set interface</span><br /><small>{i18n.t("CHANGEINTERFACE_TXT")}</small></li>
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box clean mem</span><br /><small>{i18n.t("CLEAN_MEM_TXT")}</small></li>
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box clean log</span><br /><small>{i18n.t("CLEAN_LOG_TXT")}</small></li>
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box iotest</span><br /><small>{i18n.t("DISKTEST_TXT")}</small></li>
+                                    </ul>
+                                    <h5 className="sidebar-title">{i18n.t("SEEDBOX_COMMANDS")}</h5>
+                                    <ul className="nav nav-pills nav-stacked nav-quirk nav-mail">
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box install APPNAME</span><br /><small>{i18n.t("APP_INSTALL_TXT")}</small></li>
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box remove APPNAME</span><br /><small>{i18n.t("APP_UNINSTALL_TXT")}</small></li>
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box update APPNAME</span><br /><small>{i18n.t("APP_UPGRADE_TXT")}</small></li>
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box set password</span><br /><small>{i18n.t("CHANGEUSERPASS_TXT")}</small></li>
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box fix dpkg</span><br /><small>{i18n.t("FIX_DPKG_TXT")}</small></li>
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box troubleshoot</span><br /><small>{i18n.t("TROUBLESHOOT_TXT")}</small></li>
+                                    </ul>
+                                    <h5 className="sidebar-title">{i18n.t("ESSENTIAL_USER_COMMANDS")}</h5>
+                                    <ul className="nav nav-pills nav-stacked nav-quirk nav-mail">
+                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>systemctl restart rtorrent@{config.username}.service</span><br /><small>{i18n.t("SCREEN_RTORRNENT_TXT")}</small></li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -215,7 +242,11 @@ export function DashboardPage({ basePath }: DashboardPageProps) {
                                             <h4 className="panel-title">{i18n.t("VIEW_ADDITIONAL_BANDWIDTH_DETAILS")}</h4>
                                         </div>
                                         <div className="panel-body" style={{ padding: 0 }}>
-                                            <div className="row" style={{ padding: 0, margin: 0 }}><div id="bw_tables" style={{ padding: 0, margin: 0 }}></div></div>
+                                            <div className="row" style={{ padding: 0, margin: 0 }}>
+                                                <div id="bw_tables" style={{ padding: 0, margin: 0 }}>
+                                                    <div id="bw_tables_loading" className="text-center" style={{ padding: "24px", color: "#999" }}>{i18n.t("REFRESH")}...</div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div id="service_control_widget">
@@ -285,7 +316,7 @@ export function DashboardPage({ basePath }: DashboardPageProps) {
                             </div>
                         </div>
                     </div>
-                    <div id="node-removal-modals"></div>
+                    <RemovalModals />
                     <div className="modal animate__bounceIn animate__animated" id="themeSelectdefaultedConfirm" tabIndex={-1} role="dialog" aria-labelledby="ThemeSelectdefaultedConfirm" aria-hidden="true">
                         <div className="modal-dialog">
                             <div className="modal-content">
@@ -323,6 +354,7 @@ export function DashboardPage({ basePath }: DashboardPageProps) {
                 <script src="/lib/jquery-ui/jquery-ui.min.js"></script>
                 <script src="/lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js"></script>
                 <script src="/lib/bootstrap/js/bootstrap.min.js"></script>
+                <script src="/lib/perfect-scrollbar/js/perfect-scrollbar.min.js"></script>
                 <script src="/lib/visibility/visibility.fallback.js"></script>
                 <script src="/lib/visibility/visibility.core.js"></script>
                 <script src="/lib/visibility/visibility.timers.js"></script>
@@ -341,21 +373,29 @@ export function DashboardPage({ basePath }: DashboardPageProps) {
     );
 }
 
-const CLIENT_BOOTSTRAP = (basePath: string) => `
+const CLIENT_BOOTSTRAP = (basePath: string, locale: string, messages: { enabled: string; disabled: string }) => `
 (function () {
   var supported = ["da", "de", "en", "es", "fr", "zh"];
   var aliases = { "zh-cn": "zh", "zh-hans-cn": "zh" };
   function normalizeLocale(value) {
     if (typeof value !== "string") { return "en"; }
-    var normalized = value.toLowerCase().replace("_", "-").replace(/^lang_/, "");
+    var normalized = value.toLowerCase().replace(/_/g, "-").replace(/^lang-/, "");
     normalized = aliases[normalized] || normalized;
-    return supported.indexOf(normalized) >= 0 ? normalized : "en";
+    if (supported.indexOf(normalized) >= 0) { return normalized; }
+    var primaryLocale = normalized.split("-")[0];
+    return supported.indexOf(primaryLocale) >= 0 ? primaryLocale : "en";
+  }
+  function persistLocale(locale) {
+    localStorage.setItem("quickbox:locale", locale);
+    document.cookie = "quickbox_locale=" + encodeURIComponent(locale) + "; Path=/; SameSite=Lax";
   }
   window.quickboxApiBase = ${JSON.stringify(basePath)};
-  window.quickboxLocale = normalizeLocale(localStorage.getItem("quickbox:locale"));
+  window.quickboxLocale = normalizeLocale(${JSON.stringify(locale)});
+  window.quickboxMessages = Object.assign({ enabled: "Enabled", disabled: "Disabled" }, ${JSON.stringify(messages)});
+  persistLocale(window.quickboxLocale);
   window.quickboxSetLocale = function (locale) {
     window.quickboxLocale = normalizeLocale(locale);
-    localStorage.setItem("quickbox:locale", window.quickboxLocale);
+    persistLocale(window.quickboxLocale);
     if (window.socket && window.socket.connected) {
       window.socket.emit("i18n", window.quickboxLocale);
     }
@@ -465,7 +505,7 @@ const CLIENT_SCRIPT = (basePath: string) => `
         on: $toggle.hasClass("toggle-en"),
         height: 26,
         width: 100,
-        text: $toggle.hasClass("toggle-en") ? { on: "Enabled" } : { off: "Disabled" }
+        text: $toggle.hasClass("toggle-en") ? { on: window.quickboxMessages.enabled } : { off: window.quickboxMessages.disabled }
       });
     });
     window.jQuery(".tooltips").tooltip();
@@ -709,6 +749,7 @@ const CLIENT_SCRIPT = (basePath: string) => `
           timeoutId: timeoutId
         };
         pendingRequestByKey[request.key] = request.requestId;
+        request.locale = window.quickboxLocale || "en";
         socket.send(request);
       }, delay);
     }
@@ -919,12 +960,6 @@ const CLIENT_SCRIPT = (basePath: string) => `
   }
 
   function renderDashboardConfig(payload) {
-    var labels = {
-      t: "Top 10 days",
-      h: "Recent hours",
-      d: "Last 30 days",
-      m: "Last 12 months"
-    };
     var langContainer = document.getElementById("node-language-options");
     var themeContainer = document.getElementById("node-theme-options");
     var bwContainer = document.getElementById("node-bw-page-options");
@@ -977,7 +1012,7 @@ const CLIENT_SCRIPT = (basePath: string) => `
           localStorage.setItem("bw_tables:page", page.key);
           location.reload();
         };
-        option.textContent = labels[page.key] || page.title;
+        option.textContent = page.title;
         appendSmallOption(bwContainer, option);
       });
     }
@@ -1033,25 +1068,6 @@ const CLIENT_SCRIPT = (basePath: string) => `
     fetchJson("/node/dashboard_config").then(renderDashboardConfig).catch(function (error) {
       console.warn("[ws] failed to load dashboard config", error);
     });
-    fetchJson("/node/menu").then(function (payload) {
-      var anchor = document.getElementById("node-menu-anchor");
-      var loading = document.getElementById("node-menu-loading");
-      var pluginTab = document.getElementById("node-plugin-tab");
-      if (anchor) {
-        anchor.insertAdjacentHTML("beforebegin", payload.mainMenuHtml || "");
-        anchor.style.display = "none";
-      }
-      if (loading) { loading.remove(); }
-      if (pluginTab && payload.showPluginTab) { pluginTab.style.display = ""; }
-    }).catch(function (error) {
-      console.warn("[ws] failed to load menu", error);
-    });
-    fetchText("/node/removal_modals").then(function (html) {
-      var container = document.getElementById("node-removal-modals");
-      if (container) { container.innerHTML = html; }
-    }).catch(function (error) {
-      console.warn("[ws] failed to load removal modals", error);
-    });
     fetchJson("/node/system_static").then(renderSystemStatic).catch(function (error) {
       console.warn("[ws] failed to load static system info", error);
       renderNetworkInterfaces([]);
@@ -1059,6 +1075,21 @@ const CLIENT_SCRIPT = (basePath: string) => `
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    var psElements = document.querySelectorAll(".ps");
+    if (typeof window.PerfectScrollbar === "function") {
+      psElements.forEach(function (element) {
+        var psInstance = new window.PerfectScrollbar(element);
+        if (element.id === "sysPre") {
+          window.__psSysPre = psInstance;
+        }
+      });
+    } else {
+      // Fallback: keep scrollable containers usable even if Perfect Scrollbar fails to load.
+      psElements.forEach(function (element) {
+        element.style.setProperty("overflow", "auto", "important");
+      });
+    }
+
     var reset = document.getElementById("node-panel-reset");
     if (reset) { reset.addEventListener("click", resetPanel); }
     document.addEventListener("click", function (event) {

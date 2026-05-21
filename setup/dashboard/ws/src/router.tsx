@@ -8,12 +8,12 @@ import React from "react";
 import ReactDOMServer from "react-dom/server";
 
 import { resolveWidget } from "./handlers/message";
-import { normalizeLocale, withLocale } from "./i18n";
+import { normalizeLocale, resolveRequestLocale, withLocale } from "./i18n";
 import { DebugPage } from "./debug";
 import { DashboardPage } from "./dashboard-page";
 import { applyDashboardThemeWithExecFile, dashboardConfig } from "./dashboard-config";
 import { isTestMode, setActiveProfile } from "./testing";
-import { dashboardMenu } from "./widgets/menu";
+import { dashboardMenu, resolveDashboardMenuState } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
 import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAction } from "./plugins";
 import { systemStaticInfoWithProviders } from "./system-static";
@@ -41,20 +41,8 @@ export function createAppRouter(options: AppRouterOptions): Router {
     const router = Router();
     const runExecFile = options.execFile ?? childProcess.execFile;
     const renderWithLocale = async <T,>(req: Request, callback: () => T | Promise<T>): Promise<T> => {
-        const rawLocale = typeof req.query.locale === "string" ? req.query.locale : req.header("x-quickbox-locale");
-        return await withLocale(normalizeLocale(rawLocale), callback);
+        return await withLocale(resolveRequestLocale(req), callback);
     };
-
-    router.use((req, _res, next) => {
-        if (
-            req.url.startsWith("/ws/node/") ||
-            req.url.startsWith("/ws/debug") ||
-            req.url.startsWith("/ws/test/")
-        ) {
-            req.url = req.url.slice("/ws".length);
-        }
-        next();
-    });
 
     router.use("/skins", express.static(path.join(options.dashboardDir, "skins")));
     router.use("/lib", express.static(path.join(options.dashboardDir, "lib")));
@@ -66,7 +54,11 @@ export function createAppRouter(options: AppRouterOptions): Router {
     // ── Root ─────────────────────────────────────────────────────────────────
 
     const renderDashboard = async (req: Request, res: Response, basePath = "") => {
-        const html = await renderWithLocale(req, () => ReactDOMServer.renderToString(<DashboardPage basePath={basePath} />));
+        const locale = resolveRequestLocale(req);
+        const html = await withLocale(locale, async () => {
+            const menuState = await resolveDashboardMenuState();
+            return ReactDOMServer.renderToString(<DashboardPage basePath={basePath} locale={locale} menuState={menuState} />);
+        });
         res.send(`<!DOCTYPE html>${html}`);
     };
 
@@ -101,8 +93,8 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.json(result);
     });
 
-    router.get("/node/dashboard_config", (_req: Request, res: Response) => {
-        res.json(dashboardConfig());
+    router.get("/node/dashboard_config", async (req: Request, res: Response) => {
+        res.json(await renderWithLocale(req, () => dashboardConfig()));
     });
 
     router.get("/node/system_static", async (req: Request, res: Response) => {

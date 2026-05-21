@@ -29,7 +29,7 @@
   "CLEAR_CACHE": "Nettoyer le cache Mémoire",
   "CLEAR_LOCK": "Clear lock",
   "CLEAR_LOCK_TXT": "Install Lock Exist. If you believe this to be in error, click the button to remove the lock.",
-  "CLOSE_REFRESH": "Fermer &amp; Rafraîchir",
+  "CLOSE_REFRESH": "Fermer & Rafraîchir",
   "COMPARE_COMMITS": "Comparez votre état actuel avec les derniers commits.",
   "CPU_STATUS": "Statut CPU",
   "CURRENT_COMMIT": "Voir l'état de votre dernier commit",

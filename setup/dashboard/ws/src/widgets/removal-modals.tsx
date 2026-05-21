@@ -6,17 +6,20 @@ import ReactDOMServer from "react-dom/server";
 import i18n from "../i18n";
 import { getVisiblePackages } from "./panels";
 
-// eslint-disable-next-line @typescript-eslint/require-await
-export async function removalModals() {
-    const packages = getVisiblePackages()
+function getRemovalModalPackages() {
+    return getVisiblePackages()
         .filter((pkg) => !pkg.boxonly && !pkg.skip && pkg.uninstall)
         .map((pkg) => ({
             ...pkg,
             packageLowercase: pkg.package.toLowerCase(),
             packageUppercase: pkg.package.toUpperCase(),
         }));
+}
 
-    return ReactDOMServer.renderToString(
+export function RemovalModals() {
+    const packages = getRemovalModalPackages();
+
+    return (
         <>
             {packages.map((pkg) => (
                 <div
@@ -56,6 +59,13 @@ export async function removalModals() {
                     </div>
                 </div>
             ))}
-        </>,
+        </>
+    );
+}
+
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function removalModals() {
+    return ReactDOMServer.renderToString(
+        <RemovalModals />,
     );
 }

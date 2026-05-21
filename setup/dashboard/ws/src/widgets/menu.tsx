@@ -17,6 +17,13 @@ interface MenuEntry {
     logo?: string;
 }
 
+export interface DashboardMenuState {
+    installedMenuEntries: MenuEntry[];
+    installedDownloadEntries: MenuEntry[];
+    showPluginTab: boolean;
+    showWebConsole: boolean;
+}
+
 const menuEntries: MenuEntry[] = [
     { package: "rutorrent", name: "ruTorrent", url: "/rutorrent/", logo: "img/brands/rtorrent.png" },
     { package: "flood", name: "Flood", url: "/$username$/flood/", logo: "img/brands/flood.png" },
@@ -78,13 +85,24 @@ async function isWebConsoleVisible() {
     return services.every((service) => processExistsIn(processList, service.process, service.username));
 }
 
-export async function dashboardMenu() {
+export async function resolveDashboardMenuState(): Promise<DashboardMenuState> {
     const installedMenuEntries = menuEntries.filter(isEntryInstalled);
     const installedDownloadEntries = downloadEntries.filter(isEntryInstalled);
     const showPluginTab = isEntryInstalled({ package: "rutorrent", name: "ruTorrent", url: "/rutorrent/" });
     const showWebConsole = await isWebConsoleVisible();
 
-    const mainMenuHtml = ReactDOMServer.renderToString(
+    return {
+        installedMenuEntries,
+        installedDownloadEntries,
+        showPluginTab,
+        showWebConsole,
+    };
+}
+
+export function DashboardMenu({ menuState }: { menuState: DashboardMenuState }) {
+    const { installedMenuEntries, installedDownloadEntries, showWebConsole } = menuState;
+
+    return (
         <>
             {installedMenuEntries.map((entry) => (
                 <li key={`menu-${entry.name}`}>
@@ -119,11 +137,18 @@ export async function dashboardMenu() {
                     </a>
                 </li>
             ) : null}
-        </>,
+        </>
+    );
+}
+
+export async function dashboardMenu() {
+    const menuState = await resolveDashboardMenuState();
+    const mainMenuHtml = ReactDOMServer.renderToString(
+        <DashboardMenu menuState={menuState} />,
     );
 
     return {
         mainMenuHtml,
-        showPluginTab,
+        showPluginTab: menuState.showPluginTab,
     };
 }

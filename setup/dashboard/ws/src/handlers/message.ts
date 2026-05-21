@@ -3,7 +3,7 @@
 import { Socket } from "socket.io";
 
 import Constant from "../shared/constants";
-import { VALID_LOCALES, withLocale } from "../i18n";
+import { parseLocale, VALID_LOCALES, withLocale } from "../i18n";
 import { widgetsLoad } from "../widgets/load";
 import { netStatus } from "../widgets/network-status";
 import { upTime } from "../widgets/up";
@@ -104,9 +104,10 @@ const isValidPayload = (payload: unknown): payload is Payload => {
 
 const resolvePayloadLocale = (payload: Payload, client: Socket) => {
     const data = localeData(client);
-    if (typeof payload.locale === "string" && VALID_LOCALES.includes(payload.locale)) {
-        data.locale = payload.locale;
-        return payload.locale;
+    const payloadLocale = parseLocale(payload.locale);
+    if (payloadLocale) {
+        data.locale = payloadLocale;
+        return payloadLocale;
     }
     const clientLocale = data.locale;
     return typeof clientLocale === "string" && VALID_LOCALES.includes(clientLocale)

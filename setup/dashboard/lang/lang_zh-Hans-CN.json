@@ -29,7 +29,7 @@
   "CLEAR_CACHE": "清除缓存",
   "CLEAR_LOCK": "清除锁定",
   "CLEAR_LOCK_TXT": "检测到软件安装锁. 如果上次安装过程发生意外, 可以点击按钮解除锁定",
-  "CLOSE_REFRESH": "关闭 &amp; 刷新",
+  "CLOSE_REFRESH": "关闭 & 刷新",
   "COMPARE_COMMITS": "将当前状态与最新提交进行比较。",
   "CPU_STATUS": "CPU状态",
   "CURRENT_COMMIT": "查看你当前的提交状态",
