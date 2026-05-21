@@ -137,8 +137,7 @@ function _fin() {
 	# schedule restart service
 	at now + 1 minute >>"${OUTTO}" 2>&1 <<EOF
 sleep 5;\
-/usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();';\
-systemctl restart php7.4-fpm
+systemctl restart quickbox-ws.service
 nginx -s reload
 EOF
 }

@@ -49,26 +49,6 @@ jobs:
           cd setup/dashboard || exit 1
           npm run lint
 
-  php-linter:
-    runs-on: ubuntu-22.04
-    env:
-      PHP_CS_FIXER_IGNORE_ENV: 1
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install dependencies
-      uses: php-actions/composer@v6
-      with:
-        php_version: '8.0'
-
-    - name: Run linter
-      run: |
-          composer run-script lint
-    - name: Run PHPStan
-      run: |
-          composer run-script analyse
-
   shell-linter:
     runs-on: ubuntu-22.04
 

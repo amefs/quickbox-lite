@@ -2,7 +2,7 @@
   "name": "quickbox-dashboard",
   "version": "1.0.0",
   "scripts": {
-    "lint": "eslint ./inc ./js",
+    "lint": "eslint ./js",
     "audit": "npm audit --registry=https://registry.npmjs.org",
     "upgrade": "npx npm-check-updates -i"
   },
