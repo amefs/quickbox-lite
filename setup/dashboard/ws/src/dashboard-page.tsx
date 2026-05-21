@@ -1016,7 +1016,7 @@ const CLIENT_SCRIPT = (basePath: string) => `
   }
 
   function applyDashboardTheme(theme) {
-      fetch("/node/theme", {
+    fetch(window.quickboxApiBase + "/node/theme", {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },

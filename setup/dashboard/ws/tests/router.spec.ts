@@ -98,6 +98,7 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.include("服务控制中心");
             expect(res.text).to.include('path: "/ws/socket.io"');
             expect(res.text).to.include("window.quickboxApiBase = \"/ws\"");
+            expect(res.text).to.include('fetch(window.quickboxApiBase + "/node/theme"');
         });
     });
 
