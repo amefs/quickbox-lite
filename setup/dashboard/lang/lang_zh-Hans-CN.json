@@ -182,6 +182,7 @@
   "UNINSTALL_X2GO_TXT": "即将从系统中卸载 x2go.<br/> <br/>这将彻底清除系统中的 x2goserver 和 xfce4 桌面环境.",
   "UNINSTALL_ZNC_TXT": "即将从系统中卸载 ZNC.<br/> <br/>这将完全删除你的所有配置和设置...这个动作是不可逆的. <br/> <br/>你可以随时重新安装 ZNC, 但是你的设置将被重置为默认值.",
   "UPDATE": "运行更新程序",
+  "VIEW_LOG": "查看日志",
   "UPLOAD": "上传",
   "UPTIME": "正常运行时间",
   "USED": "已使用",

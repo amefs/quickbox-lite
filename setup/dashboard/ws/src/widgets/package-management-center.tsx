@@ -77,6 +77,14 @@ export async function packageManagementCenter() {
                             <hr />
                             {i18n.t("CLEAR_LOCK_TXT")}&nbsp; &nbsp; &nbsp; &nbsp;
                             <button
+                                data-toggle="modal"
+                                data-target="#sysResponse"
+                                className="btn btn-xs btn-info"
+                            >
+                                {i18n.t("VIEW_LOG")}
+                            </button>
+                            &nbsp; &nbsp;
+                            <button
                                 data-click-handler="boxHandler"
                                 data-package="dpkg"
                                 data-operation="fix"

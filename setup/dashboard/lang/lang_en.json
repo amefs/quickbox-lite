@@ -182,6 +182,7 @@
   "UNINSTALL_X2GO_TXT": "You are about to uninstall x2go from your system.<br/><br/> This will completely remove x2goserver and xfce4 desktop environment from your system.",
   "UNINSTALL_ZNC_TXT": "You are about to uninstall ZNC from your system.<br/><br/>This will completely remove all of your configurations and settings... this action is irreversible. <br/><br/>You may reinstall ZNC at any time, however, your settings will be reset to default.",
   "UPDATE": "Run Updater",
+  "VIEW_LOG": "View Log",
   "UPLOAD": "Upload",
   "UPTIME": "Uptime",
   "USED": "Used",

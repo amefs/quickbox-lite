@@ -182,6 +182,7 @@
   "UNINSTALL_X2GO_TXT": "Estás a punto de desinstalar x2go de tu sistema.<br/><br/> Esto eliminará completamente x2goserver y el entorno xfce4, de tu sistema.",
   "UNINSTALL_ZNC_TXT": "Estás a punto de desinstalar ZNC de tu sistema.<br/><br/>Esto eliminará completamente toda la configuración y tus ajustes... esta acción es irreversible. <br/><br/>Puedes reinstalar ZNC cuando desees, pero tus ajustes serán establecidos por defecto.",
   "UPDATE": "Actualizar",
+  "VIEW_LOG": "Ver registro",
   "UPLOAD": "Subida ",
   "UPTIME": "Tiempo encendido",
   "USED": "Utilizado",
