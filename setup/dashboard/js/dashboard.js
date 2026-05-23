@@ -1,5 +1,6 @@
 ﻿// SPDX-License-Identifier: GPL-3.0-or-later
 // Dashboard homepage runtime logic extracted from dashboard-page.tsx.
+/* global io */
 
 (function () {
   var runtime = window.quickboxRuntime || {};
@@ -23,7 +24,7 @@
   var messages = (runtime && typeof runtime.messages === "object" && runtime.messages !== null) ? runtime.messages : {};
   window.quickboxApiBase = (runtime && typeof runtime.basePath === "string") ? runtime.basePath : "";
   window.quickboxLocale = normalizeLocale(runtime ? runtime.locale : undefined);
-  window.quickboxMessages = Object.assign({ enabled: "Enabled", disabled: "Disabled" }, messages);
+  window.quickboxMessages = Object.assign({ enabled: "Enabled", disabled: "Disabled", refresh: "Refresh" }, messages);
   persistLocale(window.quickboxLocale);
 
   window.quickboxSetLocale = function (locale) {
@@ -64,13 +65,6 @@
     });
   }
 
-  function fetchText(url) {
-    return fetch(window.quickboxWidgetUrl(url), { credentials: "same-origin" }).then(function (response) {
-      if (!response.ok) { throw new Error("Failed to fetch " + url); }
-      return response.text();
-    });
-  }
-
   var serviceStatusItems = [
     { service: "resilio-sync", id: "#appstat_resilio-sync" },
     { service: "smbd", id: "#appstat_smbd" },
@@ -104,6 +98,20 @@
     { service: "x2go", id: "#appstat_x2go" },
     { service: "znc", id: "#appstat_znc" }
   ];
+  var lastServiceStatusResponse = {};
+
+  function renderFallbackServiceStatus() {
+    return (window.quickboxMessages.refresh || "Refresh") + "...";
+  }
+
+  function ensureServiceStatusPlaceholders() {
+    serviceStatusItems.forEach(function (item) {
+      var $status = window.jQuery(item.id);
+      if ($status.length > 0 && $status.html() === "") {
+        $status.html(lastServiceStatusResponse[item.service] || renderFallbackServiceStatus());
+      }
+    });
+  }
 
   function formatNetworkSpeed(length) {
     var suffixList = ["B/s", "KB/s", "MB/s", "GB/s", "TB/s"];
@@ -120,14 +128,25 @@
   }
 
   function updateServiceStatus(response) {
-    serviceStatusItems.forEach(function (item) {
-      if (response[item.service] !== undefined) {
-        window.jQuery(item.id).html(response[item.service]);
+    if (!response || typeof response !== "object") {
+      ensureServiceStatusPlaceholders();
+      return;
+    }
+    Object.keys(response).forEach(function (service) {
+      if (response[service] !== undefined && response[service] !== "") {
+        lastServiceStatusResponse[service] = response[service];
       }
     });
+    serviceStatusItems.forEach(function (item) {
+      if (response[item.service] !== undefined) {
+        window.jQuery(item.id).html(response[item.service] || lastServiceStatusResponse[item.service] || renderFallbackServiceStatus());
+      }
+    });
+    ensureServiceStatusPlaceholders();
   }
 
   function initializeServiceToggles() {
+    ensureServiceStatusPlaceholders();
     window.jQuery(".toggle-en, .toggle-dis").each(function () {
       var $toggle = window.jQuery(this);
       if ($toggle.parent(".toggle-slide").length > 0 || $toggle.parent(".toggle-modern").length > 0) {
@@ -234,6 +253,8 @@
   }
 
   function createStatusTasks() {
+    var hasSsrServiceControl = window.jQuery("#service_control_widget [data-inner-id='panel-server-service-control']").length > 0;
+    var hasSsrPackageManagement = window.jQuery("#pmc_widget [data-inner-id='panel-server-package-management']").length > 0;
     return [
       {
         key: "SERVICE_STATUS_ALL",
@@ -247,7 +268,7 @@
         url: "/node/service_control",
         id: "#service_control_widget",
         after: initializeServiceToggles,
-        bootstrap: true,
+        bootstrap: !hasSsrServiceControl,
         time: 15000
       },
       {
@@ -255,7 +276,7 @@
         url: "/node/pmc",
         id: "#pmc_widget",
         after: initializePackageTable,
-        bootstrap: true,
+        bootstrap: !hasSsrPackageManagement,
         time: 30000
       },
       {
@@ -328,6 +349,7 @@
     var bootstrapDispatched = false;
     var requestSeq = 0;
     var pendingRequestTimeoutMs = 15000;
+    var sshOutputTask;
 
     statusList.forEach(function (task) {
       if (task.key in taskMapping) {
@@ -335,6 +357,9 @@
         return;
       }
       taskMapping[task.key] = task;
+      if (task.key === "SSH_OUTPUT") {
+        sshOutputTask = task;
+      }
     });
 
     function clearPendingRequestById(requestId) {
@@ -381,9 +406,9 @@
           }
         }, pendingRequestTimeoutMs);
         pendingRequests[request.requestId] = {
-          request: request,
-          task: task,
-          timeoutId: timeoutId
+          request,
+          task,
+          timeoutId
         };
         pendingRequestByKey[request.key] = request.requestId;
         request.locale = window.quickboxLocale || "en";
@@ -443,6 +468,9 @@
       clearAllPendingRequests("socket reconnected");
       bootstrapDispatched = false;
       dispatchBootstrapTasks();
+      if (sshOutputTask && window.jQuery("#sysResponse").is(":visible")) {
+        queueTask(sshOutputTask, 0);
+      }
     });
     socket.on("disconnect", function () {
       clearAllPendingRequests("socket disconnected");
@@ -471,7 +499,7 @@
           }
         });
       };
-      Visibility.every(timeInterval, 10 * timeInterval, taskEntity);
+      window.Visibility.every(timeInterval, 10 * timeInterval, taskEntity);
       taskEntity();
     });
     firstRequest = false;
@@ -480,7 +508,7 @@
   function showAlert(message) {
     if (window.bootbox && typeof window.bootbox.alert === "function") {
       window.bootbox.alert({
-        message: message,
+        message,
         backdrop: true,
         size: "large"
       });
@@ -547,7 +575,7 @@
 
   function packageHandler(template) {
     return function (event) {
-      if (!checkParameters({ event: event })) {
+      if (!checkParameters({ event })) {
         return;
       }
       var target = event.target;
@@ -559,7 +587,7 @@
   }
 
   function serviceUpdateHandler(event) {
-    if (!checkParameters({ event: event })) {
+    if (!checkParameters({ event })) {
       return;
     }
     var target = closestDatasetTarget(event.target, "service");
@@ -574,7 +602,7 @@
   }
 
   function boxHandler(event) {
-    if (!checkParameters({ event: event })) {
+    if (!checkParameters({ event })) {
       return;
     }
     var target = closestDatasetTarget(event.target, "package");
@@ -725,7 +753,7 @@
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ theme: theme })
+      body: JSON.stringify({ theme })
     }).then(function (response) {
       if (!response.ok) { throw new Error("Failed to apply theme"); }
       location.reload();
@@ -787,12 +815,19 @@
       var boxHandlerButton = target.closest("[data-click-handler='boxHandler']");
       if (boxHandlerButton) {
         window.boxHandler(event);
+        if (boxHandlerButton instanceof HTMLElement && boxHandlerButton.dataset.refreshAfterClose === "true") {
+          setTimeout(function () {
+            location.reload();
+          }, 150);
+        }
       }
     });
     loadNodeFragments();
     if (window.jQuery) {
       window.jQuery(function ($) {
         $(".tooltips").tooltip({ container: "body" });
+        initializeServiceToggles();
+        initializePackageTable();
       });
     }
     if (window.Visibility) {

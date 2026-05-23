@@ -82,7 +82,7 @@ function _update_version() {
     _run sed -i "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README_zh.md
     _run sed -i -E "s|^QUICKBOX_VERSION=.*$|QUICKBOX_VERSION=v${VERSION}|" setup/templates/motd/01-custom
     _run sed -i -E "s|^QUICKBOX_VERSION=.*$|QUICKBOX_VERSION=v${VERSION}|" setup/templates/bash_qb.template
-    _run sed -i -E "s|^([[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+(\"[[:space:]]*,[[:space:]]*)$|\1${VERSION}\2|" setup/dashboard/ws/package.json
+    _run sed -i -E "s|^([[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+(\"[[:space:]]*,?[[:space:]]*)$|\1${VERSION}\2|" setup/dashboard/ws/package.json
     _run git add README.md
     _run git add README_zh.md
     _run git add setup/templates/motd/01-custom

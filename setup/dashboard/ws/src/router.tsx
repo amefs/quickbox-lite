@@ -10,11 +10,14 @@ import ReactDOMServer from "react-dom/server";
 import { resolveWidget } from "./handlers/message";
 import { normalizeLocale, resolveRequestLocale, withLocale } from "./i18n";
 import { DebugPage } from "./debug";
-import { DashboardPage } from "./dashboard-page";
+import { DashboardPage, type DashboardSsrFragments } from "./dashboard-page";
 import { applyDashboardThemeWithExecFile, dashboardConfig } from "./dashboard-config";
 import { isTestMode, setActiveProfile } from "./testing";
 import { dashboardMenu, resolveDashboardMenuState } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
+import { packageManagementCenter } from "./widgets/package-management-center";
+import { serviceControl } from "./widgets/service-control";
+import { upTime } from "./widgets/up";
 import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAction } from "./plugins";
 import { systemStaticInfoWithProviders } from "./system-static";
 
@@ -55,8 +58,24 @@ export function createAppRouter(options: AppRouterOptions): Router {
     const renderDashboard = async (req: Request, res: Response, basePath = "") => {
         const locale = resolveRequestLocale(req);
         const html = await withLocale(locale, async () => {
-            const menuState = await resolveDashboardMenuState();
-            return ReactDOMServer.renderToString(<DashboardPage basePath={basePath} locale={locale} menuState={menuState} />);
+            const [menuState, serviceControlHtml, packageManagementCenterHtml] = await Promise.all([
+                resolveDashboardMenuState(),
+                serviceControl(),
+                packageManagementCenter(),
+            ]);
+            const ssrFragments: DashboardSsrFragments = {
+                serviceControlHtml,
+                packageManagementCenterHtml,
+                uptimeHtml: upTime(),
+            };
+            return ReactDOMServer.renderToString(
+                <DashboardPage
+                    basePath={basePath}
+                    locale={locale}
+                    menuState={menuState}
+                    ssrFragments={ssrFragments}
+                />,
+            );
         });
         res.send(`<!DOCTYPE html>${html}`);
     };

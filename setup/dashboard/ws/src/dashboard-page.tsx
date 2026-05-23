@@ -7,10 +7,17 @@ import i18n from "./i18n";
 import { DashboardMenu, type DashboardMenuState } from "./widgets/menu";
 import { RemovalModals } from "./widgets/removal-modals";
 
+export interface DashboardSsrFragments {
+    packageManagementCenterHtml: string;
+    serviceControlHtml: string;
+    uptimeHtml: string;
+}
+
 export interface DashboardPageProps {
     basePath?: string;
     locale: string;
     menuState: DashboardMenuState;
+    ssrFragments: DashboardSsrFragments;
 }
 
 function normalizeBasePath(basePath: string | undefined) {
@@ -20,7 +27,11 @@ function normalizeBasePath(basePath: string | undefined) {
     return basePath === "/ws" ? "/ws" : "";
 }
 
-export function DashboardPage({ basePath, locale, menuState }: DashboardPageProps) {
+function RefreshPlaceholder() {
+    return <>{i18n.t("REFRESH")}...</>;
+}
+
+export function DashboardPage({ basePath, locale, menuState, ssrFragments }: DashboardPageProps) {
     const config = dashboardConfig();
     const normalizedBasePath = normalizeBasePath(basePath);
     const runtimeConfig = {
@@ -29,6 +40,7 @@ export function DashboardPage({ basePath, locale, menuState }: DashboardPageProp
         messages: {
             enabled: i18n.t("ENABLED"),
             disabled: i18n.t("DISABLED"),
+            refresh: i18n.t("REFRESH"),
         },
     };
 
@@ -235,7 +247,7 @@ export function DashboardPage({ basePath, locale, menuState }: DashboardPageProp
                                                             </tr>
                                                         </thead>
                                                         <tbody id="node-network-interface-rows">
-                                                            <tr><td colSpan={3} style={{ fontSize: "11px", padding: "4px 4px 4px 12px" }}>{i18n.t("REFRESH")}...</td></tr>
+                                                            <tr><td colSpan={3} style={{ fontSize: "11px", padding: "4px 4px 4px 12px" }}><RefreshPlaceholder /></td></tr>
                                                         </tbody>
                                                     </table>
                                                 </div>
@@ -249,23 +261,21 @@ export function DashboardPage({ basePath, locale, menuState }: DashboardPageProp
                                         <div className="panel-body" style={{ padding: 0 }}>
                                             <div className="row" style={{ padding: 0, margin: 0 }}>
                                                 <div id="bw_tables" style={{ padding: 0, margin: 0 }}>
-                                                    <div id="bw_tables_loading" className="text-center" style={{ padding: "24px", color: "#999" }}>{i18n.t("REFRESH")}...</div>
+                                                    <div id="bw_tables_loading"><RefreshPlaceholder /></div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div id="service_control_widget">
-                                        <div className="panel panel-inverse" data-inner-id="panel-server-service-control">
-                                            <div className="panel-heading"><h4 className="panel-title">{i18n.t("SERVICE_CONTROL_CENTER")}</h4></div>
-                                            <div className="panel-body text-center" style={{ padding: "24px", color: "#999" }}>{i18n.t("REFRESH")}...</div>
-                                        </div>
-                                    </div>
-                                    <div id="pmc_widget">
-                                        <div className="panel panel-main panel-inverse" data-inner-id="panel-server-package-management">
-                                            <div className="panel-heading"><h4 className="panel-title">{i18n.t("PACKAGE_MANAGEMENT_CENTER")}</h4></div>
-                                            <div className="panel-body text-center" style={{ padding: "24px", color: "#999" }}>{i18n.t("REFRESH")}...</div>
-                                        </div>
-                                    </div>
+                                    {ssrFragments.serviceControlHtml === "" ? (
+                                        <div id="service_control_widget"><RefreshPlaceholder /></div>
+                                    ) : (
+                                        <div id="service_control_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.serviceControlHtml }}></div>
+                                    )}
+                                    {ssrFragments.packageManagementCenterHtml === "" ? (
+                                        <div id="pmc_widget"><RefreshPlaceholder /></div>
+                                    ) : (
+                                        <div id="pmc_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.packageManagementCenterHtml }}></div>
+                                    )}
                                 </div>
                                 <div className="col-md-4 dash-right" data-inner-id="right-panel-container">
                                     <div className="panel panel-side panel-inverse-full panel-updates" data-inner-id="panel-server-load">
@@ -273,13 +283,13 @@ export function DashboardPage({ basePath, locale, menuState }: DashboardPageProp
                                         <div className="panel-body">
                                             <div className="row">
                                                 <div className="col-sm-9">
-                                                    <h4><span id="cpuload"></span></h4>
+                                                    <h4><span id="cpuload"><RefreshPlaceholder /></span></h4>
                                                     <p>{i18n.t("SL_TXT")}</p>
                                                 </div>
                                                 <div className="col-sm-3 text-right"><i className="fa fa-heartbeat text-danger" style={{ fontSize: "70px" }}></i></div>
                                                 <div className="row">
                                                     <div className="col-sm-12 mt20 text-center">
-                                                        <strong>{i18n.t("UPTIME")}:</strong> <span id="uptime"></span>
+                                                        <strong>{i18n.t("UPTIME")}:</strong> <span id="uptime" dangerouslySetInnerHTML={{ __html: ssrFragments.uptimeHtml }}></span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -288,16 +298,16 @@ export function DashboardPage({ basePath, locale, menuState }: DashboardPageProp
                                     <div className="panel panel-side panel-inverse" data-inner-id="panel-server-cpu">
                                         <div className="panel-heading"><h4 className="panel-title">{i18n.t("CPU_STATUS")}</h4></div>
                                         <div className="panel-body" style={{ overflow: "hidden" }}>
-                                            <span id="node-cpu-static" className="nomargin" style={{ fontSize: "14px" }}>{i18n.t("REFRESH")}...</span>
+                                            <span id="node-cpu-static" className="nomargin" style={{ fontSize: "14px" }}><RefreshPlaceholder /></span>
                                         </div>
                                     </div>
                                     <div className="panel panel-side panel-inverse" data-inner-id="panel-server-disk">
                                         <div className="panel-heading"><h4 className="panel-title">{i18n.t("YOUR_DISK_STATUS")}</h4></div>
-                                        <div className="panel-body"><div id="disk_data"></div></div>
+                                        <div className="panel-body"><div id="disk_data"><RefreshPlaceholder /></div></div>
                                     </div>
                                     <div className="panel panel-side panel-inverse" data-inner-id="panel-server-ram">
                                         <div className="panel-heading"><h4 className="panel-title">{i18n.t("SYSTEM_RAM_STATUS")}</h4></div>
-                                        <div className="panel-body"><div id="meterram"></div></div>
+                                        <div className="panel-body"><div id="meterram"><RefreshPlaceholder /></div></div>
                                     </div>
                                     <div className="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
                                         <div className="panel-heading">
@@ -350,7 +360,7 @@ export function DashboardPage({ basePath, locale, menuState }: DashboardPageProp
                                     <pre style={{ color: "rgb(83, 223, 131)", margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }} className="sysout"><span id="sshoutput"></span></pre>
                                 </div>
                                 <div className="modal-footer" style={{ background: "rgba(0, 0, 0, 0.4)", border: "0!important" }}>
-                                    <button data-click-handler="boxHandler" data-package="log" data-operation="clean" data-dismiss="modal" className="btn btn-xs btn-danger">{i18n.t("CLOSE_REFRESH")}</button>
+                                    <button data-click-handler="boxHandler" data-refresh-after-close="true" data-package="log" data-operation="clean" data-dismiss="modal" className="btn btn-xs btn-danger">{i18n.t("CLOSE_REFRESH")}</button>
                                 </div>
                             </div>
                         </div>

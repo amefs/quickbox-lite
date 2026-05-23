@@ -4,7 +4,7 @@ import ReactDOMServer from "react-dom/server";
 import { serviceMap } from "../info";
 import { getProcessList, processExists, processExistsIn } from "../utils/helpers";
 
-function renderServiceBadge(status: boolean) {
+export function renderServiceBadge(status: boolean) {
     const val = status ? "running" : "disabled";
     return ReactDOMServer.renderToString(
         <span>
