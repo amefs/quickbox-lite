@@ -5,6 +5,8 @@ After=network.target
 
 [Service]
 Type=simple
+# Debug endpoints are enabled only when NODE_ENV is not production.
+Environment=NODE_ENV=production
 ExecStart=/usr/bin/node /srv/dashboard/ws/dist/server.js
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process

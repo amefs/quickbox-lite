@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "webpack --config build/webpack.config.js",
-    "test": "NODE_ENV=test mocha --exit -r tsx --extensions ts 'tests/**/*.{mts,ts}'",
+    "test": "cross-env NODE_ENV=test mocha --exit -r tsx --extensions ts 'tests/**/*.{mts,ts}'",
     "check-type": "tsc --noemit",
     "eslint": "eslint .",
     "lint": "npm run check-type && npm run eslint",
@@ -49,6 +49,7 @@
     "@typescript-eslint/parser": "^8.59.3",
     "bun-types": "latest",
     "chai": "^6.2.2",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.2",
     "eslint-webpack-plugin": "^5.0.3",
     "globals": "^17.6.0",

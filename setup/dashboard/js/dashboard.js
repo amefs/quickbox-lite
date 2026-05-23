@@ -237,14 +237,14 @@
     return [
       {
         key: "SERVICE_STATUS_ALL",
-        url: "/node/service_status_all.php",
+        url: "/node/service_status_all",
         override: updateServiceStatus,
         bootstrap: false,
         time: 5000
       },
       {
         key: "SERVICE_CONTROL",
-        url: "/node/service_control.php",
+        url: "/node/service_control",
         id: "#service_control_widget",
         after: initializeServiceToggles,
         bootstrap: true,
@@ -252,7 +252,7 @@
       },
       {
         key: "PMC",
-        url: "/node/pmc.php",
+        url: "/node/pmc",
         id: "#pmc_widget",
         after: initializePackageTable,
         bootstrap: true,
@@ -260,17 +260,17 @@
       },
       {
         key: "NETWORK",
-        url: "/node/net_status.php",
+        url: "/node/net_status",
         override: updateNetworkStatus,
         bootstrap: true,
         time: 1000
       },
-      { key: "UPTIME", url: "/node/up.php", id: "#uptime", bootstrap: true, time: 60000 },
-      { key: "TOP", url: "/node/load.php", id: "#cpuload", bootstrap: true, time: 60000 },
+      { key: "UPTIME", url: "/node/up", id: "#uptime", bootstrap: true, time: 60000 },
+      { key: "TOP", url: "/node/load", id: "#cpuload", bootstrap: true, time: 60000 },
       {
         key: "BANDWIDTH",
-        url: "/node/bw_tables.php",
-        urlTemplate: "/node/bw_tables.php?page={0}",
+        url: "/node/bw_tables",
+        urlTemplate: "/node/bw_tables?page={0}",
         id: "#bw_tables",
         before: function (task) {
           var page = localStorage.getItem("bw_tables:page");
@@ -282,8 +282,8 @@
         bootstrap: true,
         time: 60000
       },
-      { key: "DISK_USAGE", url: "/node/disk_data.php", id: "#disk_data", bootstrap: true, time: 15000 },
-      { key: "RAM_USAGE", url: "/node/ram_stats.php", id: "#meterram", bootstrap: true, time: 10000 },
+      { key: "DISK_USAGE", url: "/node/disk_data", id: "#disk_data", bootstrap: true, time: 15000 },
+      { key: "RAM_USAGE", url: "/node/ram_stats", id: "#meterram", bootstrap: true, time: 10000 },
       {
         key: "SSH_OUTPUT",
         url: "/db/output.log",

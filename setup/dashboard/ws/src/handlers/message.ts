@@ -55,31 +55,31 @@ const parseUrl = (url: string) => {
 export const resolveWidget = async (url: string): Promise<string|object> => {
     const req = parseUrl(url);
     switch (req.pathname) {
-        case "/node/load.php":
+        case "/node/load":
             return await widgetsLoad();
-        case "/node/net_status.php":
+        case "/node/net_status":
             return await netStatus();
-        case "/node/up.php":
+        case "/node/up":
             return upTime();
-        case "/node/disk_data.php":
+        case "/node/disk_data":
             return await diskData();
-        case "/node/ram_stats.php":
+        case "/node/ram_stats":
             return await ramStats();
-        case "/node/bw_tables.php": {
+        case "/node/bw_tables": {
             const validPages = ["h", "d", "m", "t"];
             const page = validPages.includes(req.args["page"]) ? req.args["page"] as "h"|"d"|"m"|"t" : undefined;
             return await bwTables(iface, page);
         }
-        case "/node/service_status.php":
-        case "/widgets/service_status.php":
+        case "/node/service_status":
+        case "/widgets/service_status":
             return await serviceStatus(req.args["service"]);
-        case "/node/service_status_all.php":
+        case "/node/service_status_all":
             return await serviceStatusAll();
-        case "/node/service_control.php":
-        case "/widgets/service_control.php":
+        case "/node/service_control":
+        case "/widgets/service_control":
             return await serviceControl();
-        case "/node/pmc.php":
-        case "/widgets/pmc.php":
+        case "/node/pmc":
+        case "/widgets/pmc":
             return await packageManagementCenter();
         case "/db/output.log": {
             const rawOffset = req.args["offset"];

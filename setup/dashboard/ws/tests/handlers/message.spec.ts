@@ -42,7 +42,7 @@ describe("handlers/message", () => {
     describe("parseUrl (via resolveWidget)", () => {
         it("should handle relative URLs", async () => {
             try {
-                const result = await resolveWidget("/node/up.php");
+                const result = await resolveWidget("/node/up");
                 expect(result).to.be.a("string");
             } catch {
                 // May fail due to si.time() in test env, but parseUrl should work
@@ -51,7 +51,7 @@ describe("handlers/message", () => {
 
         it("should handle absolute URLs", async () => {
             try {
-                const result = await resolveWidget("http://localhost/node/up.php");
+                const result = await resolveWidget("http://localhost/node/up");
                 expect(result).to.be.a("string");
             } catch {
                 // Expected in test env
@@ -67,14 +67,14 @@ describe("handlers/message", () => {
                 on(event: string, cb: (p: unknown) => Promise<void>) {
                     if (event === Constant.EVENT_MESSAGE) {
                         // call it asynchronously with a valid payload
-                        setTimeout(() => void cb({ key: "test-key", url: "/node/up.php", requestId: "req-1" }), 0);
+                        setTimeout(() => void cb({ key: "test-key", url: "/node/up", requestId: "req-1" }), 0);
                     }
                 },
                 send(data: unknown) {
                     expect(data).to.have.property("key", "test-key");
                     expect(data).to.have.property("requestId", "req-1");
-                    expect(data).to.have.property("url", "/node/up.php");
-                    expect(data).to.have.property("pathName", "/node/up.php");
+                    expect(data).to.have.property("url", "/node/up");
+                    expect(data).to.have.property("pathName", "/node/up");
                     expect(data).to.have.property("success").that.is.a("boolean");
                     expect(data).to.have.property("response");
                     done();
@@ -88,7 +88,7 @@ describe("handlers/message", () => {
                 id: "client-msg-flow-2",
                 on(event: string, cb: (p: unknown) => Promise<void>) {
                     if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb({ key: "err-key", url: "/node/load.php" }), 0);
+                        setTimeout(() => void cb({ key: "err-key", url: "/node/load" }), 0);
                     }
                 },
                 send(data: unknown) {
@@ -177,7 +177,7 @@ describe("handlers/message", () => {
     describe("C7 — bw_tables page validation", () => {
         it("should handle invalid page value gracefully via resolveWidget", async () => {
             try {
-                const result = await resolveWidget("/node/bw_tables.php?page=x");
+                const result = await resolveWidget("/node/bw_tables?page=x");
                 // Invalid page should fall through to undefined (default = hourly)
                 expect(result).to.be.a("string");
             } catch {
@@ -188,31 +188,31 @@ describe("handlers/message", () => {
 
     // B1: SSRF prevention — no default proxy, explicit routes only
     describe("B1 — route allowlist", () => {
-        it("should resolve /widgets/service_status.php same as /node/service_status.php", async () => {
+        it("should resolve /widgets/service_status same as /node/service_status", async () => {
             try {
-                const nodeResult = await resolveWidget("/node/service_status.php?service=nginx");
-                const widgetResult = await resolveWidget("/widgets/service_status.php?service=nginx");
+                const nodeResult = await resolveWidget("/node/service_status?service=nginx");
+                const widgetResult = await resolveWidget("/widgets/service_status?service=nginx");
                 expect(widgetResult).to.equal(nodeResult);
             } catch {
                 // Expected in test env if serviceMap not populated
             }
         });
 
-        it("should return a batch service status object for /node/service_status_all.php", async () => {
-            const result = await resolveWidget("/node/service_status_all.php");
+        it("should return a batch service status object for /node/service_status_all", async () => {
+            const result = await resolveWidget("/node/service_status_all");
             expect(result).to.be.an("object");
             expect(result).to.have.property("irssi");
         });
 
-        it("should resolve /widgets/service_control.php same as /node/service_control.php", async () => {
-            const nodeResult = await resolveWidget("/node/service_control.php");
-            const widgetResult = await resolveWidget("/widgets/service_control.php");
+        it("should resolve /widgets/service_control same as /node/service_control", async () => {
+            const nodeResult = await resolveWidget("/node/service_control");
+            const widgetResult = await resolveWidget("/widgets/service_control");
             expect(widgetResult).to.equal(nodeResult);
         });
 
-        it("should resolve /widgets/pmc.php same as /node/pmc.php", async () => {
-            const nodeResult = await resolveWidget("/node/pmc.php");
-            const widgetResult = await resolveWidget("/widgets/pmc.php");
+        it("should resolve /widgets/pmc same as /node/pmc", async () => {
+            const nodeResult = await resolveWidget("/node/pmc");
+            const widgetResult = await resolveWidget("/widgets/pmc");
             expect(widgetResult).to.equal(nodeResult);
         });
 
@@ -260,7 +260,7 @@ describe("handlers/message", () => {
                     if (event === Constant.EVENT_MESSAGE) {
                         setTimeout(() => void cb({
                             key: "pmc-locale",
-                            url: "/node/pmc.php",
+                            url: "/node/pmc",
                             locale: "zh",
                         }), 0);
                     }
@@ -285,7 +285,7 @@ describe("handlers/message", () => {
                     if (event === Constant.EVENT_MESSAGE) {
                         setTimeout(() => void cb({
                             key: "pmc-locale-default",
-                            url: "/node/pmc.php",
+                            url: "/node/pmc",
                         }), 0);
                     }
                 },

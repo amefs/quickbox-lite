@@ -2,6 +2,7 @@
 
 import { existsSync, readFileSync } from "fs";
 import { execFile } from "child_process";
+import path from "path";
 
 import { username } from "./shared/constants";
 import i18n from "./i18n";
@@ -85,13 +86,30 @@ export function getDashboardBranch() {
 }
 
 export function dashboardConfig() {
+    const version = getDashboardVersion();
+
     return {
         username,
-        version: "v1.5.12",
+        version,
         branch: getDashboardBranch(),
         showDeveloper: existsSync("/install/.developer.lock"),
         languages: dashboardLanguages,
         themes: dashboardThemes,
         bwPages: dashboardBandwidthPages.map((page) => ({ ...page, title: i18n.t(page.title) })),
     };
+}
+
+function getDashboardVersion() {
+    const packageJsonPath = path.resolve(__dirname, "..", "package.json");
+    try {
+        const content = readFileSync(packageJsonPath, "utf8");
+        const parsed = JSON.parse(content) as { version?: string };
+        if (typeof parsed.version === "string" && parsed.version.trim() !== "") {
+            return `v${parsed.version.trim()}`;
+        }
+    } catch {
+        // Ignore parse/read errors and fall back to the last known version.
+    }
+
+    return "v0.0.0";
 }

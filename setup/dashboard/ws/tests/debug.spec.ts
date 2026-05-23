@@ -69,10 +69,10 @@ describe("debug page", () => {
 
     it("should contain data-url attributes with correct widget paths", () => {
         const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("data-url=\"/node/load.php\"");
-        expect(html).to.include("data-url=\"/node/up.php\"");
-        expect(html).to.include("data-url=\"/node/ram_stats.php\"");
-        expect(html).to.include("data-url=\"/node/disk_data.php\"");
-        expect(html).to.include("data-url=\"/node/net_status.php\"");
+        expect(html).to.include("data-url=\"/node/load\"");
+        expect(html).to.include("data-url=\"/node/up\"");
+        expect(html).to.include("data-url=\"/node/ram_stats\"");
+        expect(html).to.include("data-url=\"/node/disk_data\"");
+        expect(html).to.include("data-url=\"/node/net_status\"");
     });
 });

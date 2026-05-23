@@ -11,6 +11,8 @@
 #################################################################################
 VERSION=
 COMMIT=
+DRY_RUN=
+VERSION_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+$'
 
 _norm=$(tput sgr0)
 _red=$(tput setaf 1)
@@ -33,6 +35,13 @@ function _warning() {
 function _error() {
 	printf "${_red}✗ %s${_norm}\n" "$@"
 }
+function _run() {
+    if [[ -n "$DRY_RUN" ]]; then
+        _info "[dry-run] $*"
+    else
+        "$@"
+    fi
+}
 
 function _check_gitflow() {
     master_branch=$(git config --get gitflow.branch.master) || return 1
@@ -46,12 +55,16 @@ function _init_gitflow() {
 }
 
 function _update_version() {
-    FILE_LIST=(
-        packages/package/install/*
-        packages/package/remove/*
-        packages/package/update/*
-        packages/system/*
-        packages/system/auxiliary/*
+    FILE_LIST=()
+    while IFS= read -r -d '' file; do
+        FILE_LIST+=("$file")
+    done < <(find \
+        packages/package/install \
+        packages/package/remove \
+        packages/package/update \
+        packages/system \
+        -type f -print0 2>/dev/null)
+    FILE_LIST+=(
         onekey.sh
         setup.sh
         bump-version.sh
@@ -59,27 +72,34 @@ function _update_version() {
     )
 
     for file in "${FILE_LIST[@]}"; do
-        if [[ -f "$file" ]]; then
-            # echo "Bumping version to $version in $file"
-            sed -i "s/^# Current version:  .*$/# Current version:  v${VERSION}/" "$file"
-            git add "$file"
+        if [[ -f "$file" ]] && grep -qE '^# Current version:[[:space:]]+v[0-9]+\.[0-9]+\.[0-9]+' "$file"; then
+            _run sed -i -E "s|^# Current version:[[:space:]]+v[0-9]+\.[0-9]+\.[0-9]+.*$|# Current version:  v${VERSION}|" "$file"
+            _run git add "$file"
         fi
     done
 
-    sed -i "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README.md
-    sed -i "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README_zh.md
-    sed -i "s/QUICKBOX_VERSION=.*$/QUICKBOX_VERSION=v${VERSION}/" setup/templates/motd/01-custom
-    sed -i "s/QUICKBOX_VERSION=.*$/QUICKBOX_VERSION=v${VERSION}/" setup/templates/bash_qb.template
-    sed -i "s/\$version = 'v[0-9|.]*';$/\$version = 'v${VERSION}';/" setup/dashboard/inc/config.php
-    git add README.md
-    git add README_zh.md
-    git add setup/templates/motd/01-custom
-    git add setup/templates/bash_qb.template
-    git add setup/dashboard/inc/config.php
+    _run sed -i "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README.md
+    _run sed -i "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README_zh.md
+    _run sed -i -E "s|^QUICKBOX_VERSION=.*$|QUICKBOX_VERSION=v${VERSION}|" setup/templates/motd/01-custom
+    _run sed -i -E "s|^QUICKBOX_VERSION=.*$|QUICKBOX_VERSION=v${VERSION}|" setup/templates/bash_qb.template
+    _run sed -i -E "s|^([[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+(\"[[:space:]]*,[[:space:]]*)$|\1${VERSION}\2|" setup/dashboard/ws/package.json
+    _run git add README.md
+    _run git add README_zh.md
+    _run git add setup/templates/motd/01-custom
+    _run git add setup/templates/bash_qb.template
+    _run git add setup/dashboard/ws/package.json
 }
 
 function _commit_changes() {
     message="Bumped version to $VERSION"
+
+    if [[ -n "$DRY_RUN" ]]; then
+        _info "[dry-run] git flow release start \"$VERSION\""
+        _info "[dry-run] git commit -m \"$message\""
+        _info "[dry-run] git tag -a \"$VERSION\" -m \"$message\""
+        _info "[dry-run] git flow release finish \"$VERSION\" -m \"$message\""
+        return
+    fi
 
     git flow release start "$VERSION"
     git commit -m "$message"
@@ -95,12 +115,17 @@ function _usage() {
 
   -v <version*>                  target version is required
   -c                             run git flow and commit changes
+  -n                             dry-run mode (preview only, no file changes)
   -h                             display this help and exit"
 }
 
 function _main() {
     if [[ -z "$VERSION" ]]; then
         _error "Please specify a version number"
+        exit 1
+    fi
+    if [[ ! "$VERSION" =~ $VERSION_PATTERN ]]; then
+        _error "Invalid version format: $VERSION (expected: x.y.z)"
         exit 1
     fi
     base_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -128,13 +153,16 @@ function _main() {
     fi
 }
 
-while getopts "v:hc" OPT; do
+while getopts "v:hcn" OPT; do
     case $OPT in
         v)
             VERSION="${OPTARG}"
             ;;
         c)
             COMMIT=1
+            ;;
+        n)
+            DRY_RUN=1
             ;;
         h)
             _usage

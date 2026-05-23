@@ -21,8 +21,6 @@ import { systemStaticInfoWithProviders } from "./system-static";
 export interface AppRouterOptions {
     /** Absolute path to the dashboard root (setup/dashboard). Used by /debug/assets/* static routes. */
     dashboardDir: string;
-    /** Whether debug endpoints (/debug, /debug/node, /debug/assets/*) should be registered. */
-    debugEnabled: boolean;
     /** Allows tests to inject command execution without shelling out. */
     execFile?: typeof childProcess.execFile;
 }
@@ -34,12 +32,13 @@ export interface AppRouterOptions {
  *   /            — Node-rendered dashboard shell
  *   /set         — legacy locale normalizer for older clients
  *   /node/*      — React SSR widget endpoints consumed by the dashboard shell
- *   /debug*      — debug/introspection endpoints (gated by debugEnabled)
+ *   /debug*      — debug/introspection endpoints (gated by NODE_ENV)
  *   /test/*      — test-only endpoints (gated by isTestMode())
  */
 export function createAppRouter(options: AppRouterOptions): Router {
     const router = Router();
     const runExecFile = options.execFile ?? childProcess.execFile;
+    const debugEnabled = process.env.NODE_ENV !== "production";
     const renderWithLocale = async <T,>(req: Request, callback: () => T | Promise<T>): Promise<T> => {
         return await withLocale(resolveRequestLocale(req), callback);
     };
@@ -142,7 +141,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
 
     // ── Debug endpoints ───────────────────────────────────────────────────────
 
-    if (options.debugEnabled) {
+    if (debugEnabled) {
         router.use("/debug/assets/skins", express.static(path.join(options.dashboardDir, "skins")));
         router.use("/debug/assets/lib", express.static(path.join(options.dashboardDir, "lib")));
         router.use("/debug/assets/fonts", express.static(path.join(options.dashboardDir, "fonts")));
@@ -150,7 +149,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         router.get("/debug/node", async (req: Request, res: Response) => {
             const url = req.query.url;
             if (typeof url !== "string" || !url) {
-                res.status(400).json({ error: "url query param required, e.g. /debug/node?url=/node/up.php" });
+                res.status(400).json({ error: "url query param required, e.g. /debug/node?url=/node/up" });
                 return;
             }
             const result = await renderWithLocale(req, async () => await resolveWidget(url));

@@ -23,15 +23,15 @@ test.describe("WS Debug Console", () => {
 
     test("should list widget endpoints", async ({ page }) => {
         await page.goto(`${WS_BASE_URL}/debug`);
-        await expect(page.locator("[data-url='/node/load.php']")).toBeVisible();
-        await expect(page.locator("[data-url='/node/up.php']")).toBeVisible();
-        await expect(page.locator("[data-url='/node/ram_stats.php']")).toBeVisible();
-        await expect(page.locator("[data-url='/node/disk_data.php']")).toBeVisible();
+        await expect(page.locator("[data-url='/node/load']")).toBeVisible();
+        await expect(page.locator("[data-url='/node/up']")).toBeVisible();
+        await expect(page.locator("[data-url='/node/ram_stats']")).toBeVisible();
+        await expect(page.locator("[data-url='/node/disk_data']")).toBeVisible();
     });
 
     test("should fetch uptime widget via debug console", async ({ page }, testInfo) => {
         await page.goto(`${WS_BASE_URL}/debug`);
-        await page.locator("[data-url='/node/up.php']").click();
+        await page.locator("[data-url='/node/up']").click();
         const resultTitle = page.locator("#result-title");
         await expect(resultTitle).toContainText("Uptime", { timeout: 10_000 });
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
@@ -40,7 +40,7 @@ test.describe("WS Debug Console", () => {
 
     test("should fetch load widget via debug console", async ({ page }) => {
         await page.goto(`${WS_BASE_URL}/debug`);
-        await page.locator("[data-url='/node/load.php']").click();
+        await page.locator("[data-url='/node/load']").click();
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
         // Mock loadavg: "1.52 1.34 1.21"
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).toContain("1.52");
@@ -48,26 +48,26 @@ test.describe("WS Debug Console", () => {
 
     test("should fetch RAM stats widget via debug console", async ({ page }) => {
         await page.goto(`${WS_BASE_URL}/debug`);
-        await page.locator("[data-url='/node/ram_stats.php']").click();
+        await page.locator("[data-url='/node/ram_stats']").click();
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
     });
 
     test("should fetch disk data widget via debug console", async ({ page }, testInfo) => {
         await page.goto(`${WS_BASE_URL}/debug`);
-        await page.locator("[data-url='/node/disk_data.php']").click();
+        await page.locator("[data-url='/node/disk_data']").click();
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
         await snap(page, testInfo, "debug-disk-data-result");
     });
 
     test("should handle /debug/node API directly", async ({ page }) => {
-        const response = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/up.php`);
+        const response = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/up`);
         expect(response.ok()).toBeTruthy();
         const text = await response.text();
         expect(text).toContain("15"); // 15 days uptime
     });
 
     test("should return error for unknown widget", async ({ page }) => {
-        const response = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/nonexistent.php`);
+        const response = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/nonexistent`);
         expect(response.status()).toBe(500);
     });
 });
@@ -88,7 +88,7 @@ test.describe("WS API Endpoints", () => {
         expect(response.ok()).toBeTruthy();
 
         // Load data reflects empty system (loadavg 0.05)
-        const loadResponse = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/load.php`);
+        const loadResponse = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/load`);
         const loadText = await loadResponse.text();
         expect(loadText).toContain("0.05");
 

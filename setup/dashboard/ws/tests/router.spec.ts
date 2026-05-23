@@ -5,6 +5,7 @@ import "mocha";
 import { expect } from "chai";
 import express from "express";
 import path from "path";
+import { readFileSync } from "fs";
 import request from "supertest";
 import childProcess from "child_process";
 
@@ -43,7 +44,6 @@ function createRouterTestApp(execFile: typeof childProcess.execFile = childProce
     testApp.set("trust proxy", "loopback");
     testApp.use(createAppRouter({
         dashboardDir: path.resolve(__dirname, "..", ".."),
-        debugEnabled: true,
         execFile,
     }));
     return testApp;
@@ -73,17 +73,18 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.include("<!DOCTYPE html>");
             expect(res.text).to.include("Quickbox Dashboard");
             expect(res.text).to.include("id=\"service_control_widget\"");
-            expect(res.text).to.include("quickbox:locale");
-            expect(res.text).to.include("window.serviceUpdateHandler");
-            expect(res.text).to.include("startStatusUpdates");
-            expect(res.text).to.include("request.locale = window.quickboxLocale");
+            expect(res.text).to.include("window.quickboxRuntime");
+            expect(res.text).to.include('"basePath":""');
+            expect(res.text).to.include('"locale":"en"');
+            expect(res.text).to.include("/js/dashboard.js");
+            expect(res.text).to.include("/lib/socket.io/socket.io.min.js");
             expect(res.text).to.include("id=\"bw_tables_loading\"");
             expect(res.text).to.include("box fix dpkg");
             expect(res.text).to.include("autodlirssiRemovalConfirm");
             expect(res.text).to.include('data-click-handler="packageRemove"');
             expect(res.text).to.include("/lib/datatables/js/jquery.dataTables.min.js");
             expect(res.text).to.include("/lib/perfect-scrollbar/js/perfect-scrollbar.min.js");
-            expect(res.text).to.include("new window.PerfectScrollbar(element)");
+            expect(res.text).to.include("/js/quick.js");
             expect(res.text).to.not.include('fetchJson("/node/menu")');
             expect(res.text).to.not.include('fetchText("/node/removal_modals")');
             expect(res.text).to.not.include("panel.app_status.ws.js");
@@ -97,7 +98,8 @@ describe("router — HTTP routes", () => {
             expect(zh.status).to.equal(200);
             expect(en.status).to.equal(200);
             expect(zh.text).to.include("<html lang=\"zh\">");
-            expect(zh.text).to.include("window.quickboxLocale = normalizeLocale(\"zh\")");
+            expect(zh.text).to.include("window.quickboxRuntime");
+            expect(zh.text).to.include("\"locale\":\"zh\"");
             expect(zh.text).to.include("\"enabled\":\"已启用\"");
             expect(zh.text).to.include("\"disabled\":\"禁用\"");
             expect(zh.text).to.include("服务控制中心");
@@ -119,7 +121,8 @@ describe("router — HTTP routes", () => {
 
             expect(res.status).to.equal(200);
             expect(res.text).to.include("<html lang=\"zh\">");
-            expect(res.text).to.include("window.quickboxLocale = normalizeLocale(\"zh\")");
+            expect(res.text).to.include("window.quickboxRuntime");
+            expect(res.text).to.include("\"locale\":\"zh\"");
             expect(res.text).to.include("服务控制中心");
         });
 
@@ -130,7 +133,8 @@ describe("router — HTTP routes", () => {
 
             expect(res.status).to.equal(200);
             expect(res.text).to.include("<html lang=\"fr\">");
-            expect(res.text).to.include("window.quickboxLocale = normalizeLocale(\"fr\")");
+            expect(res.text).to.include("window.quickboxRuntime");
+            expect(res.text).to.include("\"locale\":\"fr\"");
             expect(res.text).to.include("Centre de contrôle des services");
         });
 
@@ -141,7 +145,8 @@ describe("router — HTTP routes", () => {
 
             expect(res.status).to.equal(200);
             expect(res.text).to.include("<html lang=\"de\">");
-            expect(res.text).to.include("window.quickboxLocale = normalizeLocale(\"de\")");
+            expect(res.text).to.include("window.quickboxRuntime");
+            expect(res.text).to.include("\"locale\":\"de\"");
             expect(res.text).to.include("Dienst Kontrollcenter");
         });
 
@@ -150,9 +155,9 @@ describe("router — HTTP routes", () => {
 
             expect(res.status).to.equal(200);
             expect(res.text).to.include("服务控制中心");
-            expect(res.text).to.include('path: "/ws/socket.io"');
-            expect(res.text).to.include("window.quickboxApiBase = \"/ws\"");
-            expect(res.text).to.include('fetch(window.quickboxApiBase + "/node/theme"');
+            expect(res.text).to.include("window.quickboxRuntime");
+            expect(res.text).to.include("\"basePath\":\"/ws\"");
+            expect(res.text).to.include("\"locale\":\"zh\"");
         });
     });
 
@@ -261,9 +266,10 @@ describe("router — HTTP routes", () => {
     describe("GET /node/dashboard_config", () => {
         it("should return static dashboard menu config", async () => {
             const res = await request(app).get("/node/dashboard_config");
+            const wsPackage = JSON.parse(readFileSync(path.resolve(__dirname, "..", "package.json"), "utf8")) as { version: string };
 
             expect(res.status).to.equal(200);
-            expect(res.body).to.have.property("version", "v1.5.12");
+            expect(res.body).to.have.property("version", `v${wsPackage.version}`);
             expect(res.body).to.have.property("branch").that.is.a("string");
             expect(res.body).to.have.property("languages").that.is.an("array").with.length.greaterThan(0);
             expect((res.body as DashboardConfigResponse).languages[0]).to.have.keys(["file", "key", "title", "locale"]);
@@ -409,7 +415,7 @@ describe("router — HTTP routes", () => {
     });
 
     // ── Debug endpoints (/debug*) ─────────────────────────────────────────────
-    // NODE_ENV=test → debugEnabled is true (test !== production)
+    // NODE_ENV=test → debug endpoints enabled; NODE_ENV=production → disabled
 
     describe("GET /debug", () => {
         it("should return 200 with an HTML page", async () => {
@@ -432,8 +438,22 @@ describe("router — HTTP routes", () => {
         });
 
         it("should return 200 for a valid widget url", async () => {
-            const res = await request(app).get("/debug/node?url=/node/up.php");
+            const res = await request(app).get("/debug/node?url=/node/up");
             expect(res.status).to.equal(200);
+        });
+
+        it("should disable debug routes in production", async () => {
+            const originalNodeEnv = process.env.NODE_ENV;
+            process.env.NODE_ENV = "production";
+            try {
+                const productionApp = createRouterTestApp();
+                const debugRes = await request(productionApp).get("/debug");
+                const debugNodeRes = await request(productionApp).get("/debug/node?url=/node/up");
+                expect(debugRes.status).to.equal(404);
+                expect(debugNodeRes.status).to.equal(404);
+            } finally {
+                process.env.NODE_ENV = originalNodeEnv;
+            }
         });
     });
 });

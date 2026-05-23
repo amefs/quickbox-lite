@@ -18,7 +18,6 @@ import { createAppRouter } from "./router";
 const app = express();
 app.set("trust proxy", "loopback");
 
-const debugEndpointsEnabled = process.env.NODE_ENV !== "production" || process.env.WS_ENABLE_DEBUG_ENDPOINTS === "1";
 const dashboardDir = path.resolve(__dirname, "..", "..");
 
 const server = http.createServer(app);
@@ -32,7 +31,7 @@ for (const socketServer of [io, wsPathIo]) {
     socketServer.use(i18nHandler);
 }
 
-app.use(createAppRouter({ debugEnabled: debugEndpointsEnabled, dashboardDir }));
+app.use(createAppRouter({ dashboardDir }));
 
 export { app };
 

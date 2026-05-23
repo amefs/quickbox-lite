@@ -37,7 +37,7 @@ test.describe("Language Switching", () => {
         expect(locale).toBe("zh");
 
         // Fetch a widget — its HTML should now contain Chinese text
-        const loadResponse = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/ram_stats.php`);
+        const loadResponse = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/ram_stats`);
         expect(loadResponse.ok()).toBeTruthy();
         const html = await loadResponse.text();
         // Chinese RAM label: "物理内存" or similar
@@ -46,7 +46,7 @@ test.describe("Language Switching", () => {
 
         // Load the debug page to verify visually
         await page.goto(`${WS_BASE_URL}/debug`);
-        await page.locator("[data-url='/node/up.php']").click();
+        await page.locator("[data-url='/node/up']").click();
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
         await snap(page, testInfo, "language-chinese-uptime");
     });
@@ -62,7 +62,7 @@ test.describe("Language Switching", () => {
         expect(locale).toBe("en");
 
         // Verify widget uses English
-        const ramResponse = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/ram_stats.php`);
+        const ramResponse = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/ram_stats`);
         const html = await ramResponse.text();
         // English labels like "Physical Memory" should be present
         expect(html).toContain("Physical Memory");
