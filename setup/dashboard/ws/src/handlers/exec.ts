@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { exec } from "child_process";
+import { exec, type ExecOptionsWithBufferEncoding } from "child_process";
 import fs from "fs";
 import path from "path";
 import { Socket } from "socket.io";
@@ -28,11 +28,34 @@ if (!configPath) {
 
 const config = new WatchedConfig<CommandType>(configPath);
 
-const execOption = {
+const execOption: ExecOptionsWithBufferEncoding = {
     env: { TERM: "xterm", ...process.env },
+    encoding: "buffer",
     timeout: 1000 * 60 * 114, // 114 minutes
     maxBuffer: 5 * 1024 * 1024, // 5 MiB
 };
+
+export function decodeExecOutput(raw: Buffer | string) {
+    if (typeof raw === "string") {
+        return raw;
+    }
+
+    const utf8 = raw.toString("utf8");
+    if (!utf8.includes("\uFFFD")) {
+        return utf8;
+    }
+
+    try {
+        const gb18030 = new TextDecoder("gb18030").decode(raw);
+        if (!gb18030.includes("\uFFFD")) {
+            return gb18030;
+        }
+    } catch {
+        // ignore decoder availability mismatch and keep utf8 output
+    }
+
+    return utf8;
+}
 
 const execHandler = (payload: unknown, client: Socket) => {
     if (typeof payload !== "string") {
@@ -59,8 +82,8 @@ const execHandler = (payload: unknown, client: Socket) => {
         return;
     }
     exec(template, execOption, (error, stdout, stderr) => {
-        ret.stdout = stdout;
-        ret.stderr = stderr;
+        ret.stdout = decodeExecOutput(stdout);
+        ret.stderr = decodeExecOutput(stderr);
         if (error) {
             ret.success = false;
             ret.message = "Execution Failed";

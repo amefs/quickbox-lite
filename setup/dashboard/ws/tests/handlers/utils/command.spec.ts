@@ -50,7 +50,9 @@ describe("exec", () => {
             expect(() => { buildCommand("payload", undefined, username); })
                 .to.throw(Error, /config/);
             expect(() => { buildCommand("systemctl:start:deluge-web", config, undefined); })
-                .to.throw(Error, /username/);
+                .to.throw(Error, /master\.txt/);
+            expect(() => { buildCommand("systemctl:start:deluge-web", config, ""); })
+                .to.throw(Error, /master\.txt/);
         });
         it("should throw error for invalid payload", () => {
             expect(() => { buildCommand("systemctl:", config, username); })

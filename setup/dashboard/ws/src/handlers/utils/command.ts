@@ -67,8 +67,8 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
 
     // apply user info
     if (template.includes(Constant.TEMPLATE_USERNAME)) {
-        if (!username) {
-            throw new Error(`Invalid username with type '${Object.prototype.toString.call(username)}'`);
+        if (typeof username !== "string" || username.trim() === "") {
+            throw new Error("Username not configured: /srv/dashboard/db/master.txt is missing or empty");
         }
         template = template.replaceAll(Constant.TEMPLATE_USERNAME, username);
     }

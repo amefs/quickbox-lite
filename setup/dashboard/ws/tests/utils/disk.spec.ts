@@ -4,7 +4,13 @@
 import "mocha";
 import { expect } from "chai";
 
-import { isTmpFs, shouldShowMacOsFileSystem, shouldShowFileSystem, FsSizeData } from "../../src/utils/disk";
+import {
+    isTmpFs,
+    shouldShowMacOsFileSystem,
+    shouldShowFileSystem,
+    parseFsSizeOutputSystemInformation,
+    FsSizeData,
+} from "../../src/utils/disk";
 
 describe("utils/disk", () => {
     describe("isTmpFs", () => {
@@ -134,6 +140,40 @@ describe("utils/disk", () => {
                 mount: "/System/Volumes/VM",
             };
             expect(shouldShowFileSystem(fs, "darwin")).to.be.false;
+        });
+    });
+
+    describe("parseFsSizeOutputSystemInformation", () => {
+        it("should parse fsSize entries", () => {
+            const parsed = parseFsSizeOutputSystemInformation([
+                {
+                    fs: "C:",
+                    type: "NTFS",
+                    size: 512000000000,
+                    used: 128000000000,
+                    use: 25,
+                    mount: "C:",
+                },
+            ] as never);
+
+            expect(parsed).to.have.length(1);
+            expect(parsed[0].mount).to.equal("C:");
+            expect(parsed[0].available).to.equal(384000000000);
+        });
+
+        it("should ignore invalid rows", () => {
+            const parsed = parseFsSizeOutputSystemInformation([
+                {
+                    fs: "",
+                    type: "NTFS",
+                    size: 0,
+                    used: 0,
+                    use: 0,
+                    mount: "",
+                },
+            ] as never);
+
+            expect(parsed).to.have.length(0);
         });
     });
 });

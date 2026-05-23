@@ -4,7 +4,7 @@
 import "mocha";
 import { expect } from "chai";
 
-import execHandler from "../../src/handlers/exec";
+import execHandler, { decodeExecOutput } from "../../src/handlers/exec";
 import Constant from "../../src/shared/constants";
 
 /** Helper to build a minimal mock Socket client */
@@ -23,6 +23,18 @@ function buildMockClient(onExecCallback?: (data: unknown) => void) {
 }
 
 describe("handlers/exec", () => {
+    describe("decodeExecOutput", () => {
+        it("should decode utf8 buffer correctly", () => {
+            const output = decodeExecOutput(Buffer.from("hello", "utf8"));
+            expect(output).to.equal("hello");
+        });
+
+        it("should fallback to gb18030 for non-utf8 buffer", () => {
+            const output = decodeExecOutput(Buffer.from([0xd6, 0xd0, 0xce, 0xc4])); // 中文 in GBK/GB18030
+            expect(output).to.equal("中文");
+        });
+    });
+
     describe("middleware", () => {
         it("should register exec event and call next", () => {
             const mockClient = buildMockClient();

@@ -1,17 +1,23 @@
 /* eslint-disable camelcase */
 import si from "systeminformation";
+import { listActiveInterfaceNames } from "../utils/network-interfaces";
 
 async function enuminterface() {
     const interfaces = await si.networkInterfaces();
-    return interfaces.filter(i => i.operstate === "up").map(i => i.iface);
+    return listActiveInterfaceNames(interfaces);
 }
 
 export const netStatus = async () => {
     const interfaces = await enuminterface();
     const ret: Record<string, {rx_bytes: number; tx_bytes: number}> = {};
-    const statsResults = await Promise.all(interfaces.map(iface => si.networkStats(iface)));
+    const statsResults = await Promise.allSettled(interfaces.map(iface => si.networkStats(iface)));
     for (let i = 0; i < interfaces.length; i++) {
-        const stats = statsResults[i];
+        const statsResult = statsResults[i];
+        if (statsResult.status !== "fulfilled") {
+            continue;
+        }
+        const statsValue = statsResult.value;
+        const stats = Array.isArray(statsValue) ? statsValue : [statsValue];
         if (stats.length > 0) {
             ret[interfaces[i]] = {
                 rx_bytes: stats[0].rx_bytes,

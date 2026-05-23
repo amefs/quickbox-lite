@@ -79,4 +79,29 @@ describe("widgets/network-status", () => {
         const result = await netStatus();
         expect(result.ts).to.equal(1700000000);
     });
+
+    it("should include interfaces in unknown state and skip loopback", async () => {
+        networkInterfacesStub.resolves([
+            { iface: "eth0", operstate: "unknown" },
+            { iface: "lo", operstate: "up" },
+        ]);
+        networkStatsStub.withArgs("eth0").resolves([{ rx_bytes: 11, tx_bytes: 22 }]);
+
+        const result = await netStatus();
+        expect(result.net).to.have.property("eth0");
+        expect(result.net).to.not.have.property("lo");
+    });
+
+    it("should continue when one interface stats query fails", async () => {
+        networkInterfacesStub.resolves([
+            { iface: "eth0", operstate: "up" },
+            { iface: "wlan0", operstate: "up" },
+        ]);
+        networkStatsStub.withArgs("eth0").rejects(new Error("stats failed"));
+        networkStatsStub.withArgs("wlan0").resolves([{ rx_bytes: 300, tx_bytes: 400 }]);
+
+        const result = await netStatus();
+        expect(result.net).to.not.have.property("eth0");
+        expect(result.net).to.have.property("wlan0");
+    });
 });

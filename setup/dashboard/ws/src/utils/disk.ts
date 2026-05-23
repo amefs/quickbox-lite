@@ -1,5 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
+import si from "systeminformation";
 
 export interface FsSizeData {
     fs: string;
@@ -13,6 +14,7 @@ export interface FsSizeData {
 
 const IS_DARWIN = process.platform === "darwin";
 const IS_LINUX = process.platform === "linux";
+const IS_WIN32 = process.platform === "win32";
 const execAsync = promisify(exec);
 const MINIMUM_DISK_SIZE = 1 << 30; // 1GB
 
@@ -147,13 +149,61 @@ export function parseDfOutputMacOS(stdout: string): FsSizeData[] {
     return result;
 }
 
+export function parseFsSizeOutputSystemInformation(
+    data: Awaited<ReturnType<typeof si.fsSize>>,
+): FsSizeData[] {
+    const result: FsSizeData[] = [];
+
+    for (const entry of data) {
+        const size = typeof entry.size === "number" ? entry.size : 0;
+        const used = typeof entry.used === "number" ? entry.used : 0;
+        const available = Math.max(0, size - used);
+        const use = typeof entry.use === "number"
+            ? parseFloat(entry.use.toFixed(2))
+            : (size > 0 ? parseFloat((100.0 * used / size).toFixed(2)) : 0);
+        const fsName = (entry.fs || entry.mount || "").trim();
+        const mount = (entry.mount || entry.fs || "").trim();
+        const type = (entry.type || "unknown").trim();
+
+        if (!mount || size <= 0) {
+            continue;
+        }
+
+        if (!result.some((el) => el.fs === fsName && el.type === type && el.mount === mount)) {
+            result.push({
+                fs: fsName,
+                type,
+                size,
+                used,
+                available,
+                use,
+                mount,
+            });
+        }
+    }
+
+    return result;
+}
+
 export async function getFsSize(): Promise<FsSizeData[]> {
+    if (IS_WIN32) {
+        try {
+            return parseFsSizeOutputSystemInformation(await si.fsSize());
+        } catch {
+            return [];
+        }
+    }
+
     if (IS_DARWIN) {
         try {
             const { stdout } = await execAsync("df -kP 2>/dev/null", { maxBuffer: 1024 * 1024 });
             return parseDfOutputMacOS(stdout);
         } catch {
-            return [];
+            try {
+                return parseFsSizeOutputSystemInformation(await si.fsSize());
+            } catch {
+                return [];
+            }
         }
     }
 
@@ -162,7 +212,11 @@ export async function getFsSize(): Promise<FsSizeData[]> {
             const { stdout } = await execAsync("export LC_ALL=C; df -kPT 2>/dev/null; unset LC_ALL", { maxBuffer: 1024 * 1024 });
             return parseDfOutputLinux(stdout);
         } catch {
-            return [];
+            try {
+                return parseFsSizeOutputSystemInformation(await si.fsSize());
+            } catch {
+                return [];
+            }
         }
     }
 

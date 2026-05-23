@@ -3,6 +3,7 @@
 import { readFile } from "fs/promises";
 import os from "os";
 import si from "systeminformation";
+import { listActiveInterfaceNames } from "./utils/network-interfaces";
 
 export interface CpuStaticInfo {
     modelHtml: string;
@@ -12,18 +13,24 @@ export interface CpuStaticInfo {
 }
 
 const SYSTEM_STATIC_TIMEOUT_MS = 1200;
+const CPU_INFO_TIMEOUT_MS = 5000;
+const NETWORK_INTERFACES_TIMEOUT_MS = 5000;
+const CPU_INFO_CACHE_TTL_MS = 5 * 60 * 1000;
 const UNKNOWN_CPU: CpuStaticInfo = {
     modelHtml: "<h4>Unknown</h4>",
     count: "-",
 };
 
-async function withTimeout<T>(task: Promise<T>, fallback: T): Promise<T> {
+let cachedCpuStaticInfo: CpuStaticInfo | undefined;
+let cachedCpuStaticInfoTs = 0;
+
+async function withTimeout<T>(task: Promise<T>, fallback: T, timeoutMs = SYSTEM_STATIC_TIMEOUT_MS): Promise<T> {
     let timer: NodeJS.Timeout | undefined;
     try {
         return await Promise.race([
             task,
             new Promise<T>((resolve) => {
-                timer = setTimeout(() => { resolve(fallback); }, SYSTEM_STATIC_TIMEOUT_MS);
+                timer = setTimeout(() => { resolve(fallback); }, timeoutMs);
             }),
         ]);
     } finally {
@@ -53,15 +60,20 @@ async function readCpuCache() {
 }
 
 export async function getCpuStaticInfo(): Promise<CpuStaticInfo> {
+    if (cachedCpuStaticInfo && (Date.now() - cachedCpuStaticInfoTs) < CPU_INFO_CACHE_TTL_MS) {
+        return cachedCpuStaticInfo;
+    }
     try {
-        const [cpu, cache] = await withTimeout(Promise.all([
+        const cpu = await withTimeout(
             si.cpu(),
-            readCpuCache(),
-        ]), [undefined, undefined] as [Awaited<ReturnType<typeof si.cpu>> | undefined, string | undefined]);
+            undefined as Awaited<ReturnType<typeof si.cpu>> | undefined,
+            CPU_INFO_TIMEOUT_MS,
+        );
+        const cache = await readCpuCache();
         if (!cpu) {
             return UNKNOWN_CPU;
         }
-        const model = cpu.brand || cpu.manufacturer || "Unknown";
+        const model = cpu.brand || cpu.manufacturer || cpu.vendor || "Unknown";
         const frequency = cpu.speed ? `${cpu.speed}` : undefined;
         const parts = [`<h4>${escapeHtml(model)}</h4>`];
         if (frequency) {
@@ -71,35 +83,42 @@ export async function getCpuStaticInfo(): Promise<CpuStaticInfo> {
             parts.push(`<br/> <span style="color:#999;font-weight:600">Secondary cache:</span> ${escapeHtml(cache)}`);
         }
 
-        return {
+        const cpuInfo = {
             modelHtml: parts.join(""),
             count: cpu.cores || os.cpus().length || "-",
             frequency,
             cache,
         };
+        cachedCpuStaticInfo = cpuInfo;
+        cachedCpuStaticInfoTs = Date.now();
+
+        return cpuInfo;
     } catch {
+        if (cachedCpuStaticInfo) {
+            return cachedCpuStaticInfo;
+        }
         return UNKNOWN_CPU;
     }
 }
 
 export async function getNetworkInterfaces() {
     try {
-        const interfaces = await withTimeout(si.networkInterfaces(), []);
+        const interfaces = await withTimeout(si.networkInterfaces(), [], NETWORK_INTERFACES_TIMEOUT_MS);
         const list = Array.isArray(interfaces) ? interfaces : [interfaces];
-        return list
-            .filter((iface) => iface.operstate === "up")
-            .map((iface) => iface.iface)
-            .filter((iface): iface is string => typeof iface === "string" && iface !== "");
+        return listActiveInterfaceNames(list);
     } catch {
         return [];
     }
 }
 
 export async function systemStaticInfo() {
-    const [cpu, interfaces] = await withTimeout(Promise.all([
+    const [cpuResult, interfacesResult] = await Promise.allSettled([
         getCpuStaticInfo(),
         getNetworkInterfaces(),
-    ]), [UNKNOWN_CPU, []] as [CpuStaticInfo, string[]]);
+    ]);
+
+    const cpu = cpuResult.status === "fulfilled" ? cpuResult.value : UNKNOWN_CPU;
+    const interfaces = interfacesResult.status === "fulfilled" ? interfacesResult.value : [];
 
     return {
         cpu,
@@ -111,10 +130,13 @@ export async function systemStaticInfoWithProviders(
     cpuProvider = getCpuStaticInfo,
     networkProvider = getNetworkInterfaces,
 ) {
-    const [cpu, interfaces] = await withTimeout(Promise.all([
+    const [cpuResult, interfacesResult] = await Promise.allSettled([
         cpuProvider(),
         networkProvider(),
-    ]), [UNKNOWN_CPU, []] as [CpuStaticInfo, string[]]);
+    ]);
+
+    const cpu = cpuResult.status === "fulfilled" ? cpuResult.value : UNKNOWN_CPU;
+    const interfaces = interfacesResult.status === "fulfilled" ? interfacesResult.value : [];
 
     return {
         cpu,
