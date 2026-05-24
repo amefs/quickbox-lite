@@ -229,19 +229,29 @@
     if (typeof response === "object" && response !== null && "content" in response) {
       var previousEnd = task._endOffset;
       if (previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
-        el.text(response.content);
+        task._rawContent = response.content;
         task._endOffset = response.end;
       } else if (response.end > previousEnd && response.content) {
         var overlap = Math.max(0, previousEnd - response.start);
         var nextContent = overlap > 0 ? response.content.slice(overlap) : response.content;
         if (nextContent) {
-          el.append(document.createTextNode(nextContent));
+          task._rawContent = (task._rawContent || "") + nextContent;
         }
         task._endOffset = response.end;
       }
+      var display = task._rawContent || "";
+      if (window.AnsiUp) {
+        display = new window.AnsiUp().ansi_to_html(display);
+      }
+      el.html(display);
     } else {
-      el.text(response);
+      task._rawContent = "";
       task._endOffset = -1;
+      var display = response;
+      if (window.AnsiUp) {
+        display = new window.AnsiUp().ansi_to_html(display);
+      }
+      el.html(display);
     }
     var container = document.getElementById("sysPre");
     if (window.__psSysPre) {

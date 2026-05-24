@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { exec, type ExecOptionsWithBufferEncoding } from "child_process";
+import { exec, spawn, type ExecOptionsWithBufferEncoding } from "child_process";
 import fs from "fs";
 import path from "path";
 import { Socket } from "socket.io";
@@ -34,6 +34,49 @@ const execOption: ExecOptionsWithBufferEncoding = {
     timeout: 1000 * 60 * 114, // 114 minutes
     maxBuffer: 5 * 1024 * 1024, // 5 MiB
 };
+const dashboardDbDir = process.env.QUICKBOX_DASHBOARD_DB_DIR ?? "/srv/dashboard/db";
+const outputLogPath = path.join(dashboardDbDir, "output.log");
+const updatePidPath = path.join(dashboardDbDir, "update.pid");
+
+function shellQuote(value: string) {
+    return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function isPersistentUpdate(payload: string) {
+    const [command, operation] = payload.trim().split(":");
+    return command === "box" && operation === "update";
+}
+
+function buildPersistentUpdateScript(command: string) {
+    return [
+        `echo $$ > ${shellQuote(updatePidPath)}`,
+        `exec 1>>${shellQuote(outputLogPath)} 2>&1`,
+        "echo \"[$(date -Is)] quickbox update started (pid=$$)\"",
+        command,
+        "echo \"[$(date -Is)] quickbox update finished (exit=$?)\"",
+    ].join("\n");
+}
+
+function appendUpdateLauncherLog(message: string) {
+    try {
+        fs.mkdirSync(dashboardDbDir, { recursive: true });
+        fs.appendFileSync(outputLogPath, `${message}\n`);
+    } catch {
+        // The runner still attempts to write the same log path after it starts.
+    }
+}
+
+function startPersistentUpdate(command: string) {
+    const script = buildPersistentUpdateScript(command);
+    const child = spawn("/bin/bash", ["-lc", script], {
+        detached: true,
+        stdio: "ignore",
+        env: execOption.env,
+    });
+    child.unref();
+    appendUpdateLauncherLog(`[${new Date().toISOString()}] quickbox update scheduled as detached process ${child.pid ?? "unknown"}`);
+    return child.pid;
+}
 
 export function decodeExecOutput(raw: Buffer | string) {
     if (typeof raw === "string") {
@@ -77,6 +120,25 @@ const execHandler = (payload: unknown, client: Socket) => {
         ret.message = "Invalid Command";
         if (e instanceof Error) {
             ret.message = e.message;
+        }
+        client.emit(Constant.EVENT_EXEC, ret);
+        return;
+    }
+    if (isPersistentUpdate(payload)) {
+        try {
+            const pid = startPersistentUpdate(template);
+            ret.message = "Detached Update Started";
+            ret.stdout = [
+                `Launcher PID: ${pid ?? "unknown"}`,
+                `PID file: ${updatePidPath}`,
+                `Log file: ${outputLogPath}`,
+            ].join("\n");
+        } catch (e) {
+            ret.success = false;
+            ret.message = "Failed to start detached update";
+            if (e instanceof Error) {
+                ret.stderr = e.message;
+            }
         }
         client.emit(Constant.EVENT_EXEC, ret);
         return;
