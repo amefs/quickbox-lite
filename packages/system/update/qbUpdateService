@@ -271,9 +271,6 @@ WEBC
 }
 
 function _startservice() {
-	# always reload to ensure service up to date
-	at now + 1 minute >>"${OUTTO}" 2>&1 <<EOF
-sleep 5;\
-systemctl restart quickbox-ws.service
-EOF
+	# service is already restarted by _updatedashboard during the update process.
+	# No delayed restart needed — restarting after "update complete" degrades UX.
 }

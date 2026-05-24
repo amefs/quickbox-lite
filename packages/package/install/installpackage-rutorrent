@@ -477,7 +477,7 @@ function _installAppLock() {
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
 	# schedule restart service
-	at now + 1 minute >>"${OUTTO}" 2>&1 <<EOF
+	SHELL=/bin/bash at now + 1 minute >>"${OUTTO}" 2>&1 <<EOF
 sleep 5;\
 /usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();';\
 systemctl restart php7.4-fpm;\
