@@ -3,16 +3,16 @@
 /* global io */
 
 (function () {
-  var runtime = window.quickboxRuntime || {};
-  var supported = ["da", "de", "en", "es", "fr", "zh"];
-  var aliases = { "zh-cn": "zh", "zh-hans-cn": "zh" };
+  let runtime = window.quickboxRuntime || {};
+  let supported = ["da", "de", "en", "es", "fr", "zh"];
+  let aliases = { "zh-cn": "zh", "zh-hans-cn": "zh" };
 
   function normalizeLocale(value) {
     if (typeof value !== "string") { return "en"; }
-    var normalized = value.toLowerCase().replace(/_/g, "-").replace(/^lang-/, "");
+    let normalized = value.toLowerCase().replace(/_/g, "-").replace(/^lang-/, "");
     normalized = aliases[normalized] || normalized;
     if (supported.indexOf(normalized) >= 0) { return normalized; }
-    var primaryLocale = normalized.split("-")[0];
+    let primaryLocale = normalized.split("-")[0];
     return supported.indexOf(primaryLocale) >= 0 ? primaryLocale : "en";
   }
 
@@ -21,7 +21,7 @@
     document.cookie = "quickbox_locale=" + encodeURIComponent(locale) + "; Path=/; SameSite=Lax";
   }
 
-  var messages = (runtime && typeof runtime.messages === "object" && runtime.messages !== null) ? runtime.messages : {};
+  let messages = (runtime && typeof runtime.messages === "object" && runtime.messages !== null) ? runtime.messages : {};
   window.quickboxApiBase = (runtime && typeof runtime.basePath === "string") ? runtime.basePath : "";
   window.quickboxLocale = normalizeLocale(runtime ? runtime.locale : undefined);
   window.quickboxMessages = Object.assign({ enabled: "Enabled", disabled: "Disabled", refresh: "Refresh" }, messages);
@@ -36,21 +36,21 @@
   };
 
   window.quickboxWidgetUrl = function (url) {
-    var separator = url.indexOf("?") >= 0 ? "&" : "?";
+    let separator = url.indexOf("?") >= 0 ? "&" : "?";
     return window.quickboxApiBase + url + separator + "locale=" + encodeURIComponent(window.quickboxLocale);
   };
 })();
 
 (function () {
-  var socket = io(location.origin, { path: (window.quickboxApiBase || "") + "/socket.io" });
+  let socket = io(location.origin, { path: (window.quickboxApiBase || "") + "/socket.io" });
   window.socket = socket;
   socket.on("connect", function () {
     socket.emit("i18n", window.quickboxLocale || "en");
   });
 
   function resetPanel() {
-    for (var i = localStorage.length - 1; i >= 0; i -= 1) {
-      var key = localStorage.key(i);
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      let key = localStorage.key(i);
       if (key && key.indexOf("lobipanel") === 0) {
         localStorage.removeItem(key);
       }
@@ -65,7 +65,7 @@
     });
   }
 
-  var serviceStatusItems = [
+  let serviceStatusItems = [
     { service: "resilio-sync", id: "#appstat_resilio-sync" },
     { service: "smbd", id: "#appstat_smbd" },
     { service: "deluged", id: "#appstat_deluged" },
@@ -98,12 +98,12 @@
     { service: "x2go", id: "#appstat_x2go" },
     { service: "znc", id: "#appstat_znc" }
   ];
-  var lastServiceStatusResponse = {};
+  let lastServiceStatusResponse = {};
 
   function ensureServiceStatusPlaceholders() {
     serviceStatusItems.forEach(function (item) {
-      var $status = window.jQuery(item.id);
-      var cached = lastServiceStatusResponse[item.service];
+      let $status = window.jQuery(item.id);
+      let cached = lastServiceStatusResponse[item.service];
       if ($status.length > 0 && $status.html() === "" && cached) {
         $status.html(cached);
       }
@@ -111,9 +111,9 @@
   }
 
   function formatNetworkSpeed(length) {
-    var suffixList = ["B/s", "KB/s", "MB/s", "GB/s", "TB/s"];
-    var numeric = Number(length);
-    var idx = 0;
+    let suffixList = ["B/s", "KB/s", "MB/s", "GB/s", "TB/s"];
+    let numeric = Number(length);
+    let idx = 0;
     if (!isFinite(numeric) || numeric <= 0) {
       return "0 B/s";
     }
@@ -145,7 +145,7 @@
   function initializeServiceToggles() {
     ensureServiceStatusPlaceholders();
     window.jQuery(".toggle-en, .toggle-dis").each(function () {
-      var $toggle = window.jQuery(this);
+      let $toggle = window.jQuery(this);
       if ($toggle.parent(".toggle-slide").length > 0 || $toggle.parent(".toggle-modern").length > 0) {
         return;
       }
@@ -160,13 +160,13 @@
   }
 
   function initializePackageTable() {
-    var $ = window.jQuery;
-    var currentPage = 0;
+    let $ = window.jQuery;
+    let currentPage = 0;
     if ($.fn.DataTable.isDataTable("#dataTable1")) {
       currentPage = $("#dataTable1").DataTable().page();
       $("#dataTable1").DataTable().destroy();
     }
-    var table = $("#dataTable1").DataTable();
+    let table = $("#dataTable1").DataTable();
     $(table.table().container()).find("input[type='search']").attr({
       id: "dataTable1-search",
       name: "dataTable1-search"
@@ -183,20 +183,20 @@
       window.ts = dataJSON.ts;
       return;
     }
-    var duration = dataJSON.ts - window.ts;
+    let duration = dataJSON.ts - window.ts;
     if (duration < 1e-5) {
       return;
     }
-    var invalidData = false;
+    let invalidData = false;
     Object.keys(dataJSON.net).forEach(function (networkInterface) {
-      var ifaceCells = window.netInterfaceCells && window.netInterfaceCells[networkInterface];
-      var previous = window.net[networkInterface];
-      var current = dataJSON.net[networkInterface];
+      let ifaceCells = window.netInterfaceCells && window.netInterfaceCells[networkInterface];
+      let previous = window.net[networkInterface];
+      let current = dataJSON.net[networkInterface];
       if (!previous || !current) {
         invalidData = true;
         return;
       }
-      var outSpeed = (current.tx_bytes - previous.tx_bytes) / duration;
+      let outSpeed = (current.tx_bytes - previous.tx_bytes) / duration;
       if (isNaN(outSpeed)) {
         invalidData = true;
         console.warn("[NaN DETECTED] " + networkInterface + "/tx", outSpeed, current, previous, duration);
@@ -205,7 +205,7 @@
           ifaceCells.tx.textContent = formatNetworkSpeed(outSpeed);
         }
       }
-      var inSpeed = (current.rx_bytes - previous.rx_bytes) / duration;
+      let inSpeed = (current.rx_bytes - previous.rx_bytes) / duration;
       if (isNaN(inSpeed)) {
         invalidData = true;
         console.warn("[NaN DETECTED] " + networkInterface + "/rx", inSpeed, current, previous, duration);
@@ -222,21 +222,21 @@
   }
 
   function updateSshOutput(task, response) {
-    var el = window.jQuery(task.id);
+    let el = window.jQuery(task.id);
     if (typeof response === "object" && response !== null && "content" in response) {
-      var previousEnd = task._endOffset;
+      let previousEnd = task._endOffset;
       if (previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
         task._rawContent = response.content;
         task._endOffset = response.end;
       } else if (response.end > previousEnd && response.content) {
-        var overlap = Math.max(0, previousEnd - response.start);
-        var nextContent = overlap > 0 ? response.content.slice(overlap) : response.content;
+        let overlap = Math.max(0, previousEnd - response.start);
+        let nextContent = overlap > 0 ? response.content.slice(overlap) : response.content;
         if (nextContent) {
           task._rawContent = (task._rawContent || "") + nextContent;
         }
         task._endOffset = response.end;
       }
-      var display = task._rawContent || "";
+      let display = task._rawContent || "";
       if (window.AnsiUp) {
         display = new window.AnsiUp().ansi_to_html(display);
       }
@@ -244,13 +244,13 @@
     } else {
       task._rawContent = "";
       task._endOffset = -1;
-      var display = response;
+      let display = response;
       if (window.AnsiUp) {
         display = new window.AnsiUp().ansi_to_html(display);
       }
       el.html(display);
     }
-    var container = document.getElementById("sysPre");
+    let container = document.getElementById("sysPre");
     if (window.__psSysPre) {
       window.__psSysPre.update();
     }
@@ -260,8 +260,8 @@
   }
 
   function createStatusTasks() {
-    var hasSsrServiceControl = window.jQuery("#service_control_widget [data-inner-id='panel-server-service-control']").length > 0;
-    var hasSsrPackageManagement = window.jQuery("#pmc_widget [data-inner-id='panel-server-package-management']").length > 0;
+    let hasSsrServiceControl = window.jQuery("#service_control_widget [data-inner-id='panel-server-service-control']").length > 0;
+    let hasSsrPackageManagement = window.jQuery("#pmc_widget [data-inner-id='panel-server-package-management']").length > 0;
     return [
       {
         key: "SERVICE_STATUS_ALL",
@@ -301,7 +301,7 @@
         urlTemplate: "/node/bw_tables?page={0}",
         id: "#bw_tables",
         before: function (task) {
-          var page = localStorage.getItem("bw_tables:page");
+          let page = localStorage.getItem("bw_tables:page");
           if (page && page.length === 1 && "shdmt".indexOf(page) >= 0) {
             task.url = task.urlTemplate.replace("{0}", page);
           }
@@ -339,7 +339,7 @@
 
   function groupByTime(tasks) {
     return tasks.reduce(function (mapping, task) {
-      var key = String(task.time);
+      let key = String(task.time);
       mapping[key] = mapping[key] || [];
       mapping[key].push(task);
       return mapping;
@@ -347,16 +347,16 @@
   }
 
   function startStatusUpdates() {
-    var statusList = createStatusTasks();
-    var taskMapping = {};
-    var pendingRequests = {};
-    var pendingRequestByKey = {};
-    var firstRequest = true;
-    var errorCount = 0;
-    var bootstrapDispatched = false;
-    var requestSeq = 0;
-    var pendingRequestTimeoutMs = 15000;
-    var sshOutputTask;
+    let statusList = createStatusTasks();
+    let taskMapping = {};
+    let pendingRequests = {};
+    let pendingRequestByKey = {};
+    let firstRequest = true;
+    let errorCount = 0;
+    let bootstrapDispatched = false;
+    let requestSeq = 0;
+    let pendingRequestTimeoutMs = 15000;
+    let sshOutputTask;
 
     statusList.forEach(function (task) {
       if (task.key in taskMapping) {
@@ -370,7 +370,7 @@
     });
 
     function clearPendingRequestById(requestId) {
-      var pending = pendingRequests[requestId];
+      let pending = pendingRequests[requestId];
       if (!pending) {
         return;
       }
@@ -382,7 +382,7 @@
     }
 
     function clearAllPendingRequests(reason) {
-      var requestIds = Object.keys(pendingRequests);
+      let requestIds = Object.keys(pendingRequests);
       requestIds.forEach(clearPendingRequestById);
       if (requestIds.length > 0) {
         console.warn("[ws] cleared " + requestIds.length + " pending request(s): " + reason);
@@ -391,19 +391,19 @@
 
     function queueTask(task, delay) {
       setTimeout(function () {
-        var request = Object.assign({}, task);
+        let request = Object.assign({}, task);
         if (request.before && typeof request.before === "function" && request.before(request) === false) {
           return;
         }
         if (!((request.id && window.jQuery(request.id).length > 0) || request.override)) {
           return;
         }
-        var pendingRequestId = pendingRequestByKey[request.key];
+        let pendingRequestId = pendingRequestByKey[request.key];
         if (pendingRequestId && pendingRequests[pendingRequestId]) {
           return;
         }
         request.requestId = request.key + ":" + (++requestSeq);
-        var timeoutId = setTimeout(function () {
+        let timeoutId = setTimeout(function () {
           if (pendingRequests[request.requestId]) {
             console.warn("[ws] request timed out: " + request.requestId);
             clearPendingRequestById(request.requestId);
@@ -428,7 +428,7 @@
         return;
       }
       bootstrapDispatched = true;
-      var bootstrapTasks = statusList.filter(function (task) { return task.bootstrap; });
+      let bootstrapTasks = statusList.filter(function (task) { return task.bootstrap; });
       bootstrapTasks.forEach(function (task, index) {
         queueTask(task, index * 50);
       });
@@ -438,9 +438,9 @@
     }
 
     socket.on("message", function (response) {
-      var pending = response.requestId ? pendingRequests[response.requestId] : undefined;
-      var request = pending ? pending.request : undefined;
-      var task = pending ? pending.task : taskMapping[response.key];
+      let pending = response.requestId ? pendingRequests[response.requestId] : undefined;
+      let request = pending ? pending.request : undefined;
+      let task = pending ? pending.task : taskMapping[response.key];
       if (response.requestId) {
         clearPendingRequestById(response.requestId);
       }
@@ -490,12 +490,12 @@
       dispatchBootstrapTasks();
     }
 
-    var taskInfo = groupByTime(statusList);
+    let taskInfo = groupByTime(statusList);
     Object.keys(taskInfo).forEach(function (timeString) {
-      var timeInterval = parseInt(timeString, 10);
-      var taskList = taskInfo[timeString];
-      var taskEntity = function () {
-        var delay = 0;
+      let timeInterval = parseInt(timeString, 10);
+      let taskList = taskInfo[timeString];
+      let taskEntity = function () {
+        let delay = 0;
         taskList.forEach(function (task) {
           if (firstRequest === true && (task.bootstrap || task.key === "SERVICE_STATUS_ALL")) {
             return;
@@ -526,8 +526,8 @@
 
   socket.on("exec", function (response) {
     if (response && response.success === false) {
-      var message = response.message || "";
-      var output = response.stdout || response.stderr || "";
+      let message = response.message || "";
+      let output = response.stdout || response.stderr || "";
       output = output.replace(/\\u001b[()][B0UK]/g, "");
       if (window.AnsiUp) {
         output = new window.AnsiUp().ansi_to_html(output);
@@ -558,7 +558,7 @@
     if (!params || typeof params !== "object") {
       return true;
     }
-    var missing = "";
+    let missing = "";
     Object.keys(params).forEach(function (key) {
       if (!params[key]) {
         missing += "'" + key + "', ";
@@ -573,7 +573,7 @@
   }
 
   function closestDatasetTarget(initialTarget, datasetKey) {
-    var target = initialTarget;
+    let target = initialTarget;
     while (target && target.dataset && target.dataset[datasetKey] === undefined) {
       target = target.parentElement;
     }
@@ -585,7 +585,7 @@
       if (!checkParameters({ event })) {
         return;
       }
-      var target = event.target;
+      let target = event.target;
       if (!target || !target.dataset) {
         return;
       }
@@ -597,12 +597,12 @@
     if (!checkParameters({ event })) {
       return;
     }
-    var target = closestDatasetTarget(event.target, "service");
+    let target = closestDatasetTarget(event.target, "service");
     if (!target || !target.dataset) {
       return;
     }
-    var service = target.dataset.service;
-    var operations = target.dataset.operation || "";
+    let service = target.dataset.service;
+    let operations = target.dataset.operation || "";
     operations.split(",").forEach(function (operation) {
       exec("systemctl:" + operation + ":" + service);
     });
@@ -612,7 +612,7 @@
     if (!checkParameters({ event })) {
       return;
     }
-    var target = closestDatasetTarget(event.target, "package");
+    let target = closestDatasetTarget(event.target, "package");
     if (!target || !target.dataset) {
       return;
     }
@@ -626,27 +626,27 @@
 
   function appendSmallOption(container, element) {
     if (!container) { return; }
-    var wrapper = document.createElement("small");
+    let wrapper = document.createElement("small");
     wrapper.appendChild(element);
     container.appendChild(wrapper);
   }
 
   function renderDashboardConfig(payload) {
-    var langContainer = document.getElementById("node-language-options");
-    var themeContainer = document.getElementById("node-theme-options");
-    var bwContainer = document.getElementById("node-bw-page-options");
+    let langContainer = document.getElementById("node-language-options");
+    let themeContainer = document.getElementById("node-theme-options");
+    let bwContainer = document.getElementById("node-bw-page-options");
 
     if (langContainer && Array.isArray(payload.languages)) {
       langContainer.innerHTML = "";
       payload.languages.forEach(function (lang) {
-        var option = document.createElement("div");
+        let option = document.createElement("div");
         option.style.cursor = "pointer";
         option.dataset.locale = lang.key;
         option.onclick = function () {
           window.quickboxSetLocale(lang.key);
           location.reload();
         };
-        var img = document.createElement("img");
+        let img = document.createElement("img");
         img.className = "lang-flag";
         img.src = "/lang/flag_" + lang.file + ".png";
         img.alt = "";
@@ -660,11 +660,11 @@
     if (themeContainer && Array.isArray(payload.themes)) {
       themeContainer.innerHTML = "";
       payload.themes.forEach(function (theme) {
-        var option = document.createElement("div");
+        let option = document.createElement("div");
         option.style.cursor = "pointer";
         option.setAttribute("data-toggle", "modal");
         option.setAttribute("data-target", "#themeSelect" + theme.file + "Confirm");
-        var img = document.createElement("img");
+        let img = document.createElement("img");
         img.className = "lang-flag";
         img.src = "/img/themes/opt_" + theme.file + ".png";
         img.alt = "";
@@ -678,7 +678,7 @@
     if (bwContainer && Array.isArray(payload.bwPages)) {
       bwContainer.innerHTML = "";
       payload.bwPages.forEach(function (page) {
-        var option = document.createElement("div");
+        let option = document.createElement("div");
         option.style.cursor = "pointer";
         option.onclick = function () {
           localStorage.setItem("bw_tables:page", page.key);
@@ -691,13 +691,13 @@
   }
 
   function renderNetworkInterfaces(interfaces) {
-    var tbody = document.getElementById("node-network-interface-rows");
+    let tbody = document.getElementById("node-network-interface-rows");
     if (!tbody) { return; }
     tbody.innerHTML = "";
     window.netInterfaceCells = {};
     if (!Array.isArray(interfaces) || !interfaces.length) {
-      var emptyRow = document.createElement("tr");
-      var emptyCell = document.createElement("td");
+      let emptyRow = document.createElement("tr");
+      let emptyCell = document.createElement("td");
       emptyCell.colSpan = 3;
       emptyCell.style.fontSize = "11px";
       emptyCell.style.padding = "4px 4px 4px 12px";
@@ -707,30 +707,30 @@
       return;
     }
     interfaces.forEach(function (iface) {
-      var row = document.createElement("tr");
+      let row = document.createElement("tr");
 
-      var ifaceCell = document.createElement("td");
+      let ifaceCell = document.createElement("td");
       ifaceCell.style.fontSize = "14px";
       ifaceCell.style.fontWeight = "bold";
       ifaceCell.style.padding = "2px 2px 2px 12px";
       ifaceCell.textContent = String(iface);
 
-      var txCell = document.createElement("td");
+      let txCell = document.createElement("td");
       txCell.style.fontSize = "11px";
       txCell.style.padding = "2px 2px 2px 12px";
-      var txWrap = document.createElement("span");
+      let txWrap = document.createElement("span");
       txWrap.className = "text-success";
-      var txValue = document.createElement("span");
+      let txValue = document.createElement("span");
       txValue.textContent = "0B/s";
       txWrap.appendChild(txValue);
       txCell.appendChild(txWrap);
 
-      var rxCell = document.createElement("td");
+      let rxCell = document.createElement("td");
       rxCell.style.fontSize = "11px";
       rxCell.style.padding = "2px 2px 2px 12px";
-      var rxWrap = document.createElement("span");
+      let rxWrap = document.createElement("span");
       rxWrap.className = "text-primary";
-      var rxValue = document.createElement("span");
+      let rxValue = document.createElement("span");
       rxValue.textContent = "0B/s";
       rxWrap.appendChild(rxValue);
       rxCell.appendChild(rxWrap);
@@ -748,7 +748,7 @@
   }
 
   function renderSystemStatic(payload) {
-    var cpu = document.getElementById("node-cpu-static");
+    let cpu = document.getElementById("node-cpu-static");
     if (cpu && payload && payload.cpu) {
       cpu.innerHTML = payload.cpu.modelHtml + "<br/>[<span style='color:#999;font-weight:600'>x" + payload.cpu.count + "</span> core]";
     }
@@ -780,10 +780,10 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    var psElements = document.querySelectorAll(".ps");
+    let psElements = document.querySelectorAll(".ps");
     if (typeof window.PerfectScrollbar === "function") {
       psElements.forEach(function (element) {
-        var psInstance = new window.PerfectScrollbar(element);
+        let psInstance = new window.PerfectScrollbar(element);
         if (element.id === "sysPre") {
           window.__psSysPre = psInstance;
         }
@@ -795,31 +795,31 @@
       });
     }
 
-    var reset = document.getElementById("node-panel-reset");
+    let reset = document.getElementById("node-panel-reset");
     if (reset) { reset.addEventListener("click", resetPanel); }
     document.addEventListener("click", function (event) {
-      var target = event.target;
+      let target = event.target;
       if (!(target instanceof Element)) { return; }
-      var themeButton = target.closest("[data-click-handler='themeSelect']");
+      let themeButton = target.closest("[data-click-handler='themeSelect']");
       if (themeButton && themeButton instanceof HTMLElement && themeButton.dataset.theme) {
         applyDashboardTheme(themeButton.dataset.theme);
       }
-      var packageInstallButton = target.closest("[data-click-handler='packageInstall']");
+      let packageInstallButton = target.closest("[data-click-handler='packageInstall']");
       if (packageInstallButton) {
         window.packageInstallHandler(event);
         return;
       }
-      var packageRemoveButton = target.closest("[data-click-handler='packageRemove']");
+      let packageRemoveButton = target.closest("[data-click-handler='packageRemove']");
       if (packageRemoveButton) {
         window.packageRemoveHandler(event);
         return;
       }
-      var serviceUpdateButton = target.closest("[data-click-handler='serviceUpdate']");
+      let serviceUpdateButton = target.closest("[data-click-handler='serviceUpdate']");
       if (serviceUpdateButton) {
         window.serviceUpdateHandler(event);
         return;
       }
-      var boxHandlerButton = target.closest("[data-click-handler='boxHandler']");
+      let boxHandlerButton = target.closest("[data-click-handler='boxHandler']");
       if (boxHandlerButton) {
         window.boxHandler(event);
         if (boxHandlerButton instanceof HTMLElement && boxHandlerButton.dataset.refreshAfterClose === "true") {

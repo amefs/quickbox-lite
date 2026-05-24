@@ -35,16 +35,16 @@ function _updateRepo() {
 		else
 			cd /etc/QuickBox || exit 1
 			_execute "git checkout legacy"
+			_execute "git fetch origin"
 			_execute "git reset --hard origin/legacy"
-			_execute "git pull --ff-only"
 		fi
 	elif [[ ! -f /install/.developer.lock ]]; then
 		# update to dev branch
 		if [[ -d /etc/QuickBox ]]; then
 			cd /etc/QuickBox || exit 1
 			_execute "git checkout master"
+			_execute "git fetch origin"
 			_execute "git reset --hard origin/master"
-			_execute "git pull --ff-only"
 		else
 			_execute "git clone --recursive ${BRANCH} /etc/QuickBox"
 		fi
@@ -53,11 +53,11 @@ function _updateRepo() {
 			cd /etc/QuickBox || exit 1
 			if [[ ! -f /install/.debug.lock ]]; then
 				_execute "git checkout development"
+				_execute "git fetch origin"
 				_execute "git reset --hard origin/development"
-				_execute "git pull --ff-only"
 			else
-				_execute "git reset --hard $(git rev-parse --abbrev-ref --symbolic-full-name @{u})"
-				_execute "git pull --ff-only"
+				_execute "git fetch origin"
+				_execute "git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)"
 				echo "$(git rev-parse --abbrev-ref --symbolic-full-name @)($(git rev-parse --short HEAD))" > /install/.debug.lock
 			fi
 		else
