@@ -41,7 +41,7 @@ export async function serviceControl() {
                             {packages.flatMap((pkg) => Object.entries(pkg.services ?? {}).map(([service, info]) => (
                                 <tr key={service}>
                                     <td>
-                                        <span id={`appstat_${service}`}>{i18n.t("REFRESH")}...</span>
+                                        <span id={`appstat_${service}`}></span>
                                         {" "}
                                         {info.name}
                                         {info.tooltips ? (

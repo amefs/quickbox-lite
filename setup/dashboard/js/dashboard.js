@@ -100,15 +100,12 @@
   ];
   var lastServiceStatusResponse = {};
 
-  function renderFallbackServiceStatus() {
-    return (window.quickboxMessages.refresh || "Refresh") + "...";
-  }
-
   function ensureServiceStatusPlaceholders() {
     serviceStatusItems.forEach(function (item) {
       var $status = window.jQuery(item.id);
-      if ($status.length > 0 && $status.html() === "") {
-        $status.html(lastServiceStatusResponse[item.service] || renderFallbackServiceStatus());
+      var cached = lastServiceStatusResponse[item.service];
+      if ($status.length > 0 && $status.html() === "" && cached) {
+        $status.html(cached);
       }
     });
   }
@@ -139,7 +136,7 @@
     });
     serviceStatusItems.forEach(function (item) {
       if (response[item.service] !== undefined) {
-        window.jQuery(item.id).html(response[item.service] || lastServiceStatusResponse[item.service] || renderFallbackServiceStatus());
+        window.jQuery(item.id).html(response[item.service] || lastServiceStatusResponse[item.service] || "");
       }
     });
     ensureServiceStatusPlaceholders();
