@@ -39,7 +39,7 @@ if (process.env.NODE_ENV !== "test" || process.env.MOCK_ENABLED === "1") {
     const host = process.env.WS_HOST || "127.0.0.1";
     const port = parseInt(process.env.WS_PORT || "8575", 10);
     server.listen(port, host, () => {
-        console.log(`Quickbox-ws running on ${host}:${port}...`);
+        console.log(`Quickbox-ws running on http://${host}:${port} ...`);
         if (isTestMode()) {
             console.log(`Mock mode enabled, profile: ${process.env.MOCK_PROFILE || "all-running"}`);
         }

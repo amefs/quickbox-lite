@@ -777,6 +777,51 @@
       console.warn("[ws] failed to load static system info", error);
       renderNetworkInterfaces([]);
     });
+
+    // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready)
+    fetch(window.quickboxWidgetUrl("/node/load"), { credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
+      .then(function (html) { window.jQuery("#cpuload").html(html); })
+      .catch(function () { /* WebSocket will fill in later */ });
+
+    fetch(window.quickboxWidgetUrl("/node/disk_data"), { credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
+      .then(function (html) { window.jQuery("#disk_data").html(html); })
+      .catch(function () { /* WebSocket will fill in later */ });
+
+    fetch(window.quickboxWidgetUrl("/node/ram_stats"), { credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
+      .then(function (html) { window.jQuery("#meterram").html(html); })
+      .catch(function () { /* WebSocket will fill in later */ });
+  }
+
+  function configureSysResponseCloseAction(mode) {
+    let closeButton = document.getElementById("sysResponseCloseAction");
+    if (!(closeButton instanceof HTMLElement)) {
+      return;
+    }
+
+    let defaultHandler = closeButton.dataset.defaultClickHandler || "boxHandler";
+    let defaultRefreshAfterClose = closeButton.dataset.defaultRefreshAfterClose || "true";
+    let defaultPackage = closeButton.dataset.defaultPackage || "log";
+    let defaultOperation = closeButton.dataset.defaultOperation || "clean";
+    let defaultLabel = closeButton.dataset.labelDefault || closeButton.textContent || "";
+    let logViewLabel = closeButton.dataset.labelLogView || defaultLabel;
+
+    if (mode === "log-view") {
+      closeButton.removeAttribute("data-click-handler");
+      closeButton.removeAttribute("data-refresh-after-close");
+      closeButton.removeAttribute("data-package");
+      closeButton.removeAttribute("data-operation");
+      closeButton.textContent = logViewLabel;
+      return;
+    }
+
+    closeButton.dataset.clickHandler = defaultHandler;
+    closeButton.dataset.refreshAfterClose = defaultRefreshAfterClose;
+    closeButton.dataset.package = defaultPackage;
+    closeButton.dataset.operation = defaultOperation;
+    closeButton.textContent = defaultLabel;
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -800,6 +845,11 @@
     document.addEventListener("click", function (event) {
       let target = event.target;
       if (!(target instanceof Element)) { return; }
+      let sysResponseTrigger = target.closest("[data-target='#sysResponse']");
+      if (sysResponseTrigger instanceof HTMLElement) {
+        let mode = sysResponseTrigger.dataset.sysresponseMode === "log-view" ? "log-view" : "default";
+        configureSysResponseCloseAction(mode);
+      }
       let themeButton = target.closest("[data-click-handler='themeSelect']");
       if (themeButton && themeButton instanceof HTMLElement && themeButton.dataset.theme) {
         applyDashboardTheme(themeButton.dataset.theme);

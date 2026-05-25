@@ -11,7 +11,6 @@ export function createControllerTestApp(execFile: typeof childProcess.execFile =
     testApp.set("trust proxy", "loopback");
     testApp.use(createAppRouter({
         dashboardDir: path.resolve(__dirname, "..", "..", ".."),
-        debugEnabled: true,
         execFile,
     }));
     return testApp;

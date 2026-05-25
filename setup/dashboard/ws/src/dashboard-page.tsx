@@ -6,11 +6,26 @@ import { dashboardConfig } from "./dashboard-config";
 import i18n from "./i18n";
 import { DashboardMenu, type DashboardMenuState } from "./widgets/menu";
 import { RemovalModals } from "./widgets/removal-modals";
+import {
+    NetworkInterfacePlaceholder,
+    BandwidthTablePlaceholder,
+    ServiceControlPlaceholder,
+    PackageManagementPlaceholder,
+    SystemLoadPlaceholder,
+    CpuStatusPlaceholder,
+    DiskStatusPlaceholder,
+    MemoryStatusPlaceholder,
+} from "./widgets/placeholder";
 
 export interface DashboardSsrFragments {
     packageManagementCenterHtml: string;
     serviceControlHtml: string;
     uptimeHtml: string;
+    diskDataHtml: string;
+    ramStatsHtml: string;
+    loadHtml: string;
+    cpuStaticHtml: string;
+    networkInterfaces: string[];
 }
 
 export interface DashboardPageProps {
@@ -27,8 +42,25 @@ function normalizeBasePath(basePath: string | undefined) {
     return basePath === "/ws" ? "/ws" : "";
 }
 
-function RefreshPlaceholder() {
-    return <>{i18n.t("REFRESH")}...</>;
+function NetworkInterfaceRows({ interfaces }: { interfaces: string[] }) {
+    if (interfaces.length === 0) {
+        return <NetworkInterfacePlaceholder />;
+    }
+    return (
+        <>
+            {interfaces.map((iface) => (
+                <tr key={iface}>
+                    <td style={{ fontSize: "14px", fontWeight: "bold", padding: "2px 2px 2px 12px" }}>{iface}</td>
+                    <td style={{ fontSize: "11px", padding: "2px 2px 2px 12px" }}>
+                        <span className="text-success"><span>0 B/s</span></span>
+                    </td>
+                    <td style={{ fontSize: "11px", padding: "2px 2px 2px 12px" }}>
+                        <span className="text-primary"><span>0 B/s</span></span>
+                    </td>
+                </tr>
+            ))}
+        </>
+    );
 }
 
 export function DashboardPage({ basePath, locale, menuState, ssrFragments }: DashboardPageProps) {
@@ -70,6 +102,31 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                 <link rel="stylesheet" href="/lib/select2/select2.min.css" />
                 <link rel="stylesheet" href="/lib/lobipanel/css/lobipanel.min.css" />
                 <link rel="stylesheet" href="/skins/quick.css" />
+                <style dangerouslySetInnerHTML={{ __html: `
+@keyframes qb-shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+.qb-skeleton {
+    background: linear-gradient(90deg, rgba(128,128,128,0.12) 25%, rgba(128,128,128,0.24) 50%, rgba(128,128,128,0.12) 75%);
+    background-size: 800px 100%;
+    animation: qb-shimmer 1.5s ease-in-out infinite;
+    border-radius: 3px;
+}
+.qb-skeleton-progress {
+    height: 18px;
+    border-radius: 9px;
+}
+.qb-skeleton-btn {
+    height: 26px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+.qb-skeleton-circle {
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+` }} />
                 <script src="/lib/jquery/jquery.min.js"></script>
                 <script dangerouslySetInnerHTML={{ __html: `window.quickboxRuntime = ${JSON.stringify(runtimeConfig)};` }} />
             </head>
@@ -247,7 +304,7 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                                                             </tr>
                                                         </thead>
                                                         <tbody id="node-network-interface-rows">
-                                                            <tr><td colSpan={3} style={{ fontSize: "11px", padding: "4px 4px 4px 12px" }}><RefreshPlaceholder /></td></tr>
+                                                            <NetworkInterfaceRows interfaces={ssrFragments.networkInterfaces} />
                                                         </tbody>
                                                     </table>
                                                 </div>
@@ -261,18 +318,18 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                                         <div className="panel-body" style={{ padding: 0 }}>
                                             <div className="row" style={{ padding: 0, margin: 0 }}>
                                                 <div id="bw_tables" style={{ padding: 0, margin: 0 }}>
-                                                    <div id="bw_tables_loading"><RefreshPlaceholder /></div>
+                                                    <div id="bw_tables_loading"><BandwidthTablePlaceholder /></div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     {ssrFragments.serviceControlHtml === "" ? (
-                                        <div id="service_control_widget"><RefreshPlaceholder /></div>
+                                        <div id="service_control_widget"><ServiceControlPlaceholder /></div>
                                     ) : (
                                         <div id="service_control_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.serviceControlHtml }}></div>
                                     )}
                                     {ssrFragments.packageManagementCenterHtml === "" ? (
-                                        <div id="pmc_widget"><RefreshPlaceholder /></div>
+                                        <div id="pmc_widget"><PackageManagementPlaceholder /></div>
                                     ) : (
                                         <div id="pmc_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.packageManagementCenterHtml }}></div>
                                     )}
@@ -283,7 +340,7 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                                         <div className="panel-body">
                                             <div className="row">
                                                 <div className="col-sm-9">
-                                                    <h4><span id="cpuload"><RefreshPlaceholder /></span></h4>
+                                                    <h4><span id="cpuload" dangerouslySetInnerHTML={ssrFragments.loadHtml ? { __html: ssrFragments.loadHtml } : undefined}>{ssrFragments.loadHtml ? undefined : <SystemLoadPlaceholder />}</span></h4>
                                                     <p>{i18n.t("SL_TXT")}</p>
                                                 </div>
                                                 <div className="col-sm-3 text-right"><i className="fa fa-heartbeat text-danger" style={{ fontSize: "70px" }}></i></div>
@@ -298,16 +355,16 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                                     <div className="panel panel-side panel-inverse" data-inner-id="panel-server-cpu">
                                         <div className="panel-heading"><h4 className="panel-title">{i18n.t("CPU_STATUS")}</h4></div>
                                         <div className="panel-body" style={{ overflow: "hidden" }}>
-                                            <span id="node-cpu-static" className="nomargin" style={{ fontSize: "14px" }}><RefreshPlaceholder /></span>
+                                            <span id="node-cpu-static" className="nomargin" style={{ fontSize: "14px" }} dangerouslySetInnerHTML={ssrFragments.cpuStaticHtml ? { __html: ssrFragments.cpuStaticHtml } : undefined}>{ssrFragments.cpuStaticHtml ? undefined : <CpuStatusPlaceholder />}</span>
                                         </div>
                                     </div>
                                     <div className="panel panel-side panel-inverse" data-inner-id="panel-server-disk">
                                         <div className="panel-heading"><h4 className="panel-title">{i18n.t("YOUR_DISK_STATUS")}</h4></div>
-                                        <div className="panel-body"><div id="disk_data"><RefreshPlaceholder /></div></div>
+                                        <div className="panel-body"><div id="disk_data" dangerouslySetInnerHTML={ssrFragments.diskDataHtml ? { __html: ssrFragments.diskDataHtml } : undefined}>{ssrFragments.diskDataHtml ? undefined : <DiskStatusPlaceholder />}</div></div>
                                     </div>
                                     <div className="panel panel-side panel-inverse" data-inner-id="panel-server-ram">
                                         <div className="panel-heading"><h4 className="panel-title">{i18n.t("SYSTEM_RAM_STATUS")}</h4></div>
-                                        <div className="panel-body"><div id="meterram"><RefreshPlaceholder /></div></div>
+                                        <div className="panel-body"><div id="meterram" dangerouslySetInnerHTML={ssrFragments.ramStatsHtml ? { __html: ssrFragments.ramStatsHtml } : undefined}>{ssrFragments.ramStatsHtml ? undefined : <MemoryStatusPlaceholder />}</div></div>
                                     </div>
                                     <div className="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
                                         <div className="panel-heading">
@@ -360,7 +417,23 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                                     <pre style={{ color: "rgb(83, 223, 131)", margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }} className="sysout"><span id="sshoutput"></span></pre>
                                 </div>
                                 <div className="modal-footer" style={{ background: "rgba(0, 0, 0, 0.4)", border: "0!important" }}>
-                                    <button data-click-handler="boxHandler" data-refresh-after-close="true" data-package="log" data-operation="clean" data-dismiss="modal" className="btn btn-xs btn-danger">{i18n.t("CLOSE_REFRESH")}</button>
+                                    <button
+                                        id="sysResponseCloseAction"
+                                        data-default-click-handler="boxHandler"
+                                        data-default-refresh-after-close="true"
+                                        data-default-package="log"
+                                        data-default-operation="clean"
+                                        data-label-default={i18n.t("CLOSE_REFRESH")}
+                                        data-label-log-view={i18n.t("CANCEL")}
+                                        data-click-handler="boxHandler"
+                                        data-refresh-after-close="true"
+                                        data-package="log"
+                                        data-operation="clean"
+                                        data-dismiss="modal"
+                                        className="btn btn-xs btn-danger"
+                                    >
+                                        {i18n.t("CLOSE_REFRESH")}
+                                    </button>
                                 </div>
                             </div>
                         </div>

@@ -18,8 +18,12 @@ import { removalModals } from "./widgets/removal-modals";
 import { packageManagementCenter } from "./widgets/package-management-center";
 import { serviceControl } from "./widgets/service-control";
 import { upTime } from "./widgets/up";
+import { diskData } from "./widgets/disk-data";
+import { ramStats } from "./widgets/memory-stats";
+import { widgetsLoad } from "./widgets/load";
 import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAction } from "./plugins";
 import { systemStaticInfoWithProviders } from "./system-static";
+import { readOutputLog } from "./widgets/output-log";
 
 export interface AppRouterOptions {
     /** Absolute path to the dashboard root (setup/dashboard). Used by /debug/assets/* static routes. */
@@ -67,6 +71,11 @@ export function createAppRouter(options: AppRouterOptions): Router {
                 serviceControlHtml,
                 packageManagementCenterHtml,
                 uptimeHtml: upTime(),
+                diskDataHtml: "",
+                ramStatsHtml: "",
+                loadHtml: "",
+                cpuStaticHtml: "",
+                networkInterfaces: [],
             };
             return ReactDOMServer.renderToString(
                 <DashboardPage
@@ -119,6 +128,18 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.json(await renderWithLocale(req, async () => await systemStaticInfoWithProviders()));
     });
 
+    router.get("/node/load", async (req: Request, res: Response) => {
+        res.send(await renderWithLocale(req, async () => await widgetsLoad()));
+    });
+
+    router.get("/node/disk_data", async (req: Request, res: Response) => {
+        res.send(await renderWithLocale(req, async () => await diskData()));
+    });
+
+    router.get("/node/ram_stats", async (req: Request, res: Response) => {
+        res.send(await renderWithLocale(req, async () => await ramStats()));
+    });
+
     router.post("/node/theme", express.json(), async (req: Request, res: Response) => {
         const { theme } = req.body as { theme?: unknown };
         if (typeof theme !== "string") {
@@ -156,6 +177,21 @@ export function createAppRouter(options: AppRouterOptions): Router {
     router.get("/node/removal_modals", async (req: Request, res: Response) => {
         const result = await renderWithLocale(req, async () => await removalModals());
         res.send(result);
+    });
+
+    router.get("/db/output.log", (req: Request, res: Response) => {
+        const parseQueryNumber = (value: unknown) => {
+            if (typeof value !== "string") {
+                return undefined;
+            }
+            const parsed = parseInt(value, 10);
+            return Number.isNaN(parsed) ? undefined : parsed;
+        };
+
+        res.json(readOutputLog(
+            parseQueryNumber(req.query.offset),
+            parseQueryNumber(req.query.length),
+        ));
     });
 
     // ── Debug endpoints ───────────────────────────────────────────────────────
