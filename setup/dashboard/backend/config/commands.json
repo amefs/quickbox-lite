@@ -1,0 +1,31 @@
+{
+    "command-example": ["systemctl:start:nginx", "installpackage::deluge", "box:clean:log"],
+    "systemctl": {
+        "template": "systemctl $operation$ $target$",
+        "operations": ["enable", "start", "stop" , "disable", "restart", "status"],
+        "targets": ["deluge-web@$username$", "deluged@$username$", "denyhosts", "emby-server", "fail2ban", "filebrowser@$username$", "filebrowser-ee@$username$", "flexget@$username$", "flood@$username$", "jellyfin", "irssi@$username$", "netdata", "nfs-server", "openvpn", "plexmediaserver", "peerbanhelper@$username$", "qbittorrent@$username$", "qbittorrent-clientblocker@$username$", "rclone-web@$username$", "resilio-sync@$username$", "rtorrent@$username$", "smbd", "ttyd", "sabnzbd@$username$", "syncthing@$username$", "tightvnc", "transmission@$username$", "novnc@$username$", "vsftpd", "webdav@$username$", "znc"]
+    },
+    "installpackage": {
+        "template": "bash /usr/local/bin/quickbox/package/install/installpackage-$target$",
+        "operations": [],
+        "targets": ["autodlirssi", "btsync", "cifs", "deluge", "emby", "filebrowser", "filebrowser-ee", "flexget", "flood", "jellyfin", "netdata", "nfs", "novnc", "openvpn", "plex", "pbh", "qbittorrent", "qbclientblocker", "rclone", "rtorrent", "rutorrent", "sabnzbd", "speedtest", "syncthing", "transmission", "webdav", "x2go"]
+    },
+    "removepackage": {
+        "template": "/usr/local/bin/quickbox/package/remove/removepackage-$target$",
+        "operations": [],
+        "targets": ["autodlirssi", "btsync", "cifs", "deluge", "emby", "filebrowser", "filebrowser-ee", "flexget", "flood", "jellyfin", "netdata", "nfs", "novnc", "openvpn", "plex", "pbh", "qbittorrent", "qbclientblocker", "rclone", "rtorrent", "rutorrent", "sabnzbd", "speedtest", "syncthing", "transmission", "webdav", "x2go"]
+    },
+    "box": {
+        "template": "bash /usr/local/bin/quickbox/system/box $operation$ $target$",
+        "operations": ["clean", "update", "lang", "fix", "enable-dev", "disable-dev"],
+        "targets": ["mem", "log", "dpkg",
+            "quickbox --only-core",
+            "lang_de", "lang_da", "lang_en", "lang_fr", "lang_es", "lang_zh", ""
+        ]
+    },
+    "ping": {
+        "template": "printf pong",
+        "operations": [],
+        "targets": []
+    }
+}

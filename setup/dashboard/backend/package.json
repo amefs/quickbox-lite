@@ -1,12 +1,14 @@
 {
-  "name": "quickbox-ws",
+  "name": "@quickbox-dashboard/backend",
   "version": "1.5.12",
-  "description": "QuickBox Status Update WebSocket Interface",
+  "description": "QuickBox dashboard backend service",
+  "private": true,
   "main": "dist/server.js",
   "scripts": {
     "build": "webpack --config build/webpack.config.js",
     "test": "cross-env NODE_ENV=test mocha --exit -r tsx --extensions ts 'tests/**/*.{mts,ts}'",
     "check-type": "tsc --noemit",
+    "type-check": "npm run check-type",
     "eslint": "eslint .",
     "lint": "npm run check-type && npm run eslint",
     "dev:server": "tsx watch src/server.tsx",
@@ -18,6 +20,7 @@
   "author": "TautCony",
   "license": "GPL-3.0-or-later",
   "dependencies": {
+    "@quickbox-dashboard/shared": "file:../shared",
     "axios": "^1.16.0",
     "bignumber.js": "^11.1.1",
     "express": "^5.2.1",

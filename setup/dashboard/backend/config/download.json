@@ -1,0 +1,24 @@
+[
+    {
+        "name": "rTorrent",
+        "ref": "rtorrent",
+        "url": "/$username$.rtorrent.downloads"
+    }, {
+        "name": "Deluge",
+        "ref": "deluge",
+        "url": "/$username$.deluge.downloads"
+    }, {
+        "name": "Transmission",
+        "ref": "transmission",
+        "url": "/$username$.transmission.downloads"
+    }, {
+        "name": "qBittorrent",
+        "ref": "qbittorrent",
+        "url": "/$username$.qbittorrent.downloads"
+    }, {
+        "name": "OpenVPN Config",
+        "ref": null,
+        "lockfile": "/home/$username$/openvpn/$username$.zip",
+        "url": "/$username$/ovpn.zip"
+    }
+]

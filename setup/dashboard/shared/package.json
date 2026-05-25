@@ -1,0 +1,17 @@
+{
+  "name": "@quickbox-dashboard/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/api-types.js",
+  "types": "dist/api-types.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run type-check",
+    "test": "npm run type-check"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

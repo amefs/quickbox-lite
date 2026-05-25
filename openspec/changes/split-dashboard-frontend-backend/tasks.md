@@ -1,39 +1,39 @@
 ## 1. Baseline Inventory And Decisions
 
-- [ ] 1.1 Map current `setup/dashboard/ws/src`, `ws/config`, `ws/scripts`, `ws/src/vendor`, `ws/src/testing`, and `ws/tests` files into backend-owned, frontend-owned, shared, static-asset, script, config, vendor, and test-only groups.
-- [ ] 1.2 Record current public routes, Socket.IO paths, static asset paths, dashboard shell HTML contract, and response contracts covered by `setup/dashboard/ws/tests`.
-- [ ] 1.3 Confirm dashboard package strategy: npm workspaces rooted at `setup/dashboard` with `frontend`, `backend`, and `shared` when shared code is extracted.
-- [ ] 1.4 Confirm build tooling before scaffolding: Vite for `frontend`; current TypeScript/tsx/Mocha/supertest and service-friendly production build approach for `backend`.
-- [ ] 1.5 Define dependency ownership rules for shared dependencies such as React, lodash, Socket.IO, test libraries, and browser-only static libraries.
-- [ ] 1.6 Define shared module rules: only cross-project API/runtime types and pure helpers go under `setup/dashboard/shared`.
-- [ ] 1.7 Define config and vendor ownership: `ws/config` and `vendor/i18n` move under `backend`; frontend consumes locale/runtime data through boot config, static `lang` assets, and backend endpoints.
-- [ ] 1.8 Define the frontend/backend API contract for boot runtime config, REST response shapes, Socket.IO message envelopes, widget output, locale behavior, command actions, and validation errors.
-- [ ] 1.9 Run the current `ws` implementation tests on Windows and record the passing baseline for build, type-check, router, controller, handler, widget, script, and dev-server tests.
-- [ ] 1.10 Add any missing baseline assertions needed for theme option rendering, `/node/theme` command validation, static asset route resolution, and dashboard shell script order before changing runtime entrypoints.
+- [x] 1.1 Map current `setup/dashboard/ws/src`, `ws/config`, `ws/scripts`, `ws/src/vendor`, `ws/src/testing`, and `ws/tests` files into backend-owned, frontend-owned, shared, static-asset, script, config, vendor, and test-only groups.
+- [x] 1.2 Record current public routes, Socket.IO paths, static asset paths, dashboard shell HTML contract, and response contracts covered by `setup/dashboard/ws/tests`.
+- [x] 1.3 Confirm dashboard package strategy: npm workspaces rooted at `setup/dashboard` with `frontend`, `backend`, and `shared` when shared code is extracted.
+- [x] 1.4 Confirm build tooling before scaffolding: Vite for `frontend`; current TypeScript/tsx/Mocha/supertest and service-friendly production build approach for `backend`.
+- [x] 1.5 Define dependency ownership rules for shared dependencies such as React, lodash, Socket.IO, test libraries, and browser-only static libraries.
+- [x] 1.6 Define shared module rules: only cross-project API/runtime types and pure helpers go under `setup/dashboard/shared`.
+- [x] 1.7 Define config and vendor ownership: `ws/config` and `vendor/i18n` move under `backend`; frontend consumes locale/runtime data through boot config, static `lang` assets, and backend endpoints.
+- [x] 1.8 Define the frontend/backend API contract for boot runtime config, REST response shapes, Socket.IO message envelopes, widget output, locale behavior, command actions, and validation errors.
+- [x] 1.9 Run the current `ws` implementation tests on Windows and record the passing baseline for build, type-check, router, controller, handler, widget, script, and dev-server tests.
+- [x] 1.10 Add any missing baseline assertions needed for theme option rendering, `/node/theme` command validation, static asset route resolution, and dashboard shell script order before changing runtime entrypoints.
 
 ## 2. Workspace And Shared Setup
 
-- [ ] 2.1 Update `setup/dashboard/package.json` and lockfile for npm workspace orchestration without changing runtime entrypoints.
-- [ ] 2.2 Add dashboard-level scripts for workspace build, type-check, lint, tests, and isolated dev/test startup.
-- [ ] 2.3 Create `setup/dashboard/shared` only if at least one type/helper is imported by both frontend and backend.
-- [ ] 2.4 Move or create shared API/runtime types for frontend boot config, REST responses, Socket.IO messages, widget payloads, and action results.
+- [x] 2.1 Update `setup/dashboard/package.json` and lockfile for npm workspace orchestration without changing runtime entrypoints.
+- [x] 2.2 Add dashboard-level scripts for workspace build, type-check, lint, tests, and isolated dev/test startup.
+- [x] 2.3 Create `setup/dashboard/shared` only if at least one type/helper is imported by both frontend and backend.
+- [x] 2.4 Move or create shared API/runtime types for frontend boot config, REST responses, Socket.IO messages, widget payloads, and action results.
 - [ ] 2.5 Add type-check coverage that proves `frontend` and `backend` import shared types from `shared` instead of each other's source trees.
 
 ## 3. Backend Project
 
-- [ ] 3.1 Create `setup/dashboard/backend` package, TypeScript config, lint config, build config, and test scripts based on the decided backend tooling.
-- [ ] 3.2 Copy backend runtime modules from `ws` into `backend` without deleting or modifying the old `ws` implementation during construction.
-- [ ] 3.3 Reorganize copied backend files inside `backend`; do not delete source files from `ws` in this step.
-- [ ] 3.4 Move Express app creation, static asset serving, REST routes, debug/test routes, and command-backed controller logic into `backend`.
-- [ ] 3.5 Move Socket.IO setup and handlers into `backend`, keeping `/socket.io` and `/ws/socket.io` working for the split runtime.
-- [ ] 3.6 Move `ws/config/*.json` into backend-owned runtime config paths and update readers/tests accordingly.
-- [ ] 3.7 Move `vendor/i18n` into backend-owned source and expose only runtime locale data needed by the frontend contract.
-- [ ] 3.8 Move `src/testing` bootstrap, mock adapter/profiles, and server-side test helpers into backend-owned test support paths.
-- [ ] 3.9 Move backend/dev-server scripts from `ws/scripts` into backend or dashboard-level scripts according to the script ownership decision.
+- [x] 3.1 Create `setup/dashboard/backend` package, TypeScript config, lint config, build config, and test scripts based on the decided backend tooling.
+- [x] 3.2 Copy backend runtime modules from `ws` into `backend` without deleting or modifying the old `ws` implementation during construction.
+- [x] 3.3 Reorganize copied backend files inside `backend`; do not delete source files from `ws` in this step.
+- [x] 3.4 Move Express app creation, static asset serving, REST routes, debug/test routes, and command-backed controller logic into `backend`.
+- [x] 3.5 Move Socket.IO setup and handlers into `backend`, keeping `/socket.io` and `/ws/socket.io` working for the split runtime.
+- [x] 3.6 Move `ws/config/*.json` into backend-owned runtime config paths and update readers/tests accordingly.
+- [x] 3.7 Move `vendor/i18n` into backend-owned source and expose only runtime locale data needed by the frontend contract.
+- [x] 3.8 Move `src/testing` bootstrap, mock adapter/profiles, and server-side test helpers into backend-owned test support paths.
+- [x] 3.9 Move backend/dev-server scripts from `ws/scripts` into backend or dashboard-level scripts according to the script ownership decision.
 - [ ] 3.10 Keep backend-owned React SSR widget components in `backend` when they render server-side widget HTML; move only browser app shell code to `frontend`.
-- [ ] 3.11 Preserve existing validation behavior for theme, package, service, plugin, locale, and output-log requests.
-- [ ] 3.12 Port backend unit/controller/widget/handler/script tests from `ws/tests` to `backend/tests` and update imports only as needed.
-- [ ] 3.13 Build and type-check `backend`, then run backend tests on Windows.
+- [x] 3.11 Preserve existing validation behavior for theme, package, service, plugin, locale, and output-log requests.
+- [x] 3.12 Port backend unit/controller/widget/handler/script tests from `ws/tests` to `backend/tests` and update imports only as needed.
+- [x] 3.13 Build and type-check `backend`, then run backend tests on Windows.
 
 ## 4. Frontend Project
 

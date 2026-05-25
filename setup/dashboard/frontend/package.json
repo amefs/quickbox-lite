@@ -1,0 +1,39 @@
+{
+  "name": "@quickbox-dashboard/frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/server/dashboard-page.js",
+  "types": "dist/server/dashboard-page.d.ts",
+  "exports": {
+    "./server": {
+      "types": "./dist/server/dashboard-page.d.ts",
+      "default": "./dist/server/dashboard-page.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && vite build",
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run type-check",
+    "test": "cross-env NODE_ENV=test mocha --exit -r tsx --extensions ts 'tests/**/*.ts'"
+  },
+  "dependencies": {
+    "@quickbox-dashboard/shared": "file:../shared",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "vite": "^7.2.4",
+    "typescript": "^5.9.3",
+    "tsx": "^4.21.0",
+    "mocha": "^11.7.5",
+    "chai": "^6.2.2",
+    "cross-env": "^10.1.0",
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.19.15",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3"
+  }
+}
