@@ -6,10 +6,12 @@ import { username } from "./shared/constants";
 export const packageMap: Record<string, Service> = {};
 export const packageList = pkgList as Service[];
 
-interface ServiceDetail {
-    process: string;
+export interface ServiceDetail {
+    process?: string;
     name: string;
     username: string;
+    systemdUnit?: string;
+    params?: string[];
     tooltips?: string;
     tooltipsicon?: string;
 }
@@ -38,6 +40,17 @@ for (const pkg of pkgList as Service[]) {
         for (const [key, service] of Object.entries(pkg.services)) {
             if (service.username && service.username.includes("$username$")) {
                 service.username = service.username.replaceAll("$username$", username);
+            }
+            if (service.systemdUnit && service.systemdUnit.includes("$username$")) {
+                service.systemdUnit = service.systemdUnit.replaceAll("$username$", username);
+            }
+            if (service.params) {
+                service.params = service.params
+                    .map((value) => value.replaceAll("$username$", username))
+                    .filter((value) => value.length > 0);
+                if (service.params.length === 0) {
+                    delete service.params;
+                }
             }
             if (service.tooltips && service.tooltips.includes("$username$")) {
                 service.tooltips = service.tooltips.replaceAll("$username$", username);

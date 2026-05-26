@@ -82,7 +82,7 @@ async function isWebConsoleVisible() {
         return false;
     }
     const processList = await getProcessList();
-    return services.every((service) => processExistsIn(processList, service.process, service.username));
+    return services.every((service) => processExistsIn(processList, service.process ?? "", service.username));
 }
 
 export async function resolveDashboardMenuState(): Promise<DashboardMenuState> {

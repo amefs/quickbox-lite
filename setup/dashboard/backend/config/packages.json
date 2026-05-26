@@ -57,14 +57,16 @@
         "boxonly"     : false,
         "services"    : {
             "deluged" : {
-                "process"  : "deluged",
-                "name"     : "DelugeD",
-                "username" : "$username$"
+                "process"     : "deluged",
+                "name"        : "DelugeD",
+                "username"    : "$username$",
+                "systemdUnit" : "deluged@$username$"
             },
             "deluge-web" : {
-                "process"  : "deluge-web",
-                "name"     : "Deluge Web",
-                "username" : "$username$"
+                "process"     : "deluge-web",
+                "name"        : "Deluge Web",
+                "username"    : "$username$",
+                "systemdUnit" : "deluge-web@$username$"
             }
         }
     }, {
@@ -76,9 +78,10 @@
         "boxonly"     : true,
         "services"    : {
             "denyhosts" : {
-                "process"  : "denyhosts",
-                "name"     : "Denyhosts",
-                "username" : "root"
+                "process"     : "denyhosts",
+                "name"        : "Denyhosts",
+                "username"    : "root",
+                "systemdUnit" : "denyhosts"
             }
         }
     }, {
@@ -104,9 +107,10 @@
         "boxonly"     : true,
         "services"    : {
             "fail2ban" : {
-                "process"  : "fail2ban",
-                "name"     : "Fail2ban",
-                "username" : "root"
+                "process"     : "fail2ban",
+                "name"        : "Fail2ban",
+                "username"    : "root",
+                "systemdUnit" : "fail2ban"
             }
         }
     }, {
@@ -146,9 +150,10 @@
         "boxonly"     : false,
         "services"    : {
             "flexget" : {
-                "process"  : "flexget",
-                "name"     : "FlexGet",
-                "username" : "$username$"
+                "process"     : "python",
+                "name"        : "FlexGet",
+                "username"    : "$username$",
+                "systemdUnit" : "flexget@$username$"
             }
         }
     }, {
@@ -160,9 +165,10 @@
         "boxonly"     : false,
         "services"    : {
             "flood" : {
-                "process"  : "flood",
-                "name"     : "Flood",
-                "username" : "$username$"
+                "process"     : "flood",
+                "name"        : "Flood",
+                "username"    : "$username$",
+                "systemdUnit" : "flood@$username$"
             }
         }
     }, {
@@ -258,9 +264,9 @@
         "boxonly"     : false,
         "services"    : {
             "peerbanhelper" : {
-                "process"  : "PeerBanHelper",
-                "name"     : "PeerBanHelper",
-                "username" : "$username$"
+                "name"        : "PeerBanHelper",
+                "username"    : "$username$",
+                "systemdUnit" : "peerbanhelper@$username$"
             }
         }
     }, {
@@ -323,9 +329,10 @@
         "boxonly"     : false,
         "services"    : {
             "sabnzbd" : {
-                "process"  : "sabnzbd",
-                "name"     : "SABnzbd",
-                "username" : "$username$"
+                "process"     : "sabnzbd",
+                "name"        : "SABnzbd",
+                "username"    : "$username$",
+                "systemdUnit" : "sabnzbd@$username$"
             }
         }
     }, {

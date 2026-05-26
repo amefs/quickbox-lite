@@ -74,7 +74,7 @@ function ensureProcessRunning(service: string) {
     }
     const profile = getActiveProfile();
     const exists = profile.processes.some((proc) => proc.name === detail.process && proc.user === detail.username);
-    if (!exists) {
+    if (!exists && detail.process) {
         const mockProcess: MockProcess = {
             name: detail.process,
             user: detail.username,

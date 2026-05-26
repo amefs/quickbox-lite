@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOMServer from "react-dom/server";
 
 import { serviceMap } from "../info";
-import { getProcessList, processExists, processExistsIn } from "../utils/helpers";
+import { getProcessList, processExists, processExistsIn, systemdUnitActive } from "../utils/helpers";
 
 export function renderServiceBadge(status: boolean) {
     const val = status ? "running" : "disabled";
@@ -14,25 +14,39 @@ export function renderServiceBadge(status: boolean) {
     );
 }
 
-export async function serviceStatus(service: string | undefined, checkProcess = processExists) {
+export async function serviceStatus(
+    service: string | undefined,
+    checkProcess = processExists,
+    checkSystemd = systemdUnitActive,
+) {
     let status = false;
 
     if (service !== undefined) {
         const info = serviceMap.get(service);
         if (info) {
-            status = await checkProcess(info.process, info.username);
+            if (info.systemdUnit) {
+                status = await checkSystemd(info.systemdUnit);
+            } else if (info.process) {
+                status = await checkProcess(info.process, info.username, info.params);
+            }
         }
     }
 
     return renderServiceBadge(status);
 }
 
-export async function serviceStatusAll() {
+export async function serviceStatusAll(checkSystemd = systemdUnitActive) {
     const processList = await getProcessList();
     const result: Record<string, string> = {};
 
     for (const [service, info] of serviceMap.entries()) {
-        result[service] = renderServiceBadge(processExistsIn(processList, info.process, info.username));
+        let status: boolean;
+        if (info.systemdUnit) {
+            status = await checkSystemd(info.systemdUnit);
+        } else {
+            status = processExistsIn(processList, info.process ?? "", info.username, info.params);
+        }
+        result[service] = renderServiceBadge(status);
     }
 
     return result;

@@ -5,6 +5,7 @@ import "mocha";
 import { expect } from "chai";
 
 import { serviceStatus, serviceStatusAll } from "../../src/widgets/service-status";
+import { processExistsIn, systemdUnitActive } from "../../src/utils/helpers";
 
 describe("widgets/service-status", () => {
     it("should render disabled badge when service is undefined", async () => {
@@ -59,6 +60,17 @@ describe("widgets/service-status", () => {
             const result = await serviceStatus("qbittorrent", alwaysRunning);
             expect(result).to.include("badge-service-running");
         });
+
+        it("should use systemd check for FlexGet", async () => {
+            // eslint-disable-next-line @typescript-eslint/require-await
+            const mockSystemd = async (unit: string) => {
+                expect(unit).to.match(/^flexget@/);
+                expect(unit).to.not.include("$username$");
+                return true;
+            };
+            const result = await serviceStatus("flexget", processExistsIn as never, mockSystemd);
+            expect(result).to.include("badge-service-running");
+        });
     });
 
     describe("batch state", () => {
@@ -68,6 +80,56 @@ describe("widgets/service-status", () => {
             expect(result).to.be.an("object");
             expect(result).to.have.property("irssi");
             expect(result.irssi).to.include("badge-service-");
+        });
+    });
+
+    describe("systemd state", () => {
+        it("should use systemd check for services with systemdUnit", async () => {
+            // eslint-disable-next-line @typescript-eslint/require-await
+            const mockSystemd = async (unit: string) => {
+                expect(unit).to.equal("denyhosts");
+                return true;
+            };
+            const result = await serviceStatus("denyhosts", processExistsIn as never, mockSystemd);
+            expect(result).to.include("badge-service-running");
+        });
+
+        it("should skip process check when systemdUnit is set", async () => {
+            let processCalled = false;
+            // eslint-disable-next-line @typescript-eslint/require-await
+            const checkProcess = async () => { processCalled = true; return true; };
+            // eslint-disable-next-line @typescript-eslint/require-await
+            const checkSystemd = async () => false;
+            await serviceStatus("denyhosts", checkProcess, checkSystemd);
+            expect(processCalled).to.equal(false);
+        });
+
+        it("should handle serviceStatusAll with mixed systemd and process services", async () => {
+            // eslint-disable-next-line @typescript-eslint/require-await
+            const alwaysActive = async () => true;
+            const result = await serviceStatusAll(alwaysActive);
+            // systemd-backed services should now appear as running
+            expect(result).to.have.property("denyhosts");
+            expect(result.denyhosts).to.include("badge-service-running");
+            // process-backed services are not running in test env
+            expect(result).to.have.property("irssi");
+        });
+
+        it("should default systemdUnitActive gracefully on non-systemd host", async () => {
+            // Verifies the default export does not throw when systemctl is unavailable
+            const result = await systemdUnitActive("nonexistent.service");
+            expect(result).to.equal(false);
+        });
+
+        it("should expand $username$ in systemdUnit for per-user services like peerbanhelper", async () => {
+            const seenUnits: string[] = [];
+            // eslint-disable-next-line @typescript-eslint/require-await
+            const captureSystemd = async (unit: string) => { seenUnits.push(unit); return false; };
+            await serviceStatus("peerbanhelper", processExistsIn as never, captureSystemd);
+            expect(seenUnits).to.have.length(1);
+            // $username$ must have been substituted — literal placeholder must not remain
+            expect(seenUnits[0]).to.not.include("$username$");
+            expect(seenUnits[0]).to.match(/^peerbanhelper@/);
         });
     });
 });

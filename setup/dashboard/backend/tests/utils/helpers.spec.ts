@@ -5,7 +5,7 @@ import { expect } from "chai";
 import * as sinon from "sinon";
 import si from "systeminformation";
 
-import { formatSize, formatSpeed, processExists } from "../../src/utils/helpers";
+import { formatSize, formatSpeed, processExists, systemdUnitActive } from "../../src/utils/helpers";
 
 describe("utils/helpers", () => {
 
@@ -181,6 +181,14 @@ describe("utils/helpers", () => {
 
             const result = await processExists("node", "testuser");
             expect(result).to.equal(true);
+        });
+    });
+
+    describe("systemdUnitActive", () => {
+        it("should return false when systemctl is not available or unit is inactive", async () => {
+            // On macOS / non-systemd environments systemctl is absent → always false
+            const result = await systemdUnitActive("nonexistent-unit-xyz.service");
+            expect(result).to.equal(false);
         });
     });
 });

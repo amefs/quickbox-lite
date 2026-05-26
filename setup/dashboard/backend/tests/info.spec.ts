@@ -43,9 +43,10 @@ describe("info", () => {
             }
         });
 
-        it("should have process and name in each service", () => {
+        it("should have process or systemdUnit and name in each service", () => {
             for (const [, service] of serviceMap) {
-                expect(service).to.have.property("process").that.is.a("string");
+                const hasDetection = service.process !== undefined || service.systemdUnit !== undefined;
+                expect(hasDetection).to.equal(true);
                 expect(service).to.have.property("name").that.is.a("string");
             }
         });
