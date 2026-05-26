@@ -393,6 +393,21 @@ describe("router — HTTP routes", () => {
             expect(execFileCalls[0][2]).to.be.a("function");
         });
 
+        it("should apply the defaulted dashboard theme", async () => {
+            const res = await request(injectedApp)
+                .post("/node/theme")
+                .send({ theme: "defaulted" });
+
+            expect(res.status).to.equal(200);
+            expect(res.body).to.deep.equal({ ok: true, theme: "defaulted" });
+            expect(execFileCalls).to.have.length(1);
+            expect(execFileCalls[0][0]).to.equal("sudo");
+            expect(execFileCalls[0][1]).to.deep.equal(
+                ["/usr/local/bin/quickbox/system/theme/themeSelect-defaulted"],
+            );
+            expect(execFileCalls[0][2]).to.be.a("function");
+        });
+
         it("should reject unknown dashboard themes", async () => {
             const res = await request(injectedApp)
                 .post("/node/theme")

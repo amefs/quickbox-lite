@@ -135,7 +135,7 @@ The repository-level Playwright e2e suite is not usable on Windows, so it must n
 - dev-server script tests for the split dashboard proxy/server configuration,
 - static asset and theme route checks for `/skins`, `/lib`, `/fonts`, `/img`, `/js`, and `/lang`.
 
-After those checks pass for both the old reference implementation and the split implementation, service templates, nginx templates, package scripts, and install/update references must point to the split implementation. The old `ws` implementation should then be removed or archived as part of the same implementation work if practical; it must not remain an alternate runtime.
+After those checks pass for both the old reference implementation and the split implementation, service templates, nginx templates, package scripts, and install/update references must point to the split implementation. The old `ws` implementation remains in the repository only as a comparison baseline; it must not remain an active runtime, alternate entrypoint, or deployment target.
 
 Rationale: the request requires checking the two rendered experiences before migration completion, and dashboard-local tests are the reliable verification surface available on Windows.
 
@@ -163,7 +163,7 @@ Alternative considered: keep relying on the repository e2e suite. That is not ac
 7. Run frontend checks and dashboard-local route/render tests against the new frontend/backend pair on an isolated dev/test entrypoint.
 8. Compare current and new dashboard rendering with deterministic HTML contract assertions, route responses, widget outputs, and theme route/action checks.
 9. Switch package scripts, service templates, nginx templates, and install/update references to the new backend/frontend outputs.
-10. Remove or archive the old `setup/dashboard/ws` runtime once the split runtime passes final verification.
+10. Keep the old `setup/dashboard/ws` runtime as a comparison baseline only once the split runtime passes final verification, with no active runtime or deployment references starting from it.
 
 ## Open Questions
 

@@ -33,8 +33,8 @@ function _updatedashboard() {
 	username=$(cat /root/.admin.info | cut -d: -f1)
 	\cp -f ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
 	sed -i "s/\/etc\/htpasswd/\/etc\/htpasswd.d\/htpasswd.${username}/g" /etc/nginx/apps/dashboard.conf
-	cd /srv/dashboard/ws || exit 1
-	_execute "npm ci --production"
+	cd /srv/dashboard || exit 1
+	_execute "npm ci --omit=dev"
 	\cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service
 	_execute "systemctl daemon-reload"
 	_execute "systemctl enable quickbox-ws.service"

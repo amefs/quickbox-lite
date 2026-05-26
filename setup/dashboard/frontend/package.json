@@ -3,19 +3,23 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "dist/server/dashboard-page.js",
-  "types": "dist/server/dashboard-page.d.ts",
+  "main": "dist/server/src/dashboard-page.js",
+  "types": "dist/server/src/dashboard-page.d.ts",
   "exports": {
+    ".": {
+      "types": "./dist/server/src/dashboard-page.d.ts",
+      "default": "./dist/server/src/dashboard-page.js"
+    },
     "./server": {
-      "types": "./dist/server/dashboard-page.d.ts",
-      "default": "./dist/server/dashboard-page.js"
+      "types": "./dist/server/src/dashboard-page.d.ts",
+      "default": "./dist/server/src/dashboard-page.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && vite build",
-    "type-check": "tsc -p tsconfig.json --noEmit",
+    "type-check": "node ../scripts/check-workspace-boundaries.cjs && tsc -p tsconfig.json --noEmit",
     "lint": "npm run type-check",
-    "test": "cross-env NODE_ENV=test mocha --exit -r tsx --extensions ts 'tests/**/*.ts'"
+    "test": "cross-env NODE_ENV=test mocha --exit -r tsx --extensions ts,tsx 'tests/**/*.{ts,tsx}'"
   },
   "dependencies": {
     "@quickbox-dashboard/shared": "file:../shared",

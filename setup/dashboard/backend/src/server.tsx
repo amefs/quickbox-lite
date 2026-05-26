@@ -34,6 +34,7 @@ for (const socketServer of [io, wsPathIo]) {
 app.use(createAppRouter({ dashboardDir }));
 
 export { app };
+export { server };
 
 if (process.env.NODE_ENV !== "test" || process.env.MOCK_ENABLED === "1") {
     const host = process.env.WS_HOST || "127.0.0.1";

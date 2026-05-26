@@ -87,8 +87,8 @@ function _updateservice() {
 		fi
 		# install service
 		_info "Installing Dashboard service..."
-		cd ${local_setup_dashboard}ws ||exit 1
-		_execute "npm ci --production"
+		cd ${local_setup_dashboard} ||exit 1
+		_execute "npm ci --omit=dev"
 		\cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service
 		_execute "systemctl daemon-reload"
 		_execute "systemctl enable quickbox-ws.service"
@@ -122,8 +122,8 @@ function _updateservice() {
 			_success "Node.js upgraded"
 		fi
 		_info "Reconfig Dashboard service..."
-		cd ${local_setup_dashboard}ws ||exit 1
-		_execute "npm ci --production"
+		cd ${local_setup_dashboard} ||exit 1
+		_execute "npm ci --omit=dev"
 		_success "Dashboard service updated"
 	fi
 	# Update flexget nginx reverse proxy

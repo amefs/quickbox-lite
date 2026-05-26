@@ -903,8 +903,8 @@ function _insdashboard() {
 		;;
 	esac
 	touch /install/.dashboard.lock
-	cd /srv/dashboard/ws || exit 1
-	npm ci --production >>"${OUTTO}" 2>&1
+	cd /srv/dashboard || exit 1
+	npm ci --omit=dev >>"${OUTTO}" 2>&1
 	\cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service
 	systemctl daemon-reload >/dev/null 2>&1
 	systemctl enable quickbox-ws.service >/dev/null 2>&1

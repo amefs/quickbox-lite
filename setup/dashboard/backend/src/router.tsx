@@ -6,18 +6,16 @@ import * as childProcess from "child_process";
 import path from "path";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
+import { DashboardPage } from "@quickbox-dashboard/frontend";
 
 import { resolveWidget } from "./handlers/message";
 import { normalizeLocale, resolveRequestLocale, withLocale } from "./i18n";
 import { DebugPage } from "./debug";
-import { DashboardPage, type DashboardSsrFragments } from "./dashboard-page";
 import { applyDashboardThemeWithExecFile, dashboardConfig, isDashboardTheme } from "./dashboard-config";
+import { createDashboardPageData } from "./dashboard-page-data";
 import { isTestMode, setActiveProfile } from "./testing";
-import { dashboardMenu, resolveDashboardMenuState } from "./widgets/menu";
+import { dashboardMenu } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
-import { packageManagementCenter } from "./widgets/package-management-center";
-import { serviceControl } from "./widgets/service-control";
-import { upTime } from "./widgets/up";
 import { diskData } from "./widgets/disk-data";
 import { ramStats } from "./widgets/memory-stats";
 import { widgetsLoad } from "./widgets/load";
@@ -62,28 +60,9 @@ export function createAppRouter(options: AppRouterOptions): Router {
     const renderDashboard = async (req: Request, res: Response, basePath = "") => {
         const locale = resolveRequestLocale(req);
         const html = await withLocale(locale, async () => {
-            const [menuState, serviceControlHtml, packageManagementCenterHtml] = await Promise.all([
-                resolveDashboardMenuState(),
-                serviceControl(),
-                packageManagementCenter(),
-            ]);
-            const ssrFragments: DashboardSsrFragments = {
-                serviceControlHtml,
-                packageManagementCenterHtml,
-                uptimeHtml: upTime(),
-                diskDataHtml: "",
-                ramStatsHtml: "",
-                loadHtml: "",
-                cpuStaticHtml: "",
-                networkInterfaces: [],
-            };
+            const pageData = await createDashboardPageData(locale, basePath);
             return ReactDOMServer.renderToString(
-                <DashboardPage
-                    basePath={basePath}
-                    locale={locale}
-                    menuState={menuState}
-                    ssrFragments={ssrFragments}
-                />,
+                <DashboardPage pageData={pageData} />,
             );
         });
         res.send(`<!DOCTYPE html>${html}`);

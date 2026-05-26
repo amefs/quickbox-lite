@@ -7,7 +7,7 @@
   "scripts": {
     "build": "webpack --config build/webpack.config.js",
     "test": "cross-env NODE_ENV=test mocha --exit -r tsx --extensions ts 'tests/**/*.{mts,ts}'",
-    "check-type": "tsc --noemit",
+    "check-type": "node ../scripts/check-workspace-boundaries.cjs && tsc --noemit",
     "type-check": "npm run check-type",
     "eslint": "eslint .",
     "lint": "npm run check-type && npm run eslint",
@@ -20,6 +20,7 @@
   "author": "TautCony",
   "license": "GPL-3.0-or-later",
   "dependencies": {
+    "@quickbox-dashboard/frontend": "file:../frontend",
     "@quickbox-dashboard/shared": "file:../shared",
     "axios": "^1.16.0",
     "bignumber.js": "^11.1.1",

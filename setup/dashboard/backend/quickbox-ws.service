@@ -5,7 +5,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/node /srv/dashboard/ws/dist/server.js
+WorkingDirectory=/srv/dashboard
+ExecStart=/usr/bin/node /srv/dashboard/backend/dist/server.js
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process
 Restart=on-failure

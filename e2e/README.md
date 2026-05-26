@@ -1,6 +1,6 @@
 # QuickBox Lite E2E Testing
 
-Docker-based end-to-end tests for the PHP dashboard and WebSocket server.
+Docker-based end-to-end tests for the dashboard backend and static assets.
 
 ## Overview
 
@@ -9,8 +9,8 @@ The E2E stack is started by Docker Compose and includes:
 | Service | Role |
 |---------|------|
 | `nginx` | Serves the dashboard, static assets, and proxies `/ws` |
-| `php` | Runs the PHP dashboard against seeded test data |
-| `ws` | Runs the dashboard WebSocket server in mock mode |
+| `php` | Seeds legacy install-like dashboard state for compatibility checks |
+| `ws` | Runs the split dashboard backend in mock mode |
 | `dashboard-init` | Seeds an install-like dashboard volume before tests |
 | `playwright` | Optional containerized Playwright runner |
 
@@ -39,7 +39,7 @@ npm run e2e
 3. Runs Playwright against `http://127.0.0.1:8880`
 4. Tears the stack down with `docker compose down -v`
 
-This is the default path. Do not manually pre-install WS dependencies or manually prepare the dashboard volume.
+This is the default path. Do not manually pre-install dashboard dependencies or manually prepare the dashboard volume.
 
 ## Useful Commands
 
@@ -81,11 +81,11 @@ The Docker environment is intentionally install-like rather than blank:
 - theme assets are seeded so CSS loads correctly
 - database files such as `master.txt`, `interface.txt`, and `locale.php` are pre-created
 - install lock files are seeded to simulate a partially installed system
-- WS mock data provides CPU, memory, disk, network, vnstat, package, and service state
+- backend mock data provides CPU, memory, disk, network, vnstat, package, and service state
 
-Tests may switch mock profiles at runtime through the WS test API, but this is handled by the test suite and usually does not need manual intervention.
+Tests may switch mock profiles at runtime through the backend test API, but this is handled by the test suite and usually does not need manual intervention.
 
-Available profiles are defined in `../setup/dashboard/ws/src/testing/mockProfiles.ts`.
+Available profiles are defined in `../setup/dashboard/backend/src/testing/mock-profiles.ts`.
 
 ## Test Suites
 

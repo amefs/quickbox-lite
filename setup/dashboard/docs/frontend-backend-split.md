@@ -66,7 +66,7 @@ regenerate, or reformat the existing `defaulted` or `smoked` theme CSS.
 - `setup/dashboard/package.json` is the npm workspace root.
 - Workspaces are `frontend`, `backend`, and `shared` when shared code exists.
 - Root scripts orchestrate workspace build, type-check, lint, test, and
-  isolated dev/test startup.
+  isolated dev/test startup through `npm run dev:dashboard`.
 - `frontend` uses Vite with TypeScript and React.
 - `backend` keeps the current Node service direction: TypeScript, tsx for
   dev/tests, Mocha, supertest, Socket.IO, Express, and a production build that
@@ -178,7 +178,7 @@ split. Verification is based on dashboard-local tests that run on Windows:
 
 - Type-check and build current `ws` baseline before switching entrypoints.
 - Port and run router/controller/handler/widget/script tests from
-  `setup/dashboard/ws/tests`.
+  `setup/dashboard/ws/tests` into `setup/dashboard/backend/tests`.
 - Use supertest to assert `/` and `/ws` HTML contracts:
   title, `window.quickboxRuntime`, locale, panel IDs, widget containers,
   modal IDs, script order, and static asset references.
@@ -188,3 +188,30 @@ split. Verification is based on dashboard-local tests that run on Windows:
   path without rewriting theme CSS.
 - Compare old and split route outputs through deterministic assertions before
   switching service and nginx templates.
+
+## Runtime Switch
+
+The service keeps the public `quickbox-ws.service` name for compatibility, but
+it now runs the split backend entrypoint:
+
+```text
+WorkingDirectory=/srv/dashboard
+ExecStart=/usr/bin/node /srv/dashboard/backend/dist/server.js
+```
+
+Install and update scripts run `npm ci --omit=dev` from `/srv/dashboard`, so
+workspace dependencies for `frontend`, `backend`, and `shared` are installed
+together. Nginx continues proxying `/`, `/ws`, `/socket.io`, and
+`/ws/socket.io` to `127.0.0.1:8575`; no public URL change is required.
+
+## Windows Commands
+
+Run these from `setup/dashboard`:
+
+```powershell
+npm.cmd run build
+npm.cmd run type-check
+npm.cmd run lint
+npm.cmd test
+npm.cmd run dev:dashboard
+```

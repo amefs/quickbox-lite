@@ -17,6 +17,43 @@ export interface DashboardRuntimeConfig {
     messages: DashboardRuntimeMessages;
 }
 
+export interface DashboardShellLabels {
+    [key: string]: string;
+}
+
+export interface DashboardMenuEntry {
+    name: string;
+    url: string;
+    logo?: string;
+}
+
+export interface DashboardMenuState {
+    installedMenuEntries: DashboardMenuEntry[];
+    installedDownloadEntries: DashboardMenuEntry[];
+    showPluginTab: boolean;
+    showWebConsole: boolean;
+}
+
+export interface DashboardSsrFragments {
+    packageManagementCenterHtml: string;
+    serviceControlHtml: string;
+    removalModalsHtml: string;
+    uptimeHtml: string;
+    diskDataHtml: string;
+    ramStatsHtml: string;
+    loadHtml: string;
+    cpuStaticHtml: string;
+    networkInterfaces: string[];
+}
+
+export interface DashboardPageData {
+    config: DashboardConfigResponse;
+    labels: DashboardShellLabels;
+    menuState: DashboardMenuState;
+    runtimeConfig: DashboardRuntimeConfig;
+    ssrFragments: DashboardSsrFragments;
+}
+
 export interface DashboardEndpoints {
     dashboardConfig: string;
     systemStatic: string;

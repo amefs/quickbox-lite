@@ -7,7 +7,7 @@ services:
       - |
         mkdir -p /srv/dashboard
         cp -a /src/setup/dashboard/. /srv/dashboard/
-        rm -rf /srv/dashboard/node_modules /srv/dashboard/ws/node_modules
+        rm -rf /srv/dashboard/node_modules /srv/dashboard/backend/node_modules /srv/dashboard/frontend/node_modules
         rm -f /srv/dashboard/skins/quick.css
         cp -a /src/setup/themes/smoked/skins/. /srv/dashboard/skins/
         mkdir -p /srv/dashboard/db/session_5sec
@@ -68,7 +68,7 @@ services:
 
   ws:
     image: node:22-slim
-    working_dir: /srv/dashboard/ws
+    working_dir: /srv/dashboard
     environment:
       - NODE_ENV=test
       - MOCK_ENABLED=1
@@ -82,18 +82,15 @@ services:
         if [ ! -d node_modules ] || \
            [ ! -d node_modules/tsx ] || \
            [ ! -f node_modules/express/package.json ] || \
-           [ ! -f node_modules/body-parser/package.json ] || \
-           [ ! -f node_modules/raw-body/package.json ] || \
-           [ ! -f node_modules/iconv-lite/lib/index.js ] || \
-           [ ! -f node_modules/iconv-lite/encodings/index.js ]; then
+           [ ! -f node_modules/socket.io/package.json ]; then
           rm -rf node_modules
           npm ci
         fi
-        exec npx tsx src/server.tsx
+        exec npm run dev:server --workspace backend
     volumes:
       - dashboard-root:/srv/dashboard
       - php-db:/srv/dashboard/db
-      - ws-node-modules:/srv/dashboard/ws/node_modules
+      - ws-node-modules:/srv/dashboard/node_modules
     depends_on:
       dashboard-init:
         condition: service_completed_successfully
@@ -125,7 +122,7 @@ services:
 volumes:
   dashboard-root:
   ws-node-modules:
-    name: ${WS_NODE_MODULES_VOLUME:-quickbox-e2e-ws-node-modules}
+    name: ${WS_NODE_MODULES_VOLUME:-quickbox-e2e-dashboard-node-modules}
   php-db:
 
 networks:
