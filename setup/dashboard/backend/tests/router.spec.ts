@@ -76,15 +76,17 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.include("window.quickboxRuntime");
             expect(res.text).to.include('"basePath":""');
             expect(res.text).to.include('"locale":"en"');
-            expect(res.text).to.include("/js/dashboard.js");
-            expect(res.text).to.include("/lib/socket.io/socket.io.min.js");
+            expect(res.text).to.include("/dashboard-client.js");
+            expect(res.text).to.include("/vendor-jquery.css");
+            expect(res.text).to.include("/vendor-ui.css");
+            expect(res.text).to.include("/vendor-misc.css");
             expect(res.text).to.include("id=\"bw_tables_loading\"");
             expect(res.text).to.include("box fix dpkg");
             expect(res.text).to.include("autodlirssiRemovalConfirm");
             expect(res.text).to.include('data-click-handler="packageRemove"');
-            expect(res.text).to.include("/lib/datatables/js/jquery.dataTables.min.js");
-            expect(res.text).to.include("/lib/perfect-scrollbar/js/perfect-scrollbar.min.js");
-            expect(res.text).to.include("/js/quick.js");
+            expect(res.text).to.not.include("/js/quick.js");
+            expect(res.text).to.not.include("/js/dashboard.js");
+            expect(res.text).to.not.include("/lib/");
             expect(res.text).to.not.include('fetchJson("/node/menu")');
             expect(res.text).to.not.include('fetchText("/node/removal_modals")');
             expect(res.text).to.not.include("panel.app_status.ws.js");
@@ -160,26 +162,11 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.include("\"locale\":\"zh\"");
         });
 
-        it("should preserve the legacy browser script order", async () => {
+        it("should preserve browser bootstrap order with frontend bundle", async () => {
             const res = await request(app).get("/");
             const orderedScripts = [
-                "/lib/jquery/jquery.min.js",
                 "window.quickboxRuntime",
-                "/lib/jquery-ui/jquery-ui.min.js",
-                "/lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js",
-                "/lib/bootstrap/js/bootstrap.min.js",
-                "/lib/perfect-scrollbar/js/perfect-scrollbar.min.js",
-                "/lib/visibility/visibility.fallback.js",
-                "/lib/visibility/visibility.core.js",
-                "/lib/visibility/visibility.timers.js",
-                "/lib/socket.io/socket.io.min.js",
-                "/lib/ansi_up/ansi_up.min.js",
-                "/js/quick.js",
-                "/js/dashboard.js",
-                "/lib/lobipanel/js/lobipanel.min.js",
-                "/lib/jquery-toggles/toggles.min.js",
-                "/lib/datatables/js/jquery.dataTables.min.js",
-                "/lib/datatables/js/dataTables.bootstrap.min.js",
+                "import(\"/dashboard-client.js\")",
             ];
 
             let previousIndex = -1;
@@ -188,8 +175,7 @@ describe("router — HTTP routes", () => {
                 expect(currentIndex, script).to.be.greaterThan(previousIndex);
                 previousIndex = currentIndex;
             }
-            expect(res.text).to.include("/lib/lazysizes/lazysizes.min.js");
-            expect(res.text).to.include("/lib/bootbox/bootbox.all.min.js");
+            expect(res.text).to.not.include("/lib/");
         });
     });
 

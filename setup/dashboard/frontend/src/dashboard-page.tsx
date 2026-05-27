@@ -117,15 +117,9 @@ export function DashboardPage({ pageData }: DashboardPageProps) {
                 <link rel="icon" type="image/png" href="/img/favicon/favicon-16x16.png" sizes="16x16" />
                 <link rel="manifest" href="/img/favicon/manifest.json" />
                 <link rel="mask-icon" href="/img/favicon/safari-pinned-tab.svg" color="#5bbad5" />
-                <link rel="stylesheet" href="/lib/jquery-ui/jquery-ui.min.css" />
-                <link rel="stylesheet" href="/lib/jquery-toggles/toggles-full.css" />
-                <link rel="stylesheet" href="/lib/jquery-gritter/css/jquery.gritter.css" />
-                <link rel="stylesheet" href="/lib/datatables/css/dataTables.bootstrap.min.css" />
-                <link rel="stylesheet" href="/lib/perfect-scrollbar/css/perfect-scrollbar.min.css" />
-                <link rel="stylesheet" href="/lib/animate.css/animate.min.css" />
-                <link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css" />
-                <link rel="stylesheet" href="/lib/select2/select2.min.css" />
-                <link rel="stylesheet" href="/lib/lobipanel/css/lobipanel.min.css" />
+                <link rel="stylesheet" href="/vendor-jquery.css" />
+                <link rel="stylesheet" href="/vendor-ui.css" />
+                <link rel="stylesheet" href="/vendor-misc.css" />
                 <link rel="stylesheet" href="/skins/quick.css" />
                 <style dangerouslySetInnerHTML={{ __html: `
 @keyframes qb-shimmer {
@@ -152,7 +146,6 @@ export function DashboardPage({ pageData }: DashboardPageProps) {
     flex-shrink: 0;
 }
 ` }} />
-                <script src="/lib/jquery/jquery.min.js"></script>
                 <script dangerouslySetInnerHTML={{ __html: `window.quickboxRuntime = ${JSON.stringify(runtimeConfig)};` }} />
             </head>
             <body className="body">
@@ -464,23 +457,12 @@ export function DashboardPage({ pageData }: DashboardPageProps) {
                         </div>
                     </div>
                 </section>
-                <script src="/lib/jquery-ui/jquery-ui.min.js"></script>
-                <script src="/lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js"></script>
-                <script src="/lib/bootstrap/js/bootstrap.min.js"></script>
-                <script src="/lib/perfect-scrollbar/js/perfect-scrollbar.min.js"></script>
-                <script src="/lib/visibility/visibility.fallback.js"></script>
-                <script src="/lib/visibility/visibility.core.js"></script>
-                <script src="/lib/visibility/visibility.timers.js"></script>
-                <script src="/lib/socket.io/socket.io.min.js"></script>
-                <script src="/lib/ansi_up/ansi_up.min.js"></script>
-                <script src="/lib/lazysizes/lazysizes.min.js" async></script>
-                <script src="/lib/bootbox/bootbox.all.min.js" async></script>
-                <script src="/js/quick.js"></script>
-                <script src="/js/dashboard.js"></script>
-                <script src="/lib/lobipanel/js/lobipanel.min.js"></script>
-                <script src="/lib/jquery-toggles/toggles.min.js"></script>
-                <script src="/lib/datatables/js/jquery.dataTables.min.js"></script>
-                <script src="/lib/datatables/js/dataTables.bootstrap.min.js"></script>
+                <script
+                    type="module"
+                    dangerouslySetInnerHTML={{
+                        __html: `await import("/dashboard-client.js");`,
+                    }}
+                />
             </body>
         </html>
     );

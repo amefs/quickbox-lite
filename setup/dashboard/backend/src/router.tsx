@@ -54,6 +54,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
     router.use("/img", express.static(path.join(options.dashboardDir, "img")));
     router.use("/js", express.static(path.join(options.dashboardDir, "js")));
     router.use("/lang", express.static(path.join(options.dashboardDir, "lang")));
+    router.use(express.static(path.join(options.dashboardDir, "frontend", "dist", "client"), { index: false }));
 
     // ── Root ─────────────────────────────────────────────────────────────────
 

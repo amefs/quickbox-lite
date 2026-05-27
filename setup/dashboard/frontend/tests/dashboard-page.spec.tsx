@@ -151,26 +151,22 @@ describe("DashboardPage", () => {
         expect(html).to.include("\"path\":\"/ws/socket.io\"");
     });
 
-    it("keeps legacy static references and script order stable", () => {
+    it("loads frontend-built assets and removes direct /lib references", () => {
         const html = render();
         const scripts = [
-            "/lib/jquery/jquery.min.js",
-            "/lib/jquery-ui/jquery-ui.min.js",
-            "/lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js",
-            "/lib/bootstrap/js/bootstrap.min.js",
-            "/lib/perfect-scrollbar/js/perfect-scrollbar.min.js",
-            "/lib/visibility/visibility.fallback.js",
-            "/lib/visibility/visibility.core.js",
-            "/lib/visibility/visibility.timers.js",
-            "/lib/socket.io/socket.io.min.js",
-            "/lib/ansi_up/ansi_up.min.js",
-            "/js/quick.js",
-            "/js/dashboard.js",
+            "window.quickboxRuntime",
+            "import(\"/dashboard-client.js\")",
         ];
 
         expect(html).to.include("href=\"/skins/quick.css\"");
-        expect(html).to.include("href=\"/lib/jquery-ui/jquery-ui.min.css\"");
+        expect(html).to.include("href=\"/vendor-jquery.css\"");
+        expect(html).to.include("href=\"/vendor-ui.css\"");
+        expect(html).to.include("href=\"/vendor-misc.css\"");
+        expect(html).to.include("/dashboard-client.js");
+        expect(html).to.not.include("/js/quick.js");
+        expect(html).to.not.include("/js/dashboard.js");
         expect(html).to.include("src=\"/img/logo-light.png\"");
+        expect(html).to.not.include("/lib/");
 
         const indexes = scripts.map((src) => html.indexOf(src));
         expect(indexes.every((index) => index >= 0)).to.equal(true);

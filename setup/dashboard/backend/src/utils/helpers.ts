@@ -4,12 +4,22 @@ import { promisify } from "util";
 import si from "systeminformation";
 
 const execFileAsync = promisify(execFile);
+let systemctlUnavailable = false;
 
 export async function systemdUnitActive(unit: string): Promise<boolean> {
+    if (systemctlUnavailable) {
+        return false;
+    }
     try {
         const { stdout } = await execFileAsync("systemctl", ["is-active", unit]);
         return stdout.trim() === "active";
-    } catch {
+    } catch (error: unknown) {
+        const code = typeof error === "object" && error !== null && "code" in error
+            ? (error as { code?: unknown }).code
+            : undefined;
+        if (code === "ENOENT") {
+            systemctlUnavailable = true;
+        }
         return false;
     }
 }

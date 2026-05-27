@@ -59,7 +59,7 @@ describe("split runtime parity", () => {
     ];
 
     for (const scenario of scenarios) {
-        it(`matches the legacy ${scenario.label} contract`, async () => {
+        it(`matches the legacy ${scenario.label} core contract`, async () => {
             const legacyRes = await request(legacyApp).get(`${scenario.path}?locale=zh`).set("Accept-Language", "fr-FR,fr;q=0.9");
             const splitRes = await request(splitApp).get(`${scenario.path}?locale=zh`).set("Accept-Language", "fr-FR,fr;q=0.9");
 
@@ -79,14 +79,15 @@ describe("split runtime parity", () => {
                 'id="bw_tables_loading"',
                 'id="themeSelectdefaultedConfirm"',
                 'id="themeSelectsmokedConfirm"',
-                "/lib/jquery/jquery.min.js",
-                "/lib/socket.io/socket.io.min.js",
-                "/js/quick.js",
-                "/js/dashboard.js",
             ]) {
                 expect(legacyHtml).to.include(contract);
                 expect(splitHtml).to.include(contract);
             }
+
+            expect(legacyHtml).to.include("/js/quick.js");
+            expect(legacyHtml).to.include("/js/dashboard.js");
+            expect(splitHtml).to.not.include("/js/quick.js");
+            expect(splitHtml).to.not.include("/js/dashboard.js");
 
             const expectedBasePath = scenario.path === "/ws" ? "/ws" : "";
             expect(legacyHtml).to.include(`"basePath":"${expectedBasePath}"`);
@@ -106,47 +107,24 @@ describe("split runtime parity", () => {
                 '"js":"/js"',
                 '"lang":"/lang"',
                 `"path":"${expectedBasePath === "/ws" ? "/ws/socket.io" : "/socket.io"}"`,
+                "/dashboard-client.js",
+                "/vendor-jquery.css",
+                "/vendor-ui.css",
+                "/vendor-misc.css",
             ]) {
                 expect(splitHtml).to.include(splitRuntimeContract);
             }
 
+            expect(splitHtml).to.not.include("/lib/");
+
             expectOrdered(legacyHtml, [
-                "/lib/jquery/jquery.min.js",
                 "window.quickboxRuntime",
-                "/lib/jquery-ui/jquery-ui.min.js",
-                "/lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js",
-                "/lib/bootstrap/js/bootstrap.min.js",
-                "/lib/perfect-scrollbar/js/perfect-scrollbar.min.js",
-                "/lib/visibility/visibility.fallback.js",
-                "/lib/visibility/visibility.core.js",
-                "/lib/visibility/visibility.timers.js",
-                "/lib/socket.io/socket.io.min.js",
-                "/lib/ansi_up/ansi_up.min.js",
                 "/js/quick.js",
                 "/js/dashboard.js",
-                "/lib/lobipanel/js/lobipanel.min.js",
-                "/lib/jquery-toggles/toggles.min.js",
-                "/lib/datatables/js/jquery.dataTables.min.js",
-                "/lib/datatables/js/dataTables.bootstrap.min.js",
             ]);
             expectOrdered(splitHtml, [
-                "/lib/jquery/jquery.min.js",
                 "window.quickboxRuntime",
-                "/lib/jquery-ui/jquery-ui.min.js",
-                "/lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js",
-                "/lib/bootstrap/js/bootstrap.min.js",
-                "/lib/perfect-scrollbar/js/perfect-scrollbar.min.js",
-                "/lib/visibility/visibility.fallback.js",
-                "/lib/visibility/visibility.core.js",
-                "/lib/visibility/visibility.timers.js",
-                "/lib/socket.io/socket.io.min.js",
-                "/lib/ansi_up/ansi_up.min.js",
-                "/js/quick.js",
-                "/js/dashboard.js",
-                "/lib/lobipanel/js/lobipanel.min.js",
-                "/lib/jquery-toggles/toggles.min.js",
-                "/lib/datatables/js/jquery.dataTables.min.js",
-                "/lib/datatables/js/dataTables.bootstrap.min.js",
+                "import(\"/dashboard-client.js\")",
             ]);
         });
     }

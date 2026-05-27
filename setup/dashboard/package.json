@@ -12,6 +12,7 @@
     "type-check": "npm run type-check --workspaces --if-present",
     "lint": "eslint ./js && npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "dev:frontend": "npm run dev --workspace @quickbox-dashboard/frontend",
     "dev:dashboard": "node scripts/dev-split-runtime.cjs",
     "audit": "npm audit --registry=https://registry.npmjs.org",
     "upgrade": "npx npm-check-updates -i"

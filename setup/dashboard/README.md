@@ -24,6 +24,8 @@ npm test
 npm run dev:dashboard
 ```
 
+For frontend-only local debugging, run `npm run dev:frontend` from `setup/dashboard` and open the Vite page. It shows the real backend dashboard in an iframe and proxies dashboard assets through the backend dev server at `127.0.0.1:8575` by default.
+
 `npm run dev:dashboard` builds `frontend` and `backend` independently, then starts `backend/dist/server.js`. The production service template also starts `/srv/dashboard/backend/dist/server.js` with `/srv/dashboard` as the working directory.
 
 On Windows, use the same commands with `npm.cmd`, for example:
