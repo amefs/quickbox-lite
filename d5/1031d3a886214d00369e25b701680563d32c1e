@@ -1,0 +1,49 @@
+setup/dashboard/ws/tests/widgets/memory-stats.spec.ts
+  s_48718de2164105::t_a072ee21bd9430 135-136
+setup/dashboard/ws/tests/controllers/dashboard.spec.ts
+  s_48718de2164105::t_06f92388f06d6c 18-19
+setup/dashboard/ws/src/widgets/memory-stats.tsx
+  s_48718de2164105::t_f22f54318a1b5c 105-117
+setup/dashboard/ws/src/widgets/placeholder.tsx
+  s_48718de2164105::t_62ffa9513d5763 133-137
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_48718de2164105::t_ef8cdf56654f2a 75-76
+  s_48718de2164105::t_224fefd9b31800 6-8,20
+  s_48718de2164105::t_9094c495c87ea2 361
+  s_48718de2164105::t_76bdda45dbb653 136
+setup/dashboard/js/quick.js
+  s_48718de2164105::t_2b195639434450 95,103
+setup/dashboard/js/dashboard.js
+  s_48718de2164105::t_55a1059fce6a43 339
+  s_48718de2164105::t_eedaf5c391756e 825-832,835,840,845
+  s_48718de2164105::t_0dd64f4c62ccde 429-434
+  s_48718de2164105::t_0c134bc7b8024a 7-9,22-31
+  s_48718de2164105::t_f31fd1c4889c7d 483-485,496-498,504-507,516-517,519-528
+  s_48718de2164105::t_e60860a12182f2 637
+  s_48718de2164105::t_b12d51800dc341 585-593,595,597,601-602,604,609,613,615,623
+  s_48718de2164105::t_7080c315d46210 389-390
+  s_48718de2164105::t_b70f972ae1ce92 166-167,169-173,180-186,189
+  s_48718de2164105::t_ce5884cbdbc069 236-255,260-261,265,268-270,274,278,280-282,284
+  s_48718de2164105::t_49ba91e9a5f340 78-94,96-101
+  s_48718de2164105::t_d6d7175c39e970 927
+setup/dashboard/ws/tests/controllers/node.spec.ts
+  s_48718de2164105::t_3b7b72b2e5ce37 49
+setup/dashboard/ws/build/webpack.config.js
+  s_48718de2164105::t_daa98e925da556 7,9,44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "d51031d3a886214d00369e25b701680563d32c1e",
+  "prompts": {},
+  "sessions": {
+    "s_48718de2164105": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "688af623-c7af-4733-bd0e-aaae5c559d2c",
+        "model": "grok-4.6"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
