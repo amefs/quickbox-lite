@@ -28,22 +28,28 @@ interface LocaleSocketData {
 }
 
 function localeData(client: Socket): LocaleSocketData {
-    return (client as unknown as { data: LocaleSocketData }).data;
+    const withData = client as unknown as { data?: LocaleSocketData };
+    if (withData.data === undefined) {
+        withData.data = {};
+    }
+    return withData.data;
 }
 
-const iface = getIfaceConfig();
-
-const parseUrl = (url: string) => {
-    let u: URL;
-    if (url.toLowerCase().startsWith("http")) {
-        u = new URL(url);
-    } else {
-        u = new URL(url, "http://localhost");
+export const parseUrl = (url: string) => {
+    let parsed: URL;
+    try {
+        if (url.toLowerCase().startsWith("http")) {
+            parsed = new URL(url);
+        } else {
+            parsed = new URL(url, "http://localhost");
+        }
+    } catch {
+        throw new Error("Invalid widget URL");
     }
-    const pathname = u.pathname;
+    const pathname = parsed.pathname;
     const args: Record<string, string> = {};
-    u.searchParams.forEach((v, k) => {
-        args[k] = v;
+    parsed.searchParams.forEach((value, key) => {
+        args[key] = value;
     });
     return {
         pathname,
@@ -68,7 +74,7 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
         case "/node/bw_tables": {
             const validPages = ["h", "d", "m", "t"];
             const page = validPages.includes(req.args["page"]) ? req.args["page"] as "h"|"d"|"m"|"t" : undefined;
-            return await bwTables(iface, page);
+            return await bwTables(getIfaceConfig(), page);
         }
         case "/node/service_status":
         case "/widgets/service_status":
@@ -132,16 +138,18 @@ const messageHandler = async (payload: unknown, client: Socket) => {
         key: payload.key,
         requestId: payload.requestId,
         url: payload.url,
-        pathName: parseUrl(payload.url).pathname,
+        pathName: "",
         success: true,
         message: "",
         response: "",
     };
     try {
+        ret.pathName = parseUrl(payload.url).pathname;
         const locale: string = resolvePayloadLocale(payload, client);
         ret.response = await withLocale(locale, async () => await resolveWidget(payload.url));
     } catch (error) {
-        ret.message = error instanceof Error ? error.toString() : "Unknown error";
+        console.error("[quickbox-ws] widget render failed", payload.url, error);
+        ret.message = "Widget render failed";
         ret.success = false;
     } finally {
         client.send(ret);

@@ -39,6 +39,7 @@ location ^~ /ws {
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
     include snippets/proxy.conf;
+    include /srv/dashboard/db/nginx-ws-gateway.conf;
     rewrite ^/ws/(?P<path>.*) /$path break;
 }
 
@@ -53,4 +54,5 @@ location / {
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
     include snippets/proxy.conf;
+    include /srv/dashboard/db/nginx-ws-gateway.conf;
 }

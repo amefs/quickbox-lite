@@ -251,6 +251,44 @@ describe("handlers/message", () => {
         });
     });
 
+    describe("malformed URL and sanitized errors", () => {
+        it("should reject a malformed absolute URL without throwing out of the handler", (done) => {
+            const mockClient = {
+                id: "client-malformed-url",
+                on(event: string, cb: (p: unknown) => Promise<void>) {
+                    if (event === Constant.EVENT_MESSAGE) {
+                        setTimeout(() => void cb({ key: "x", url: "http://[" }), 0);
+                    }
+                },
+                send(data: Record<string, unknown>) {
+                    expect(data.success).to.equal(false);
+                    expect(data.message).to.equal("Widget render failed");
+                    expect(data.pathName).to.equal("");
+                    done();
+                },
+            };
+            messageHandler(mockClient as never);
+        });
+
+        it("should not echo internal route details to the client", (done) => {
+            const mockClient = {
+                id: "client-unknown-route",
+                on(event: string, cb: (p: unknown) => Promise<void>) {
+                    if (event === Constant.EVENT_MESSAGE) {
+                        setTimeout(() => void cb({ key: "x", url: "/etc/passwd" }), 0);
+                    }
+                },
+                send(data: Record<string, unknown>) {
+                    expect(data.success).to.equal(false);
+                    expect(data.message).to.equal("Widget render failed");
+                    expect(String(data.message)).to.not.include("/etc/passwd");
+                    done();
+                },
+            };
+            messageHandler(mockClient as never);
+        });
+    });
+
     describe("request-local locale", () => {
         it("should render widget responses with payload locale", (done) => {
             const mockClient = {

@@ -29,7 +29,7 @@ function _updatedashboard() {
 	_info "Updating QuickBox dashboard..."
 	# Update dashboard config
 	cd /srv/dashboard || exit 1
-	_execute "rsync -aP --delete --exclude=output.log  --exclude=interface.txt --exclude=master.txt --exclude=.smoked.lock --exclude=.defaulted.lock --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
+	_execute "rsync -aP --delete --exclude=output.log --exclude=interface.txt --exclude=master.txt --exclude=ws.secret --exclude=nginx-ws-gateway.conf --exclude=.smoked.lock --exclude=.defaulted.lock --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
 	username=$(cat /root/.admin.info | cut -d: -f1)
 	\cp -f ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
 	python3 - "/etc/nginx/apps/dashboard.conf" "/etc/htpasswd.d/htpasswd.${username}" <<'PYEOF'
@@ -78,6 +78,7 @@ while i < len(lines):
 with open(path, "w", encoding="utf-8") as f:
 	f.writelines(out)
 PYEOF
+	bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureWsGateway
 	cd /srv/dashboard/ws || exit 1
 	_execute "npm ci --production"
 	\cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service

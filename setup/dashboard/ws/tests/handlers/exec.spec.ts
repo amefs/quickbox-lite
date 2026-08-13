@@ -3,8 +3,18 @@
 
 import "mocha";
 import { expect } from "chai";
+import fs from "fs";
+import os from "os";
+import path from "path";
 
-import execHandler, { decodeExecOutput } from "../../src/handlers/exec";
+import execHandler, {
+    decodeExecOutput,
+    isPidAlive,
+    isUpdateInProgress,
+    releaseExecSlot,
+    resetExecSlotsForTests,
+    tryAcquireExecSlot,
+} from "../../src/handlers/exec";
 import Constant from "../../src/shared/constants";
 
 /** Helper to build a minimal mock Socket client */
@@ -95,6 +105,42 @@ describe("handlers/exec", () => {
             });
             execHandler(mockClient as never);
             mockClient._trigger!(42);
+        });
+    });
+
+    describe("concurrency and update lock", () => {
+        afterEach(() => {
+            resetExecSlotsForTests();
+        });
+
+        it("should refuse additional slots beyond the per-socket limit", () => {
+            const socket = {} as never;
+            expect(tryAcquireExecSlot(socket, 1, 8)).to.equal(true);
+            expect(tryAcquireExecSlot(socket, 1, 8)).to.equal(false);
+            releaseExecSlot(socket);
+            expect(tryAcquireExecSlot(socket, 1, 8)).to.equal(true);
+            releaseExecSlot(socket);
+        });
+
+        it("should treat a live pid file as an in-progress update", () => {
+            const pidPath = path.join(os.tmpdir(), `quickbox-update-test-${process.pid}.pid`);
+            fs.writeFileSync(pidPath, `${process.pid}\n`);
+            try {
+                expect(isUpdateInProgress(pidPath)).to.equal(true);
+            } finally {
+                fs.unlinkSync(pidPath);
+            }
+        });
+
+        it("should ignore a stale pid file", () => {
+            const pidPath = path.join(os.tmpdir(), `quickbox-update-stale-${process.pid}.pid`);
+            fs.writeFileSync(pidPath, "99999999\n");
+            try {
+                expect(isPidAlive(99999999)).to.equal(false);
+                expect(isUpdateInProgress(pidPath)).to.equal(false);
+            } finally {
+                fs.unlinkSync(pidPath);
+            }
         });
     });
 

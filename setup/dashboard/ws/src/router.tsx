@@ -46,6 +46,20 @@ export function createAppRouter(options: AppRouterOptions): Router {
     const router = Router();
     const runExecFile = options.execFile ?? childProcess.execFile;
     const debugEnabled = process.env.NODE_ENV !== "production";
+    const parseThemeBody = (body: unknown): string | undefined => {
+        if (body === null || typeof body !== "object" || !("theme" in body)) {
+            return undefined;
+        }
+        const theme = (body as { theme?: unknown }).theme;
+        return typeof theme === "string" ? theme : undefined;
+    };
+    const parsePluginBody = (body: unknown): { plugin?: unknown; action?: unknown } => {
+        if (body === null || typeof body !== "object") {
+            return {};
+        }
+        const record = body as { plugin?: unknown; action?: unknown };
+        return { plugin: record.plugin, action: record.action };
+    };
     const renderWithLocale = async <T,>(req: Request, callback: () => T | Promise<T>): Promise<T> => {
         return await withLocale(resolveRequestLocale(req), callback);
     };
@@ -141,8 +155,8 @@ export function createAppRouter(options: AppRouterOptions): Router {
     });
 
     router.post("/node/theme", express.json(), async (req: Request, res: Response) => {
-        const { theme } = req.body as { theme?: unknown };
-        if (typeof theme !== "string") {
+        const theme = parseThemeBody(req.body);
+        if (theme === undefined) {
             res.status(400).json({ error: "theme field required" });
             return;
         }
@@ -160,7 +174,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
     });
 
     router.post("/node/plugin", express.json(), async (req: Request, res: Response) => {
-        const { plugin, action } = req.body as { plugin?: unknown; action?: unknown };
+        const { plugin, action } = parsePluginBody(req.body);
         if (typeof plugin !== "string" || !isPluginAction(action)) {
             res.status(400).json({ error: "plugin and action fields required" });
             return;

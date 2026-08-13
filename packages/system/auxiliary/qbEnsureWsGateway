@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+# Ensure the dashboard WS gateway secret and nginx snippet exist.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+
+DB_DIR="${QUICKBOX_DASHBOARD_DB_DIR:-/srv/dashboard/db}"
+SECRET_FILE="${DB_DIR}/ws.secret"
+NGINX_SNIPPET="${DB_DIR}/nginx-ws-gateway.conf"
+
+mkdir -p "${DB_DIR}"
+
+if [[ ! -s "${SECRET_FILE}" ]]; then
+	openssl rand -hex 32 > "${SECRET_FILE}"
+fi
+
+chmod 640 "${SECRET_FILE}"
+if id www-data >/dev/null 2>&1; then
+	chown www-data:www-data "${SECRET_FILE}" 2>/dev/null || true
+fi
+
+printf 'proxy_set_header X-Quickbox-Gateway "%s";\n' "$(tr -d '\n' < "${SECRET_FILE}")" > "${NGINX_SNIPPET}"
+chmod 640 "${NGINX_SNIPPET}"
+if id www-data >/dev/null 2>&1; then
+	chown www-data:www-data "${NGINX_SNIPPET}" 2>/dev/null || true
+fi

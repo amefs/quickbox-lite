@@ -29,14 +29,28 @@ if (!configPath) {
 const config = new WatchedConfig<CommandType>(configPath);
 
 const execOption: ExecOptionsWithBufferEncoding = {
-    env: { TERM: "xterm", ...process.env },
+    env: { TERM: "xterm", PATH: process.env.PATH, LANG: process.env.LANG, LC_ALL: process.env.LC_ALL },
     encoding: "buffer",
     timeout: 1000 * 60 * 114, // 114 minutes
     maxBuffer: 5 * 1024 * 1024, // 5 MiB
 };
-const dashboardDbDir = process.env.QUICKBOX_DASHBOARD_DB_DIR ?? "/srv/dashboard/db";
-const outputLogPath = path.join(dashboardDbDir, "output.log");
-const updatePidPath = path.join(dashboardDbDir, "update.pid");
+
+const DEFAULT_MAX_PER_SOCKET = 2;
+const DEFAULT_MAX_GLOBAL = 8;
+const inflightBySocket = new WeakMap<Socket, number>();
+let inflightGlobal = 0;
+
+export function getDashboardDbDir() {
+    return process.env.QUICKBOX_DASHBOARD_DB_DIR ?? "/srv/dashboard/db";
+}
+
+function outputLogPath() {
+    return path.join(getDashboardDbDir(), "output.log");
+}
+
+function updatePidPath() {
+    return path.join(getDashboardDbDir(), "update.pid");
+}
 
 function shellQuote(value: string) {
     return `'${value.replaceAll("'", "'\\''")}'`;
@@ -47,20 +61,45 @@ function isPersistentUpdate(payload: string) {
     return command === "box" && operation === "update";
 }
 
+export function isPidAlive(pid: number): boolean {
+    try {
+        process.kill(pid, 0);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export function isUpdateInProgress(pidPath = updatePidPath()): boolean {
+    try {
+        if (!fs.existsSync(pidPath)) {
+            return false;
+        }
+        const pid = parseInt(fs.readFileSync(pidPath, "utf8").trim(), 10);
+        if (!Number.isFinite(pid) || pid <= 0) {
+            return false;
+        }
+        return isPidAlive(pid);
+    } catch {
+        return false;
+    }
+}
+
 function buildPersistentUpdateScript(command: string) {
     return [
-        `echo $$ > ${shellQuote(updatePidPath)}`,
-        `exec 1>>${shellQuote(outputLogPath)} 2>&1`,
+        `echo $$ > ${shellQuote(updatePidPath())}`,
+        `exec 1>>${shellQuote(outputLogPath())} 2>&1`,
         "echo \"[$(date -Is)] quickbox update started (pid=$$)\"",
         command,
         "echo \"[$(date -Is)] quickbox update finished (exit=$?)\"",
+        `rm -f ${shellQuote(updatePidPath())}`,
     ].join("\n");
 }
 
 function appendUpdateLauncherLog(message: string) {
     try {
-        fs.mkdirSync(dashboardDbDir, { recursive: true });
-        fs.appendFileSync(outputLogPath, `${message}\n`);
+        fs.mkdirSync(getDashboardDbDir(), { recursive: true });
+        fs.appendFileSync(outputLogPath(), `${message}\n`);
     } catch {
         // The runner still attempts to write the same log path after it starts.
     }
@@ -76,6 +115,28 @@ function startPersistentUpdate(command: string) {
     child.unref();
     appendUpdateLauncherLog(`[${new Date().toISOString()}] quickbox update scheduled as detached process ${child.pid ?? "unknown"}`);
     return child.pid;
+}
+
+export function tryAcquireExecSlot(socket: Socket, maxPerSocket = DEFAULT_MAX_PER_SOCKET, maxGlobal = DEFAULT_MAX_GLOBAL): boolean {
+    const current = inflightBySocket.get(socket) ?? 0;
+    if (current >= maxPerSocket || inflightGlobal >= maxGlobal) {
+        return false;
+    }
+    inflightBySocket.set(socket, current + 1);
+    inflightGlobal += 1;
+    return true;
+}
+
+export function releaseExecSlot(socket: Socket): void {
+    const current = inflightBySocket.get(socket) ?? 0;
+    if (current > 0) {
+        inflightBySocket.set(socket, current - 1);
+        inflightGlobal = Math.max(0, inflightGlobal - 1);
+    }
+}
+
+export function resetExecSlotsForTests(): void {
+    inflightGlobal = 0;
 }
 
 export function decodeExecOutput(raw: Buffer | string) {
@@ -124,14 +185,30 @@ const execHandler = (payload: unknown, client: Socket) => {
         client.emit(Constant.EVENT_EXEC, ret);
         return;
     }
+    if (!tryAcquireExecSlot(client)) {
+        ret.success = false;
+        ret.message = "Too many commands in progress";
+        client.emit(Constant.EVENT_EXEC, ret);
+        return;
+    }
+    const finish = () => {
+        releaseExecSlot(client);
+        client.emit(Constant.EVENT_EXEC, ret);
+    };
     if (isPersistentUpdate(payload)) {
         try {
+            if (isUpdateInProgress()) {
+                ret.success = false;
+                ret.message = "Update already in progress";
+                finish();
+                return;
+            }
             const pid = startPersistentUpdate(template);
             ret.message = "Detached Update Started";
             ret.stdout = [
                 `Launcher PID: ${pid ?? "unknown"}`,
-                `PID file: ${updatePidPath}`,
-                `Log file: ${outputLogPath}`,
+                `PID file: ${updatePidPath()}`,
+                `Log file: ${outputLogPath()}`,
             ].join("\n");
         } catch (e) {
             ret.success = false;
@@ -140,7 +217,7 @@ const execHandler = (payload: unknown, client: Socket) => {
                 ret.stderr = e.message;
             }
         }
-        client.emit(Constant.EVENT_EXEC, ret);
+        finish();
         return;
     }
     exec(template, execOption, (error, stdout, stderr) => {
@@ -153,7 +230,7 @@ const execHandler = (payload: unknown, client: Socket) => {
                 ret.message = "Execution Timeout";
             }
         }
-        client.emit(Constant.EVENT_EXEC, ret);
+        finish();
     });
 };
 

@@ -13,6 +13,12 @@ export default class Constant {
     public static TEMPLATE_USERNAME = "$username$";
 }
 
+export const USERNAME_PATTERN = /^[A-Za-z0-9._-]+$/;
+
+export function isSafeUsername(value: unknown): value is string {
+    return typeof value === "string" && USERNAME_PATTERN.test(value);
+}
+
 function getUsername() {
     let username = "";
     try {
@@ -22,6 +28,10 @@ function getUsername() {
         } else {
             const content = readFileSync(masterConfigPath, { encoding: "utf8" });
             username = content.split("\n")[0].trim();
+            if (username !== "" && !isSafeUsername(username)) {
+                console.error("Quickbox-Lite username contains invalid characters");
+                return "";
+            }
         }
     } catch (err) {
         console.error("Failed to read Quickbox-Lite user info", err);

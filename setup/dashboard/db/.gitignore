@@ -2,6 +2,7 @@
 *
 # Except this file
 !.gitignore
+!nginx-ws-gateway.conf
 #!domain.list
 !.smoked.lock
 #!interface.txt
