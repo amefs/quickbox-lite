@@ -1,0 +1,42 @@
+setup/dashboard/ws/tests/handlers/exec.spec.ts
+  s_48718de2164105::t_2228e383a2d569 6-8,10-17
+  s_48718de2164105::t_d319ac1a6a86fa 111-144
+  s_48718de2164105::t_9fc957e2c9a231 145-146
+setup/dashboard/ws/src/shared/constants.ts
+  s_48718de2164105::t_a36a05f3e71036 16-21,31-34
+setup/dashboard/ws/config/commands.json
+  s_48718de2164105::t_4e1e80085685a3 13
+  s_48718de2164105::t_7d6ba57daa3417 18
+  s_48718de2164105::t_99d76d2f87d3f7 8
+  s_48718de2164105::t_8cd156b668af39 3
+setup/dashboard/ws/tests/handlers/utils/command.spec.ts
+  s_48718de2164105::t_c7bf5ebe1a2651 107-110
+  s_48718de2164105::t_72d162963d19e3 7
+  s_48718de2164105::t_92c0269aa35bcc 124-127,129-134
+  s_48718de2164105::t_b2a5f9ffd3b186 128
+  s_48718de2164105::t_dd36b944370d5e 86-93,111,135
+  s_48718de2164105::t_4df127f2366327 136
+setup/dashboard/ws/src/handlers/exec.ts
+  s_48718de2164105::t_ed7880ddfe6bb1 32,37-53,64-87,90-91,95,101-102,120-141,188-197,200-205,210-211,220,233
+setup/dashboard/ws/src/handlers/utils/command.ts
+  s_48718de2164105::t_4d0d784e2896b1 79-90
+  s_48718de2164105::t_b4c06168881ccc 69
+  s_48718de2164105::t_c30579bd7af1f3 3
+  s_48718de2164105::t_3fdd7cd147b5dc 91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "6b836ac458556f0e5c9ceff41abb08615c729575",
+  "prompts": {},
+  "sessions": {
+    "s_48718de2164105": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "688af623-c7af-4733-bd0e-aaae5c559d2c",
+        "model": "grok-4.6"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
