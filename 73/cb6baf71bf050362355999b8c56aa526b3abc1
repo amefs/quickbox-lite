@@ -1,0 +1,19 @@
+setup/dashboard/ws/dist/server.js
+  s_48718de2164105::t_c147a157987ce4 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "73cb6baf71bf050362355999b8c56aa526b3abc1",
+  "prompts": {},
+  "sessions": {
+    "s_48718de2164105": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "688af623-c7af-4733-bd0e-aaae5c559d2c",
+        "model": "grok-4.6"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
