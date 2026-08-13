@@ -1,0 +1,31 @@
+setup/dashboard/ws/src/utils/html.ts
+  s_48718de2164105::t_aea2c1921d9ed5 1-19
+setup/dashboard/ws/tests/utils/html.spec.ts
+  s_48718de2164105::t_87aaf188e7a2e3 20
+  s_48718de2164105::t_479e136435c03e 1-19,21-25
+setup/dashboard/ws/src/handlers/message.ts
+  s_48718de2164105::t_72130496c6df2c 38-47,49,51-52,77,141,147,151-152
+  s_48718de2164105::t_07d62b9662934f 31-35
+setup/dashboard/ws/tests/handlers/message.spec.ts
+  s_48718de2164105::t_3d0f6d04132f55 254-291
+setup/dashboard/ws/src/router.tsx
+  s_48718de2164105::t_f38c5f348dde29 158-159
+  s_48718de2164105::t_63d4a7d7fc0b30 177
+  s_48718de2164105::t_ccbf8f28b5f5d2 49-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "9505f44e7f292693b78c4b3d4fd7fb98731abd78",
+  "prompts": {},
+  "sessions": {
+    "s_48718de2164105": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "688af623-c7af-4733-bd0e-aaae5c559d2c",
+        "model": "grok-4.6"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
