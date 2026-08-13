@@ -1,0 +1,44 @@
+setup/dashboard/ws/tests/auth.spec.ts
+  s_48718de2164105::t_6e0deaa648074d 21-28,30-32,34-39,41-43
+  s_48718de2164105::t_bd1e4088487d30 1-20,29,33,44-184
+  s_48718de2164105::t_b04f63df9513fc 40
+packages/system/auxiliary/qbEnsureWsGateway
+  s_48718de2164105::t_3daaae2460904b 1-28
+setup/dashboard/db/.gitignore
+  s_48718de2164105::t_ae316430b69a7c 5
+setup/templates/nginx/dashboard.conf.template
+  s_48718de2164105::t_2a39d0fc39d30a 42
+  s_48718de2164105::t_a67b0f02b15288 57
+setup/dashboard/ws/src/server.tsx
+  s_48718de2164105::t_5e00cc1037b000 11,21,26-29,31-34,47-53,55
+  s_48718de2164105::t_c1a0cda2fe4255 30
+setup.sh
+  s_48718de2164105::t_35ebaacfdcb36c 1049
+setup/templates/systemd/quickbox-ws.service.template
+  s_48718de2164105::t_efc170241289b1 8-9,17
+packages/system/update/qbUpdateDashboard
+  s_48718de2164105::t_cfb929d89124af 81
+  s_48718de2164105::t_951f4838e18284 32
+setup/dashboard/ws/src/auth.ts
+  s_48718de2164105::t_eb089dc3b06bb9 1-142
+setup/dashboard/ws/quickbox-ws.service
+  s_48718de2164105::t_6d8a342cc15b0f 8-10,16
+setup/dashboard/db/nginx-ws-gateway.conf
+  s_48718de2164105::t_4c79da7ab45868 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "ddf56e94bc6dc42ab6b63415d1a249db94139c27",
+  "prompts": {},
+  "sessions": {
+    "s_48718de2164105": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "688af623-c7af-4733-bd0e-aaae5c559d2c",
+        "model": "grok-4.6"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
