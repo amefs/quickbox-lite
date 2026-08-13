@@ -1,0 +1,24 @@
+docs/review-2026-08-13/findings.md
+  s_48718de2164105::t_99d6a6960e07e6 1-227
+docs/review-2026-08-13/fixes-plan.md
+  s_48718de2164105::t_cc6a0fe6e410be 1-4,7-267
+  s_48718de2164105::t_2c4351d583d470 5-6
+docs/review-2026-08-13/index.md
+  s_48718de2164105::t_7d8007df4739f3 1-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "70c50d4466e938bed9887de085837a05562d15c9",
+  "prompts": {},
+  "sessions": {
+    "s_48718de2164105": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "688af623-c7af-4733-bd0e-aaae5c559d2c",
+        "model": "grok-4.6"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
