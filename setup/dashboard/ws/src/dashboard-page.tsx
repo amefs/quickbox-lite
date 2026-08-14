@@ -3,7 +3,9 @@
 import React from "react";
 
 import { dashboardConfig } from "./dashboard-config";
-import i18n from "./i18n";
+import i18n, { VALID_LOCALES } from "./i18n";
+import { serviceMap } from "./info";
+import { serializeJsonForScript } from "./utils/html";
 import { DashboardMenu, type DashboardMenuState } from "./widgets/menu";
 import { RemovalModals } from "./widgets/removal-modals";
 import {
@@ -15,6 +17,7 @@ import {
     CpuStatusPlaceholder,
     DiskStatusPlaceholder,
     MemoryStatusPlaceholder,
+    UptimePlaceholder,
 } from "./widgets/placeholder";
 
 export interface DashboardSsrFragments {
@@ -69,6 +72,8 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
     const runtimeConfig = {
         basePath: normalizedBasePath,
         locale,
+        locales: VALID_LOCALES,
+        serviceKeys: [...serviceMap.keys()],
         messages: {
             enabled: i18n.t("ENABLED"),
             disabled: i18n.t("DISABLED"),
@@ -128,7 +133,7 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
 }
 ` }} />
                 <script src="/lib/jquery/jquery.min.js"></script>
-                <script dangerouslySetInnerHTML={{ __html: `window.quickboxRuntime = ${JSON.stringify(runtimeConfig)};` }} />
+                <script dangerouslySetInnerHTML={{ __html: `window.quickboxRuntime = ${serializeJsonForScript(runtimeConfig)};` }} />
             </head>
             <body className="body">
                 <header>
@@ -353,7 +358,7 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                                                 <div className="col-sm-3 text-right"><i className="fa fa-heartbeat text-danger" style={{ fontSize: "70px" }}></i></div>
                                                 <div className="row">
                                                     <div className="col-sm-12 mt20 text-center">
-                                                        <strong>{i18n.t("UPTIME")}:</strong> <span id="uptime" dangerouslySetInnerHTML={{ __html: ssrFragments.uptimeHtml }}></span>
+                                                        <strong>{i18n.t("UPTIME")}:</strong> <span id="uptime" dangerouslySetInnerHTML={ssrFragments.uptimeHtml ? { __html: ssrFragments.uptimeHtml } : undefined}>{ssrFragments.uptimeHtml ? undefined : <UptimePlaceholder />}</span>
                                                     </div>
                                                 </div>
                                             </div>

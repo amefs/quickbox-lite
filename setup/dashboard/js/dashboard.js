@@ -4,7 +4,9 @@
 
 (function () {
   let runtime = window.quickboxRuntime || {};
-  let supported = ["da", "de", "en", "es", "fr", "zh"];
+  let supported = Array.isArray(runtime.locales) && runtime.locales.length > 0
+    ? runtime.locales.slice()
+    : ["da", "de", "en", "es", "fr", "zh"];
   let aliases = { "zh-cn": "zh", "zh-hans-cn": "zh" };
 
   function normalizeLocale(value) {
@@ -17,8 +19,16 @@
   }
 
   function persistLocale(locale) {
-    localStorage.setItem("quickbox:locale", locale);
-    document.cookie = "quickbox_locale=" + encodeURIComponent(locale) + "; Path=/; SameSite=Lax";
+    try {
+      localStorage.setItem("quickbox:locale", locale);
+    } catch (error) {
+      console.warn("[ws] failed to persist locale", error);
+    }
+    let cookie = "quickbox_locale=" + encodeURIComponent(locale) + "; Path=/; SameSite=Lax";
+    if (window.location.protocol === "https:") {
+      cookie += "; Secure";
+    }
+    document.cookie = cookie;
   }
 
   let messages = (runtime && typeof runtime.messages === "object" && runtime.messages !== null) ? runtime.messages : {};
@@ -65,41 +75,30 @@
     });
   }
 
-  let serviceStatusItems = [
-    { service: "authelia", id: "#appstat_authelia" },
-    { service: "resilio-sync", id: "#appstat_resilio-sync" },
-    { service: "smbd", id: "#appstat_smbd" },
-    { service: "deluged", id: "#appstat_deluged" },
-    { service: "deluge-web", id: "#appstat_deluge-web" },
-    { service: "denyhosts", id: "#appstat_denyhosts" },
-    { service: "emby-server", id: "#appstat_emby-server" },
-    { service: "fail2ban", id: "#appstat_fail2ban" },
-    { service: "filebrowser", id: "#appstat_filebrowser" },
-    { service: "filebrowser-ee", id: "#appstat_filebrowser-ee" },
-    { service: "flexget", id: "#appstat_flexget" },
-    { service: "flood", id: "#appstat_flood" },
-    { service: "jellyfin", id: "#appstat_jellyfin" },
-    { service: "irssi", id: "#appstat_irssi" },
-    { service: "netdata", id: "#appstat_netdata" },
-    { service: "nfs-server", id: "#appstat_nfs-server" },
-    { service: "tightvnc", id: "#appstat_tightvnc" },
-    { service: "openvpn", id: "#appstat_openvpn" },
-    { service: "peerbanhelper", id: "#appstat_peerbanhelper" },
-    { service: "plexmediaserver", id: "#appstat_plexmediaserver" },
-    { service: "rclone-web", id: "#appstat_rclone-web" },
-    { service: "rtorrent", id: "#appstat_rtorrent" },
-    { service: "sabnzbd", id: "#appstat_sabnzbd" },
-    { service: "syncthing", id: "#appstat_syncthing" },
-    { service: "transmission", id: "#appstat_transmission" },
-    { service: "qbittorrent", id: "#appstat_qbittorrent" },
-    { service: "qbittorrent-clientblocker", id: "#appstat_qbittorrent-clientblocker" },
-    { service: "webdav", id: "#appstat_webdav" },
-    { service: "vsftpd", id: "#appstat_vsftpd" },
-    { service: "vouch-proxy", id: "#appstat_vouch-proxy" },
-    { service: "ttyd", id: "#appstat_ttyd" },
-    { service: "x2go", id: "#appstat_x2go" },
-    { service: "znc", id: "#appstat_znc" }
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  let runtime = window.quickboxRuntime || {};
+  let fallbackServiceKeys = [
+    "authelia", "resilio-sync", "smbd", "deluged", "deluge-web", "denyhosts",
+    "emby-server", "fail2ban", "filebrowser", "filebrowser-ee", "flexget", "flood",
+    "jellyfin", "irssi", "netdata", "nfs-server", "tightvnc", "openvpn",
+    "peerbanhelper", "plexmediaserver", "rclone-web", "rtorrent", "sabnzbd",
+    "syncthing", "transmission", "qbittorrent", "qbittorrent-clientblocker",
+    "webdav", "vsftpd", "vouch-proxy", "ttyd", "x2go", "znc"
   ];
+  let serviceStatusItems = (Array.isArray(runtime.serviceKeys) && runtime.serviceKeys.length > 0
+    ? runtime.serviceKeys
+    : fallbackServiceKeys
+  ).map(function (service) {
+    return { service: service, id: "#appstat_" + service };
+  });
   let lastServiceStatusResponse = {};
 
   function ensureServiceStatusPlaceholders() {
@@ -164,19 +163,30 @@
   function initializePackageTable() {
     let $ = window.jQuery;
     let currentPage = 0;
+    let currentSearch = "";
+    let currentOrder = [];
     if ($.fn.DataTable.isDataTable("#dataTable1")) {
-      currentPage = $("#dataTable1").DataTable().page();
-      $("#dataTable1").DataTable().destroy();
+      let existing = $("#dataTable1").DataTable();
+      currentPage = existing.page();
+      currentSearch = existing.search();
+      currentOrder = existing.order();
+      existing.destroy();
     }
     let table = $("#dataTable1").DataTable();
     $(table.table().container()).find("input[type='search']").attr({
       id: "dataTable1-search",
       name: "dataTable1-search"
     });
-    if (currentPage > 0) {
+    if (currentSearch) {
+      table.search(currentSearch);
+    }
+    if (currentOrder && currentOrder.length > 0) {
+      table.order(currentOrder);
+    }
+    if (currentPage > 0 || currentSearch || (currentOrder && currentOrder.length > 0)) {
       table.page(currentPage).draw(false);
     }
-    $(".tooltips").tooltip();
+    $(".tooltips").tooltip({ container: "body" });
   }
 
   function updateNetworkStatus(dataJSON) {
@@ -223,34 +233,54 @@
     }
   }
 
+  function renderSshOutput(el, task, nextChunk, replaced) {
+    let maxBytes = 1024 * 1024;
+    if ((task._rawContent || "").length > maxBytes) {
+      task._rawContent = task._rawContent.slice(-maxBytes);
+      replaced = true;
+    }
+    if (!window.AnsiUp) {
+      el.text(task._rawContent || "");
+      return;
+    }
+    if (replaced || !task._ansi) {
+      task._ansi = new window.AnsiUp();
+      el.html(task._ansi.ansi_to_html(task._rawContent || ""));
+      return;
+    }
+    if (nextChunk) {
+      el.append(task._ansi.ansi_to_html(nextChunk));
+    }
+  }
+
   function updateSshOutput(task, response) {
     let el = window.jQuery(task.id);
     if (typeof response === "object" && response !== null && "content" in response) {
       let previousEnd = task._endOffset;
+      let nextChunk = "";
+      let replaced = false;
       if (previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
         task._rawContent = response.content;
         task._endOffset = response.end;
+        replaced = true;
       } else if (response.end > previousEnd && response.content) {
         let overlap = Math.max(0, previousEnd - response.start);
-        let nextContent = overlap > 0 ? response.content.slice(overlap) : response.content;
-        if (nextContent) {
-          task._rawContent = (task._rawContent || "") + nextContent;
+        nextChunk = overlap > 0 ? response.content.slice(overlap) : response.content;
+        if (nextChunk) {
+          task._rawContent = (task._rawContent || "") + nextChunk;
         }
         task._endOffset = response.end;
       }
-      let display = task._rawContent || "";
-      if (window.AnsiUp) {
-        display = new window.AnsiUp().ansi_to_html(display);
-      }
-      el.html(display);
+      renderSshOutput(el, task, nextChunk, replaced);
     } else {
       task._rawContent = "";
       task._endOffset = -1;
-      let display = response;
+      task._ansi = undefined;
       if (window.AnsiUp) {
-        display = new window.AnsiUp().ansi_to_html(display);
+        el.html(new window.AnsiUp().ansi_to_html(String(response || "")));
+      } else {
+        el.text(String(response || ""));
       }
-      el.html(display);
     }
     let container = document.getElementById("sysPre");
     if (window.__psSysPre) {
@@ -304,7 +334,7 @@
         id: "#bw_tables",
         before: function (task) {
           let page = localStorage.getItem("bw_tables:page");
-          if (page && page.length === 1 && "shdmt".indexOf(page) >= 0) {
+          if (page && page.length === 1 && "hdmt".indexOf(page) >= 0) {
             task.url = task.urlTemplate.replace("{0}", page);
           }
           return true;
@@ -354,7 +384,8 @@
     let pendingRequests = {};
     let pendingRequestByKey = {};
     let firstRequest = true;
-    let errorCount = 0;
+    let errorCountByKey = {};
+    let stoppedKeys = {};
     let bootstrapDispatched = false;
     let requestSeq = 0;
     let pendingRequestTimeoutMs = 15000;
@@ -393,6 +424,12 @@
 
     function queueTask(task, delay) {
       setTimeout(function () {
+        if (stoppedKeys[task.key]) {
+          return;
+        }
+        if (!socket.connected) {
+          return;
+        }
         let request = Object.assign({}, task);
         if (request.before && typeof request.before === "function" && request.before(request) === false) {
           return;
@@ -441,6 +478,9 @@
 
     socket.on("message", function (response) {
       let pending = response.requestId ? pendingRequests[response.requestId] : undefined;
+      if (response.requestId && !pending) {
+        return;
+      }
       let request = pending ? pending.request : undefined;
       let task = pending ? pending.task : taskMapping[response.key];
       if (response.requestId) {
@@ -451,11 +491,18 @@
           console.warn("[ws] task config not found,", response);
           return;
         }
+        if (errorCountByKey[task.key]) {
+          errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
+        }
         if (task.override && typeof task.override === "function") {
           task.override.call(task, response.response, response, request);
           return;
         }
         if (task.id !== undefined) {
+          if (task._lastHtml === response.response) {
+            return;
+          }
+          task._lastHtml = response.response;
           window.jQuery(task.id).html(response.response);
           if (task.after && typeof task.after === "function") {
             task.after(task);
@@ -464,12 +511,19 @@
           console.warn("[ws] DOM id not found, status won't update,", response);
         }
       } else {
-        errorCount += 1;
+        let failedKey = (task && task.key) || response.key || "unknown";
+        errorCountByKey[failedKey] = (errorCountByKey[failedKey] || 0) + 1;
         console.error("[ws] request failed,", response);
-      }
-      if (errorCount > 256) {
-        console.warn("[ws] too many errors, stop status update");
-        socket.close();
+        if (errorCountByKey[failedKey] > 32 && !stoppedKeys[failedKey]) {
+          stoppedKeys[failedKey] = true;
+          console.warn("[ws] stopping updates for " + failedKey);
+          if (window.jQuery && window.jQuery.gritter) {
+            window.jQuery.gritter.add({
+              title: "QuickBox",
+              text: "Stopped status updates for " + failedKey
+            });
+          }
+        }
       }
     });
 
@@ -526,26 +580,37 @@
     window.alert(message);
   }
 
+  let inflightExecCount = 0;
+  let reloadAfterExec = false;
+
+  function maybeReloadAfterExec() {
+    if (reloadAfterExec && inflightExecCount <= 0) {
+      location.reload();
+    }
+  }
+
   socket.on("exec", function (response) {
+    inflightExecCount = Math.max(0, inflightExecCount - 1);
     if (response && response.success === false) {
-      let message = response.message || "";
+      let message = escapeHtml(response.message || "");
       let output = response.stdout || response.stderr || "";
-      output = output.replace(/\\u001b[()][B0UK]/g, "");
       if (window.AnsiUp) {
         output = new window.AnsiUp().ansi_to_html(output);
+      } else {
+        output = escapeHtml(output);
       }
-      message = message + "<br><code>" + response.cmd + "</code>";
+      message = message + "<br><code>" + escapeHtml(response.cmd || "") + "</code>";
       if (output) {
         message += "<hr><div class='exec-output' style='display: inline-grid'>" + output + "</div>";
       }
       showAlert(message);
+      maybeReloadAfterExec();
       return;
     }
     if (response && response.cmd && (response.cmd.indexOf("systemctl") === 0 || response.cmd.indexOf("box:lang") === 0)) {
-      setTimeout(function () {
-        location.reload();
-      }, 100);
+      reloadAfterExec = true;
     }
+    maybeReloadAfterExec();
   });
 
   function exec(command) {
@@ -553,25 +618,8 @@
       showAlert("Invalid service parameter: '" + command + "'");
       return;
     }
+    inflightExecCount += 1;
     socket.emit("exec", command);
-  }
-
-  function checkParameters(params) {
-    if (!params || typeof params !== "object") {
-      return true;
-    }
-    let missing = "";
-    Object.keys(params).forEach(function (key) {
-      if (!params[key]) {
-        missing += "'" + key + "', ";
-      }
-    });
-    missing = missing.replace(/, $/, "");
-    if (missing) {
-      showAlert("Parameter: " + missing + " required but not found");
-      return false;
-    }
-    return true;
   }
 
   function closestDatasetTarget(initialTarget, datasetKey) {
@@ -584,10 +632,7 @@
 
   function packageHandler(template) {
     return function (event) {
-      if (!checkParameters({ event })) {
-        return;
-      }
-      let target = event.target;
+      let target = closestDatasetTarget(event.target, "package");
       if (!target || !target.dataset) {
         return;
       }
@@ -596,9 +641,6 @@
   }
 
   function serviceUpdateHandler(event) {
-    if (!checkParameters({ event })) {
-      return;
-    }
     let target = closestDatasetTarget(event.target, "service");
     if (!target || !target.dataset) {
       return;
@@ -611,9 +653,6 @@
   }
 
   function boxHandler(event) {
-    if (!checkParameters({ event })) {
-      return;
-    }
     let target = closestDatasetTarget(event.target, "package");
     if (!target || !target.dataset) {
       return;
@@ -781,19 +820,27 @@
     });
 
     // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready)
+    function applyPrefetchHtml(selector, html) {
+      let $el = window.jQuery(selector);
+      if ($el.find(".qb-skeleton").length === 0 && $el.children().length > 0) {
+        return;
+      }
+      $el.html(html);
+    }
+
     fetch(window.quickboxWidgetUrl("/node/load"), { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { window.jQuery("#cpuload").html(html); })
+      .then(function (html) { applyPrefetchHtml("#cpuload", html); })
       .catch(function () { /* WebSocket will fill in later */ });
 
     fetch(window.quickboxWidgetUrl("/node/disk_data"), { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { window.jQuery("#disk_data").html(html); })
+      .then(function (html) { applyPrefetchHtml("#disk_data", html); })
       .catch(function () { /* WebSocket will fill in later */ });
 
     fetch(window.quickboxWidgetUrl("/node/ram_stats"), { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { window.jQuery("#meterram").html(html); })
+      .then(function (html) { applyPrefetchHtml("#meterram", html); })
       .catch(function () { /* WebSocket will fill in later */ });
   }
 
@@ -875,9 +922,7 @@
       if (boxHandlerButton) {
         window.boxHandler(event);
         if (boxHandlerButton instanceof HTMLElement && boxHandlerButton.dataset.refreshAfterClose === "true") {
-          setTimeout(function () {
-            location.reload();
-          }, 150);
+          reloadAfterExec = true;
         }
       }
     });

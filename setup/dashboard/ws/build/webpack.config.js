@@ -4,9 +4,9 @@ const path = require("path");
 const nodeExternals = require("webpack-node-externals");
 const WebpackBar = require("webpackbar");
 const TerserPlugin = require("terser-webpack-plugin");
-const ESLintPlugin = require('eslint-webpack-plugin');
+const ESLintPlugin = require("eslint-webpack-plugin");
 
-const mode = "production";
+const mode = process.env.NODE_ENV === "development" ? "development" : "production";
 
 module.exports = {
     mode,
@@ -41,14 +41,10 @@ module.exports = {
                 ],
             },
             {
-                test: /.tsx?$/,
+                test: /\.tsx?$/,
                 use: [
                     "ts-loader",
                 ],
-                exclude: /node_modules/,
-            },
-            {
-                test: /.js$/,
                 exclude: /node_modules/,
             },
         ],

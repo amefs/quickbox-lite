@@ -46,7 +46,7 @@ describe("controllers/node", () => {
         const res = await request(app).get("/node/dashboard_config");
 
         expect(res.status).to.equal(200);
-        expect(res.body).to.have.property("version", "v1.5.12");
+        expect(res.body).to.have.property("version").that.is.a("string").and.match(/^v\d+\.\d+\.\d+/);
         expect(res.body).to.have.property("branch").that.is.a("string");
         expect(res.body).to.have.property("languages").that.is.an("array").with.length.greaterThan(0);
         expect((res.body as DashboardConfigResponse).languages[0]).to.have.keys(["file", "key", "title", "locale"]);

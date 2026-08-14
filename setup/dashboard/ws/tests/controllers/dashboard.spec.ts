@@ -15,6 +15,8 @@ describe("controllers/dashboard", () => {
         expect(res.text).to.include("Quickbox Dashboard");
         expect(res.text).to.include("id=\"service_control_widget\"");
         expect(res.text).to.include("window.quickboxRuntime");
+        expect(res.text).to.include('"locales"');
+        expect(res.text).to.include('"serviceKeys"');
         expect(res.text).to.include("id=\"bw_tables_loading\"");
         expect(res.text).to.include('data-click-handler="packageRemove"');
     });
