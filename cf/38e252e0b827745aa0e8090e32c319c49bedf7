@@ -1,0 +1,19 @@
+docs/review-2026-08-13/re-review.md
+  s_48718de2164105::t_cf4a8f9fdeae2d 1-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "cf38e252e0b827745aa0e8090e32c319c49bedf7",
+  "prompts": {},
+  "sessions": {
+    "s_48718de2164105": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "688af623-c7af-4733-bd0e-aaae5c559d2c",
+        "model": "grok-4.6"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
