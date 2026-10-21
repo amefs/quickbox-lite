@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { existsSync, readFileSync } from "fs";
+import path from "path";
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export default class Constant {
@@ -22,7 +23,7 @@ export function isSafeUsername(value: unknown): value is string {
 function getUsername() {
     let username = "";
     try {
-        const masterConfigPath = "/srv/dashboard/db/master.txt";
+        const masterConfigPath = path.join(process.env.QUICKBOX_DASHBOARD_DB_DIR || "/srv/dashboard/db", "master.txt");
         if (!existsSync(masterConfigPath)) {
             console.error("Quickbox-Lite user info not found");
         } else {

@@ -33,6 +33,16 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         return getActiveProfile().memory;
     };
 
+    si.cpu = async () => {
+        const profile = getActiveProfile();
+        return {
+            brand: profile.cpuModel,
+            manufacturer: "Intel",
+            cores: profile.cpuCount,
+            speed: 2.4,
+        };
+    };
+
     si.processes = async () => {
         const p = getActiveProfile();
         return {

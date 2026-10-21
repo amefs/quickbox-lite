@@ -40,7 +40,10 @@ for (const socketServer of [io, wsPathIo]) {
     socketServer.use(i18nHandler);
 }
 
-app.use(createAppRouter({ dashboardDir }));
+app.use(createAppRouter({
+    dashboardDir,
+    skinsDir: isTestMode() ? process.env.QUICKBOX_TEST_SKINS_DIR : undefined,
+}));
 
 export { app };
 

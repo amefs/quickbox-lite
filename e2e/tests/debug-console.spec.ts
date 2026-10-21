@@ -1,6 +1,6 @@
 import { test, expect, type Page, type TestInfo } from "@playwright/test";
 
-const WS_BASE_URL = process.env.WS_BASE_URL || "http://127.0.0.1:8880/ws";
+const WS_BASE_URL = process.env.WS_BASE_URL || process.env.E2E_BASE_URL || `http://127.0.0.1:${process.env.TEST_WS_PORT || "8575"}`;
 
 async function getRenderedWidgetText(page: Page) {
     return page.locator("#result-rendered").evaluate((el) => {
@@ -73,11 +73,24 @@ test.describe("WS Debug Console", () => {
 });
 
 test.describe("WS API Endpoints", () => {
-    test("should return 200 for root endpoint", async ({ page }) => {
+    test("should serve the selected theme through dashboard and debug asset routes", async ({ page }) => {
+        await page.goto("/");
+        const dashboardCss = await page.request.get(new URL("/skins/quick.css", page.url()).href);
+        const debugCssUrl = `${WS_BASE_URL.replace(/\/+$/, "")}/debug/assets/skins/quick.css`;
+        const debugCss = await page.request.get(debugCssUrl);
+
+        expect(dashboardCss.status()).toBe(200);
+        expect(debugCss.status()).toBe(200);
+        const [dashboardBody, debugBody] = await Promise.all([dashboardCss.text(), debugCss.text()]);
+        expect(dashboardBody).toContain("Quick Box UI");
+        expect(debugBody).toBe(dashboardBody);
+    });
+
+    test("should return the Node dashboard at the root endpoint", async ({ page }) => {
         const response = await page.request.get(`${WS_BASE_URL}/`);
         expect(response.ok()).toBeTruthy();
         const text = await response.text();
-        expect(text).toContain("QuickBox Websocket");
+        expect(text).toContain("<title>Quickbox Dashboard</title>");
     });
 
     test("should support profile switching in test mode", async ({ page }) => {

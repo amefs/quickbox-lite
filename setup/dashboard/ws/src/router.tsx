@@ -28,6 +28,8 @@ import { readOutputLog } from "./widgets/output-log";
 export interface AppRouterOptions {
     /** Absolute path to the dashboard root (setup/dashboard). Used by /debug/assets/* static routes. */
     dashboardDir: string;
+    /** Optional theme skin directory used by isolated mock servers. */
+    skinsDir?: string;
     /** Allows tests to inject command execution without shelling out. */
     execFile?: typeof childProcess.execFile;
 }
@@ -45,6 +47,7 @@ export interface AppRouterOptions {
 export function createAppRouter(options: AppRouterOptions): Router {
     const router = Router();
     const runExecFile = options.execFile ?? childProcess.execFile;
+    const skinsDir = options.skinsDir ?? path.join(options.dashboardDir, "skins");
     const debugEnabled = process.env.NODE_ENV !== "production";
     const parseThemeBody = (body: unknown): string | undefined => {
         if (body === null || typeof body !== "object" || !("theme" in body)) {
@@ -64,7 +67,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         return await withLocale(resolveRequestLocale(req), callback);
     };
 
-    router.use("/skins", express.static(path.join(options.dashboardDir, "skins")));
+    router.use("/skins", express.static(skinsDir));
     router.use("/lib", express.static(path.join(options.dashboardDir, "lib")));
     router.use("/fonts", express.static(path.join(options.dashboardDir, "fonts")));
     router.use("/img", express.static(path.join(options.dashboardDir, "img")));
@@ -211,7 +214,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
     // ── Debug endpoints ───────────────────────────────────────────────────────
 
     if (debugEnabled) {
-        router.use("/debug/assets/skins", express.static(path.join(options.dashboardDir, "skins")));
+        router.use("/debug/assets/skins", express.static(skinsDir));
         router.use("/debug/assets/lib", express.static(path.join(options.dashboardDir, "lib")));
         router.use("/debug/assets/fonts", express.static(path.join(options.dashboardDir, "fonts")));
 

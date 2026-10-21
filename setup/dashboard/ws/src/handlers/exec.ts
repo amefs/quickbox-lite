@@ -9,6 +9,7 @@ import { Socket } from "socket.io";
 import Constant, { username } from "../shared/constants";
 import { WatchedConfig } from "../shared/watched-config";
 import { CommandType, buildCommand } from "./utils/command";
+import { runMockCommand } from "../testing/mock-adapter";
 
 
 let baseDir = __dirname;
@@ -195,6 +196,13 @@ const execHandler = (payload: unknown, client: Socket) => {
         releaseExecSlot(client);
         client.emit(Constant.EVENT_EXEC, ret);
     };
+    const mockResult = runMockCommand(payload);
+    if (mockResult !== undefined) {
+        ret.success = mockResult;
+        ret.message = mockResult ? "Mock command completed" : "Mock command rejected";
+        finish();
+        return;
+    }
     if (isPersistentUpdate(payload)) {
         try {
             if (isUpdateInProgress()) {

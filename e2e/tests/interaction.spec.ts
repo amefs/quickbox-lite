@@ -1,6 +1,6 @@
 import { test, expect, type Page, type TestInfo } from "@playwright/test";
 
-const WS_BASE_URL = process.env.WS_BASE_URL || "http://127.0.0.1:8880/ws";
+const WS_BASE_URL = process.env.WS_BASE_URL || process.env.E2E_BASE_URL || `http://127.0.0.1:${process.env.TEST_WS_PORT || "8575"}`;
 
 async function setMockProfile(page: Page, profile: string) {
     const response = await page.request.post(`${WS_BASE_URL}/test/profile`, {
@@ -159,13 +159,17 @@ test.describe("Package Management Centre", () => {
 
         const autoDlInstall = pmc.locator("#autodlirssiInstall");
         await expect(autoDlInstall).toBeVisible();
+        const execResponse = page.evaluate(() => new Promise<{ success: boolean }>((resolve) => {
+            (window as Window & { socket: { once: (event: string, callback: (data: { success: boolean }) => void) => void } }).socket.once("exec", resolve);
+        }));
         await autoDlInstall.click();
+        expect(await execResponse).toMatchObject({ success: true });
 
         const sysResponse = page.locator("#sysResponse");
         await expect(sysResponse).toBeVisible({ timeout: 10_000 });
         await expect(page.locator(".bootbox")).toHaveCount(0);
 
-        await page.waitForLoadState("networkidle");
+        await page.locator("#sysResponseCloseAction").click();
         await expect(pmc.locator("#autodlirssiInstall")).toHaveCount(0);
         await expect(pmc.locator("button.btn-success[data-target='#autodlirssiRemovalConfirm']")).toBeVisible();
         await snap(page, testInfo, "pmc-install-package-success");

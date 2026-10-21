@@ -1,6 +1,6 @@
 import { test, expect, type Page, type TestInfo } from "@playwright/test";
 
-const WS_BASE_URL = process.env.WS_BASE_URL || "http://127.0.0.1:8880/ws";
+const WS_BASE_URL = process.env.WS_BASE_URL || process.env.E2E_BASE_URL || `http://127.0.0.1:${process.env.TEST_WS_PORT || "8575"}`;
 
 /**
  * Helper: switch mock profile via the WS server API.
