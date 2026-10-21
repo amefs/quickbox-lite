@@ -1,0 +1,76 @@
+e2e/docker/nginx.conf
+  s_afaeccdef583f0::t_f3eba6a6e29c92 10,13-17
+  s_afaeccdef583f0::t_bf5f5ac7169fdc 11-12
+  s_afaeccdef583f0::t_f192fc7accbc7d 9,20
+setup/dashboard/ws/src/router.tsx
+  s_afaeccdef583f0::t_30d43f0fdf98c7 31-32,50,70,217
+e2e/scripts/mock-server.js
+  s_afaeccdef583f0::t_ad5110f1fe244e 16
+  s_afaeccdef583f0::t_03548bce5e7b86 56-62
+  s_afaeccdef583f0::t_29e0b2183de111 1-15,17-30,32-55,63-73
+  s_afaeccdef583f0::t_30d43f0fdf98c7 31
+e2e/scripts/run-e2e.sh
+  s_afaeccdef583f0::t_29e0b2183de111 5-6,9-12,14-81,83-89,116-117
+  s_afaeccdef583f0::t_fcd16442a5a853 7,90-115
+  s_afaeccdef583f0::t_03548bce5e7b86 82
+e2e/README.md
+  s_afaeccdef583f0::t_e3225e0ea8815f 35
+  s_afaeccdef583f0::t_316cc5dbc79ac7 3,7-10,12,14-16,19,21,23,25,27,29,31,33,37,39,41,43,45-46
+e2e/playwright.config.ts
+  s_afaeccdef583f0::t_f192fc7accbc7d 3-4,34,38,42
+  s_afaeccdef583f0::t_4b1471fdde07ae 40
+  s_afaeccdef583f0::t_4c994221b756de 5-8
+setup/dashboard/ws/src/testing/bootstrap.ts
+  s_afaeccdef583f0::t_1369f4112a356c 36-45
+e2e/tests/dashboard.spec.ts
+  s_afaeccdef583f0::t_4c994221b756de 3
+setup/dashboard/ws/src/shared/constants.ts
+  s_afaeccdef583f0::t_29e0b2183de111 3,26
+setup/dashboard/ws/src/server.tsx
+  s_afaeccdef583f0::t_30d43f0fdf98c7 43-46
+e2e/tests/debug-console.spec.ts
+  s_afaeccdef583f0::t_30d43f0fdf98c7 76-78,81-88
+  s_afaeccdef583f0::t_ed1414ee1cafe2 79-80
+  s_afaeccdef583f0::t_4c994221b756de 3
+  s_afaeccdef583f0::t_086840b5cef632 89,93
+setup/dashboard/ws/src/testing/mock-adapter.ts
+  s_afaeccdef583f0::t_66cab633be0c5b 177-196
+e2e/package.json
+  s_afaeccdef583f0::t_f192fc7accbc7d 11
+  s_afaeccdef583f0::t_966079ac9dacef 14
+e2e/tests/interaction.spec.ts
+  s_afaeccdef583f0::t_51b263ee94cf92 162-164,166
+  s_afaeccdef583f0::t_ec92f697bdf96b 172
+  s_afaeccdef583f0::t_4c994221b756de 3
+setup/dashboard/ws/tests/testing/mock-adapter.spec.ts
+  s_afaeccdef583f0::t_8f49e3b9ffbad7 14-23
+  s_afaeccdef583f0::t_257247298fb9f1 1-6,8-13,24-32,34-42,49-52,57-59
+  s_afaeccdef583f0::t_466ae00e21551a 7,43-48,53-56
+  s_afaeccdef583f0::t_337d93eb327534 33
+e2e/docker-compose.yml
+  s_afaeccdef583f0::t_a3fe560a51317b 5
+  s_afaeccdef583f0::t_f192fc7accbc7d 7-9,11
+setup/dashboard/ws/src/handlers/exec.ts
+  s_afaeccdef583f0::t_d0976b5cf156a8 205
+  s_afaeccdef583f0::t_a661035ffbd17e 12,199-204
+e2e/.env.compose
+  s_afaeccdef583f0::t_77ce62eb84f820 1-4
+e2e/package-lock.json
+  s_afaeccdef583f0::t_c6309656493962 11,16-18,22,28,42-44,48,54,58-60,67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "33510dad14e8ba2537f8eab769c90b5a0f50880c",
+  "prompts": {},
+  "sessions": {
+    "s_afaeccdef583f0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15e70-852f-7242-ac92-bed3d73fc928",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
