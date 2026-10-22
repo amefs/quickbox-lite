@@ -1,0 +1,46 @@
+docs/review-2026-08-13/index.md
+  h_3705811fa4502c 12-13
+docs/review-2026-08-13/real-server-verification-plan-2026-10-22.md
+  h_3705811fa4502c 1-641
+packages/system/auxiliary/qbWsHealthCheck
+  h_3705811fa4502c 126-128
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 71-72
+setup.sh
+  h_3705811fa4502c 1079-1084
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+setup/dashboard/ws/quickbox-ws.service
+  h_3705811fa4502c 11
+setup/dashboard/ws/src/handlers/exec.ts
+  h_3705811fa4502c 129-132,140-145
+setup/dashboard/ws/tests/handlers/exec.spec.ts
+  h_3705811fa4502c 266-279
+setup/templates/systemd/quickbox-ws.service.template
+  h_3705811fa4502c 12
+tests/real-server/00-probe.sh
+  h_3705811fa4502c 1-116
+tests/real-server/01-backup.sh
+  h_3705811fa4502c 1-122
+tests/real-server/02-switch-candidate.sh
+  h_3705811fa4502c 1-100
+tests/real-server/03-update-candidate.sh
+  h_3705811fa4502c 1-156
+tests/real-server/04-verify.sh
+  h_3705811fa4502c 1-218
+tests/real-server/README.md
+  h_3705811fa4502c 1-58
+tests/real-server/lib.sh
+  h_3705811fa4502c 1-187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "197671e2c0c8dd07f5b1bc0baccedb0db3f78d07",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
