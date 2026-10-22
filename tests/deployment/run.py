@@ -145,6 +145,11 @@ http {
         config.write_text(config.read_text().replace('listen 127.0.0.1:18443 ssl;', 'listen 0.0.0.0:18443 ssl;'))
     run(['nginx', '-t'])
     if SYSTEMD:
+        # Make the Type=simple readiness race deterministic: starting the unit
+        # returns while ExecStartPre is still running and Node has no listener.
+        dropin = Path('/etc/systemd/system/quickbox-ws.service.d')
+        dropin.mkdir(parents=True, exist_ok=True)
+        (dropin / 'test-startup.conf').write_text('[Service]\nExecStartPre=/bin/sleep 1\n')
         subprocess.run(['systemctl', 'stop', 'nginx'], env=ENV, check=False)
         run(['systemctl', 'start', 'nginx'])
     else:

@@ -98,6 +98,7 @@ jobs:
         set -euo pipefail
         bash tests/system/dashboard-stage-sandbox.sh
         python3 tests/system/qb-ensure-ws-gateway-sandbox.py
+        python3 tests/system/ws-health-startup-sandbox.py
         python3 tests/system/dashboard-update-sandbox.py
 
   package-script-linter:

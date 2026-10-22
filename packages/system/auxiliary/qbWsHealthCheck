@@ -63,7 +63,15 @@ BASE="http://127.0.0.1:${PORT}"
 FAILED=0
 
 # 1. Authenticated request must succeed.
-CODE=$(_http_code -H "X-Quickbox-Gateway: ${SECRET}" "${BASE}/node/dashboard_config")
+# Type=simple reports the service started before Node has opened its listener.
+# Wait only for transport availability, with at most 20 one-second probes and
+# 19 one-second pauses. An HTTP response must still pass every check below;
+# authentication failures must not be hidden by retries.
+for ATTEMPT in {1..20}; do
+	CODE=$(_http_code -m 1 -H "X-Quickbox-Gateway: ${SECRET}" "${BASE}/node/dashboard_config")
+	[[ "${CODE}" == "000" && ${ATTEMPT} -lt 20 ]] || break
+	sleep 1
+done
 if [[ "${CODE}" == "200" ]]; then
 	_success "authenticated request via gateway secret: ${CODE}"
 else
