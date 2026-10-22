@@ -40,6 +40,9 @@
   window.quickboxSetLocale = function (locale) {
     window.quickboxLocale = normalizeLocale(locale);
     persistLocale(window.quickboxLocale);
+    if (typeof window.quickboxResetWidgetState === "function") {
+      window.quickboxResetWidgetState();
+    }
     if (window.socket && window.socket.connected) {
       window.socket.emit("i18n", window.quickboxLocale);
     }
@@ -84,6 +87,40 @@
       .replace(/'/g, "&#39;");
   }
 
+  // Component write ordering. A widget can be filled by the HTTP pre-fetch or by
+  // the WebSocket stream; the newest WebSocket payload must always win, so every
+  // write records its source instead of inferring readiness from the DOM.
+  var widgetWriteSource = {};
+
+  function markWidgetWritten(selector, source) {
+    if (!selector) { return; }
+    widgetWriteSource[selector] = source;
+    var element = document.querySelector(selector);
+    if (element instanceof HTMLElement) {
+      element.dataset.qbWriteSource = source;
+    }
+  }
+
+  function widgetWriteSourceOf(selector) {
+    if (Object.prototype.hasOwnProperty.call(widgetWriteSource, selector)) {
+      return widgetWriteSource[selector];
+    }
+    var element = document.querySelector(selector);
+    if (element instanceof HTMLElement && element.dataset.qbWriteSource) {
+      return element.dataset.qbWriteSource;
+    }
+    return "";
+  }
+
+  function resetWidgetWriteState() {
+    widgetWriteSource = {};
+    Array.prototype.forEach.call(document.querySelectorAll("[data-qb-write-source]"), function (element) {
+      delete element.dataset.qbWriteSource;
+    });
+  }
+
+  window.quickboxResetWidgetState = resetWidgetWriteState;
+
   let runtime = window.quickboxRuntime || {};
   let fallbackServiceKeys = [
     "authelia", "resilio-sync", "smbd", "deluged", "deluge-web", "denyhosts",
@@ -97,7 +134,7 @@
     ? runtime.serviceKeys
     : fallbackServiceKeys
   ).map(function (service) {
-    return { service: service, id: "#appstat_" + service };
+    return { service, id: "#appstat_" + service };
   });
   let lastServiceStatusResponse = {};
 
@@ -160,31 +197,72 @@
     window.jQuery(".tooltips").tooltip();
   }
 
-  function initializePackageTable() {
+  // Reads the interaction state of the live table. Must run before the widget
+  // HTML is replaced, otherwise the instance and its state are already gone.
+  function capturePackageTableState(task) {
     let $ = window.jQuery;
-    let currentPage = 0;
-    let currentSearch = "";
-    let currentOrder = [];
+    if (!$ || !$.fn || !$.fn.DataTable || !$.fn.DataTable.isDataTable("#dataTable1")) {
+      return;
+    }
+    let existing = $("#dataTable1").DataTable();
+    let state = {
+      page: existing.page(),
+      search: existing.search(),
+      order: existing.order(),
+      length: existing.page.len()
+    };
+    existing.destroy();
+    if (task) {
+      task._tableState = state;
+    }
+  }
+
+  function initializePackageTable(task) {
+    let $ = window.jQuery;
+    if (!$ || !$.fn || !$.fn.DataTable) {
+      return;
+    }
+    let state = (task && task._tableState) || null;
     if ($.fn.DataTable.isDataTable("#dataTable1")) {
       let existing = $("#dataTable1").DataTable();
-      currentPage = existing.page();
-      currentSearch = existing.search();
-      currentOrder = existing.order();
+      state = state || {
+        page: existing.page(),
+        search: existing.search(),
+        order: existing.order(),
+        length: existing.page.len()
+      };
       existing.destroy();
+    }
+    if (task) {
+      task._tableState = null;
     }
     let table = $("#dataTable1").DataTable();
     $(table.table().container()).find("input[type='search']").attr({
       id: "dataTable1-search",
       name: "dataTable1-search"
     });
-    if (currentSearch) {
-      table.search(currentSearch);
+    if (!state) {
+      $(".tooltips").tooltip({ container: "body" });
+      return;
     }
-    if (currentOrder && currentOrder.length > 0) {
-      table.order(currentOrder);
+    if (state.length) {
+      table.page.len(state.length);
     }
-    if (currentPage > 0 || currentSearch || (currentOrder && currentOrder.length > 0)) {
-      table.page(currentPage).draw(false);
+    if (state.search) {
+      table.search(state.search);
+    }
+    if (state.order && state.order.length > 0) {
+      table.order(state.order);
+    }
+    table.draw(false);
+    let page = state.page || 0;
+    let pageCount = table.page.info().pages;
+    if (pageCount > 0 && page > pageCount - 1) {
+      page = pageCount - 1;
+    }
+    if (page > 0) {
+      // draw(false) keeps the paging position while the data is refreshed.
+      table.page(page).draw(false);
     }
     $(".tooltips").tooltip({ container: "body" });
   }
@@ -314,6 +392,7 @@
         key: "PMC",
         url: "/node/pmc",
         id: "#pmc_widget",
+        beforeHtml: capturePackageTableState,
         after: initializePackageTable,
         bootstrap: !hasSsrPackageManagement,
         time: 30000
@@ -503,7 +582,12 @@
             return;
           }
           task._lastHtml = response.response;
+          if (task.beforeHtml && typeof task.beforeHtml === "function") {
+            // Runs while the previous DOM (and its component instances) still exist.
+            task.beforeHtml(task);
+          }
           window.jQuery(task.id).html(response.response);
+          markWidgetWritten(task.id, "ws");
           if (task.after && typeof task.after === "function") {
             task.after(task);
           }
@@ -819,13 +903,20 @@
       renderNetworkInterfaces([]);
     });
 
-    // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready)
+    // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready).
+    // A pre-fetch never overwrites a payload the WebSocket already delivered, and
+    // no longer infers readiness from the presence of child nodes (the CPU load
+    // widget is text only).
     function applyPrefetchHtml(selector, html) {
+      if (widgetWriteSourceOf(selector) !== "") {
+        return;
+      }
       let $el = window.jQuery(selector);
-      if ($el.find(".qb-skeleton").length === 0 && $el.children().length > 0) {
+      if (!$el.length) {
         return;
       }
       $el.html(html);
+      markWidgetWritten(selector, "prefetch");
     }
 
     fetch(window.quickboxWidgetUrl("/node/load"), { credentials: "same-origin" })
