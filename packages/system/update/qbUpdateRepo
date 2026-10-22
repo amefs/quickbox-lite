@@ -29,42 +29,42 @@ function _updateRepo() {
 	_info "Updating QuickBox local repository..."
 	BRANCH="https://github.com/amefs/quickbox-lite.git"
 	if [[ -f /install/.legacy.lock ]]; then
-		if $(grep -qv "branch \"legacy\"" /etc/QuickBox/.git/config); then
+		if grep -qv "branch \"legacy\"" /etc/QuickBox/.git/config; then
 			rm -rf "/etc/QuickBox"
-			_execute "git clone --recursive ${BRANCH} --branch legacy /etc/QuickBox"
+			_execute "git clone --recursive ${BRANCH} --branch legacy /etc/QuickBox" || return 1
 		else
 			cd /etc/QuickBox || exit 1
-			_execute "git checkout legacy"
-			_execute "git fetch origin"
-			_execute "git reset --hard origin/legacy"
+			_execute "git checkout legacy" || return 1
+			_execute "git fetch origin" || return 1
+			_execute "git reset --hard origin/legacy" || return 1
 		fi
 	elif [[ ! -f /install/.developer.lock ]]; then
 		# update to dev branch
 		if [[ -d /etc/QuickBox ]]; then
 			cd /etc/QuickBox || exit 1
-			_execute "git checkout master"
-			_execute "git fetch origin"
-			_execute "git reset --hard origin/master"
+			_execute "git checkout master" || return 1
+			_execute "git fetch origin" || return 1
+			_execute "git reset --hard origin/master" || return 1
 		else
-			_execute "git clone --recursive ${BRANCH} /etc/QuickBox"
+			_execute "git clone --recursive ${BRANCH} /etc/QuickBox" || return 1
 		fi
 	else
 		if [[ -d /etc/QuickBox ]]; then
 			cd /etc/QuickBox || exit 1
 			if [[ ! -f /install/.debug.lock ]]; then
-				_execute "git checkout development"
-				_execute "git fetch origin"
-				_execute "git reset --hard origin/development"
+				_execute "git checkout development" || return 1
+				_execute "git fetch origin" || return 1
+				_execute "git reset --hard origin/development" || return 1
 			else
-				_execute "git fetch origin"
-				_execute "git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)"
+				_execute "git fetch origin" || return 1
+				_execute "git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)" || return 1
 				echo "$(git rev-parse --abbrev-ref --symbolic-full-name @)($(git rev-parse --short HEAD))" > /install/.debug.lock
 			fi
 		else
-			_execute "git clone --recursive --branch development ${BRANCH} /etc/QuickBox"
+			_execute "git clone --recursive --branch development ${BRANCH} /etc/QuickBox" || return 1
 		fi
 	fi
-	dos2unix $(find ${local_prefix} -type f) >/dev/null 2>&1
+	dos2unix $(find ${local_prefix} -type f) >/dev/null 2>&1 || return 1
 	if [[ ! -f /install/.cdn.lock ]]; then
 		echo "github" > /install/.cdn.lock
 	fi
@@ -73,26 +73,27 @@ function _updateRepo() {
 
 function _setPerm() {
 	_info "Adjust file permission..."
-	chmod +x $(find /usr/local/bin/quickbox/ -type f) >/dev/null 2>&1
+	chmod +x $(find "${QUICKBOX_BIN_DIR:-/usr/local/bin/quickbox}" -type f) >/dev/null 2>&1 || return 1
 	_success "file permission updated"
 }
 
 function _bashrc() {
 	_info "Updating bashrc..."
-	mv /root/.bash_qb /root/.bash_qb.bak
-	\cp -f "${local_setup_template}"bash_qb.template /root/.bash_qb
+	mv /root/.bash_qb /root/.bash_qb.bak || return 1
+	\cp -f "${local_setup_template}"bash_qb.template /root/.bash_qb || return 1
 	if [ -f /root/.bash_qb_extras ]; then
-		mv /root/.bash_qb_extras /root/.bash_qb_extras.bak
+		mv /root/.bash_qb_extras /root/.bash_qb_extras.bak || return 1
 	fi
-	\cp -f "${local_setup_template}"bash_qb_extras.template /root/.bash_qb_extras
+	\cp -f "${local_setup_template}"bash_qb_extras.template /root/.bash_qb_extras || return 1
 	_success "bashrc updated"
 }
 
 function _updateskel() {
 	_info "Updating skel..."
-	if [[ ! -d /etc/skel ]]; then
-		mkdir /etc/skel
+	local skel_dir="${QUICKBOX_SKEL_DIR:-/etc/skel}"
+	if [[ ! -d "${skel_dir}" ]]; then
+		mkdir -p "${skel_dir}" || return 1
 	fi
-	_execute "rsync -aP ${local_setup_template}skel/. /etc/skel/"
+	_execute "rsync -aP ${local_setup_template}skel/. ${skel_dir}/" || return 1
 	_success "skel updated"
 }

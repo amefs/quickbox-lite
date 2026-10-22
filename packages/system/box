@@ -177,6 +177,7 @@ if [[ $resolver == "update" ]]; then
 	extraarg=${*:2}
 	if [[ $appname == "quickbox" ]]; then
 		bash /usr/local/bin/quickbox/system/qbUpdate "${*:3}"
+		exit $?
 	elif [[ -n $extraarg ]]; then
 		if [[ -f /usr/local/bin/quickbox/package/update/updatepackage-"${appname}" ]]; then
 			bash /usr/local/bin/quickbox/package/update/updatepackage-"${appname}" ${*:3}

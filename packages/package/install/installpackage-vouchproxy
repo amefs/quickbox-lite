@@ -310,7 +310,10 @@ location = /validate {
   proxy_pass_request_body off;
   proxy_set_header Content-Length "";
   proxy_set_header X-Original-URI $request_uri;
-  proxy_set_header Host $http_host;
+  # Vouch's domain authorization expects a hostname without a listener port.
+  # Preserve the public authority in the request/redirect paths, not this
+  # internal validation request's Host header.
+  proxy_set_header Host $host;
   proxy_set_header X-Forwarded-Proto $scheme;
   proxy_set_header X-Forwarded-Host $host;
   proxy_set_header X-Forwarded-Uri $request_uri;

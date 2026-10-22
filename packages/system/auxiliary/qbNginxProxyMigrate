@@ -1,0 +1,233 @@
+#!/bin/bash
+#
+# Migrate a legacy nginx proxy snippet that was installed with shell escapes
+# (e.g. `proxy_set_header Host \$host;`) into one that passes the real
+# authority to the upstream.
+#
+# The migration is deliberately narrow: only the directives that carry request
+# authority or cache variables are rewritten, every other line (timeouts,
+# buffers, authentication, custom settings) is preserved byte for byte.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Usage: qbNginxProxyMigrate [--template <proxy.conf.template>] [--no-verify]
+
+set -uo pipefail
+
+PROXY_CONF="${QUICKBOX_NGINX_PROXY_CONF:-/etc/nginx/snippets/proxy.conf}"
+BACKUP_ROOT="${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}"
+TEMPLATE=""
+VERIFY=1
+NGINX_BIN="${QUICKBOX_NGINX_BIN:-nginx}"
+CHANGED=0
+
+_info() { printf '➜ %s\n' "$@" >&2; }
+_success() { printf '✓ %s\n' "$@" >&2; }
+_warning() { printf '⚠ %s\n' "$@" >&2; }
+_error() { printf '✗ %s\n' "$@" >&2; }
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	--template)
+		TEMPLATE="${2:-}"
+		shift 2
+		;;
+	--no-verify)
+		VERIFY=0
+		shift
+		;;
+	-h | --help)
+		echo "Usage: qbNginxProxyMigrate [--template <proxy.conf.template>] [--no-verify]"
+		exit 0
+		;;
+	*)
+		_error "Unknown option: $1"
+		exit 2
+		;;
+	esac
+done
+
+if [[ "$(id -u)" -ne 0 ]] && [[ "${QUICKBOX_ALLOW_NON_ROOT:-0}" != "1" ]]; then
+	_error "qbNginxProxyMigrate must run as root"
+	exit 1
+fi
+
+TARGET_DIR=$(dirname "${PROXY_CONF}")
+if [[ ! -d "${TARGET_DIR}" ]]; then
+	_error "nginx snippets directory is missing: ${TARGET_DIR}"
+	exit 1
+fi
+
+nginx_test() {
+	if ! command -v "${NGINX_BIN}" >/dev/null 2>&1; then
+		return 2
+	fi
+	"${NGINX_BIN}" -t >/dev/null 2>&1
+	return $?
+}
+
+apply_mode() {
+	if [[ "$(id -u)" -eq 0 ]]; then
+		chown root:root "$1" 2>/dev/null
+	fi
+	chmod 0644 "$1" 2>/dev/null || true
+}
+
+# 1. Missing snippet: install the current template atomically. This is the only
+#    path that replaces the whole file, and it only runs when nothing exists.
+if [[ ! -f "${PROXY_CONF}" ]]; then
+	if [[ -z "${TEMPLATE}" || ! -f "${TEMPLATE}" ]]; then
+		_error "proxy snippet missing and no template supplied: ${PROXY_CONF}"
+		exit 1
+	fi
+	TMP=$(mktemp "${TARGET_DIR}/.proxy.conf.XXXXXX") || exit 1
+	if ! cp "${TEMPLATE}" "${TMP}"; then
+		rm -f "${TMP}"
+		_error "failed to stage ${TEMPLATE}"
+		exit 1
+	fi
+	apply_mode "${TMP}"
+	if ! mv -f "${TMP}" "${PROXY_CONF}"; then
+		rm -f "${TMP}"
+		_error "failed to install ${PROXY_CONF}"
+		exit 1
+	fi
+	_success "installed missing proxy snippet from template"
+	exit 0
+fi
+
+TS=$(date +%Y%m%d-%H%M%S)
+BACKUP_DIR="${BACKUP_ROOT}/${TS}"
+TMP=$(mktemp "${TARGET_DIR}/.proxy.conf.XXXXXX") || exit 1
+cleanup_tmp() { [[ -f "${TMP}" ]] && rm -f "${TMP}"; }
+trap cleanup_tmp EXIT
+
+if ! cp "${PROXY_CONF}" "${TMP}"; then
+	_error "failed to stage ${PROXY_CONF}"
+	exit 1
+fi
+
+# 2. Rewrite only the authority/cache directives.
+python3 - "${TMP}" <<'PYEOF'
+import re
+import sys
+
+path = sys.argv[1]
+
+AUTHORITY_DIRECTIVES = (
+    "proxy_set_header",
+    "proxy_cache_bypass",
+    "proxy_no_cache",
+    "proxy_redirect",
+)
+AUTHORITY_HEADERS = (
+    "host",
+    "x-real-ip",
+    "x-forwarded-for",
+    "x-forwarded-proto",
+    "x-forwarded-host",
+)
+
+changed = False
+legacy_host = False
+output = []
+
+with open(path, encoding="utf-8") as handle:
+    for line in handle:
+        stripped = line.strip()
+        if re.match(r"\s*proxy_set_header\s+Host\s+\\?\$host\s*;", line, re.IGNORECASE):
+            legacy_host = True
+        if "\\$" in line and not stripped.startswith("#"):
+            keyword = stripped.split(None, 1)[0] if stripped else ""
+            header = ""
+            if keyword == "proxy_set_header":
+                parts = stripped.split(None, 2)
+                header = parts[1].lower() if len(parts) > 1 else ""
+            candidate = keyword in AUTHORITY_DIRECTIVES and (
+                keyword != "proxy_set_header" or header in AUTHORITY_HEADERS
+            )
+            if candidate:
+                repaired = line.replace("\\$", "$")
+                if repaired != line:
+                    changed = True
+                    line = repaired
+
+        # Host must carry the port and IPv6 brackets of the client request, so a
+        # bare $host value is upgraded to $http_host.
+        repaired_host, replaced = re.subn(
+            r"^(\s*proxy_set_header\s+Host\s+)\$host(\s*;)",
+            r"\1$http_host\2",
+            line,
+            flags=re.IGNORECASE,
+        )
+        if replaced:
+            line = repaired_host
+            changed = True
+
+        # The shipped legacy snippet also hardcoded HTTPS. Repair that exact
+        # default only when this file contained the legacy Host directive;
+        # keep an independently customized proxy's protocol policy intact.
+        if legacy_host:
+            line, replaced = re.subn(
+                r"^(\s*proxy_set_header\s+X-Forwarded-Proto\s+)https(\s*;)",
+                r"\1$scheme\2", line, flags=re.IGNORECASE,
+            )
+            changed = changed or bool(replaced)
+
+        output.append(line)
+
+if changed:
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.writelines(output)
+
+sys.exit(0 if changed else 1)
+PYEOF
+REWRITE_STATUS=$?
+
+if [[ ${REWRITE_STATUS} -eq 0 ]]; then
+	CHANGED=1
+elif [[ ${REWRITE_STATUS} -ne 1 ]]; then
+	_error "proxy snippet rewrite failed (status ${REWRITE_STATUS})"
+	exit 1
+fi
+
+if [[ ${CHANGED} -eq 0 ]]; then
+	_success "proxy snippet already up to date"
+	exit 0
+fi
+
+# 3. Baseline nginx check before replacing anything, so a pre-existing unrelated
+#    failure is not attributed to this migration.
+BASELINE=0
+if [[ ${VERIFY} -eq 1 ]]; then
+	nginx_test
+	BASELINE=$?
+	if [[ ${BASELINE} -eq 2 ]]; then
+		_warning "nginx binary not found, skipping configuration verification"
+	fi
+fi
+
+mkdir -p "${BACKUP_DIR}" || exit 1
+if ! cp -p "${PROXY_CONF}" "${BACKUP_DIR}/proxy.conf"; then
+	_error "failed to back up ${PROXY_CONF}"
+	exit 1
+fi
+
+apply_mode "${TMP}"
+if ! mv -f "${TMP}" "${PROXY_CONF}"; then
+	_error "failed to activate migrated proxy snippet"
+	cp -p "${BACKUP_DIR}/proxy.conf" "${PROXY_CONF}"
+	exit 1
+fi
+
+if [[ ${VERIFY} -eq 1 && ${BASELINE} -eq 0 ]]; then
+	if ! nginx_test; then
+		_warning "nginx configuration test failed after migration, restoring backup"
+		cp -p "${BACKUP_DIR}/proxy.conf" "${PROXY_CONF}"
+		_error "proxy snippet migration rolled back"
+		exit 1
+	fi
+fi
+
+_success "proxy snippet migrated (backup: ${BACKUP_DIR}/proxy.conf)"
+exit 0

@@ -12,10 +12,21 @@ location ~* ^/(?:skins|lib|fonts|img|js|lang)/.*\.(?:css|js|png|jpg|jpeg|gif|svg
     access_log off;
 }
 
+# Restricted health probe for local monitoring only. It never proxies to the
+# dashboard process and never returns dashboard data, so loopback callers cannot
+# use it to bypass user authentication.
+location = /qb-healthz {
+    if ($remote_addr !~ "^(127\\.0\\.0\\.1|::1)$") { return 403; }
+    access_log off;
+    default_type text/plain;
+    return 200 "ok\n";
+}
+
 location ^~ /db/ {
     satisfy any;
     allow 127.0.0.1;
     deny all;
+    # qb-auth-begin
     auth_basic "password Required";
     auth_basic_user_file /etc/htpasswd;
 }
@@ -28,31 +39,31 @@ location ^~ /db/interface.txt {
     return 404;
 }
 
+# Loopback callers are NOT exempt from user authentication here: the gateway
+# secret identifies the proxy, not a logged-in user (see AUTH-01).
 location ^~ /ws {
-    satisfy any;
-    allow 127.0.0.1;
-    deny all;
+    # qb-auth-begin
     auth_basic "password Required";
     auth_basic_user_file /etc/htpasswd;
 
     proxy_pass http://127.0.0.1:8575;
+    # proxy.conf sets `Connection ""`; the upgrade headers must be applied after
+    # the include or WebSocket handshakes lose the Upgrade/Connection pair.
+    include snippets/proxy.conf;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
-    include snippets/proxy.conf;
-    include /srv/dashboard/db/nginx-ws-gateway.conf;
+    include /etc/nginx/snippets/quickbox-ws-gateway.conf;
     rewrite ^/ws/(?P<path>.*) /$path break;
 }
 
 location / {
-    satisfy any;
-    allow 127.0.0.1;
-    deny all;
+    # qb-auth-begin
     auth_basic "password Required";
     auth_basic_user_file /etc/htpasswd;
 
     proxy_pass http://127.0.0.1:8575;
+    include snippets/proxy.conf;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
-    include snippets/proxy.conf;
-    include /srv/dashboard/db/nginx-ws-gateway.conf;
+    include /etc/nginx/snippets/quickbox-ws-gateway.conf;
 }

@@ -61,19 +61,24 @@ function _fix_nginx_app_include() {
 	fi
 	if (grep -Eq '^[[:space:]]*include[[:space:]]+/etc/nginx/apps/\*;' < "${nginx_default}"); then
 		_info "Updating Nginx app include pattern..."
-		sed -i 's#^\([[:space:]]*include[[:space:]]\+\)/etc/nginx/apps/\*;#\1/etc/nginx/apps/*.conf;#' "${nginx_default}"
-		if _execute "nginx -t"; then
-			_execute "nginx -s reload"
-			_success "Nginx app include pattern updated"
-		else
-			_warning "Nginx config test failed after updating app include pattern"
+		local backup
+		backup=$(mktemp) || return 1
+		cp -p "${nginx_default}" "${backup}" || { rm -f "${backup}"; return 1; }
+		sed -i 's#^\([[:space:]]*include[[:space:]]\+\)/etc/nginx/apps/\*;#\1/etc/nginx/apps/*.conf;#' "${nginx_default}" || { cp -p "${backup}" "${nginx_default}"; rm -f "${backup}"; return 1; }
+		if ! _execute "nginx -t" || ! _execute "nginx -s reload"; then
+			cp -p "${backup}" "${nginx_default}" || return 1
+			rm -f "${backup}"
+			_execute "nginx -t" && _execute "nginx -s reload" || return 1
+			return 1
 		fi
+		rm -f "${backup}"
+		_success "Nginx app include pattern updated"
 	fi
 }
 
 function _updateservice() {
 	_info "Updating QuickBox service..."
-	_fix_nginx_app_include
+	_fix_nginx_app_include || return 1
 	# Update nginx service
 	if [[ ! -f /install/.quickbox-ws.lock ]]; then
 		_info "QuickBox Websockets service is not installed"
@@ -81,7 +86,7 @@ function _updateservice() {
 		if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
 			_info "Installing Node.js..."
 			cd /tmp || exit 1
-			_execute "curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh"
+			_execute "curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh" || return 1
 			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
 			exitstatus=$?
 			counter=0
@@ -96,29 +101,23 @@ function _updateservice() {
 					_warning "Fail to update nodejs source list! retry..."
 				fi
 			done
-			_execute "sudo bash nodesource_setup.sh"
-			_execute "apt-get install -y nodejs"
+			_execute "sudo bash nodesource_setup.sh" || return 1
+			_execute "apt-get install -y nodejs" || return 1
 			if [[ -f /tmp/nodesource_setup.sh ]]; then
 				rm nodesource_setup.sh
 			fi
 			_success "Node.js installed"
 		fi
-		# install service
-		_info "Installing Dashboard service..."
-		cd ${local_setup_dashboard}ws ||exit 1
-		_execute "npm ci --production"
-		\cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service
-		_execute "systemctl daemon-reload"
-		_execute "systemctl enable quickbox-ws.service"
-		touch /install/.quickbox-ws.lock
-		_success "QuickBox service updated"
+		# The dashboard updater stages dependencies and activates the unit only
+		# after the complete runtime is ready.
+		_info "Dashboard service installation is deferred to the staged dashboard update"
 	else
 		# upgrade to v22
 		_info "Upgrade nodejs to v22"
 		if [[ ! $(which npm) ]] || [[ ! $(node --version) =~ "v22" ]]; then
 			_info "Upgrading Node.js..."
 			cd /tmp || exit 1
-			_execute "curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh"
+			_execute "curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh" || return 1
 			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
 			exitstatus=$?
 			counter=0
@@ -133,16 +132,13 @@ function _updateservice() {
 					_warning "Fail to update nodejs source list! retry..."
 				fi
 			done
-			_execute "apt-get install -y nodejs"
+			_execute "apt-get install -y nodejs" || return 1
 			if [[ -f /tmp/nodesource_setup.sh ]]; then
 				rm nodesource_setup.sh
 			fi
 			_success "Node.js upgraded"
 		fi
-		_info "Reconfig Dashboard service..."
-		cd ${local_setup_dashboard}ws ||exit 1
-		_execute "npm ci --production"
-		_success "Dashboard service updated"
+		_info "Dashboard dependency activation is deferred to the staged dashboard update"
 	fi
 	# Update flexget nginx reverse proxy
 	username=$(cat /root/.admin.info | cut -d: -f1)

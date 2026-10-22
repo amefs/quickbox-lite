@@ -947,7 +947,20 @@ function _insngx() {
 
 	cp ${local_setup_template}nginx/ssl-params.conf.template /etc/nginx/snippets/ssl-params.conf
 
-	cp ${local_setup_template}nginx/proxy.conf.template /etc/nginx/snippets/proxy.conf
+	# Only install the proxy snippet verbatim when nothing exists yet; otherwise
+	# migrate the broken legacy directives and keep user customization.
+	if [[ -f /etc/nginx/snippets/proxy.conf ]]; then
+		if ! bash /usr/local/bin/quickbox/system/auxiliary/qbNginxProxyMigrate \
+			--template ${local_setup_template}nginx/proxy.conf.template >>"${OUTTO}" 2>&1; then
+			echo ">> Failed to migrate the nginx proxy snippet" >>"${OUTTO}" 2>&1
+			exit 1
+		fi
+	else
+		cp ${local_setup_template}nginx/proxy.conf.template /etc/nginx/snippets/proxy.conf
+	fi
+	mkdir -p /etc/nginx/snippets
+	chown root:root /etc/nginx/snippets/proxy.conf 2>/dev/null
+	chmod 0644 /etc/nginx/snippets/proxy.conf 2>/dev/null
 
 	# Download nginx fancyindex theme
 	wget -t3 -T20 -q -O /tmp/fancyindex.zip https://codeload.github.com/Naereen/Nginx-Fancyindex-Theme/zip/refs/heads/master >>"${OUTTO}" 2>&1
@@ -1040,17 +1053,60 @@ function _insdashboard() {
 	echo -e "XXX\n29\n$INFO_TEXT_PROGRESS_7_3\nXXX"
 	_webconsole
 	cd && mkdir -p /srv/dashboard
-	\cp -fR ${local_setup_dashboard}. /srv/dashboard
+	if ! \cp -fR ${local_setup_dashboard}. /srv/dashboard; then
+		_errorcolor
+		echo -e "XXX\n00\nFailed to copy the dashboard files to /srv/dashboard\nXXX"
+		_defaultcolor
+		echo ">> Failed to copy the dashboard files to /srv/dashboard" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
 	touch /srv/dashboard/db/output.log
-	/usr/local/bin/quickbox/system/theme/themeSelect-"${dash_theme}"
+	if ! /usr/local/bin/quickbox/system/theme/themeSelect-"${dash_theme}"; then
+		echo ">> Failed to prepare dashboard theme" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
 	IFACE=$(ip link show | grep -i broadcast | grep -m1 UP | cut -d: -f 2 | cut -d@ -f 1 | sed -e 's/ //g')
 	echo "${IFACE}" >/srv/dashboard/db/interface.txt
 	echo "${username}" >/srv/dashboard/db/master.txt
-	bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureWsGateway
-	chown -R www-data: /srv/dashboard
-	cp ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
-	sed -i "s/\/etc\/htpasswd/\/etc\/htpasswd.d\/htpasswd.${username}/g" /etc/nginx/apps/dashboard.conf
-	service nginx force-reload >/dev/null 2>&1
+
+	# Ownership: runtime code stays root owned, only the runtime state
+	# directories are writable by the service user.
+	if ! chown -R root:root /srv/dashboard ||
+		! chown -R www-data:www-data /srv/dashboard/db /srv/dashboard/skins; then
+		echo ">> Failed to set dashboard ownership" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+
+	# Gateway secret and injected header live in root-managed locations; the
+	# dashboard config below includes the generated snippet, so it must exist
+	# first.
+	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureWsGateway; then
+		_errorcolor
+		echo -e "XXX\n00\nFailed to prepare the WS gateway secret\nXXX"
+		_defaultcolor
+		echo ">> Failed to prepare the WS gateway secret" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+
+	if ! \cp -f ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf; then
+		echo ">> Failed to install the dashboard nginx config" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! sed -i "s/\/etc\/htpasswd/\/etc\/htpasswd.d\/htpasswd.${username}/g" /etc/nginx/apps/dashboard.conf; then
+		echo ">> Failed to configure dashboard authentication" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! nginx -t >>"${OUTTO}" 2>&1; then
+		_errorcolor
+		echo -e "XXX\n00\nnginx configuration test failed\nXXX"
+		_defaultcolor
+		echo ">> nginx configuration test failed" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! service nginx force-reload >>"${OUTTO}" 2>&1; then
+		echo ">> Failed to reload dashboard nginx configuration" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
 	case $uilang in
 	"en")
 		bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en >/dev/null 2>&1
@@ -1064,11 +1120,40 @@ function _insdashboard() {
 	esac
 	touch /install/.dashboard.lock
 	cd /srv/dashboard/ws || exit 1
-	npm ci --production >>"${OUTTO}" 2>&1
-	\cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service
-	systemctl daemon-reload >/dev/null 2>&1
-	systemctl enable quickbox-ws.service >/dev/null 2>&1
-	systemctl start quickbox-ws.service >/dev/null 2>&1
+	if ! npm ci --production >>"${OUTTO}" 2>&1; then
+		_errorcolor
+		echo -e "XXX\n00\n${ERROR_TEXT_NODEJS}\nXXX"
+		_defaultcolor
+		echo ">> Failed to install the dashboard dependencies" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! \cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service; then
+		echo ">> Failed to install the quickbox-ws service unit" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! systemctl daemon-reload >>"${OUTTO}" 2>&1; then
+		echo ">> systemctl daemon-reload failed" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! systemctl enable quickbox-ws.service >>"${OUTTO}" 2>&1; then
+		echo ">> Failed to enable quickbox-ws.service" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! systemctl start quickbox-ws.service >>"${OUTTO}" 2>&1; then
+		echo ">> Failed to start quickbox-ws.service" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! systemctl is-active --quiet quickbox-ws.service; then
+		echo ">> quickbox-ws.service is not running" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck --expect-proxy >>"${OUTTO}" 2>&1; then
+		_errorcolor
+		echo -e "XXX\n00\nDashboard health check failed, see ${OUTTO}\nXXX"
+		_defaultcolor
+		echo ">> Dashboard health check failed" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
 	touch /install/.quickbox-ws.lock
 }
 

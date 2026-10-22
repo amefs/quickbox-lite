@@ -1,28 +1,217 @@
 #!/bin/bash
 #
-# Ensure the dashboard WS gateway secret and nginx snippet exist.
+# Ensure the dashboard WS gateway secret and the nginx snippet that injects it.
+#
+# Layout (root managed):
+#   /etc/quickbox/ws.secret                                root:www-data 0640
+#   /etc/nginx/snippets/quickbox-ws-gateway.conf           root:root     0600
+#
+# The secret must be readable by the service user (it has to compare the
+# header) and writable only by root. The snippet is only read by the nginx
+# master process, so it is not exposed to www-data at all.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Usage: qbEnsureWsGateway [--cleanup-legacy]
 
-set -euo pipefail
+set -uo pipefail
+umask 077
 
-DB_DIR="${QUICKBOX_DASHBOARD_DB_DIR:-/srv/dashboard/db}"
-SECRET_FILE="${DB_DIR}/ws.secret"
-NGINX_SNIPPET="${DB_DIR}/nginx-ws-gateway.conf"
+SECRET_FILE="${QUICKBOX_WS_SECRET_FILE:-/etc/quickbox/ws.secret}"
+SNIPPET_FILE="${QUICKBOX_WS_SNIPPET_FILE:-/etc/nginx/snippets/quickbox-ws-gateway.conf}"
+LEGACY_DB_DIR="${QUICKBOX_DASHBOARD_DB_DIR:-/srv/dashboard/db}"
+LEGACY_SECRET_FILE="${LEGACY_DB_DIR}/ws.secret"
+LEGACY_SNIPPET_FILE="${LEGACY_DB_DIR}/nginx-ws-gateway.conf"
+SERVICE_USER="${QUICKBOX_WS_SERVICE_USER:-www-data}"
+RUNNING_AS_ROOT=0
 
-mkdir -p "${DB_DIR}"
+_info() { printf '➜ %s\n' "$@" >&2; }
+_success() { printf '✓ %s\n' "$@" >&2; }
+_warning() { printf '⚠ %s\n' "$@" >&2; }
+_error() { printf '✗ %s\n' "$@" >&2; }
 
+CLEANUP_LEGACY=0
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	--cleanup-legacy)
+		CLEANUP_LEGACY=1
+		shift
+		;;
+	-h | --help)
+		echo "Usage: qbEnsureWsGateway [--cleanup-legacy]"
+		exit 0
+		;;
+	*)
+		_error "Unknown option: $1"
+		exit 2
+		;;
+	esac
+done
+
+if [[ "$(id -u)" -eq 0 ]]; then
+	RUNNING_AS_ROOT=1
+elif [[ "${QUICKBOX_ALLOW_NON_ROOT:-0}" != "1" ]]; then
+	_error "qbEnsureWsGateway must run as root"
+	exit 1
+fi
+
+secure_parent() {
+	local path="$1" dir owner mode ancestor
+	dir=$(dirname "${path}")
+	if [[ -L "${dir}" ]]; then _error "refusing symlinked managed directory: ${dir}"; return 1; fi
+	if [[ ${RUNNING_AS_ROOT} -eq 1 ]]; then
+		# A protected immediate parent is insufficient if its ancestor can be
+		# renamed by the service user. Validate the existing directory chain
+		# before creating anything beneath it.
+		ancestor="${dir}"
+		while :; do
+			if [[ -L "${ancestor}" ]]; then _error "refusing symlinked managed ancestor: ${ancestor}"; return 1; fi
+			if [[ -e "${ancestor}" ]]; then
+				[[ -d "${ancestor}" ]] || return 1
+				owner=$(stat -c %u "${ancestor}" 2>/dev/null || stat -f %u "${ancestor}") || return 1
+				mode=$(stat -c %a "${ancestor}" 2>/dev/null || stat -f %Lp "${ancestor}") || return 1
+				[[ "${owner}" == 0 && $((8#${mode} & 8#22)) -eq 0 ]] || {
+					_error "managed ancestor must be root-owned and not group/other writable: ${ancestor}"; return 1;
+				}
+			fi
+			[[ "${ancestor}" != / ]] || break
+			ancestor=$(dirname "${ancestor}")
+		done
+	fi
+	if [[ ! -d "${dir}" ]]; then
+		if [[ ${RUNNING_AS_ROOT} -eq 1 ]]; then
+			mkdir -p -m 0755 "${dir}" || return 1
+			chown root:root "${dir}" || return 1
+		else
+			mkdir -p -m 0700 "${dir}" || return 1
+		fi
+	fi
+	if [[ ${RUNNING_AS_ROOT} -eq 1 ]]; then
+		owner=$(stat -c %u "${dir}" 2>/dev/null || stat -f %u "${dir}") || return 1
+		mode=$(stat -c %a "${dir}" 2>/dev/null || stat -f %Lp "${dir}") || return 1
+		[[ "${owner}" == 0 ]] || { _error "managed directory is not root-owned: ${dir}"; return 1; }
+		[[ $(( 8#${mode} & 8#22 )) -eq 0 ]] || { _error "managed directory is writable by group/other: ${dir}"; return 1; }
+	fi
+}
+
+normalize_secret() {
+	tr -d '[:space:]' <"$1" 2>/dev/null
+}
+
+is_valid_secret() {
+	[[ "$1" =~ ^[A-Za-z0-9._~+/=-]{16,}$ ]]
+}
+
+# Writes content from stdin to <path> atomically with an explicit mode/owner.
+# Usage: atomic_write <path> <mode> <owner> <group>
+atomic_write() {
+	local path="$1" mode="$2" owner="$3" group="$4"
+	local dir tmp
+	dir=$(dirname "${path}")
+	secure_parent "${path}" || return 1
+	tmp=$(mktemp "${dir}/.$(basename "${path}").XXXXXX") || return 1
+	if ! cat >"${tmp}"; then
+		rm -f "${tmp}"
+		return 1
+	fi
+	if [[ ${RUNNING_AS_ROOT} -eq 1 ]]; then
+		if ! chown "${owner}:${group}" "${tmp}"; then
+			rm -f "${tmp}"
+			return 1
+		fi
+	fi
+	chmod "${mode}" "${tmp}" || {
+		rm -f "${tmp}"
+		return 1
+	}
+	if ! mv -f "${tmp}" "${path}"; then
+		rm -f "${tmp}"
+		return 1
+	fi
+	return 0
+}
+
+# 1. Resolve the secret, preserving an existing valid value.
+SECRET=""
+SECRET_SOURCE=""
+
+if [[ -n "${QUICKBOX_WS_GATEWAY_SECRET:-}" ]]; then
+	SECRET="${QUICKBOX_WS_GATEWAY_SECRET//[[:space:]]/}"
+	SECRET_SOURCE="environment"
+elif [[ -L "${SECRET_FILE}" ]]; then
+	_error "refusing symlinked secret file: ${SECRET_FILE}"
+	exit 1
+elif [[ -s "${SECRET_FILE}" ]]; then
+	SECRET=$(normalize_secret "${SECRET_FILE}")
+	SECRET_SOURCE="${SECRET_FILE}"
+elif [[ -s "${LEGACY_SECRET_FILE}" ]]; then
+	SECRET=$(normalize_secret "${LEGACY_SECRET_FILE}")
+	SECRET_SOURCE="${LEGACY_SECRET_FILE} (legacy)"
+fi
+
+if [[ -z "${SECRET}" ]]; then
+	if ! SECRET=$(openssl rand -hex 32 2>/dev/null); then
+		_error "failed to generate the gateway secret"
+		exit 1
+	fi
+	SECRET_SOURCE="generated"
+elif ! is_valid_secret "${SECRET}"; then
+	_warning "existing gateway secret is malformed, generating a new one"
+	if ! SECRET=$(openssl rand -hex 32 2>/dev/null); then
+		_error "failed to generate the gateway secret"
+		exit 1
+	fi
+	SECRET_SOURCE="generated (replaced malformed value)"
+fi
+
+# 2. Install the secret. The consumer group is always allowed to read it.
+if ! secure_parent "${SECRET_FILE}"; then exit 1; fi
+if ! printf '%s\n' "${SECRET}" | atomic_write "${SECRET_FILE}" 0640 root "${SERVICE_USER}"; then
+	_error "failed to install ${SECRET_FILE}"
+	exit 1
+fi
+_info "gateway secret ready (source: ${SECRET_SOURCE})"
+
+# 3. Install the nginx snippet only when its content actually changes.
+if ! secure_parent "${SNIPPET_FILE}"; then exit 1; fi
+SNIPPET_CONTENT=$(printf 'proxy_set_header X-Quickbox-Gateway "%s";' "${SECRET}")
+if [[ -L "${SNIPPET_FILE}" ]]; then
+	_error "refusing symlinked gateway snippet: ${SNIPPET_FILE}"
+	exit 1
+elif [[ -f "${SNIPPET_FILE}" ]] && [[ "$(cat "${SNIPPET_FILE}")" == "${SNIPPET_CONTENT}" ]]; then
+	# Still enforce ownership/mode: a previous install may have relaxed them.
+	if [[ ${RUNNING_AS_ROOT} -eq 1 ]]; then
+		chown root:root "${SNIPPET_FILE}" || exit 1
+	fi
+	chmod 0600 "${SNIPPET_FILE}" || exit 1
+	_success "gateway snippet already up to date"
+else
+	if ! printf '%s\n' "${SNIPPET_CONTENT}" | atomic_write "${SNIPPET_FILE}" 0600 root root; then
+		_error "failed to install ${SNIPPET_FILE}"
+		exit 1
+	fi
+	_success "gateway snippet installed"
+fi
+
+# 4. Verify the result before anyone reloads nginx.
 if [[ ! -s "${SECRET_FILE}" ]]; then
-	openssl rand -hex 32 > "${SECRET_FILE}"
+	_error "${SECRET_FILE} is empty after installation"
+	exit 1
+fi
+if ! grep -qF 'X-Quickbox-Gateway' "${SNIPPET_FILE}"; then
+	_error "${SNIPPET_FILE} does not inject the gateway header"
+	exit 1
 fi
 
-chmod 640 "${SECRET_FILE}"
-if id www-data >/dev/null 2>&1; then
-	chown www-data:www-data "${SECRET_FILE}" 2>/dev/null || true
+# 5. Optional cleanup of the legacy in-dashboard copies. Only runs once the new
+#    locations are in place, so the proxy never loses its configuration.
+if [[ ${CLEANUP_LEGACY} -eq 1 ]]; then
+	if [[ -s "${SECRET_FILE}" && -s "${SNIPPET_FILE}" ]]; then
+		rm -f "${LEGACY_SECRET_FILE}" "${LEGACY_SNIPPET_FILE}"
+		_info "legacy gateway files removed from ${LEGACY_DB_DIR}"
+	else
+		_warning "skipping legacy cleanup, new gateway files are incomplete"
+	fi
 fi
 
-printf 'proxy_set_header X-Quickbox-Gateway "%s";\n' "$(tr -d '\n' < "${SECRET_FILE}")" > "${NGINX_SNIPPET}"
-chmod 640 "${NGINX_SNIPPET}"
-if id www-data >/dev/null 2>&1; then
-	chown www-data:www-data "${NGINX_SNIPPET}" 2>/dev/null || true
-fi
+exit 0

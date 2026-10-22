@@ -11,13 +11,18 @@ proxy_send_timeout 240;
 proxy_connect_timeout 240;
 
 # Basic Proxy Config
-proxy_set_header Host \$host;
-proxy_set_header X-Real-IP \$remote_addr;
-proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-proxy_set_header X-Forwarded-Proto https;
-#proxy_redirect  http://  \$scheme://;
+# NOTE: this file is installed with a plain copy, so nginx variables must NOT be
+# escaped. A literal "\$host" makes nginx send the string "$host" to the upstream,
+# which breaks Host/Origin validation (see qbNginxProxyMigrate).
+# $http_host keeps the port and the IPv6 brackets of the client request.
+proxy_set_header Host $http_host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Forwarded-Host $http_host;
+#proxy_redirect  http://  $scheme://;
 proxy_http_version 1.1;
 proxy_set_header Connection "";
-proxy_cache_bypass \$cookie_session;
-proxy_no_cache \$cookie_session;
+proxy_cache_bypass $cookie_session;
+proxy_no_cache $cookie_session;
 proxy_buffers 32 4k;

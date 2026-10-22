@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { exec, spawn, type ExecOptionsWithBufferEncoding } from "child_process";
+import { exec, spawn, spawnSync, type ExecOptionsWithBufferEncoding } from "child_process";
+import { randomUUID } from "crypto";
 import fs from "fs";
+import os from "os";
 import path from "path";
 import { Socket } from "socket.io";
 
@@ -53,6 +55,15 @@ function updatePidPath() {
     return path.join(getDashboardDbDir(), "update.pid");
 }
 
+/**
+ * Authoritative update lock. It lives outside /srv/dashboard so a dashboard
+ * rsync (`--delete`) can never remove it, and outside the service's private
+ * /tmp so the CLI and the WebSocket path share the same lock.
+ */
+export function getUpdateLockPath(): string {
+    return process.env.QUICKBOX_UPDATE_LOCK ?? "/run/lock/quickbox-update.lock";
+}
+
 function shellQuote(value: string) {
     return `'${value.replaceAll("'", "'\\''")}'`;
 }
@@ -66,34 +77,76 @@ export function isPidAlive(pid: number): boolean {
     try {
         process.kill(pid, 0);
         return true;
+    } catch (error) {
+        // A downgraded service user cannot signal another user's process. That is
+        // a permission problem, not evidence that the process exited.
+        return (error as NodeJS.ErrnoException).code === "EPERM";
+    }
+}
+
+export function readUpdatePid(pidPath = updatePidPath()): number | null {
+    try {
+        if (!fs.existsSync(pidPath)) {
+            return null;
+        }
+        const pid = parseInt(fs.readFileSync(pidPath, "utf8").trim(), 10);
+        return Number.isFinite(pid) && pid > 0 ? pid : null;
     } catch {
-        return false;
+        return null;
     }
 }
 
 export function isUpdateInProgress(pidPath = updatePidPath()): boolean {
+    const pid = readUpdatePid(pidPath);
+    return pid !== null && isPidAlive(pid);
+}
+
+/**
+ * Non-destructive probe of the authoritative lock. `unknown` means flock is
+ * unavailable (for example on a development macOS host), in which case the
+ * launch still relies on the lock acquired inside the runner itself.
+ */
+export function probeUpdateLock(lockPath = getUpdateLockPath()): "free" | "busy" | "unknown" {
     try {
-        if (!fs.existsSync(pidPath)) {
-            return false;
+        const result = spawnSync("flock", ["-n", "-E", "75", lockPath, "true"], { timeout: 5000 });
+        if (result.error) {
+            return "unknown";
         }
-        const pid = parseInt(fs.readFileSync(pidPath, "utf8").trim(), 10);
-        if (!Number.isFinite(pid) || pid <= 0) {
-            return false;
+        if (result.status === 0) {
+            return "free";
         }
-        return isPidAlive(pid);
+        if (result.status === 75) {
+            return "busy";
+        }
+        return "unknown";
     } catch {
-        return false;
+        return "unknown";
     }
 }
 
-function buildPersistentUpdateScript(command: string) {
+export function buildUpdateRunnerScript(command: string, statusPath: string) {
+    const lockPath = getUpdateLockPath();
     return [
+        `exec 9>${shellQuote(lockPath)} || { printf 'failed\\n' > ${shellQuote(statusPath)}; exit 78; }`,
+        "if ! flock -n 9; then",
+        `  printf 'busy\\n' > ${shellQuote(statusPath)}`,
+        `  echo "[$(date -Is)] quickbox update skipped, another update holds ${lockPath}"`,
+        "  exit 75",
+        "fi",
+        `printf 'ok\\n' > ${shellQuote(statusPath)}`,
         `echo $$ > ${shellQuote(updatePidPath())}`,
+        `cleanup() { exit_code=$?; rm -f ${shellQuote(updatePidPath())}; echo "[$(date -Is)] quickbox update finished (exit=\${exit_code})"; exit "$exit_code"; }`,
+        "trap cleanup EXIT",
+        "trap 'exit 129' HUP",
+        "trap 'exit 130' INT",
+        "trap 'kill -TERM \"${command_pid:-}\" 2>/dev/null || true; exit 143' TERM",
         `exec 1>>${shellQuote(outputLogPath())} 2>&1`,
         "echo \"[$(date -Is)] quickbox update started (pid=$$)\"",
-        command,
-        "echo \"[$(date -Is)] quickbox update finished (exit=$?)\"",
-        `rm -f ${shellQuote(updatePidPath())}`,
+        `bash -c ${shellQuote(command)} &`,
+        "command_pid=$!",
+        "wait \"$command_pid\"",
+        "command_status=$?",
+        "exit \"$command_status\"",
     ].join("\n");
 }
 
@@ -106,16 +159,85 @@ function appendUpdateLauncherLog(message: string) {
     }
 }
 
-function startPersistentUpdate(command: string) {
-    const script = buildPersistentUpdateScript(command);
-    const child = spawn("/bin/bash", ["-lc", script], {
-        detached: true,
-        stdio: "ignore",
-        env: execOption.env,
+function delay(ms: number) {
+    return new Promise<void>((resolve) => {
+        setTimeout(resolve, ms);
     });
-    child.unref();
-    appendUpdateLauncherLog(`[${new Date().toISOString()}] quickbox update scheduled as detached process ${child.pid ?? "unknown"}`);
-    return child.pid;
+}
+
+function readTextFile(filePath: string): string {
+    try {
+        return fs.readFileSync(filePath, "utf8").trim();
+    } catch {
+        return "";
+    }
+}
+
+export type UpdateLaunchState = "started" | "busy" | "failed";
+
+export interface UpdateLaunchResult {
+    state: UpdateLaunchState;
+    pid?: number;
+    detail?: string;
+}
+
+/**
+ * Starts the detached updater and reports what the runner actually did. The
+ * runner acquires the flock before touching anything; the caller only reports
+ * success once that lock was acquired.
+ */
+export async function launchPersistentUpdate(command: string): Promise<UpdateLaunchResult> {
+    if (probeUpdateLock() === "busy") {
+        return { state: "busy", detail: "Update already in progress" };
+    }
+
+    const statusPath = path.join(os.tmpdir(), `quickbox-update-${process.pid}-${Date.now()}-${randomUUID()}.status`);
+    const script = buildUpdateRunnerScript(command, statusPath);
+    let childPid: number | undefined;
+    try {
+        const child = spawn("/bin/bash", ["-lc", script], {
+            detached: true,
+            stdio: "ignore",
+            env: execOption.env,
+        });
+        child.unref();
+        childPid = child.pid ?? undefined;
+        appendUpdateLauncherLog(
+            `[${new Date().toISOString()}] quickbox update scheduled as detached process ${childPid ?? "unknown"}`,
+        );
+    } catch (error) {
+        fs.rmSync(statusPath, { force: true });
+        return { state: "failed", detail: error instanceof Error ? error.message : String(error) };
+    }
+
+    // Give the runner a bounded window to report the lock outcome.
+    const deadline = Date.now() + 1500;
+    let observed = "";
+    while (Date.now() < deadline) {
+        observed = readTextFile(statusPath);
+        if (observed !== "") {
+            break;
+        }
+        if (childPid !== undefined && !isPidAlive(childPid)) {
+            break;
+        }
+        await delay(100);
+    }
+    fs.rmSync(statusPath, { force: true });
+
+    if (observed === "busy") {
+        return { state: "busy", detail: "Update already in progress" };
+    }
+    if (observed === "failed") {
+        return { state: "failed", detail: `Could not acquire ${getUpdateLockPath()}` };
+    }
+    if (childPid !== undefined && observed === "" && !isPidAlive(childPid)) {
+        return { state: "failed", detail: "Update runner exited before acquiring the lock" };
+    }
+    if (observed !== "ok") {
+        return { state: "failed", detail: "Update runner did not confirm lock acquisition before timeout" };
+    }
+    return { state: "started", pid: childPid };
 }
 
 export function tryAcquireExecSlot(socket: Socket, maxPerSocket = DEFAULT_MAX_PER_SOCKET, maxGlobal = DEFAULT_MAX_GLOBAL): boolean {
@@ -204,28 +326,34 @@ const execHandler = (payload: unknown, client: Socket) => {
         return;
     }
     if (isPersistentUpdate(payload)) {
-        try {
-            if (isUpdateInProgress()) {
-                ret.success = false;
-                ret.message = "Update already in progress";
+        launchPersistentUpdate(template)
+            .then((result) => {
+                if (result.state === "busy") {
+                    ret.success = false;
+                    ret.message = "Update already in progress";
+                } else if (result.state === "failed") {
+                    ret.success = false;
+                    ret.message = "Failed to start detached update";
+                    ret.stderr = result.detail ?? "";
+                } else {
+                    ret.message = "Detached Update Started";
+                    ret.stdout = [
+                        `Launcher PID: ${result.pid ?? "unknown"}`,
+                        `Lock file: ${getUpdateLockPath()}`,
+                        `PID file: ${updatePidPath()}`,
+                        `Log file: ${outputLogPath()}`,
+                    ].join("\n");
+                }
                 finish();
-                return;
-            }
-            const pid = startPersistentUpdate(template);
-            ret.message = "Detached Update Started";
-            ret.stdout = [
-                `Launcher PID: ${pid ?? "unknown"}`,
-                `PID file: ${updatePidPath()}`,
-                `Log file: ${outputLogPath()}`,
-            ].join("\n");
-        } catch (e) {
-            ret.success = false;
-            ret.message = "Failed to start detached update";
-            if (e instanceof Error) {
-                ret.stderr = e.message;
-            }
-        }
-        finish();
+            })
+            .catch((error: unknown) => {
+                ret.success = false;
+                ret.message = "Failed to start detached update";
+                if (error instanceof Error) {
+                    ret.stderr = error.message;
+                }
+                finish();
+            });
         return;
     }
     exec(template, execOption, (error, stdout, stderr) => {

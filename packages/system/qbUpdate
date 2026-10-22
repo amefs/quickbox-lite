@@ -70,45 +70,68 @@ function _lockCheck() {
 	fi
 }
 function _setLock() {
-	echo "QuickBox" >/install/.install.lock
+	echo "QuickBox" >/install/.install.lock || return 1
+	update_owns_install_lock=1
+}
+function _releaseUpdateInstallLock() {
+	if [[ "${update_owns_install_lock:-0}" == 1 ]]; then
+		update_owns_install_lock=0
+		rm -f /install/.install.lock
+	fi
 }
 function _lockCleanup() {
-	rm -f /install/.install.lock
+	_releaseUpdateInstallLock
 	_success "QuickBox update finished!"
+}
+
+# Authoritative update lock. The WS launcher holds its own flock around the
+# detached runner; this one serializes every real update body (WS or CLI), so
+# two entry points can never run the update body at the same time.
+function _updateLockCheck() {
+	local lock="${QUICKBOX_UPDATE_CORE_LOCK:-/run/lock/quickbox-update-core.lock}"
+	if ! command -v flock >/dev/null 2>&1; then
+		_error "flock is required for safe updates"
+		return 1
+	fi
+	if ! exec 8>"${lock}"; then
+		_error "Cannot open the update lock: ${lock}"
+		return 1
+	fi
+	if ! flock -n 8; then
+		_error "Another update already holds ${lock}"
+		return 75
+	fi
+	return 0
+}
+
+function _updateAbort() {
+	local stage="$1"
+	printf '[QuickBox] Update aborted at stage: %s (%s)\n' "${stage}" "$(date -Is)" >>"${OUTTO}"
+	_releaseUpdateInstallLock
+	exit 1
+}
+
+# Runs one update stage and aborts the whole update when it fails, so a partial
+# deployment is never reported as completed.
+function _updateStep() {
+	local stage="$1"
+	shift
+	if ! "$@"; then
+		_error "Update stage failed: ${stage}"
+		_updateAbort "${stage}"
+	fi
 }
 
 function _installSystemUpdates() {
 	_info "Checking and performing updates to system... "
-	_execute "dpkg --configure -a"
-	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
-	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >>"${OUTTO}" 2>&1
-	## auto solve lock
-	if [ "$?" -eq 2 ]; then
-		_warning "dpkg database is locked."
-		_info "fixing dpkg lock..."
-		rm -f /var/lib/dpkg/updates/0*
-		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
-		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
-			for l in ${locks}; do
-				rm -rf "${l}"
-			done
-			_execute "dpkg --configure -a"
-			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
-			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >>"${OUTTO}" 2>&1
-		fi
-		if ! (apt-get check >/dev/null); then
-			apt-get install -f >>"${OUTTO}" 2>&1
-			if ! (apt-get check >/dev/null); then
-				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
-				exit 1
-			fi
-		fi
-	fi
+	_execute "dpkg --configure -a" || return 1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1 || return 1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >>"${OUTTO}" 2>&1 || return 1
 	_success "System updated."
 }
 
 function _preloadScript() {
-	source /usr/local/bin/quickbox/system/update/qbUpdateRepo
+	source /usr/local/bin/quickbox/system/update/qbUpdateRepo || return 1
 	if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
 		if [[ ! -f /install/.legacy.lock ]]; then
 			touch /install/.legacy.lock
@@ -120,9 +143,9 @@ function _preloadScript() {
 }
 
 function _reloadScript() {
-	source /usr/local/bin/quickbox/system/update/qbUpdateRepo
-	source /usr/local/bin/quickbox/system/update/qbUpdateService
-	source /usr/local/bin/quickbox/system/update/qbUpdateDashboard
+	source /usr/local/bin/quickbox/system/update/qbUpdateRepo || return 1
+	source /usr/local/bin/quickbox/system/update/qbUpdateService || return 1
+	source /usr/local/bin/quickbox/system/update/qbUpdateDashboard || return 1
 }
 
 function _fin() {
@@ -144,18 +167,22 @@ local_setup_dashboard=${local_prefix}setup/dashboard/
 #################################################################################
 # MAIN PROCESS
 #################################################################################
+_updateLockCheck
+update_lock_status=$?
+[[ ${update_lock_status} -eq 0 ]] || exit "${update_lock_status}"
 _lockCheck
-_setLock
+_setLock || exit 1
+trap _releaseUpdateInstallLock EXIT
 if [[ $core == 0 ]]; then
-	_installSystemUpdates
+	_updateStep "system packages" _installSystemUpdates
 fi
-_preloadScript
-_updateRepo
-_setPerm
-_bashrc
-_updateskel
-_reloadScript
-_updateservice
-_updatedashboard
-_updatelanguage
+_preloadScript || _updateAbort "preload update scripts"
+_updateStep "repository" _updateRepo
+_updateStep "permissions" _setPerm
+_updateStep "shell profile" _bashrc
+_updateStep "skel" _updateskel
+_reloadScript || _updateAbort "load update scripts"
+_updateStep "service" _updateservice
+_updateStep "dashboard" _updatedashboard
+_updateStep "language" _updatelanguage
 _fin
