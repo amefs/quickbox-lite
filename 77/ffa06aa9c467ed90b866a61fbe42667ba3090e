@@ -1,0 +1,21 @@
+.github/copilot-instructions.md
+  s_afaeccdef583f0::t_ffd08b8dba59fa 20
+  s_afaeccdef583f0::t_bd66947dd5b0a6 12,21
+  s_afaeccdef583f0::t_bdecce92cdb49a 162-163,199-202,230-232,304
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "77ffa06aa9c467ed90b866a61fbe42667ba3090e",
+  "prompts": {},
+  "sessions": {
+    "s_afaeccdef583f0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15e70-852f-7242-ac92-bed3d73fc928",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
