@@ -1,0 +1,16 @@
+packages/system/auxiliary/qbEnsureWsGateway
+  h_3705811fa4502c 82-83,85-86,89-90
+setup/dashboard/ws/tests/handlers/exec.spec.ts
+  h_3705811fa4502c 273-275
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2ffe4320dcc365e5bbf070174adb55f2bcc536ed",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
