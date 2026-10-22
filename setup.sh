@@ -1076,6 +1076,12 @@ function _insdashboard() {
 		echo ">> Failed to set dashboard ownership" >>"${OUTTO}" 2>&1
 		exit 1
 	fi
+	# The updater survives a restart of the WS unit, but PrivateTmp's /tmp does
+	# not. Keep update/health-check temporary files on persistent storage.
+	if ! install -d -m 0700 -o www-data -g www-data /srv/dashboard/db/tmp; then
+		echo ">> Failed to prepare the dashboard temporary directory" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
 
 	# Gateway secret and injected header live in root-managed locations; the
 	# dashboard config below includes the generated snippet, so it must exist

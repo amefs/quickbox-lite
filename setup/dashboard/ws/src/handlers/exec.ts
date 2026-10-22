@@ -126,6 +126,10 @@ export function probeUpdateLock(lockPath = getUpdateLockPath()): "free" | "busy"
 
 export function buildUpdateRunnerScript(command: string, statusPath: string) {
     const lockPath = getUpdateLockPath();
+    // The updater survives a restart of the WS unit (KillMode=process), but the
+    // unit's PrivateTmp /tmp does not survive that restart. Keep the updater and
+    // its health check on a persistent directory under the dashboard db instead.
+    const updateTmpDir = path.join(getDashboardDbDir(), "tmp");
     return [
         `exec 9>${shellQuote(lockPath)} || { printf 'failed\\n' > ${shellQuote(statusPath)}; exit 78; }`,
         "if ! flock -n 9; then",
@@ -133,6 +137,12 @@ export function buildUpdateRunnerScript(command: string, statusPath: string) {
         `  echo "[$(date -Is)] quickbox update skipped, another update holds ${lockPath}"`,
         "  exit 75",
         "fi",
+        `if ! mkdir -p ${shellQuote(updateTmpDir)}; then`,
+        `  printf 'failed\\n' > ${shellQuote(statusPath)}`,
+        `  echo "[$(date -Is)] cannot create updater temporary directory ${updateTmpDir}"`,
+        "  exit 78",
+        "fi",
+        `export TMPDIR=${shellQuote(updateTmpDir)}`,
         `printf 'ok\\n' > ${shellQuote(statusPath)}`,
         `echo $$ > ${shellQuote(updatePidPath())}`,
         `cleanup() { exit_code=$?; rm -f ${shellQuote(updatePidPath())}; echo "[$(date -Is)] quickbox update finished (exit=\${exit_code})"; exit "$exit_code"; }`,

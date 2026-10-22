@@ -123,7 +123,19 @@ if [[ ${EXPECT_PROXY} -eq 1 ]]; then
 		ENCRYPTED_PASSWORD=$(cut -d: -f2- "${ADMIN_FILE}")
 		ADMIN_PASSWORD=$(openssl enc -aes-128-ecb -pbkdf2 -a -d -pass "file:${PASSPHRASE_FILE}" -nosalt <<<"${ENCRYPTED_PASSWORD}" 2>/dev/null) || { _error "Cannot decrypt the protected dashboard health-check credential"; exit 1; }
 		if [[ -z "${ADMIN_USER}" || -z "${ADMIN_PASSWORD}" || "${ADMIN_USER}${ADMIN_PASSWORD}" == *$'\n'* || "${ADMIN_USER}${ADMIN_PASSWORD}" == *$'\r'* ]]; then _error "Decrypted dashboard health-check credential is invalid"; exit 1; fi
-		CURL_AUTH_CONFIG=$(mktemp) || { _error "Cannot create temporary curl auth configuration"; exit 1; }
+		# sudo resets the environment, so TMPDIR exported by the dashboard runner
+		# is not guaranteed to reach this root process. Prefer the persistent
+		# dashboard temp directory when it exists; /tmp may be a PrivateTmp mount
+		# that was removed when the WS unit restarted during the update.
+		if [[ -z "${TMPDIR:-}" || ! -d "${TMPDIR}" ]]; then
+			if [[ -d "${QUICKBOX_DASHBOARD_DB_DIR:-/srv/dashboard/db}/tmp" ]]; then
+				TMPDIR="${QUICKBOX_DASHBOARD_DB_DIR:-/srv/dashboard/db}/tmp"
+			else
+				TMPDIR=/tmp
+			fi
+		fi
+		if [[ ! -d "${TMPDIR}" ]]; then _error "Temporary directory is unavailable: ${TMPDIR}"; exit 1; fi
+		CURL_AUTH_CONFIG=$(mktemp "${TMPDIR}/qb-ws-health.XXXXXX") || { _error "Cannot create temporary curl auth configuration"; exit 1; }
 		trap '[[ -z "${CURL_AUTH_CONFIG}" ]] || rm -f "${CURL_AUTH_CONFIG}"' EXIT
 		AUTH_CURL_ARGS+=(--config "${CURL_AUTH_CONFIG}")
 		chmod 0600 "${CURL_AUTH_CONFIG}" || { [[ -z "${CURL_AUTH_CONFIG}" ]] || rm -f "${CURL_AUTH_CONFIG}"; exit 1; }
@@ -146,7 +158,7 @@ if [[ ${EXPECT_PROXY} -eq 1 ]]; then
 	fi
 	CHECK_SCHEME="${NGINX_SCHEME}"
 	if [[ -z "${NGINX_PORT}" ]]; then [[ "${CHECK_SCHEME}" == "https" ]] && NGINX_PORT=443 || NGINX_PORT=80; fi
-	if [[ "${HOST_HEADER}" == \[*\] ]]; then
+	if [[ "${HOST_HEADER}" =~ ^\[.*\]$ ]]; then
 		:
 	elif [[ "${HOST_HEADER}" == *:* ]]; then
 		HOST_HEADER="[${HOST_HEADER}]"

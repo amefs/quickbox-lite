@@ -8,6 +8,7 @@ Type=simple
 User=www-data
 Group=www-data
 Environment=NODE_ENV=production
+Environment=TMPDIR=/srv/dashboard/db/tmp
 ExecStart=/usr/bin/node /srv/dashboard/ws/dist/server.js
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process

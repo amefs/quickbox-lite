@@ -263,6 +263,20 @@ describe("handlers/exec", () => {
             expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal("ok");
             expect(fs.existsSync(path.join(dbDir, "update.pid"))).to.equal(false);
         });
+        it("should export a writable persistent TMPDIR for the updater", async () => {
+            const statusPath = path.join(sandbox, "status-tmpdir");
+            const command = 'test -d "$TMPDIR" && test -w "$TMPDIR" && test "$TMPDIR" = ' +
+                JSON.stringify(path.join(dbDir, "tmp"));
+            const script = `flock() { return 0; }\n${buildUpdateRunnerScript(command, statusPath)}`;
+            const child = spawn("/bin/bash", ["-c", script], { stdio: "ignore" });
+            const code = await new Promise<number | null>((resolve) => {
+                child.on("exit", (exitCode) => resolve(exitCode));
+            });
+            expect(code).to.equal(0);
+            expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal("ok");
+            expect(fs.existsSync(path.join(dbDir, "tmp"))).to.equal(true);
+        });
+
         it("should clean the pid when the runner receives a termination signal", async () => {
             const statusPath = path.join(sandbox, "status-signal");
             const script = `flock() { return 0; }\n${buildUpdateRunnerScript("sleep 10", statusPath)}`;

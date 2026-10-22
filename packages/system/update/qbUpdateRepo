@@ -73,7 +73,12 @@ function _updateRepo() {
 
 function _setPerm() {
 	_info "Adjust file permission..."
-	chmod +x $(find "${QUICKBOX_BIN_DIR:-/usr/local/bin/quickbox}" -type f) >/dev/null 2>&1 || return 1
+	# /usr/local/bin/quickbox is a symlink to /etc/QuickBox/packages. GNU find
+	# does not descend a symlink unless the starting point ends with a slash
+	# (or -L/-H is used); without it chmod gets no operands and the whole update
+	# aborts at this stage.
+	local bin_dir="${QUICKBOX_BIN_DIR:-/usr/local/bin/quickbox}"
+	find "${bin_dir}/" -type f -exec chmod +x {} + >/dev/null 2>&1 || return 1
 	_success "file permission updated"
 }
 

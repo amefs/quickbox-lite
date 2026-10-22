@@ -68,7 +68,8 @@ function _dashboardPrepareStage() {
 	rm -rf "${stage}" || return 1
 	mkdir -p "${stage}" || return 1
 	rsync -a "${live}/" "${stage}/" || return 1
-	rsync -a --delete --exclude=output.log --exclude=interface.txt --exclude=master.txt --exclude=ws.secret --exclude=nginx-ws-gateway.conf --exclude=.smoked.lock --exclude=.defaulted.lock --exclude=custom.css --exclude=update.pid --exclude=update.state "${source}"* "${stage}/" || return 1
+	rsync -a --delete --exclude=output.log --exclude=interface.txt --exclude=master.txt --exclude=ws.secret --exclude=nginx-ws-gateway.conf --exclude=.smoked.lock --exclude=.defaulted.lock --exclude=custom.css --exclude=update.pid --exclude=update.state --exclude=db/tmp "${source}"* "${stage}/" || return 1
+	install -d -m 0700 -o www-data -g www-data "${stage}/db/tmp" || return 1
 	(cd "${stage}/ws" && npm ci --production >>"${OUTTO}" 2>&1) || return 1
 	# Keep open runtime file descriptors (especially the updater's output.log)
 	# attached to the path in the newly activated tree by sharing their inode.
