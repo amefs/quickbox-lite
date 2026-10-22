@@ -1,0 +1,87 @@
+name: Dashboard deployment acceptance
+on:
+  pull_request:
+    paths:
+      - 'setup/**'
+      - 'packages/system/**'
+      - 'packages/package/install/installpackage-authelia'
+      - 'packages/package/install/installpackage-vouchproxy'
+      - 'tests/**'
+      - 'e2e/scripts/deployment-auth.cjs'
+      - 'e2e/package*.json'
+      - '.github/workflows/deployment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux-container:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Real Linux install, baseline upgrade, rollback, permissions and locks
+        run: bash tests/deployment/run-linux.sh
+  systemd:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Prepare disposable VM dependencies and pinned baseline
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nginx sudo openssl rsync curl python3 procps util-linux iproute2
+          sudo ln -sf "$(command -v node)" /usr/bin/node
+          npm ci --prefix setup/dashboard/ws
+          npm run build --prefix setup/dashboard/ws
+          mkdir -p "$RUNNER_TEMP/baseline"
+          git archive e0b522b8ccced7a07d0ae9cb575c052af6054d7e setup/dashboard setup/templates | tar -xf - -C "$RUNNER_TEMP/baseline"
+          npm ci --omit=dev --prefix "$RUNNER_TEMP/baseline/setup/dashboard/ws"
+      - name: Real systemd deployment and detached update lifecycle
+        run: |
+          sudo env PATH="$PATH" QUICKBOX_TEST_DISPOSABLE=1 \
+            QUICKBOX_TEST_BASELINE_DIR="$RUNNER_TEMP/baseline" \
+            python3 tests/deployment/run.py --systemd
+      - name: Collect service diagnostics
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/deployment-logs"
+          sudo journalctl -u quickbox-ws.service --no-pager > "$RUNNER_TEMP/deployment-logs/journal.log"
+          sudo cp /run/quickbox-test/*.log "$RUNNER_TEMP/deployment-logs/" || true
+          sudo cp /srv/dashboard/db/output.log "$RUNNER_TEMP/deployment-logs/update-output.log" || true
+          sudo chmod -R a+rX "$RUNNER_TEMP/deployment-logs"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: systemd-deployment-diagnostics
+          path: ${{ runner.temp }}/deployment-logs
+  authentication:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser runner
+        run: |
+          npm ci --prefix e2e
+          cd e2e
+          npx playwright install --with-deps chromium
+      - name: Real Basic Auth, Authelia and Vouch browser sessions
+        env:
+          QUICKBOX_AUTH_ARTIFACTS: ${{ runner.temp }}/auth-artifacts
+        run: bash tests/deployment/run-auth.sh
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: authentication-browser-diagnostics
+          path: ${{ runner.temp }}/auth-artifacts

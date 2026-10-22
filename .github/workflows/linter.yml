@@ -28,6 +28,20 @@ jobs:
           cd setup/dashboard/ws || exit 1
           npm run lint
 
+    - name: Run tests
+      run: |
+          cd setup/dashboard/ws || exit 1
+          npm test
+
+    - name: Verify the committed dashboard bundle matches the sources
+      run: |
+          cd setup/dashboard/ws || exit 1
+          npm run build
+          git diff --exit-code -- dist/server.js || {
+            echo "dist/server.js is out of date: rebuild it and commit the artifact." >&2
+            exit 1
+          }
+
   es-linter-for-js:
     runs-on: ubuntu-22.04
 
@@ -59,7 +73,31 @@ jobs:
       uses: azohra/shell-linter@latest
       with:
         # todo: scripts in packages
-        path: "onekey.sh,setup.sh,bump-version.sh"
+        path: "onekey.sh,setup.sh,bump-version.sh,packages/system/auxiliary/qbEnsureWsGateway,packages/system/auxiliary/qbNginxProxyMigrate,packages/system/auxiliary/qbWsHealthCheck"
+
+    - name: Check dashboard system script syntax
+      shell: bash
+      run: |
+        set -euo pipefail
+        # The dashboard deployment path is shell heavy: at minimum every script
+        # changed by the dashboard review must stay syntactically valid.
+        bash -n setup.sh
+        for script in packages/system/box packages/system/qbUpdate packages/system/update/qbUpdateDashboard \
+          packages/package/install/installpackage-vouchproxy \
+          packages/system/update/qbUpdateRepo packages/system/update/qbUpdateService \
+          packages/system/theme/themeSelect-defaulted packages/system/theme/themeSelect-smoked \
+          packages/system/auxiliary/qbEnsureWsGateway packages/system/auxiliary/qbNginxProxyMigrate \
+          packages/system/auxiliary/qbWsHealthCheck packages/system/auxiliary/qbNginxAuth; do
+          bash -n "${script}"
+        done
+
+    - name: Exercise dashboard deployment failures in a sandbox
+      shell: bash
+      run: |
+        set -euo pipefail
+        bash tests/system/dashboard-stage-sandbox.sh
+        python3 tests/system/qb-ensure-ws-gateway-sandbox.py
+        python3 tests/system/dashboard-update-sandbox.py
 
   python-linter:
     runs-on: ubuntu-22.04

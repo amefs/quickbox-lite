@@ -1,0 +1,28 @@
+services:
+  deployment:
+    image: quickbox-deployment-test
+    init: true
+    command: [python3, tests/deployment/auth.py]
+    environment:
+      QUICKBOX_TEST_DISPOSABLE: '1'
+      QUICKBOX_TEST_EXTERNAL: '1'
+    ports:
+      - '127.0.0.1:18443:18443'
+    volumes:
+      - '${QUICKBOX_AUTH_FIXTURES:?set fixture directory}:/auth-fixtures'
+      - './:/opt/quickbox-source/tests/deployment:ro'
+      - '../../packages:/opt/quickbox-source/packages:ro'
+      - '../../setup.sh:/opt/quickbox-source/setup.sh:ro'
+  authelia:
+    image: authelia/authelia:4.39.28
+    network_mode: service:deployment
+    command: [authelia, --config, /config/configuration.yml]
+    volumes:
+      - '${QUICKBOX_AUTH_FIXTURES}/authelia:/config'
+  vouch:
+    image: quay.io/vouch/vouch-proxy:0.50.0
+    network_mode: service:deployment
+    environment:
+      VOUCH_CONFIG: /config/config.yml
+    volumes:
+      - '${QUICKBOX_AUTH_FIXTURES}/vouch:/config:ro'
