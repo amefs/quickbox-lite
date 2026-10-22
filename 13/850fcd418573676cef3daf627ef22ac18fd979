@@ -1,0 +1,20 @@
+setup.sh
+  s_fcfe5f1e4b94d3::t_5f81fb506d7f29 16-17
+  s_fcfe5f1e4b94d3::t_58a73d3ab08764 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "13850fcd418573676cef3daf627ef22ac18fd979",
+  "prompts": {},
+  "sessions": {
+    "s_fcfe5f1e4b94d3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16352-28c1-7e72-8f9e-70e8dc5810ba",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
