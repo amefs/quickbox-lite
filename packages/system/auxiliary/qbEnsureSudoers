@@ -1,0 +1,120 @@
+#!/bin/bash
+#
+# Ensure the dashboard service user has the managed sudo command set.
+#
+# The dashboard runs as www-data and executes a fixed command whitelist through
+# `sudo -n`. Older installs may not contain the www-data rule, and some installs
+# left /etc/sudoers.d/dashboard and /etc/sudoers.d/quickbox with modes that make
+# `visudo -c` fail. This helper atomically installs the managed dashboard file,
+# validates it, checks a representative command as www-data, and restores the
+# previous file if the check fails.
+#
+# Usage: qbEnsureSudoers [template]
+# Environment:
+#   QUICKBOX_SUDOERS_FILE      target (default /etc/sudoers.d/dashboard)
+#   QUICKBOX_SUDOERS_BACKUP    backup root (default /var/backups/quickbox)
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -uo pipefail
+
+TEMPLATE="${1:-/etc/QuickBox/setup/templates/sudoers.template}"
+TARGET="${QUICKBOX_SUDOERS_FILE:-/etc/sudoers.d/dashboard}"
+BACKUP_ROOT="${QUICKBOX_SUDOERS_BACKUP:-/var/backups/quickbox}"
+TARGET_DIR=$(dirname "${TARGET}")
+TS=$(date +%Y%m%d-%H%M%S)
+BACKUP_DIR="${BACKUP_ROOT}/${TS}-sudoers"
+
+_info() { printf '➜ %s\n' "$@" >&2; }
+_success() { printf '✓ %s\n' "$@" >&2; }
+_warning() { printf '⚠ %s\n' "$@" >&2; }
+_error() { printf '✗ %s\n' "$@" >&2; }
+
+if [[ "$(id -u)" -ne 0 ]]; then
+	_error "qbEnsureSudoers must run as root"
+	exit 1
+fi
+if [[ -L "${TARGET}" ]]; then
+	_error "refusing symlinked sudoers target: ${TARGET}"
+	exit 1
+fi
+if [[ ! -f "${TEMPLATE}" ]]; then
+	_error "sudoers template is missing: ${TEMPLATE}"
+	exit 1
+fi
+if [[ ! -d "${TARGET_DIR}" ]]; then
+	_error "sudoers directory is missing: ${TARGET_DIR}"
+	exit 1
+fi
+
+umask 077
+TMP=$(mktemp "${TARGET_DIR}/.quickbox-sudoers.XXXXXX") || {
+	_error "cannot create a temporary sudoers file in ${TARGET_DIR}"
+	exit 1
+}
+cleanup() { [[ -f "${TMP}" ]] && rm -f "${TMP}"; }
+trap cleanup EXIT
+
+cp "${TEMPLATE}" "${TMP}" || {
+	_error "cannot copy ${TEMPLATE}"
+	exit 1
+}
+chown root:root "${TMP}" || {
+	_error "cannot set owner on ${TMP}"
+	exit 1
+}
+chmod 0440 "${TMP}" || {
+	_error "cannot set mode on ${TMP}"
+	exit 1
+}
+if ! visudo -cf "${TMP}" >/dev/null 2>&1; then
+	_error "the sudoers template does not pass visudo -cf: ${TEMPLATE}"
+	exit 1
+fi
+
+mkdir -p "${BACKUP_DIR}" || {
+	_error "cannot create backup directory: ${BACKUP_DIR}"
+	exit 1
+}
+chmod 0700 "${BACKUP_DIR}" || exit 1
+if [[ -f "${TARGET}" ]]; then
+	cp -p "${TARGET}" "${BACKUP_DIR}/dashboard" || {
+		_error "cannot back up ${TARGET}"
+		exit 1
+	}
+	_info "previous sudoers backup: ${BACKUP_DIR}/dashboard"
+fi
+
+mv -f "${TMP}" "${TARGET}" || {
+	_error "cannot activate ${TARGET}"
+	exit 1
+}
+chmod 0440 "${TARGET}" || {
+	_error "cannot enforce mode 0440 on ${TARGET}"
+	exit 1
+}
+if [[ -f /etc/sudoers.d/quickbox ]]; then
+	chmod 0440 /etc/sudoers.d/quickbox || _warning "cannot enforce mode 0440 on /etc/sudoers.d/quickbox"
+fi
+
+if ! sudo -u www-data sudo -n /bin/systemctl --version >/dev/null 2>&1; then
+	_error "www-data still cannot run the managed sudo command set"
+	if [[ -f "${BACKUP_DIR}/dashboard" ]]; then
+		cp -p "${BACKUP_DIR}/dashboard" "${TARGET}" || _warning "cannot restore ${TARGET}"
+		chmod 0440 "${TARGET}" 2>/dev/null || true
+		_warning "restored the previous ${TARGET}"
+	else
+		rm -f "${TARGET}"
+		_warning "removed the unverified ${TARGET}"
+	fi
+	exit 1
+fi
+
+if ! visudo -c >/dev/null 2>&1; then
+	_warning "visudo -c reports unrelated problems; the dashboard rule itself passed"
+else
+	_success "visudo -c passed"
+fi
+
+_success "dashboard sudoers ready: ${TARGET}"
+exit 0

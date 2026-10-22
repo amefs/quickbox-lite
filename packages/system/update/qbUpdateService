@@ -78,6 +78,13 @@ function _fix_nginx_app_include() {
 
 function _updateservice() {
 	_info "Updating QuickBox service..."
+	# Older installs may not grant www-data the managed command set, or may
+	# leave the sudoers files with modes that sudo reports as invalid. Repair
+	# the managed policy before the downgraded WS service depends on it.
+	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureSudoers; then
+		_error "Failed to install the dashboard sudoers policy"
+		return 1
+	fi
 	_fix_nginx_app_include || return 1
 	# Update nginx service
 	if [[ ! -f /install/.quickbox-ws.lock ]]; then

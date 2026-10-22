@@ -549,12 +549,17 @@ function _genadmin() {
 	echo "D /var/run/${username} 0750 ${username} ${username} -" >>/etc/tmpfiles.d/"${username}".conf
 	systemd-tmpfiles /etc/tmpfiles.d/"${username}".conf --create >>"${OUTTO}" 2>&1
 	# setup sudoers
-	cp ${local_setup_template}sudoers.template /etc/sudoers.d/dashboard
+	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureSudoers \
+		"${local_setup_template}sudoers.template"; then
+		echo ">> Failed to install the dashboard sudoers policy" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
 	if grep "${username}" /etc/sudoers.d/quickbox >/dev/null 2>&1; then
 		echo "No sudoers modification made ... " >>"${OUTTO}" 2>&1
 	else
 		echo "${username} ALL=(ALL:ALL) ALL" >>/etc/sudoers.d/quickbox
 	fi
+	chmod 0440 /etc/sudoers.d/quickbox 2>/dev/null || true
 	# setup bash custom
 	if [ ! -f /root/.bash_qb ]; then
 		cat >>/root/.bashrc <<'EOF'

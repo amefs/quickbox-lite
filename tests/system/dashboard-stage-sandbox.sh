@@ -11,6 +11,24 @@ export _norm="" _cyan="" _green="" _tan="" _red=""
 source "${repo_root}/packages/system/update/qbUpdateDashboard"
 source "${repo_root}/packages/system/update/qbUpdateRepo"
 
+# The staging step hands db/tmp to www-data. This sandbox runs unprivileged
+# (as CI does), so keep the mode but drop the ownership flags.
+install() {
+	local args=() arg
+	while (($#)); do
+		case "$1" in
+		-o | --owner | -g | --group)
+			shift 2
+			;;
+		*)
+			args+=("$1")
+			shift
+			;;
+		esac
+	done
+	command install "${args[@]}"
+}
+
 live="${sandbox}/live"
 stage="${sandbox}/stage"
 previous="${sandbox}/previous"

@@ -73,6 +73,23 @@ local_setup_template="$SANDBOX/templates/"
 QUICKBOX_BACKUP_DIR="$SANDBOX/backups"
 export OUTTO QUICKBOX_BACKUP_DIR
 chown() { return 0; }
+# The updater runs as root in production. This sandbox is unprivileged, so
+# keep install's modes but strip the ownership flags.
+install() {
+    local args=() arg
+    while (($#)); do
+        case "$1" in
+        -o | --owner | -g | --group)
+            shift 2
+            ;;
+        *)
+            args+=("$1")
+            shift
+            ;;
+        esac
+    done
+    command install "${args[@]}"
+}
 npm() {
     [[ "$FAIL_STAGE" != npm ]] || return 23
     mkdir -p node_modules/new
@@ -91,7 +108,7 @@ nginx() {
     fi
     return 0
 }
-export -f npm chown systemctl nginx
+export -f npm chown install systemctl nginx
 exec 9>>"$OUTTO"
 _updatedashboard
 result=$?
