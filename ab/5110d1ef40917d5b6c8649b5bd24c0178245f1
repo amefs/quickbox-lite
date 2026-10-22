@@ -1,0 +1,22 @@
+packages/system/auxiliary/qbEnsureSudoers
+  h_3705811fa4502c 1-120
+packages/system/update/qbUpdateService
+  h_3705811fa4502c 81-87
+setup.sh
+  h_3705811fa4502c 552-556,562
+tests/system/dashboard-stage-sandbox.sh
+  h_3705811fa4502c 14-31
+tests/system/dashboard-update-sandbox.py
+  h_3705811fa4502c 76-92,111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ab5110d1ef40917d5b6c8649b5bd24c0178245f1",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
