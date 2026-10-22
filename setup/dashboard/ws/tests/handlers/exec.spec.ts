@@ -270,7 +270,9 @@ describe("handlers/exec", () => {
             const script = `flock() { return 0; }\n${buildUpdateRunnerScript(command, statusPath)}`;
             const child = spawn("/bin/bash", ["-c", script], { stdio: "ignore" });
             const code = await new Promise<number | null>((resolve) => {
-                child.on("exit", (exitCode) => resolve(exitCode));
+                child.on("exit", (exitCode) => {
+                    resolve(exitCode);
+                });
             });
             expect(code).to.equal(0);
             expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal("ok");

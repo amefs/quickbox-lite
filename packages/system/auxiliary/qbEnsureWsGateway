@@ -79,11 +79,15 @@ secure_parent() {
 		done
 	fi
 	if [[ ! -d "${dir}" ]]; then
+		# Create parents under the current umask (077), then set the leaf mode
+		# explicitly: `mkdir -m` only applies to the deepest directory anyway.
 		if [[ ${RUNNING_AS_ROOT} -eq 1 ]]; then
-			mkdir -p -m 0755 "${dir}" || return 1
+			mkdir -p "${dir}" || return 1
+			chmod 0755 "${dir}" || return 1
 			chown root:root "${dir}" || return 1
 		else
-			mkdir -p -m 0700 "${dir}" || return 1
+			mkdir -p "${dir}" || return 1
+			chmod 0700 "${dir}" || return 1
 		fi
 	fi
 	if [[ ${RUNNING_AS_ROOT} -eq 1 ]]; then
