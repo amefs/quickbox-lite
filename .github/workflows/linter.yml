@@ -73,7 +73,7 @@ jobs:
       uses: azohra/shell-linter@latest
       with:
         # todo: scripts in packages
-        path: "onekey.sh,setup.sh,bump-version.sh,packages/system/auxiliary/qbEnsureWsGateway,packages/system/auxiliary/qbNginxProxyMigrate,packages/system/auxiliary/qbWsHealthCheck"
+        path: "onekey.sh,setup.sh,bump-version.sh,packages/system/auxiliary/qbEnsureWsGateway,packages/system/auxiliary/qbNginxProxyMigrate,packages/system/auxiliary/qbNormalizeRepo,packages/system/auxiliary/qbWsHealthCheck"
 
     - name: Check dashboard system script syntax
       shell: bash
@@ -87,7 +87,8 @@ jobs:
           packages/system/update/qbUpdateRepo packages/system/update/qbUpdateService \
           packages/system/theme/themeSelect-defaulted packages/system/theme/themeSelect-smoked \
           packages/system/auxiliary/qbEnsureWsGateway packages/system/auxiliary/qbNginxProxyMigrate \
-          packages/system/auxiliary/qbWsHealthCheck packages/system/auxiliary/qbNginxAuth; do
+          packages/system/auxiliary/qbNormalizeRepo packages/system/auxiliary/qbWsHealthCheck \
+          packages/system/auxiliary/qbNginxAuth; do
           bash -n "${script}"
         done
 
@@ -111,6 +112,10 @@ jobs:
       run: python3 scripts/lint-package-scripts.py
     - name: Test package script lint rules
       run: python3 tests/system/package-scripts-lint-test.py
+    - name: Check tracked file modes and line endings
+      run: python3 scripts/lint-repo-files.py
+    - name: Test the repository normalizer
+      run: python3 tests/system/repo-normalize-sandbox.py
 
   python-linter:
     runs-on: ubuntu-22.04

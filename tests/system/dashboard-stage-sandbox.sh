@@ -77,21 +77,19 @@ mkdir -p "$(dirname "${missing}")"
 _dashboardRestore "${backup}" "${missing}"
 test ! -e "${missing}"
 
-# _setPerm and _updateskel must return injected chmod/rsync failures.
-export QUICKBOX_BIN_DIR="${sandbox}/binroot" QUICKBOX_SKEL_DIR="${sandbox}/skel" local_setup_template="${sandbox}/templates/"
-mkdir -p "${QUICKBOX_BIN_DIR}" "${local_setup_template}skel"
-: >"${QUICKBOX_BIN_DIR}/command"
-: >"${local_setup_template}skel/example"
-cat >"${sandbox}/bin/chmod" <<'SH'
-#!/bin/sh
+# _setPerm and _updateskel must return injected normalization/rsync failures.
+export QUICKBOX_REPO_ROOT="${sandbox}/repo" QUICKBOX_SKEL_DIR="${sandbox}/skel" local_setup_template="${sandbox}/templates/"
+mkdir -p "${QUICKBOX_REPO_ROOT}/packages/system/auxiliary" "${QUICKBOX_SKEL_DIR}" "${local_setup_template}skel"
+cat >"${QUICKBOX_REPO_ROOT}/packages/system/auxiliary/qbNormalizeRepo" <<'SH'
 exit 29
 SH
+: >"${local_setup_template}skel/example"
 cat >"${sandbox}/bin/rsync" <<'SH'
 #!/bin/sh
 exit 31
 SH
-chmod +x "${sandbox}/bin/chmod" "${sandbox}/bin/rsync"
+chmod +x "${sandbox}/bin/rsync"
 hash -r
-if _setPerm; then echo 'expected injected chmod failure' >&2; exit 1; fi
+if _setPerm; then echo 'expected injected normalization failure' >&2; exit 1; fi
 if _updateskel; then echo 'expected injected rsync failure' >&2; exit 1; fi
 printf 'dashboard staging sandbox checks passed\n'

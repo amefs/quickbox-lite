@@ -1,12 +1,12 @@
-# Set the default behavior, in case people don't have core.autocrlf set.
-* text=auto
+# Normalize every text file to LF on checkout, regardless of the platform
+# setting of core.autocrlf. Git still detects binary files, and the explicit
+# binary rules below keep their current behavior.
+* text=auto eol=lf
 
-# Explicitly declare text files you want to always be normalized and converted
-# to native line endings on checkout.
-*.md text
-
-# Declare files that will always have LF line endings on checkout.
+# Text files that must stay LF even when edited on Windows.
+*.md text eol=lf
 *.sh text eol=lf
+*.py text eol=lf
 packages/**/* text eol=lf
 setup/lang/**/* text eol=lf
 setup/templates/**/* text eol=lf

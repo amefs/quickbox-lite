@@ -10,6 +10,8 @@
 # header) and writable only by root. The snippet is only read by the nginx
 # master process, so it is not exposed to www-data at all.
 #
+# Author: TautCony
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Usage: qbEnsureWsGateway [--cleanup-legacy]

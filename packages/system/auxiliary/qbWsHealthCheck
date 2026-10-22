@@ -8,6 +8,8 @@
 #   3. the Socket.IO polling handshake works with credentials
 #   4. nginx no longer serves the management entry point without user auth
 #
+# Author: TautCony
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Usage: qbWsHealthCheck [--expect-proxy]

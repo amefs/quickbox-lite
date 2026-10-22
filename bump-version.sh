@@ -65,6 +65,7 @@ function _update_version() {
         packages/package/update \
         packages/package/templates \
         packages/system \
+        setup/scripts \
         -type f -print0 2>/dev/null)
     FILE_LIST+=(
         onekey.sh

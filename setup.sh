@@ -1,18 +1,18 @@
 #!/bin/bash
+if [ "${QB_SETUP_BOOTSTRAP:-0}" != 1 ] && [ "${BASH_SOURCE[0]:-}" = "$0" ] && grep -q $'\r' "$0" 2>/dev/null; then sed 's/\r$//' "$0" >"${0}.$$.tmp" && mv "${0}.$$.tmp" "$0" || exit 1; QB_SETUP_BOOTSTRAP=1 exec bash "$0" "$@" ; fi #
 #
 # [QuickBox Lite Installation Guide Script]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # shellcheck disable=SC2046,SC1090,SC2181,SC2059
-#################################################################################
+################################################################################
 
 function _defaultcolor() {
 	export NEWT_COLORS='
@@ -97,6 +97,23 @@ function _init() {
 	if (! export | grep -q sbin); then
 		export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
 	fi
+	# Restore tracked file modes and LF endings before any repository script is
+	# sourced or executed. The helper also runs a scoped fallback over deployable
+	# paths; it never walks .git, node_modules or runtime state.
+	local normalize_helper="${local_prefix}packages/system/auxiliary/qbNormalizeRepo"
+	if [[ ! -s "${normalize_helper}" ]]; then
+		_error "Repository normalizer is missing or empty: ${normalize_helper}"
+		exit 1
+	fi
+	# Strip CR before bash parses the helper: a CRLF shebang cannot be executed
+	# directly, and bash cannot parse the helper's own self-heal in CRLF form.
+	local normalize_script
+	normalize_script=$(sed 's/\r$//' "${normalize_helper}") || exit 1
+	if ! QB_NORMALIZE_BOOTSTRAP=1 QB_NORMALIZE_RUN=1 \
+		bash -c "${normalize_script}" _ "${local_prefix}"; then
+		_error "Failed to normalize the QuickBox repository (file modes or line endings)."
+		exit 1
+	fi
 	{
 		# prepare scripts
 		echo -e "XXX\n00\nPreparing scripts... \nXXX"
@@ -113,8 +130,8 @@ function _init() {
 			apt-get -y install git curl wget dos2unix python3 apt-transport-https gnupg2 ca-certificates bind9-dnsutils unzip jq >/dev/null 2>&1
 		fi
 		echo -e "XXX\n20\nPreparing scripts... \nXXX"
-		dos2unix $(find ${local_prefix} -type f) >/dev/null 2>&1
-		chmod +x $(find ${local_prefix} -type f) >/dev/null 2>&1
+		# Executable bits and line endings were normalized before this progress
+		# block; no blanket dos2unix/chmod over the checkout is needed.
 		if [[ -d /usr/local/bin/quickbox ]]; then
 			rm -rf /usr/local/bin/quickbox
 		fi
@@ -1517,7 +1534,7 @@ function _startinstall() {
 	endtime=$(date +%s)
 	timeused=$((endtime - starttime))
 	timeusedmin=$((timeused / 60))
-	echo -e "\n#################################################################################" >>"${OUTTO}" 2>&1
+	echo -e "\n################################################################################" >>"${OUTTO}" 2>&1
 	echo "Install finished in $timeusedmin Min" >>"${OUTTO}" 2>&1
 	if [[ $autoreboot == 1 ]]; then 
 		reboot; 
@@ -1620,9 +1637,9 @@ $(if [[ $autoreboot == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_17}\n"; fi)\
 	fi
 }
 
-#################################################################################
+################################################################################
 # USAGE
-#################################################################################
+################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite Setup Script
 \nUsage: bash $(basename "$0") -u username -p password [OPTS]
@@ -1688,9 +1705,9 @@ function _usage() {
   -h, --help                       display this help and exit"
 }
 
-#################################################################################
+################################################################################
 # FLAGS INIT
-#################################################################################
+################################################################################
 uilang="en"
 OUTTO="/root/quickbox.$PPID.log"
 ftp=1
@@ -1741,9 +1758,9 @@ allow_http_config=0
 declare -A _cli_override=()
 _cli_override_packages=""
 
-#################################################################################
+################################################################################
 # HELPER FUNCTIONS FOR KICKSTART CONFIG
-#################################################################################
+################################################################################
 # Shared validation predicates used by both the TUI prompts and the kickstart
 # config validators. They perform the raw checks only and return a status code
 # identifying which rule failed, so each caller can render its own message.
@@ -2081,9 +2098,9 @@ function _generate_config() {
 	fi
 }
 
-#################################################################################
+################################################################################
 # OPT GENERATOR
-#################################################################################
+################################################################################
 if ! ARGS=$(getopt -a -o c:d:hrH:p:P:s:t:u: -l config:,allow-http-config,generate-config,config-output:,skip-summary,domain:,help,ftp-ip:,lang:,reboot,with-log,no-log,with-ftp,no-ftp,with-bbr,no-bbr,with-cf,with-sf,with-osdn,with-github,auth-provider:,auth-mode:,admin-email:,smtp-host:,smtp-port:,smtp-username:,smtp-password:,smtp-sender:,oidc-auth-url:,oidc-token-url:,oidc-userinfo-url:,oidc-client-id:,oidc-client-secret:,oidc-end-session-endpoint:,oidc-user:,oidc-user-map:,oidc-email-domains:,with-rtorrent,with-rutorrent,with-flood,with-transmission,with-qbittorrent,with-deluge,with-mktorrent,with-ffmpeg,with-filebrowser,with-linuxrar,qbittorrent-version:,deluge-version:,qbit-libt-version:,de-libt-version:,rtorrent-version:,transmission-version:,hostname:,port:,username:,password:,source:,theme:,tz:,timezone: -- "$@")
 then
 	_usage
@@ -2260,9 +2277,9 @@ while true; do
 	shift
 done
 
-#################################################################################
+################################################################################
 # MAIN PROCESS
-#################################################################################
+################################################################################
 # Init
 _init
 

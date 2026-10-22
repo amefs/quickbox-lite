@@ -64,7 +64,7 @@ function _updateRepo() {
 			_execute "git clone --recursive --branch development ${BRANCH} /etc/QuickBox" || return 1
 		fi
 	fi
-	dos2unix $(find ${local_prefix} -type f) >/dev/null 2>&1 || return 1
+	# File modes and line endings are repaired by _setPerm, which runs next.
 	if [[ ! -f /install/.cdn.lock ]]; then
 		echo "github" > /install/.cdn.lock
 	fi
@@ -73,12 +73,40 @@ function _updateRepo() {
 
 function _setPerm() {
 	_info "Adjust file permission..."
-	# /usr/local/bin/quickbox is a symlink to /etc/QuickBox/packages. GNU find
-	# does not descend a symlink unless the starting point ends with a slash
-	# (or -L/-H is used); without it chmod gets no operands and the whole update
-	# aborts at this stage.
-	local bin_dir="${QUICKBOX_BIN_DIR:-/usr/local/bin/quickbox}"
-	find "${bin_dir}/" -type f -exec chmod +x {} + >/dev/null 2>&1 || return 1
+	# Rebuild the executable contract from the shebang of every tracked file
+	# instead of marking the whole package tree executable. This keeps data and
+	# asset files non-executable and never walks .git or untracked node_modules.
+	local repo_root="${QUICKBOX_REPO_ROOT:-${local_prefix:-/etc/QuickBox}}"
+	repo_root="${repo_root%/}"
+	local normalize_helper="${repo_root}/packages/system/auxiliary/qbNormalizeRepo"
+	if [[ -s "${normalize_helper}" ]]; then
+		# Strip CR before bash parses the helper. Direct execution fails on a
+		# CRLF shebang, and `source` cannot repair the file before parsing it.
+		local normalize_script
+		normalize_script=$(sed 's/\r$//' "${normalize_helper}") || return 1
+		QB_NORMALIZE_BOOTSTRAP=1 QB_NORMALIZE_RUN=1 \
+			bash -c "${normalize_script}" _ "${repo_root}" || return 1
+	elif [[ -f /install/.legacy.lock ]]; then
+		# The legacy branch predates the normalizer. Keep that migration path
+		# alive, but scope the repair to packages/ and never chmod data files.
+		_warning "Legacy branch has no repository normalizer; using scoped legacy repair"
+		local file line
+		while IFS= read -r -d '' file; do
+			if grep -Iq $'\r' "${file}" 2>/dev/null; then
+				dos2unix "${file}" >/dev/null 2>&1 || return 1
+			fi
+			line=""
+			IFS= read -r -n 2 line <"${file}" 2>/dev/null || true
+			if [[ "${line}" == '#!' ]]; then
+				chmod 0755 "${file}" || return 1
+			fi
+		done < <(find "${repo_root}/packages" \
+			\( -name .git -o -name node_modules \) -prune -o \
+			-type f -print0 2>/dev/null)
+	else
+		_error "Repository normalizer is missing or empty: ${normalize_helper}"
+		return 1
+	fi
 	_success "file permission updated"
 }
 

@@ -14,6 +14,8 @@
 #   QUICKBOX_SUDOERS_FILE      target (default /etc/sudoers.d/dashboard)
 #   QUICKBOX_SUDOERS_BACKUP    backup root (default /var/backups/quickbox)
 #
+# Author: TautCony
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 set -uo pipefail

@@ -8,6 +8,8 @@
 # authority or cache variables are rewritten, every other line (timeouts,
 # buffers, authentication, custom settings) is preserved byte for byte.
 #
+# Author: TautCony
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Usage: qbNginxProxyMigrate [--template <proxy.conf.template>] [--no-verify]
