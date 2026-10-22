@@ -12618,6 +12618,7 @@ img.grayscale:hover {
 .brand-ico {
   vertical-align: top;
   width: 18px;
+  height: 18px;
   margin-right: 9px;
   border-radius: 50%;
 }

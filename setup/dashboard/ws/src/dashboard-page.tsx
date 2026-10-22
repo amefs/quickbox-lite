@@ -184,7 +184,7 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                     <div className="headerpanel">
                         <div className="logopanel">
                             <h2>
-                                <a href="#"><img src="/img/logo-light.png" alt="QuickBox Seedbox" className="logo-image" height="50" /></a>
+                                <a href="#"><img src="/img/logo-light.png" alt="QuickBox Seedbox" className="logo-image" width="222" height="50" /></a>
                             </h2>
                         </div>
                         <div className="headerbar">

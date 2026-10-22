@@ -223,6 +223,111 @@ test.describe("PMC widget state", () => {
         expect((await readPackageTableState(page))?.page).toBe(0);
         await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
     });
+
+    for (const width of [853, 1440]) {
+        test(`keeps the system panel from moving up as the package table shrinks at ${width}px`, async ({ page }) => {
+            await page.setViewportSize({ width, height: 900 });
+            await openDashboard(page);
+
+            const initialTop = await page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
+                const rect = element.getBoundingClientRect();
+                return rect.top + window.scrollY;
+            });
+            const table = page.locator("#dataTable1");
+            await page.evaluate(() => {
+                const win = window as unknown as { jQuery?: JQueryLike };
+                const $ = win.jQuery;
+                if ($ && $.fn && $.fn.DataTable) {
+                    $("#dataTable1").DataTable().page("last").draw(false);
+                }
+            });
+            await expect.poll(async () => (await readPackageTableState(page))?.page).toBe(3);
+            const afterLastPage = await page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
+                const rect = element.getBoundingClientRect();
+                return rect.top + window.scrollY;
+            });
+            expect(Math.abs(afterLastPage - initialTop)).toBeLessThanOrEqual(1);
+
+            await page.evaluate(() => {
+                const win = window as unknown as { jQuery?: JQueryLike };
+                const $ = win.jQuery;
+                if ($ && $.fn && $.fn.DataTable) {
+                    $("#dataTable1").DataTable().search("no-such-package-layout-regression").draw();
+                }
+            });
+            await expect(page.locator("#dataTable1 tbody td.dataTables_empty")).toBeVisible();
+            const afterEmptySearch = await page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
+                const rect = element.getBoundingClientRect();
+                return rect.top + window.scrollY;
+            });
+            expect(Math.abs(afterEmptySearch - initialTop)).toBeLessThanOrEqual(1);
+
+            if (width === 853) {
+                await page.evaluate(() => {
+                    const win = window as unknown as { jQuery?: JQueryLike };
+                    const $ = win.jQuery;
+                    if ($ && $.fn && $.fn.DataTable) {
+                        const table = $("#dataTable1").DataTable();
+                        table.search("");
+                        table.page.len(-1);
+                        table.draw();
+                    }
+                });
+                await expect.poll(async () => (await readPackageTableState(page))?.length).toBe(-1);
+                await page.evaluate(() => {
+                    const win = window as unknown as { jQuery?: JQueryLike };
+                    const $ = win.jQuery;
+                    if ($ && $.fn && $.fn.DataTable) {
+                        const table = $("#dataTable1").DataTable();
+                        table.page.len(10);
+                        table.draw();
+                    }
+                });
+                await expect.poll(async () => (await readPackageTableState(page))?.length).toBe(10);
+                const afterResetPageLength = await page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
+                    const rect = element.getBoundingClientRect();
+                    return rect.top + window.scrollY;
+                });
+                expect(Math.abs(afterResetPageLength - initialTop)).toBeLessThanOrEqual(1);
+
+                await page.setViewportSize({ width: 1440, height: 900 });
+                await expect.poll(async () => page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
+                    const rect = element.getBoundingClientRect();
+                    return rect.top + window.scrollY;
+                })).toBe(84);
+                await page.setViewportSize({ width: 853, height: 900 });
+                await expect.poll(async () => page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
+                    const rect = element.getBoundingClientRect();
+                    return rect.top + window.scrollY;
+                })).toBeCloseTo(initialTop, 0);
+                await page.evaluate(() => {
+                    const win = window as unknown as { jQuery?: JQueryLike };
+                    const $ = win.jQuery;
+                    if ($ && $.fn && $.fn.DataTable) {
+                        $("#dataTable1").DataTable().search("no-such-package-layout-regression").draw();
+                    }
+                });
+                await expect(page.locator("#dataTable1 tbody td.dataTables_empty")).toBeVisible();
+            }
+
+            // Replacing the widget must carry its reserved height across the new table instance.
+            const freshHtml = (await requestWidgetViaSocket(page, "PMC", "/node/pmc")).replace(
+                'data-inner-id="panel-server-package-management"',
+                'data-inner-id="panel-server-package-management" data-layout-regression="fresh"',
+            );
+            expect(await deliverSocketMessage(page, { key: "PMC", success: true, response: freshHtml, locale: "en" })).toBeGreaterThan(0);
+            await expect(page.locator('[data-layout-regression="fresh"]')).toHaveCount(1);
+            await expect(page.locator("#dataTable1")).toBeVisible();
+            await expect(page.locator("#dataTable1 tbody td.dataTables_empty")).toBeVisible();
+            expect((await readPackageTableState(page))?.search).toBe("no-such-package-layout-regression");
+            const afterRefresh = await page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
+                const rect = element.getBoundingClientRect();
+                return rect.top + window.scrollY;
+            });
+            expect(Math.abs(afterRefresh - initialTop)).toBeLessThanOrEqual(1);
+            await expect(table).toHaveCount(1);
+        });
+    }
 });
 
 test.describe("prefetch ordering", () => {
@@ -263,10 +368,20 @@ interface JQueryLike {
 }
 
 interface DataTableApi {
-    search: (value?: string) => string;
-    order: (value?: [number, string][]) => [number, string][];
+    search(): string;
+    search(value: string): DataTableApi;
+    order(): [number, string][];
+    order(value: [number, string][]): DataTableApi;
     draw: (paging?: boolean) => DataTableApi;
-    page: ((value?: number) => number) & { len: () => number; info: () => { pages: number } };
+    page: DataTablePage;
+}
+
+interface DataTablePage {
+    (): number;
+    (value: number | string): DataTableApi;
+    len(): number;
+    len(value: number): DataTableApi;
+    info: () => { pages: number };
 }
 
 interface JQueryCollection {
