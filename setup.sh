@@ -1,5 +1,4 @@
 #!/bin/bash
-if [ "${QB_SETUP_BOOTSTRAP:-0}" != 1 ] && [ "${BASH_SOURCE[0]:-}" = "$0" ] && grep -q $'\r' "$0" 2>/dev/null; then sed 's/\r$//' "$0" >"${0}.$$.tmp" && mv "${0}.$$.tmp" "$0" || exit 1; QB_SETUP_BOOTSTRAP=1 exec bash "$0" "$@" ; fi #
 #
 # [QuickBox Lite Installation Guide Script]
 #
@@ -13,6 +12,9 @@ if [ "${QB_SETUP_BOOTSTRAP:-0}" != 1 ] && [ "${BASH_SOURCE[0]:-}" = "$0" ] && gr
 #
 # shellcheck disable=SC2046,SC1090,SC2181,SC2059
 ################################################################################
+
+# Keep the CRLF bootstrap below file-level ShellCheck directives.
+if [ "${QB_SETUP_BOOTSTRAP:-0}" != 1 ] && [ "${BASH_SOURCE[0]:-}" = "$0" ] && grep -q $'\r' "$0" 2>/dev/null; then sed 's/\r$//' "$0" >"${0}.$$.tmp" && mv "${0}.$$.tmp" "$0" || exit 1; QB_SETUP_BOOTSTRAP=1 exec bash "$0" "$@" ; fi #
 
 function _defaultcolor() {
 	export NEWT_COLORS='
