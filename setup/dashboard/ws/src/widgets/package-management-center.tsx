@@ -15,7 +15,7 @@ export async function packageManagementCenter() {
             </div>
             <div className="panel-body text-center" style={{ padding: 0 }}>
                 <div className="alert alert-danger">
-                    <button type="button" className="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                    <button type="button" className="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     <div style={{ textAlign: "center" }} dangerouslySetInnerHTML={{ __html: i18n.t("PMC_NOTICE_TXT") }}></div>
                 </div>
                 <div className="table-responsive ps">

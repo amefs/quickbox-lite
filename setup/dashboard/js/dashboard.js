@@ -34,7 +34,7 @@
   let messages = (runtime && typeof runtime.messages === "object" && runtime.messages !== null) ? runtime.messages : {};
   window.quickboxApiBase = (runtime && typeof runtime.basePath === "string") ? runtime.basePath : "";
   window.quickboxLocale = normalizeLocale(runtime ? runtime.locale : undefined);
-  window.quickboxMessages = Object.assign({ enabled: "Enabled", disabled: "Disabled", refresh: "Refresh" }, messages);
+  window.quickboxMessages = Object.assign({ enabled: "Enabled", disabled: "Disabled", refresh: "Refresh", systemResponse: "System Response" }, messages);
   persistLocale(window.quickboxLocale);
 
   window.quickboxSetLocale = function (locale) {
@@ -660,13 +660,15 @@
     }
     let modalId = "quickbox-alert-modal";
     let $modal = $("#" + modalId);
+    let title = (window.quickboxMessages && window.quickboxMessages.systemResponse) || "System Response";
     if ($modal.length === 0) {
       $modal = $(
-        "<div class='modal fade' id='" + modalId + "' tabindex='-1' role='dialog' aria-hidden='true'>" +
-          "<div class='modal-dialog modal-lg'>" +
+        "<div class='modal fade' id='" + modalId + "' tabindex='-1' role='dialog' aria-modal='true' aria-labelledby='quickbox-alert-title'>" +
+          "<div class='modal-dialog'>" +
             "<div class='modal-content'>" +
               "<div class='modal-header'>" +
-                "<button type='button' class='close' data-dismiss='modal' aria-label='Close'>" +
+                "<h4 class='modal-title' id='quickbox-alert-title'>" + escapeHtml(title) + "</h4>" +
+                "<button type='button' class='quickbox-modal-close' data-dismiss='modal' aria-label='Close'>" +
                   "<span aria-hidden='true'>&times;</span>" +
                 "</button>" +
               "</div>" +
@@ -680,6 +682,7 @@
       );
       $("body").append($modal);
     }
+    $modal.find(".modal-title").text(title);
     $modal.find(".modal-body").html(message);
     $modal.modal("show");
   }

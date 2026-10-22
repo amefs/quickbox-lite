@@ -14,6 +14,13 @@ async function snap(page: Page, testInfo: TestInfo, name: string) {
     await testInfo.attach(name, { body: screenshot, contentType: "image/png" });
 }
 
+async function expectFocusInside(page: Page, selector: string) {
+    await expect.poll(() => page.evaluate((sel) => {
+        const container = document.querySelector(sel);
+        return Boolean(container && document.activeElement && container.contains(document.activeElement));
+    }, selector), { timeout: 5_000 }).toBe(true);
+}
+
 async function getRenderedWidgetText(page: Page) {
     return page.locator("#result-rendered").evaluate((el) => {
         const host = el as HTMLElement;
@@ -167,6 +174,9 @@ test.describe("Package Management Centre", () => {
 
         const sysResponse = page.locator("#sysResponse");
         await expect(sysResponse).toBeVisible({ timeout: 10_000 });
+        await expect(sysResponse).not.toHaveAttribute("aria-hidden", "true");
+        await expect(sysResponse).toHaveAttribute("aria-modal", "true");
+        await expectFocusInside(page, "#sysResponse");
         await expect(page.locator(".bootbox")).toHaveCount(0);
 
         await page.locator("#sysResponseCloseAction").click();
@@ -240,5 +250,46 @@ test.describe("Full Page Interactions", () => {
         await expect(page.locator("#bw_tables")).not.toBeEmpty({ timeout: 15_000 });
 
         await snap(page, testInfo, "full-page-all-widgets");
+    });
+});
+
+// ── Command failure dialog ──────────────────────────────────
+
+test.describe("Command failure dialog", () => {
+    test("should show the Bootstrap alert modal and escape failed command output", async ({ page }, testInfo) => {
+        await setMockProfile(page, "partial-running");
+        await page.goto("/");
+
+        await expect.poll(() => page.evaluate(() => {
+            const socket = (window as unknown as { socket?: { connected?: boolean } }).socket;
+            return socket?.connected === true;
+        }), { timeout: 15_000 }).toBe(true);
+
+        // An invalid payload makes the server answer with success: false.
+        // The embedded markup verifies that showAlert escapes both the message
+        // and the echoed command instead of injecting it as HTML.
+        const payload = "bogus:<img src=x onerror=window.__qbXss=1>";
+        await page.evaluate((command) => {
+            (window as unknown as { socket: { emit: (event: string, data: string) => void } }).socket.emit("exec", command);
+        }, payload);
+
+        const modal = page.locator("#quickbox-alert-modal");
+        await expect(modal).toBeVisible({ timeout: 10_000 });
+        expect(await modal.getAttribute("aria-hidden")).toBeNull();
+        await expect(modal).toHaveAttribute("aria-modal", "true");
+        await expect(modal).toHaveAttribute("aria-labelledby", "quickbox-alert-title");
+        await expect(modal.locator("#quickbox-alert-title")).toHaveText("System Response");
+        await expect(modal.locator(".quickbox-modal-close")).toBeVisible();
+        await expect(modal.locator(".modal-footer .btn-primary")).toBeVisible();
+        await expectFocusInside(page, "#quickbox-alert-modal");
+        await expect(modal.locator(".modal-body")).toContainText("Invalid payload");
+        await expect(modal.locator(".modal-body code")).toContainText(payload);
+        await expect(modal.locator(".modal-body img")).toHaveCount(0);
+        expect(await page.evaluate(() => (window as unknown as { __qbXss?: number }).__qbXss)).toBeUndefined();
+        await expect(page.locator(".bootbox")).toHaveCount(0);
+        await snap(page, testInfo, "exec-failure-alert-modal");
+
+        await modal.locator(".quickbox-modal-close").click();
+        await expect(modal).toBeHidden({ timeout: 10_000 });
     });
 });

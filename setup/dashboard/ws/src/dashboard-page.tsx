@@ -78,6 +78,7 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
             enabled: i18n.t("ENABLED"),
             disabled: i18n.t("DISABLED"),
             refresh: i18n.t("REFRESH"),
+            systemResponse: i18n.t("SYSTEM_RESPONSE_TITLE"),
         },
     };
 
@@ -130,6 +131,49 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
 .qb-skeleton-circle {
     border-radius: 50%;
     flex-shrink: 0;
+}
+#quickbox-alert-modal .modal-dialog {
+    width: 600px;
+    max-width: calc(100vw - 30px);
+}
+#quickbox-alert-modal .modal-header {
+    align-items: center;
+    display: flex;
+    min-height: 48px;
+    padding: 8px 12px 8px 20px;
+}
+#quickbox-alert-modal .modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 32px;
+}
+#quickbox-alert-modal .quickbox-modal-close {
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    color: #69707a;
+    flex: 0 0 32px;
+    font-size: 22px;
+    height: 32px;
+    line-height: 30px;
+    margin-left: auto;
+    opacity: .65;
+    padding: 0;
+    text-align: center;
+    width: 32px;
+}
+#quickbox-alert-modal .quickbox-modal-close:hover,
+#quickbox-alert-modal .quickbox-modal-close:focus {
+    background: rgba(0, 0, 0, .08);
+    color: #111;
+    opacity: 1;
+    outline: 0;
+}
+#quickbox-alert-modal .modal-footer {
+    padding: 12px 20px;
+}
+#quickbox-alert-modal .modal-footer .btn {
+    min-width: 88px;
 }
 ` }} />
                 <script src="/lib/jquery/jquery.min.js"></script>
@@ -401,25 +445,25 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                         </div>
                     </div>
                     <RemovalModals />
-                    <div className="modal animate__bounceIn animate__animated" id="themeSelectdefaultedConfirm" tabIndex={-1} role="dialog" aria-labelledby="ThemeSelectdefaultedConfirm" aria-hidden="true">
+                    <div className="modal animate__bounceIn animate__animated" id="themeSelectdefaultedConfirm" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="ThemeSelectdefaultedConfirm">
                         <div className="modal-dialog">
                             <div className="modal-content">
-                                <div className="modal-header"><button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 className="modal-title" id="ThemeSelectdefaultedConfirm">Defaulted</h4></div>
+                                <div className="modal-header"><button type="button" className="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 className="modal-title" id="ThemeSelectdefaultedConfirm">Defaulted</h4></div>
                                 <div className="modal-body">{i18n.t("THEME_CHANGE_TXT")}</div>
                                 <div className="modal-footer"><button type="button" className="btn btn-default" data-dismiss="modal">{i18n.t("CANCEL")}</button><button type="button" data-theme="defaulted" data-click-handler="themeSelect" id="themeSelectdefaultedGo" className="btn btn-primary">{i18n.t("AGREE")}</button></div>
                             </div>
                         </div>
                     </div>
-                    <div className="modal animate__bounceIn animate__animated" id="themeSelectsmokedConfirm" tabIndex={-1} role="dialog" aria-labelledby="ThemeSelectsmokedConfirm" aria-hidden="true">
+                    <div className="modal animate__bounceIn animate__animated" id="themeSelectsmokedConfirm" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="ThemeSelectsmokedConfirm">
                         <div className="modal-dialog">
                             <div className="modal-content">
-                                <div className="modal-header"><button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 className="modal-title" id="ThemeSelectsmokedConfirm">Smoked</h4></div>
+                                <div className="modal-header"><button type="button" className="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 className="modal-title" id="ThemeSelectsmokedConfirm">Smoked</h4></div>
                                 <div className="modal-body">{i18n.t("THEME_CHANGE_TXT")}</div>
                                 <div className="modal-footer"><button type="button" className="btn btn-default" data-dismiss="modal">{i18n.t("CANCEL")}</button><button type="button" data-theme="smoked" data-click-handler="themeSelect" id="themeSelectsmokedGo" className="btn btn-primary">{i18n.t("AGREE")}</button></div>
                             </div>
                         </div>
                     </div>
-                    <div className="modal animate__bounceIn animate__animated" id="sysResponse" tabIndex={-1} role="dialog" aria-labelledby="sysResponse" aria-hidden="true">
+                    <div className="modal animate__bounceIn animate__animated" id="sysResponse" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sysResponse">
                         <div className="modal-dialog" style={{ width: "600px" }}>
                             <div className="modal-content" style={{ background: "rgba(0, 0, 0, 0.6)", border: "2px solid rgba(0, 0, 0, 0.2)" }}>
                                 <div className="modal-header" style={{ background: "rgba(0, 0, 0, 0.4)", border: "0!important" }}>
