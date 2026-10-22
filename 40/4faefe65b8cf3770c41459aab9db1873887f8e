@@ -1,0 +1,35 @@
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_9e3054e501ac09::t_1c4a8964be0916 187
+setup/themes/defaulted/skins/quick.css
+  s_9e3054e501ac09::t_fbc377c8b5b368 12621
+setup/themes/smoked/skins/quick.css
+  s_9e3054e501ac09::t_83f35c2ddcab89 12621
+setup/dashboard/ws/dist/server.js
+  s_9e3054e501ac09::t_44dfdfe240f7d5 1
+setup/dashboard/ws/src/widgets/menu.tsx
+  s_9e3054e501ac09::t_1c4a8964be0916 112
+setup/dashboard/img/favicon/manifest.json
+  s_9e3054e501ac09::t_1c4a8964be0916 5,10,18
+e2e/tests/dashboard-state.spec.ts
+  s_9e3054e501ac09::t_680cfb8c448155 371-374,376-384
+  s_9e3054e501ac09::t_d6989f3702bf1b 241,244,249,263,314-319,321-322,327
+  s_9e3054e501ac09::t_02b67a0b24f1ce 265-302,311-312
+  s_9e3054e501ac09::t_5075afdd8776c2 303-310
+  s_9e3054e501ac09::t_56d25a85fd4b8b 226-240,242-243,245-248,250-262,264,313,320,323-326,328-330
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "404faefe65b8cf3770c41459aab9db1873887f8e",
+  "prompts": {},
+  "sessions": {
+    "s_9e3054e501ac09": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a162af-fd08-7892-b057-e7a3f2f9ead4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
