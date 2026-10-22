@@ -461,7 +461,6 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                 <script src="/lib/socket.io/socket.io.min.js"></script>
                 <script src="/lib/ansi_up/ansi_up.min.js"></script>
                 <script src="/lib/lazysizes/lazysizes.min.js" async></script>
-                <script src="/lib/bootbox/bootbox.all.min.js" async></script>
                 <script src="/js/quick.js"></script>
                 <script src="/js/dashboard.js"></script>
                 <script src="/lib/lobipanel/js/lobipanel.min.js"></script>

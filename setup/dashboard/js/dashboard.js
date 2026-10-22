@@ -653,15 +653,35 @@
   }
 
   function showAlert(message) {
-    if (window.bootbox && typeof window.bootbox.alert === "function") {
-      window.bootbox.alert({
-        message,
-        backdrop: true,
-        size: "large"
-      });
+    let $ = window.jQuery;
+    if (!$ || typeof $.fn.modal !== "function") {
+      window.alert(message);
       return;
     }
-    window.alert(message);
+    let modalId = "quickbox-alert-modal";
+    let $modal = $("#" + modalId);
+    if ($modal.length === 0) {
+      $modal = $(
+        "<div class='modal fade' id='" + modalId + "' tabindex='-1' role='dialog' aria-hidden='true'>" +
+          "<div class='modal-dialog modal-lg'>" +
+            "<div class='modal-content'>" +
+              "<div class='modal-header'>" +
+                "<button type='button' class='close' data-dismiss='modal' aria-label='Close'>" +
+                  "<span aria-hidden='true'>&times;</span>" +
+                "</button>" +
+              "</div>" +
+              "<div class='modal-body'></div>" +
+              "<div class='modal-footer'>" +
+                "<button type='button' class='btn btn-primary' data-dismiss='modal'>OK</button>" +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+        "</div>"
+      );
+      $("body").append($modal);
+    }
+    $modal.find(".modal-body").html(message);
+    $modal.modal("show");
   }
 
   let inflightExecCount = 0;

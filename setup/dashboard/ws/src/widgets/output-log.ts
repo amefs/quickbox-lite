@@ -136,7 +136,7 @@ export function readOutputLog(offset?: number, length?: number): OutputLogResult
     const buffer = Buffer.alloc(bytesToRead);
 
     const fd = openSync(logPath, "r");
-    let bytesRead = 0;
+    let bytesRead: number;
     try {
         bytesRead = readSync(fd, buffer, 0, bytesToRead, startPos);
     } finally {

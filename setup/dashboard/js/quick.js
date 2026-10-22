@@ -151,7 +151,7 @@ $(document).ready(function () {
 
     const d = new Date();
     const curr_date = d.getDate();
-    let sup = "";
+    let sup;
 
     if (curr_date === 1 || curr_date === 21 || curr_date === 31) {
       sup = "st";
