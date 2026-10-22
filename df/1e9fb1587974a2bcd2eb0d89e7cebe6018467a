@@ -1,0 +1,16 @@
+e2e/tests/dashboard-state.spec.ts
+  h_3705811fa4502c 1-278
+setup/dashboard/js/dashboard.js
+  h_3705811fa4502c 43-45,90-123,137,200-202,204-225,228-233,236-238,244-255,257-261,263-265,395,585-588,590,906-909,911-913,915,919
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df1e9fb1587974a2bcd2eb0d89e7cebe6018467a",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
