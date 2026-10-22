@@ -2,13 +2,14 @@
 #
 # [QuickBox Lite Bump Version Script]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   TautCony
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           TautCony
 # Current version:  v1.6.1
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-#################################################################################
+################################################################################
+
 VERSION=
 COMMIT=
 DRY_RUN=
@@ -62,6 +63,7 @@ function _update_version() {
         packages/package/install \
         packages/package/remove \
         packages/package/update \
+        packages/package/templates \
         packages/system \
         -type f -print0 2>/dev/null)
     FILE_LIST+=(

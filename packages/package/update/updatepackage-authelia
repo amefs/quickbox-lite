@@ -2,94 +2,128 @@
 #
 # [QuickBox Lite Authelia Updater]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
+################################################################################
 
-#################################################################################
+################################################################################
+# CORE VARIABLE
+################################################################################
+set -euo pipefail
+
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
-
-set -euo pipefail
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
 
 _norm=$(tput sgr0)
 _red=$(tput setaf 1)
 _green=$(tput setaf 2)
+_tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-_execute() { ($1 >>"${OUTTO}" 2>&1); }
-_info() { printf "${_cyan}➜ %s${_norm}\n" "$@"; printf ">> Info: %s\n" "$@" >>"${OUTTO}"; }
-_success() { printf "${_green}✓ %s${_norm}\n" "$@"; printf ">> Success: %s\n" "$@" >>"${OUTTO}"; }
-_error() { printf "${_red}✗ %s${_norm}\n" "$@"; printf ">> Error: %s\n" "$@" >>"${OUTTO}"; }
+function _execute() {
+	($1 >>"${OUTTO}" 2>&1)
+}
+function _print() {
+	printf "${_norm}%s${_norm}\n" "$@"
+	printf "%s\n" "$@" >>"${OUTTO}"
+}
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
 
+################################################################################
+# APP VARIABLE
+################################################################################
 APP_TITLE="Authelia"
 APP_NAME="authelia"
 APP_SERVICE="authelia"
-APP_LOCK=.${APP_NAME}.lock
-OUTTO=/srv/dashboard/db/output.log
+APP_LOCK=".${APP_NAME}.lock"
+OUTTO="/srv/dashboard/db/output.log"
 
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
-
-#################################################################################
-# MAIN PROCESS
-#################################################################################
-
-_usage() {
+function _usage() {
   echo -e "\nQuickBox Lite ${APP_TITLE} Updater"
   echo -e "\nUsage:\n$(basename "$0") [-l logfile]"
+  echo "-h, --help               display this help and exit"
+  echo "-l, --log <logfile>       specific log file"
 }
 
-if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@"); then
-  _usage
-  exit 1
-fi
+################################################################################
+# UPDATE FUNCTIONS
+################################################################################
+function _lockCheck() {
+	if [[ ! -f "/install/$APP_LOCK" ]]; then
+	  _error "${APP_TITLE} hasn't been installed."
+	  exit 1
+	fi
 
-# shellcheck disable=SC2086
-set -- $ARGS
-while true; do
-  case "$1" in
-    -h|--help)
-      _usage
-      exit 0
-      ;;
-    -l|--log)
-      OUTTO="$2"
-      shift
-      ;;
-    --)
-      shift
-      break
-      ;;
-  esac
-  shift
-done
+	if [[ -f "/install/.install.lock" ]]; then
+	  _error "Another install process is active."
+	  exit 1
+	fi
+}
 
-if [[ ! -f "/install/$APP_LOCK" ]]; then
-  _error "${APP_TITLE} hasn't been installed."
-  exit 1
-fi
+function _setLock() {
+	echo "${APP_TITLE}" >/install/.install.lock
+}
 
-if [[ -f "/install/.install.lock" ]]; then
-  _error "Another install process is active."
-  exit 1
-fi
+function _lockCleanup() {
+	rm -f /install/.install.lock
+}
 
-echo "${APP_TITLE}" >/install/.install.lock
+function _updateInfo() {
+	_print "
+$APP_TITLE will now be updated.
 
-_info "Updating ${APP_TITLE} image and restarting service..."
-if [[ -f "/opt/authelia/docker-compose.yml" ]]; then
-  _info "Ensuring ${APP_TITLE} compose runtime user is www-data..."
-  authelia_uid=$(id -u www-data)
-  authelia_gid=$(id -g www-data)
-  python3 - "$authelia_uid" "$authelia_gid" <<'PYEOF'
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _updateApp() {
+	_info "Updating ${APP_TITLE} image and restarting service..."
+	if [[ -f "/opt/authelia/docker-compose.yml" ]]; then
+	  _info "Ensuring ${APP_TITLE} compose runtime user is www-data..."
+	  authelia_uid=$(id -u www-data)
+	  authelia_gid=$(id -g www-data)
+	  python3 - "$authelia_uid" "$authelia_gid" <<'PYEOF'
 from pathlib import Path
 import re
 import sys
@@ -108,12 +142,12 @@ else:
 
 path.write_text(text)
 PYEOF
-  _execute "chown -R www-data:www-data /opt/authelia"
-fi
+	  _execute "chown -R www-data:www-data /opt/authelia"
+	fi
 
-if [[ -f "/opt/authelia/configuration.yml" ]]; then
-  _info "Applying ${APP_TITLE} base-path compatibility settings..."
-  python3 - <<'PYEOF'
+	if [[ -f "/opt/authelia/configuration.yml" ]]; then
+	  _info "Applying ${APP_TITLE} base-path compatibility settings..."
+	  python3 - <<'PYEOF'
 from pathlib import Path
 import re
 
@@ -126,11 +160,11 @@ text = re.sub(
 )
 path.write_text(text)
 PYEOF
-fi
+	fi
 
-if [[ -f "/etc/nginx/apps/authelia-auth.conf" ]]; then
-  _info "Applying modern ${APP_TITLE} auth_request redirect flow..."
-  python3 - <<'PYEOF'
+	if [[ -f "/etc/nginx/apps/authelia-auth.conf" ]]; then
+	  _info "Applying modern ${APP_TITLE} auth_request redirect flow..."
+	  python3 - <<'PYEOF'
 from pathlib import Path
 import re
 
@@ -172,15 +206,50 @@ if 'proxy_set_header X-Forwarded-Method $request_method;' not in text:
 
 path.write_text(text)
 PYEOF
+	fi
+
+	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --restore"
+	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate"
+
+	_execute "docker compose -f /opt/authelia/docker-compose.yml pull"
+	_execute "systemctl restart ${APP_SERVICE}"
+	_execute "nginx -t"
+	_execute "nginx -s reload"
+
+	_success "${APP_TITLE} updated."
+}
+
+################################################################################
+# OPT GENERATOR
+################################################################################
+if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@"); then
+	_usage
+	exit 1
 fi
+eval set -- "${ARGS}"
+while true; do
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 0
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
+done
 
-_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --restore"
-_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate"
-
-_execute "docker compose -f /opt/authelia/docker-compose.yml pull"
-_execute "systemctl restart ${APP_SERVICE}"
-_execute "nginx -t"
-_execute "nginx -s reload"
-
-rm -f /install/.install.lock
-_success "${APP_TITLE} updated."
+################################################################################
+# MAIN PROCESS
+################################################################################
+_lockCheck
+_setLock
+_updateInfo
+_updateApp
+_lockCleanup

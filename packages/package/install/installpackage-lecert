@@ -2,16 +2,16 @@
 #
 # [QuickBox Lite Let's Encrypt Installer]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   JMSolo, Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           JMSolo, Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-#################################################################################
+################################################################################
+
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -61,15 +61,15 @@ function _error() {
 	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
 }
 
-#################################################################################
+################################################################################
 # APP VARIABLE
-#################################################################################
+################################################################################
 APP_TITLE="Let's Encrypt"
 APP_NAME="lecert"
 APP_BASEDEPS="socat"
 
-APP_LOCK=.$APP_NAME.lock
-OUTTO=/srv/dashboard/db/output.log
+APP_LOCK=".${APP_NAME}.lock"
+OUTTO="/srv/dashboard/db/output.log"
 domain=""
 letsencrypt=1
 
@@ -86,10 +86,17 @@ function _usage() {
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
+
 ################################################################################
 # INSTALL FUNCTIONS
 ################################################################################
 function _lockCheck() {
+	if [[ -z $domain ]]; then
+		_error "Domain not exist, exiting..."
+		_usage
+		exit 1
+	fi
+
 	if [[ -f "/install/.install.lock" ]]; then
 		prevApp=$(cat /install/.install.lock)
 		_info "$prevApp process running."
@@ -98,9 +105,11 @@ function _lockCheck() {
 		exit 1
 	fi
 }
+
 function _setLock() {
 	echo "${APP_TITLE}" >/install/.install.lock
 }
+
 function _lockCleanup() {
 	echo "$APP_TITLE Install Complete!
 
@@ -321,27 +330,26 @@ function _installAppStart() {
 	_execute "systemctl restart nginx.service"
 }
 
-#################################################################################
+################################################################################
 # OPT GENERATOR
-#################################################################################
-if ! ARGS=$(getopt -a -o hl:d: -l help,letsencrypt,log:,domain: -- "$@")
-then
-    _usage
-    exit 1
+################################################################################
+if ! ARGS=$(getopt -a -o hl:d: -l help,letsencrypt,log:,domain: -- "$@"); then
+	_usage
+	exit 1
 fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
 	-h | --help)
 		_usage
-		exit 1
+		exit 0
 		;;
 	-l | --log)
 		OUTTO="$2"
 		shift
 		;;
 	--letsencrypt)
-	    letsencrypt=1
+		letsencrypt=1
 		;;
 	-d | --domain)
 		domain="$2"
@@ -354,15 +362,10 @@ while true; do
 	esac
 	shift
 done
-if [[ -z $domain ]]; then
-	_error "Domain not exist, exiting..."
-	_usage
-	exit 1
-fi
 
-#################################################################################
+################################################################################
 # MAIN PROCESS
-#################################################################################
+################################################################################
 _lockCheck
 _setLock
 _installInfo

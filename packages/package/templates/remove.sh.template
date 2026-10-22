@@ -1,0 +1,158 @@
+#!/bin/bash
+#
+# [QuickBox Lite Example App Remover]
+#
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           <author>
+# Current version:  v1.6.1
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+################################################################################
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
+
+_norm=$(tput sgr0)
+_red=$(tput setaf 1)
+_green=$(tput setaf 2)
+_tan=$(tput setaf 3)
+_cyan=$(tput setaf 6)
+
+function _execute() {
+	($1 >>"${OUTTO}" 2>&1)
+}
+function _print() {
+	printf "${_norm}%s${_norm}\n" "$@"
+	printf "%s\n" "$@" >>"${OUTTO}"
+}
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
+
+################################################################################
+# APP VARIABLE
+################################################################################
+APP_TITLE="Example App"
+APP_NAME="example"
+APP_SERVICE="example"
+APP_BASEDEPS=""
+APP_LOCK=".${APP_NAME}.lock"
+OUTTO="/srv/dashboard/db/output.log"
+
+################################################################################
+# SCRIPT FUNCTIONS
+################################################################################
+function _usage() {
+	echo -e "\nQuickBox Lite $APP_TITLE Remover"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile]"
+	echo -e "\nOptions:\n"
+	echo "-l, --log <logfile>       specific log file"
+	echo "-h, --help               display this help and exit"
+}
+
+################################################################################
+# REMOVE FUNCTIONS
+################################################################################
+function _lockCheck() {
+	if [[ -f "/install/.install.lock" ]]; then
+		_error "Another package process is running."
+		exit 1
+	fi
+	if [[ ! -f "/install/$APP_LOCK" ]]; then
+		_error "${APP_TITLE} has not been installed."
+		exit 1
+	fi
+}
+
+function _setLock() {
+	echo "${APP_TITLE}" >/install/.install.lock
+}
+
+function _lockCleanup() {
+	rm -f /install/.install.lock
+}
+
+function _removeInfo() {
+	_print "
+$APP_TITLE will now be removed.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+function _removeApp() {
+	# TODO: implement package-specific remove steps and check their results.
+	_error "Implement _removeApp before using this template."
+	exit 1
+}
+
+function _removeAppLock() {
+	rm -f "/install/${APP_LOCK}"
+}
+
+################################################################################
+# OPT GENERATOR
+################################################################################
+if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@"); then
+	_usage
+	exit 1
+fi
+eval set -- "${ARGS}"
+while true; do
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 0
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
+done
+
+################################################################################
+# MAIN PROCESS
+################################################################################
+_lockCheck
+_setLock
+_removeInfo
+_removeApp
+_removeAppLock
+_lockCleanup

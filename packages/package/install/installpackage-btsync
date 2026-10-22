@@ -2,16 +2,16 @@
 #
 # [QuickBox Lite Resilio Sync Installer]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-#################################################################################
+################################################################################
+
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -61,9 +61,9 @@ function _error() {
 	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
 }
 
-#################################################################################
+################################################################################
 # APP VARIABLE
-#################################################################################
+################################################################################
 APP_TITLE="Resilio Sync"
 APP_NAME="btsync"
 APP_SERVICE="resilio-sync"
@@ -74,8 +74,8 @@ APP_HOST="127.0.0.1"
 APP_WEB_PORT_LOW="15301"
 APP_WEB_PORT_HIGH="15350"
 
-APP_LOCK=.$APP_NAME.lock
-OUTTO=/srv/dashboard/db/output.log
+APP_LOCK=".${APP_NAME}.lock"
+OUTTO="/srv/dashboard/db/output.log"
 
 ################################################################################
 # SCRIPT FUNCTIONS
@@ -88,6 +88,7 @@ function _usage() {
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
+
 ################################################################################
 # INSTALL FUNCTIONS
 ################################################################################
@@ -104,9 +105,11 @@ function _lockCheck() {
 		exit 1
 	fi
 }
+
 function _setLock() {
 	echo "${APP_TITLE}" >/install/.install.lock
 }
+
 function _lockCleanup() {
 	echo "$APP_TITLE Install Complete!
 
@@ -286,20 +289,19 @@ function _installAppStart() {
 	_success "${APP_TITLE} started."
 }
 
-#################################################################################
+################################################################################
 # OPT GENERATOR
-#################################################################################
-if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
-then
-    _usage
-    exit 1
+################################################################################
+if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@"); then
+	_usage
+	exit 1
 fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
 	-h | --help)
 		_usage
-		exit 1
+		exit 0
 		;;
 	-l | --log)
 		OUTTO="$2"
@@ -313,9 +315,9 @@ while true; do
 	shift
 done
 
-#################################################################################
+################################################################################
 # MAIN PROCESS
-#################################################################################
+################################################################################
 _lockCheck
 _setLock
 _installInfo

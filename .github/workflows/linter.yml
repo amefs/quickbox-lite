@@ -99,6 +99,19 @@ jobs:
         python3 tests/system/qb-ensure-ws-gateway-sandbox.py
         python3 tests/system/dashboard-update-sandbox.py
 
+  package-script-linter:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - name: Check all package lifecycle scripts and templates
+      run: python3 scripts/lint-package-scripts.py
+    - name: Test package script lint rules
+      run: python3 tests/system/package-scripts-lint-test.py
+
   python-linter:
     runs-on: ubuntu-22.04
 

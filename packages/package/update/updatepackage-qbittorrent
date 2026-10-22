@@ -2,19 +2,19 @@
 #
 # [QuickBox Lite qBittorrent Updater]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-#################################################################################
-#################################################################################
+################################################################################
+
+################################################################################
 # CORE VARIABLE
-#################################################################################
+################################################################################
 CODENAME=$(lsb_release -cs)
 
 ################################################################################
@@ -66,16 +66,15 @@ function _error() {
 	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
 }
 
-function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
-#################################################################################
+################################################################################
 # APP VARIABLE
-#################################################################################
+################################################################################
 APP_TITLE="qBittorrent"
 APP_NAME="qbittorrent"
 APP_SERVICE="qbittorrent"
 
-APP_LOCK=.$APP_NAME.lock
-OUTTO=/srv/dashboard/db/output.log
+APP_LOCK=".${APP_NAME}.lock"
+OUTTO="/srv/dashboard/db/output.log"
 qbitversion_default=4.6.7
 libtversion_default=1.2.19
 cdn=$(cat /install/.cdn.lock)
@@ -90,7 +89,7 @@ FORCE=0
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Updater"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-s static] [--qb]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [--qb]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
 	echo "--lt <version>            the Libtorrent version you want to install"
@@ -103,8 +102,13 @@ function _usage() {
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
+
+function _version_gt() {
+	test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
+}
+
 ################################################################################
-# REMOVE FUNCTIONS
+# UPDATE FUNCTIONS
 ################################################################################
 function _lockCheck() {
 	if [[ -f "/install/.install.lock" ]]; then
@@ -119,9 +123,11 @@ function _lockCheck() {
 		exit 1
 	fi
 }
+
 function _setLock() {
 	echo "${APP_TITLE}" >/install/.install.lock
 }
+
 function _lockCleanup() {
 	rm -f /install/.install.lock
 }
@@ -140,7 +146,6 @@ function _installDepends() {
 		exit 1
 	fi
 }
-
 
 function _installFpm() {
 	fpm -h >/dev/null 2>&1
@@ -315,7 +320,6 @@ function _updateStatic() {
 	fi
 }
 
-
 function _updateApp() {
 	# get current version
 	if [ -z "${qbitversion}" ]; then
@@ -452,27 +456,26 @@ function _reconfigureAppv2() {
 	_success "${APP_TITLE} configured."
 }
 
-#################################################################################
+################################################################################
 # OPT GENERATOR
-#################################################################################
-if ! ARGS=$(getopt -a -o hsl: -l help,force,static,with-cf,with-sf,with-osdn,with-github,log:,qb: -- "$@")
-then
-    _usage
-    exit 1
+################################################################################
+if ! ARGS=$(getopt -a -o hl: -l help,force,with-cf,with-sf,with-osdn,with-github,log:,qb:,lt: -- "$@"); then
+	_usage
+	exit 1
 fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
 	-h | --help)
 		_usage
-		exit 1
-		;;
-	--force)
-		FORCE=1
+		exit 0
 		;;
 	-l | --log)
 		OUTTO="$2"
 		shift
+		;;
+	--force)
+		FORCE=1
 		;;
 	--qb)
 		qbitversion="$2"
@@ -502,9 +505,9 @@ while true; do
 	shift
 done
 
-#################################################################################
+################################################################################
 # MAIN PROCESS
-#################################################################################
+################################################################################
 _lockCheck
 _setLock
 _updateInfo
