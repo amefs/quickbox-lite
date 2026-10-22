@@ -1,0 +1,28 @@
+e2e/tests/interaction.spec.ts
+  h_3705811fa4502c 17-23,177-179,255-291
+setup/dashboard/js/dashboard.js
+  h_3705811fa4502c 37,663,666-667,670-671,685
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+setup/dashboard/ws/scripts/dev-server.js
+  h_3705811fa4502c 8-16,84-90
+setup/dashboard/ws/src/dashboard-page.tsx
+  h_3705811fa4502c 81,135-177,448,451,457,460,466
+setup/dashboard/ws/src/widgets/package-management-center.tsx
+  h_3705811fa4502c 18
+setup/dashboard/ws/src/widgets/removal-modals.tsx
+  h_3705811fa4502c 31,37
+setup/dashboard/ws/tests/dev-server.spec.ts
+  h_3705811fa4502c 1-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "73c65fa9b2251ff121ba98491f4890acc9549acd",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
