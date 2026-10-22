@@ -1,0 +1,19 @@
+tests/deployment/run.py
+  s_fcfe5f1e4b94d3::t_ceaeee2329f2ff 148-149,152-154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2f02b57fdb5b3b831de2f81ac3bbe2d9d440a9eb",
+  "prompts": {},
+  "sessions": {
+    "s_fcfe5f1e4b94d3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16352-28c1-7e72-8f9e-70e8dc5810ba",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
