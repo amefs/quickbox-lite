@@ -1,0 +1,25 @@
+.github/workflows/linter.yml
+  s_fcfe5f1e4b94d3::t_335b1a01bf8a0f 101
+tests/deployment/run.py
+  s_fcfe5f1e4b94d3::t_4f3c9c81e79458 148-152
+packages/system/auxiliary/qbWsHealthCheck
+  s_fcfe5f1e4b94d3::t_6ce388ef4923fa 66-74
+tests/system/ws-health-startup-sandbox.py
+  s_fcfe5f1e4b94d3::t_335b1a01bf8a0f 1-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a7083322bb667155d82b2d5b46d4485273c091d5",
+  "prompts": {},
+  "sessions": {
+    "s_fcfe5f1e4b94d3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16352-28c1-7e72-8f9e-70e8dc5810ba",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
