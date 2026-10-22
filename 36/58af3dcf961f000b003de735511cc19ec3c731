@@ -1,0 +1,92 @@
+.gitattributes
+  h_3705811fa4502c 1-4,6-7,9
+.github/workflows/linter.yml
+  h_3705811fa4502c 76,90-91,115-118
+bump-version.sh
+  h_3705811fa4502c 68
+onekey.sh
+  h_3705811fa4502c 2,4,6-8,14-15,96-106
+packages/system/auxiliary/denyunban
+  h_3705811fa4502c 3,5-6,13-15,17
+packages/system/auxiliary/failunban
+  h_3705811fa4502c 3,5-6,13-14
+packages/system/auxiliary/fixDpkg
+  h_3705811fa4502c 5-6,13-14
+packages/system/auxiliary/fixHome
+  h_3705811fa4502c 5-6,13-14
+packages/system/auxiliary/install-BBR.sh
+  h_3705811fa4502c 5-6,13-15,17,75,77,188,190,220,222
+packages/system/auxiliary/iotest
+  h_3705811fa4502c 5-6,13-14,121,123
+packages/system/auxiliary/logCollector.sh
+  h_3705811fa4502c 5-6,13-14
+packages/system/auxiliary/qbEnsureSudoers
+  h_3705811fa4502c 17-18
+packages/system/auxiliary/qbEnsureWsGateway
+  h_3705811fa4502c 13-14
+packages/system/auxiliary/qbNginxAuth
+  h_3705811fa4502c 69
+packages/system/auxiliary/qbNginxProxyMigrate
+  h_3705811fa4502c 11-12
+packages/system/auxiliary/qbNormalizeRepo
+  h_3705811fa4502c 1-153
+packages/system/auxiliary/qbWsHealthCheck
+  h_3705811fa4502c 11-12
+packages/system/auxiliary/qbittorrent-nox-static.sh
+  h_3705811fa4502c 1591
+packages/system/box
+  h_3705811fa4502c 5-6,14-16,18,59,61,102,104,313,315
+packages/system/qbUpdate
+  h_3705811fa4502c 5-6,14-16,18,22,24,60,62,167,169
+packages/system/update/qbUpdateRepo
+  h_3705811fa4502c 67,76-109,132
+packages/system/users/changePass
+  h_3705811fa4502c 5-6,14-16,18,71,73,342,344,377,379
+scripts/lint-repo-files.py
+  h_3705811fa4502c 1-158
+setup.sh
+  h_3705811fa4502c 2,6-7,15,100-116,133-134,1537,1640,1642,1708,1710,1761,1763,2101,2103,2280,2282
+setup/lang/en.lang
+  h_3705811fa4502c 281
+setup/lang/zh-cn.lang
+  h_3705811fa4502c 279
+setup/scripts/authelia.sh
+  h_3705811fa4502c 5-7,10,13-14
+setup/scripts/deluge.sh
+  h_3705811fa4502c 5-7,13-14,17
+setup/scripts/ffmpeg.sh
+  h_3705811fa4502c 5-7,13-14,16
+setup/scripts/filebrowser.sh
+  h_3705811fa4502c 5-7,13-14,16
+setup/scripts/lecert.sh
+  h_3705811fa4502c 5-7,13-14,17
+setup/scripts/linuxrar.sh
+  h_3705811fa4502c 5-7,13-14,16
+setup/scripts/mktorrent.sh
+  h_3705811fa4502c 5-7,13-14,16
+setup/scripts/qbittorrent.sh
+  h_3705811fa4502c 5-7,13-14,17
+setup/scripts/rtorrent.sh
+  h_3705811fa4502c 5-7,13-14,20
+setup/scripts/transmission.sh
+  h_3705811fa4502c 5-7,13-14,17
+setup/scripts/vouchproxy.sh
+  h_3705811fa4502c 5-7,10,13-14
+setup/templates/motd/01-custom
+  h_3705811fa4502c 5-6,13-14
+tests/system/dashboard-stage-sandbox.sh
+  h_3705811fa4502c 80-83,86,91,93
+tests/system/repo-normalize-sandbox.py
+  h_3705811fa4502c 1-183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3658af3dcf961f000b003de735511cc19ec3c731",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
