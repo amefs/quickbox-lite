@@ -55,6 +55,7 @@ def check_listener(environment, delay=False, reject_gateway=False, allow_anonymo
         stdout, stderr = health.communicate(timeout=5)
         expected = 1 if reject_gateway or allow_anonymous else 0
         assert health.returncode == expected, (health.returncode, stdout, stderr)
+        return stderr
     finally:
         if health is not None and health.poll() is None:
             health.kill()
@@ -73,7 +74,17 @@ with tempfile.TemporaryDirectory(prefix='quickbox-health-') as temporary:
     environment = dict(os.environ, QUICKBOX_WS_SECRET_FILE=str(secret))
     check_listener(environment, delay=True)
     print('delayed listener startup: passed')
-    check_listener(environment, reject_gateway=True)
+
+    # A passing run reports one verdict line: the individual probes are detail
+    # that would otherwise bury the update output.
+    quiet = check_listener(environment, delay=True)
+    assert len(quiet.strip().splitlines()) == 1, quiet
+    assert 'dashboard health check passed' in quiet and 'checks)' in quiet, quiet
+    print('a passing run reports a single verdict line: passed')
+
+    rejected = check_listener(environment, reject_gateway=True)
+    assert 'dashboard health check failed' in rejected and 'of' in rejected, rejected
+    assert rejected.strip().count('✗') > 1, 'a failing run must replay the probes'
     print('rejected gateway credentials remain a failure: passed')
     check_listener(environment, allow_anonymous=True)
     print('anonymous management access remains a failure: passed')

@@ -23,6 +23,7 @@ scripts=(
 	packages/system/auxiliary/qbBackupPrune
 	packages/system/update/qbUpdateBackup
 	packages/system/update/qbUpdateTimer
+	packages/system/update/qbUpdateStep
 	packages/system/update/qbUpdateRevert
 	packages/system/auxiliary/qbEnsureSudoers
 	packages/system/auxiliary/qbNginxAuth

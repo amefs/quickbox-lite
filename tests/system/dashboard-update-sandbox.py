@@ -121,7 +121,9 @@ exit "$result"
         result = subprocess.run(
             ['bash', str(driver)],
             env=dict(os.environ, SANDBOX=str(root), FAIL_STAGE=stage,
-                     QB_UPDATE_BACKUP_LIB=str(REPO / 'packages/system/update/qbUpdateBackup')),
+                     QB_UPDATE_BACKUP_LIB=str(REPO / 'packages/system/update/qbUpdateBackup'),
+                     QB_UPDATE_STEP_LIB=str(REPO / 'packages/system/update/qbUpdateStep'),
+                     QB_UPDATE_TIMER_LIB=str(REPO / 'packages/system/update/qbUpdateTimer')),
             capture_output=True, text=True)
         live = root / 'srv/dashboard'
         assert 'after-update-via-original-fd' in (live / 'db/output.log').read_text(), result.stderr

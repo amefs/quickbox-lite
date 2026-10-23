@@ -1,6 +1,19 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Install or update the system Node.js 24 runtime used by quickbox-ws.
+#
+# Usage: qbEnsureNodejs [--reuse]
+#
+#   --reuse  keep an installed runtime that already satisfies the policy and
+#            touch nothing else. `box update quickbox --only-core` uses it so a
+#            core update never spends minutes on a runtime that is fine.
+#
+# The NodeSource setup script refreshes the complete APT index. On a host that
+# already runs a supported Node.js that refresh is pure overhead, and it is the
+# slowest part of the service stage. So a supported runtime only refreshes the
+# NodeSource list itself and installs a package when APT actually offers a
+# newer build; the setup script runs when the runtime is missing, too old, or
+# installed from somewhere other than the NodeSource repository.
 
 set -euo pipefail
 
@@ -9,20 +22,147 @@ minimum_version=24.22.1
 setup_dir=$(mktemp -d)
 trap 'rm -rf "${setup_dir}"' EXIT
 
-printf 'Updating the NodeSource repository for Node.js 24...\n'
-curl -fsSL --retry 3 --retry-max-time 60 \
-	https://deb.nodesource.com/setup_24.x -o "${setup_dir}/setup.sh"
-bash "${setup_dir}/setup.sh"
-# Always run install, including on existing 24.x installations, so APT applies
-# available patches. The NodeSource setup script refreshes the package index.
-apt-get install -y nodejs
+reuse_satisfied=0
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	--reuse) reuse_satisfied=1 ;;
+	*)
+		printf 'Unknown option: %s\nUsage: qbEnsureNodejs [--reuse]\n' "$1" >&2
+		exit 2
+		;;
+	esac
+	shift
+done
+
+# APT resolves its own list files relative to /etc/apt, so the override names a
+# path below that directory. It exists for tests and for hosts that keep the
+# repository file elsewhere.
+nodesource_sourcelist="${QUICKBOX_NODESOURCE_SOURCELIST:-}"
+
+function _installed_version() {
+	if [[ ! -x /usr/bin/node ]]; then
+		return 1
+	fi
+	/usr/bin/node --version 2>/dev/null
+}
+
+# Prints the major version of a plain release string (v24.22.1 -> 24).
+function _release_major() {
+	local version="$1"
+	[[ ${version} =~ ^v([0-9]+)\.[0-9]+\.[0-9]+$ ]] || return 1
+	printf '%s\n' "${BASH_REMATCH[1]}"
+}
+
+# A newer major line is acceptable. The dashboard needs a modern runtime, and a
+# host that already runs one must not be downgraded to the managed 24.x line by
+# a routine update.
+function _is_supported() {
+	local version="$1" major
+	major=$(_release_major "${version}") || return 1
+	if (( major > 24 )); then
+		return 0
+	fi
+	(( major == 24 )) || return 1
+	dpkg --compare-versions "${version#v}" ge "${minimum_version}"
+}
+
+# Prints the NodeSource list file to refresh, or fails when this host did not
+# install Node.js from that repository.
+function _detect_sourcelist() {
+	local file
+	if [[ -n ${nodesource_sourcelist} ]]; then
+		printf '%s\n' "${nodesource_sourcelist}"
+		return 0
+	fi
+	for file in sources.list.d/nodesource.sources sources.list.d/nodesource.list; do
+		if [[ -r "/etc/apt/${file}" ]]; then
+			printf '%s\n' "${file}"
+			return 0
+		fi
+	done
+	return 1
+}
+
+# Refreshes only the NodeSource index. A full `apt-get update` would re-read
+# every configured mirror for a single package; List-Cleanup=0 keeps the other
+# cached lists intact because they are not part of this fetch.
+function _refresh_nodesource() {
+	local list="$1"
+	apt-get update -qq \
+		-o Dir::Etc::sourcelist="${list}" \
+		-o Dir::Etc::sourceparts="-" \
+		-o APT::Get::List-Cleanup="0" 2>&1
+}
+
+function _candidate_version() {
+	local candidate
+	candidate=$(apt-cache policy nodejs 2>/dev/null |
+		awk '$1 == "Candidate:" { print $2; exit }')
+	if [[ -z ${candidate} || ${candidate} == "(none)" ]]; then
+		return 1
+	fi
+	printf '%s\n' "${candidate}"
+}
+
+# Compares the upstream part only: NodeSource publishes 24.22.1-1nodesource1,
+# and the packaging revision must not look like a newer Node.js.
+function _is_newer() {
+	local candidate="$1" current="$2" upstream
+	upstream=${candidate%%-*}
+	upstream=${upstream#v}
+	dpkg --compare-versions "${upstream}" gt "${current#v}"
+}
+
+current_version=$(_installed_version || true)
+current_major=0
+sourcelist=""
+if [[ -n ${current_version} ]] && _is_supported "${current_version}"; then
+	current_major=$(_release_major "${current_version}" || printf '0\n')
+	sourcelist=$(_detect_sourcelist || true)
+fi
+
+if [[ ${current_major} -gt 24 ]]; then
+	# Nothing to do and nothing to check: this host is ahead of the managed
+	# line and a "patch" would be a downgrade.
+	printf 'Keeping the installed Node.js %s (newer than the managed 24.x line).\n' \
+		"${current_version}"
+elif [[ -n ${sourcelist} && ${reuse_satisfied} -eq 1 ]]; then
+	# A core update only asks whether the runtime still satisfies the policy.
+	# Patching is the job of a full update.
+	printf 'Keeping the installed Node.js %s (only-core update).\n' "${current_version}"
+elif [[ -n ${sourcelist} ]]; then
+	# Fast path: the runtime is already what this host is supposed to run, so
+	# only published patches are of interest.
+	printf 'Refreshing the NodeSource package index (%s)...\n' "${sourcelist}"
+	if _refresh_nodesource "${sourcelist}"; then
+		candidate=$(_candidate_version || true)
+		if [[ -n ${candidate} ]] && _is_newer "${candidate}" "${current_version}"; then
+			printf 'Installing Node.js %s (replacing %s)...\n' "${candidate}" "${current_version}"
+			apt-get install -y --only-upgrade nodejs
+		else
+			printf 'System Node.js is already up to date (%s).\n' "${current_version}"
+		fi
+	else
+		# The installed runtime already satisfies the requirement. A mirror
+		# that cannot be read is worth a warning, not a failed update.
+		printf 'Cannot refresh the NodeSource package index; keeping the installed %s.\n' \
+			"${current_version}" >&2
+	fi
+else
+	printf 'Updating the NodeSource repository for Node.js 24...\n'
+	curl -fsSL --retry 3 --retry-max-time 60 \
+		https://deb.nodesource.com/setup_24.x -o "${setup_dir}/setup.sh"
+	bash "${setup_dir}/setup.sh"
+	# Always run install, including on existing 24.x installations, so APT applies
+	# available patches. The NodeSource setup script refreshes the package index.
+	apt-get install -y nodejs
+fi
 
 # Match ExecStart in quickbox-ws.service, rather than a shell's nvm/PATH node.
-installed_version=$(/usr/bin/node --version)
-if [[ ! "${installed_version}" =~ ^v24\.[0-9]+\.[0-9]+$ ]] || \
-	! dpkg --compare-versions "${installed_version#v}" ge "${minimum_version}"; then
-	printf 'Node.js update failed: /usr/bin/node is %s; expected Node.js 24 >= %s.\n' \
-		"${installed_version}" "${minimum_version}" >&2
+installed_version=$(_installed_version || true)
+if [[ -z ${installed_version} ]] || ! _is_supported "${installed_version}"; then
+	printf 'Node.js update failed: /usr/bin/node is %s; expected Node.js >= %s.\n' \
+		"${installed_version:-missing}" "${minimum_version}" >&2
 	exit 1
 fi
-printf 'System Node.js updated to %s.\n' "${installed_version}"
+printf 'System Node.js %s is ready.\n' "${installed_version}"

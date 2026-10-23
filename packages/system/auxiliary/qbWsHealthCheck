@@ -12,7 +12,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Usage: qbWsHealthCheck [--expect-proxy]
+# Usage: qbWsHealthCheck [--expect-proxy] [--verbose]
+#
+# The default output is one verdict line. Every individual check is a detail of
+# that verdict, so it is only printed when the check fails or when --verbose
+# asks for a live trace.
 
 set -uo pipefail
 
@@ -22,10 +26,30 @@ NGINX_SCHEME="${QUICKBOX_NGINX_SCHEME:-auto}"
 NGINX_PORT="${QUICKBOX_WS_HEALTH_PORT:-}"
 CHECK_SCHEME=""
 EXPECT_PROXY=0
+VERBOSE=0
 
 _info() { printf '➜ %s\n' "$@" >&2; }
 _success() { printf '✓ %s\n' "$@" >&2; }
 _error() { printf '✗ %s\n' "$@" >&2; }
+
+# Results are collected instead of printed: a passing run reports one line, a
+# failing run replays the sequence so the first broken check is obvious.
+CHECK_TOTAL=0
+CHECK_FAILED=0
+CHECK_RESULTS=()
+
+function _check_pass() {
+	CHECK_TOTAL=$(( CHECK_TOTAL + 1 ))
+	CHECK_RESULTS[${#CHECK_RESULTS[@]}]="✓ $1"
+	[[ ${VERBOSE} -eq 0 ]] || _success "$1"
+}
+
+function _check_fail() {
+	CHECK_TOTAL=$(( CHECK_TOTAL + 1 ))
+	CHECK_FAILED=$(( CHECK_FAILED + 1 ))
+	CHECK_RESULTS[${#CHECK_RESULTS[@]}]="✗ $1"
+	[[ ${VERBOSE} -eq 0 ]] || _error "$1"
+}
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -33,8 +57,12 @@ while [[ $# -gt 0 ]]; do
 		EXPECT_PROXY=1
 		shift
 		;;
+	--verbose)
+		VERBOSE=1
+		shift
+		;;
 	-h | --help)
-		echo "Usage: qbWsHealthCheck [--expect-proxy]"
+		echo "Usage: qbWsHealthCheck [--expect-proxy] [--verbose]"
 		exit 0
 		;;
 	*)
@@ -60,7 +88,6 @@ if [[ -z "${SECRET}" ]]; then
 fi
 
 BASE="http://127.0.0.1:${PORT}"
-FAILED=0
 
 # 1. Authenticated request must succeed.
 # Type=simple reports the service started before Node has opened its listener.
@@ -73,39 +100,35 @@ for ATTEMPT in {1..20}; do
 	sleep 1
 done
 if [[ "${CODE}" == "200" ]]; then
-	_success "authenticated request via gateway secret: ${CODE}"
+	_check_pass "authenticated request via gateway secret: ${CODE}"
 else
-	_error "authenticated request failed: ${CODE}"
-	FAILED=1
+	_check_fail "authenticated request failed: ${CODE}"
 fi
 
 # 2. The same request without the gateway secret must be rejected.
 CODE=$(_http_code "${BASE}/node/dashboard_config")
 if [[ "${CODE}" == "401" ]]; then
-	_success "unauthenticated request rejected: ${CODE}"
+	_check_pass "unauthenticated request rejected: ${CODE}"
 else
-	_error "unauthenticated request was not rejected: ${CODE}"
-	FAILED=1
+	_check_fail "unauthenticated request was not rejected: ${CODE}"
 fi
 
 # 3. Socket.IO polling handshake (the transport the dashboard uses first).
 CODE=$(_http_code -H "X-Quickbox-Gateway: ${SECRET}" -H "Origin: http://127.0.0.1:${PORT}" \
 	"${BASE}/socket.io/?EIO=4&transport=polling")
 if [[ "${CODE}" == "200" ]]; then
-	_success "socket.io polling handshake with credentials: ${CODE}"
+	_check_pass "socket.io polling handshake with credentials: ${CODE}"
 else
-	_error "socket.io polling handshake failed: ${CODE}"
-	FAILED=1
+	_check_fail "socket.io polling handshake failed: ${CODE}"
 fi
 
 CODE=$(_http_code "http://127.0.0.1:${PORT}/ws/socket.io/?EIO=4&transport=polling")
 case "${CODE}" in
 401 | 403)
-	_success "socket.io on /ws/socket.io rejected without credentials: ${CODE}"
+	_check_pass "socket.io on /ws/socket.io rejected without credentials: ${CODE}"
 	;;
 *)
-	_error "socket.io on /ws/socket.io should reject unauthenticated handshakes: ${CODE}"
-	FAILED=1
+	_check_fail "socket.io on /ws/socket.io should reject unauthenticated handshakes: ${CODE}"
 	;;
 esac
 
@@ -187,38 +210,45 @@ if [[ ${EXPECT_PROXY} -eq 1 ]]; then
 	PROXY_CODE=$(proxy_code "/node/dashboard_config")
 	case "${PROXY_CODE}" in
 	401 | 403 | 301 | 302)
-		_success "nginx management entry rejects unauthenticated requests: ${PROXY_CODE}"
+		_check_pass "nginx management entry rejects unauthenticated requests: ${PROXY_CODE}"
 		;;
 	*)
-		_error "nginx management entry answered ${PROXY_CODE} without user authentication"
-		FAILED=1
+		_check_fail "nginx management entry answered ${PROXY_CODE} without user authentication"
 		;;
 	esac
 
 	AUTH_HTTP_CODE=$(auth_proxy_code "/node/dashboard_config")
-	if [[ "${AUTH_HTTP_CODE}" == "200" ]]; then _success "authenticated nginx dashboard HTTP request: 200"; else _error "authenticated nginx dashboard HTTP request failed: ${AUTH_HTTP_CODE}"; FAILED=1; fi
+	if [[ "${AUTH_HTTP_CODE}" == "200" ]]; then _check_pass "authenticated nginx dashboard HTTP request: 200"; else _check_fail "authenticated nginx dashboard HTTP request failed: ${AUTH_HTTP_CODE}"; fi
 
 	HEALTH_CODE=$(proxy_code "/qb-healthz")
 	if [[ "${HEALTH_CODE}" == "200" ]]; then
-		_success "restricted health endpoint reachable through nginx: 200"
+		_check_pass "restricted health endpoint reachable through nginx: 200"
 	else
-		_error "restricted health endpoint unreachable through nginx: ${HEALTH_CODE}"
-		FAILED=1
+		_check_fail "restricted health endpoint unreachable through nginx: ${HEALTH_CODE}"
 	fi
 
 	for SOCKET_PATH in /socket.io /ws/socket.io; do
 		POLL_CODE=$(auth_proxy_code "${SOCKET_PATH}/?EIO=4&transport=polling")
-		if [[ "${POLL_CODE}" == 200 ]]; then _success "authenticated nginx polling ${SOCKET_PATH}: 200"; else _error "authenticated nginx polling ${SOCKET_PATH} failed: ${POLL_CODE}"; FAILED=1; fi
+		if [[ "${POLL_CODE}" == "200" ]]; then _check_pass "authenticated nginx polling ${SOCKET_PATH}: 200"; else _check_fail "authenticated nginx polling ${SOCKET_PATH} failed: ${POLL_CODE}"; fi
 		WS_CODE=$(curl -q "${AUTH_CURL_ARGS[@]}" --noproxy '*' -k -sS -i --http1.1 --max-time 5 -H "Host: ${HOST_HEADER}" -H "Origin: ${CHECK_SCHEME}://${HOST_HEADER}" -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' -o /dev/null -w '%{http_code}' "${PROXY_URL}${SOCKET_PATH}/?EIO=4&transport=websocket" 2>/dev/null || true)
-		if [[ "${WS_CODE}" == 101 ]]; then _success "authenticated nginx WebSocket Upgrade ${SOCKET_PATH}: 101"; else _error "authenticated nginx WebSocket Upgrade ${SOCKET_PATH} failed: ${WS_CODE}"; FAILED=1; fi
+		if [[ "${WS_CODE}" == "101" ]]; then _check_pass "authenticated nginx WebSocket Upgrade ${SOCKET_PATH}: 101"; else _check_fail "authenticated nginx WebSocket Upgrade ${SOCKET_PATH} failed: ${WS_CODE}"; fi
 	done
 	[[ -z "${CURL_AUTH_CONFIG}" ]] || rm -f "${CURL_AUTH_CONFIG}"
 fi
 
-if [[ ${FAILED} -ne 0 ]]; then
-	_error "dashboard health check failed"
+if [[ ${CHECK_FAILED} -ne 0 ]]; then
+	# A quiet run held every line back; replay the sequence so the log shows
+	# which check broke and what it answered.
+	if [[ ${VERBOSE} -eq 0 ]]; then
+		for CHECK_RESULT in ${CHECK_RESULTS[@]+"${CHECK_RESULTS[@]}"}; do
+			printf '%s\n' "${CHECK_RESULT}" >&2
+		done
+	fi
+	_error "dashboard health check failed (${CHECK_FAILED} of ${CHECK_TOTAL} checks)"
 	exit 1
 fi
 
-_success "dashboard health check passed"
+if [[ ${VERBOSE} -eq 0 ]]; then
+	_success "dashboard health check passed (${CHECK_TOTAL} checks)"
+fi
 exit 0

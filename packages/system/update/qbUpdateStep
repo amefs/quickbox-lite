@@ -1,0 +1,74 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Shared output policy for the QuickBox update pipeline.
+#
+# An update is read at two levels: one line per stage, one duration per
+# expensive sub-step. Everything a helper script prints while it succeeds is
+# detail; it belongs in the shared log, not on the terminal, otherwise a routine
+# update buries its own result under "already up to date" lines.
+#
+# A failing helper is the opposite case: its own output is the diagnosis, so it
+# is replayed in full, indented under the failure.
+#
+# Callers must have OUTTO (the shared log) and the _error printer available.
+# The file only defines functions, so it is safe to source repeatedly and under
+# `set -u`.
+
+# True when the operator asked for the full detail
+# (`box update quickbox --verbose`, or QUICKBOX_UPDATE_VERBOSE=1).
+function _qbIsVerbose() {
+	[[ ${QB_UPDATE_VERBOSE:-0} -eq 1 ]]
+}
+
+# Runs one helper sub-step with its output held back until the outcome is known.
+#
+#   _qbRunHelper "Failed to migrate the nginx proxy snippet" \
+#       bash /usr/local/bin/quickbox/system/auxiliary/qbNginxProxyMigrate
+#
+# The first argument is the failure message, so callers keep one diagnostic per
+# step instead of a generic one. Success writes the helper's output to the log
+# and, in verbose mode, mirrors it on the terminal.
+function _qbRunHelper() {
+	local message="$1"
+	shift
+	local capture status capture_dir="${TMPDIR:-/tmp}"
+	if [[ ! -d ${capture_dir} || ! -w ${capture_dir} ]]; then
+		capture_dir=/tmp
+	fi
+	capture=$(mktemp "${capture_dir}/qb-update-step.XXXXXX" 2>/dev/null) || {
+		# No capture file: run the step anyway. Losing the quiet output is
+		# better than skipping the work.
+		"$@"
+		return $?
+	}
+	"$@" >>"${capture}" 2>&1
+	status=$?
+	# The log keeps the detail for both outcomes; it is what the Dashboard log
+	# view and a later post-mortem read. Appending is best effort: an unwritable
+	# log must not turn a successful step into a failure.
+	if [[ -n ${OUTTO:-} ]]; then
+		cat "${capture}" >>"${OUTTO}" 2>/dev/null || true
+	fi
+	if [[ ${status} -ne 0 ]]; then
+		_error "${message}"
+		sed 's/^/   /' "${capture}" >&2
+	elif _qbIsVerbose; then
+		sed 's/^/   /' "${capture}"
+	fi
+	rm -f "${capture}"
+	return "${status}"
+}
+
+# Reports a detail line that matters only in verbose runs and always reaches
+# the log, so nothing is lost when the terminal stays quiet.
+function _qbDetail() {
+	local message="$1"
+	if [[ -n ${OUTTO:-} ]]; then
+		printf '>> Detail: %s\n' "${message}" >>"${OUTTO}" 2>/dev/null || true
+	fi
+	if _qbIsVerbose; then
+		printf '%s   %s%s\n' "${_dim:-}" "${message}" "${_norm:-}"
+	fi
+	return 0
+}

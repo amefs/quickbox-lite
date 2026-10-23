@@ -88,6 +88,7 @@ function _help() {
 	echo "                                  blank to use batch install"
 	echo "remove <appname>                  remove installed application"
 	echo "update <appname>                  upgrade installed application"
+	echo "update quickbox [--verbose]       upgrade QuickBox (--verbose: full step output)"
 	echo "update quickbox --timings         show recorded update stage timings"
 	echo "revert [--list] [--yes] [COMMIT]  restore and reinstall a QuickBox commit"
 	echo "lang <da|de|en|es|fr|zh>          change dashboard language"

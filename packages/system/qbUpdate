@@ -67,9 +67,15 @@ function _parseUpdateArgs() {
 		--only-core) core=1 ;;
 		--from-checkout) from_checkout=1; core=1 ;;
 		--timings) show_timings=1 ;;
+		--verbose | -v)
+			# The service and dashboard stages are sourced into this shell, so
+			# one exported switch reaches every sub-step and helper.
+			QB_UPDATE_VERBOSE=1
+			export QB_UPDATE_VERBOSE
+			;;
 		*)
 			printf 'Unknown update option: %s\n' "$1" >&2
-			printf 'Available options: --only-core, --from-checkout, --timings\n' >&2
+			printf 'Available options: --only-core, --from-checkout, --timings, --verbose\n' >&2
 			return 2
 			;;
 		esac
@@ -670,6 +676,10 @@ local_setup_dashboard=${local_prefix}setup/dashboard/
 # MAIN PROCESS
 ################################################################################
 _parseUpdateArgs "$@" || exit $?
+# The service stage is sourced into this shell, so the mode travels as an
+# exported flag rather than an argument the caller has to thread through.
+QB_UPDATE_ONLY_CORE=${core}
+export QB_UPDATE_ONLY_CORE
 if [[ ${show_timings} -eq 1 ]]; then
 	_showUpdateTiming
 	exit $?

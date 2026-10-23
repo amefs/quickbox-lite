@@ -55,27 +55,37 @@ function _qbFormatMs() {
 	fi
 }
 
+# Appends one measurement to the shared update log, so the Dashboard log view
+# keeps the detail after the terminal is gone. Best effort: an unwritable log
+# must not turn a successful stage into a failure.
+function _qbLogTiming() {
+	local label="$1" elapsed=${2:-0}
+	if [[ -n ${OUTTO:-} ]]; then
+		printf '>> Timing: %s took %s (%dms)\n' \
+			"${label}" "$(_qbFormatMs "${elapsed}")" "${elapsed}" >>"${OUTTO}" 2>/dev/null || true
+	fi
+	return 0
+}
+
 # Prints one indented duration line for a finished sub-step and records the
-# same measurement in the shared update log, so the Dashboard log view keeps
-# the detail after the terminal is gone. Colours stay optional for callers
-# that never initialize them.
+# same measurement in the shared log. Colours stay optional for callers that
+# never initialize them.
 function _qbReportMs() {
 	local label="$1" elapsed=${2:-0}
 	if [[ ! ${elapsed} =~ ^[0-9]+$ ]]; then
 		elapsed=0
 	fi
 	printf '%s   ⏱ %s: %s%s\n' "${_dim:-}" "${label}" "$(_qbFormatMs "${elapsed}")" "${_norm:-}"
-	# Writing the log is best effort: an unwritable log must not turn a
-	# successful stage into a failure, and a missing file must stay silent.
-	if [[ -n ${OUTTO:-} && -f ${OUTTO} && -w ${OUTTO} ]]; then
-		printf '>> Timing: %s took %s (%dms)\n' \
-			"${label}" "$(_qbFormatMs "${elapsed}")" "${elapsed}" >>"${OUTTO}"
-	fi
+	_qbLogTiming "${label}" "${elapsed}"
 	return 0
 }
 
 # Measures the time since a _qbNowMs value and reports it. Callers that also
 # need the millisecond count should compute it themselves and use _qbReportMs.
+#
+# A sub-step that finishes in under a tenth of a second says nothing about where
+# the update spent its time, so only the log keeps it. Stage durations go
+# through _qbReportMs and are always shown.
 function _qbReportLap() {
 	local label="$1" start_ms="${2:-}" elapsed
 	if [[ ! ${start_ms} =~ ^[0-9]+$ ]]; then
@@ -84,6 +94,10 @@ function _qbReportLap() {
 	elapsed=$(( $(_qbNowMs) - start_ms ))
 	if (( elapsed < 0 )); then
 		elapsed=0
+	fi
+	if (( elapsed < 100 )); then
+		_qbLogTiming "${label}" "${elapsed}"
+		return 0
 	fi
 	_qbReportMs "${label}" "${elapsed}"
 }
