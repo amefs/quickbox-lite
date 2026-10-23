@@ -57,6 +57,8 @@ function _qbRunHelper() {
 		sed 's/^/   /' "${capture}"
 	fi
 	rm -f "${capture}"
+	# Whatever the helper printed, the stage did make progress.
+	_qbTouchActivity
 	return "${status}"
 }
 

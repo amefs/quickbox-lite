@@ -55,6 +55,16 @@ function _qbFormatMs() {
 	fi
 }
 
+# Tells a running heartbeat that the stage is still producing output. The
+# driver owns the stamp; callers that run without it (tests, helper scripts)
+# simply skip the refresh, so this stays free of side effects.
+function _qbTouchActivity() {
+	if [[ $(type -t _updateTouchActivity) == function ]]; then
+		_updateTouchActivity
+	fi
+	return 0
+}
+
 # Appends one measurement to the shared update log, so the Dashboard log view
 # keeps the detail after the terminal is gone. Best effort: an unwritable log
 # must not turn a successful stage into a failure.
@@ -64,6 +74,8 @@ function _qbLogTiming() {
 		printf '>> Timing: %s took %s (%dms)\n' \
 			"${label}" "$(_qbFormatMs "${elapsed}")" "${elapsed}" >>"${OUTTO}" 2>/dev/null || true
 	fi
+	# A reported duration is progress: restart the heartbeat's silence window.
+	_qbTouchActivity
 	return 0
 }
 

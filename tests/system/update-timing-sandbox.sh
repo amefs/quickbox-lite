@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Exercise the update timing report: the per-stage durations, the log lines the
-# Dashboard reads, the end-of-run summary and the recorded history. Everything
-# runs inside a temporary directory; no real machine path is touched.
+# Dashboard reads, the end-of-run summary and the silence-based progress ticks.
+# Everything runs inside a temporary directory; no real machine path is touched.
 set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -102,47 +102,23 @@ _updateRecordStage "repository" 100
 sleep 1.5
 _printUpdateTiming >"${sandbox}/summary.log"
 grep -q 'other (locks, prepare, cleanup)' "${sandbox}/summary.log"
-grep -q 'history: ' "${sandbox}/summary.log"
 
-# The history keeps one line per run, newest last, and is capped at 50 runs.
-update_started_ms=$(_qbNowMs)
-_saveUpdateTiming
-history="${QUICKBOX_BACKUP_DIR}/update-timings.tsv"
-[[ -f ${history} ]] || { echo "missing timing history: ${history}" >&2; exit 1; }
-grep -q 'repository=100' "${history}"
-[[ $(awk -F'\t' 'NF != 3' "${history}" | wc -l) -eq 0 ]] || {
-	echo 'every history line must hold three tab separated fields' >&2
+# The report is all a run leaves behind: nothing is written to the backup root,
+# and there is no history to read back later.
+if grep -q 'history' "${sandbox}/summary.log"; then
+	echo 'the summary must not advertise a timing history' >&2
+	exit 1
+fi
+[[ -z $(find "${QUICKBOX_BACKUP_DIR}" -name 'update-timings.tsv' -print -quit) ]] || {
+	echo 'the update must not record timing history' >&2
 	exit 1
 }
-for _ in $(seq 60); do
-	printf '20240101-000000\t1000\trepository=100;\n' >>"${history}"
-done
-update_started_ms=$(_qbNowMs)
-_saveUpdateTiming
-[[ $(wc -l <"${history}") -le 50 ]] || { echo 'history was not trimmed to 50 runs' >&2; exit 1; }
 
-# The history view renders the recorded runs with their stage rows.
-_showUpdateTiming >"${sandbox}/history.log"
-grep -q '➜ Update timing history (last 5 runs)' "${sandbox}/history.log"
-grep -q 'total ' "${sandbox}/history.log"
-grep -q 'repository ' "${sandbox}/history.log"
-
-# A missing backup root disables the history without touching the filesystem
-# and without failing the run.
-QUICKBOX_BACKUP_DIR="${sandbox}/missing"
-export QUICKBOX_BACKUP_DIR
-# shellcheck disable=SC2034 # read back by _saveUpdateTiming from the driver
-update_started_ms=$(_qbNowMs)
-_saveUpdateTiming
-[[ ! -e "${sandbox}/missing" ]] || { echo 'a missing backup root must stay untouched' >&2; exit 1; }
-_showUpdateTiming >/dev/null 2>&1 && { echo 'history view must fail without a root' >&2; exit 1; }
-QUICKBOX_BACKUP_DIR="${sandbox}/backups"
-export QUICKBOX_BACKUP_DIR
-
-# Option parsing exposes the history and rejects unknown flags.
-show_timings=0
-_parseUpdateArgs --timings
-[[ ${show_timings} -eq 1 ]] || { echo '--timings was not accepted' >&2; exit 1; }
+# Option parsing still rejects unknown flags, and --timings is gone for good.
+if _parseUpdateArgs --timings >/dev/null 2>&1; then
+	echo '--timings must no longer be accepted' >&2
+	exit 1
+fi
 if _parseUpdateArgs --nope >/dev/null 2>&1; then
 	echo 'unknown options must be rejected' >&2
 	exit 1
@@ -179,5 +155,54 @@ for terminal in dumb ''; do
 		exit 1
 	}
 done
+
+# The heartbeat reports silence, not a fixed cadence. A stage that keeps
+# printing sub-step durations is visibly working and must not also claim to be
+# "still running"; only a stage that goes quiet earns a progress line.
+TMPDIR="${sandbox}"
+export TMPDIR
+_updateActivityInit
+[[ -f ${update_activity_file} ]] || { echo 'activity stamp was not created' >&2; exit 1; }
+
+busy_probe() {
+	local i
+	for i in 1 2 3 4 5; do
+		_qbReportMs "step ${i}" 100
+		sleep 0.4
+	done
+}
+
+busy_out="${sandbox}/heartbeat-busy.log"
+(
+	_updateHeartbeatLoop 1 "probe" terminal "$(_qbNowMs)"
+) >"${busy_out}" &
+busy_pid=$!
+busy_probe >/dev/null
+kill "${busy_pid}" 2>/dev/null
+wait "${busy_pid}" 2>/dev/null || true
+if grep -q 'still running' "${busy_out}"; then
+	echo 'a stage that keeps reporting steps must not print heartbeat lines' >&2
+	cat "${busy_out}" >&2
+	exit 1
+fi
+
+quiet_out="${sandbox}/heartbeat-quiet.log"
+(
+	_updateHeartbeatLoop 1 "probe" terminal "$(_qbNowMs)"
+) >"${quiet_out}" &
+quiet_pid=$!
+sleep 1.8
+kill "${quiet_pid}" 2>/dev/null
+wait "${quiet_pid}" 2>/dev/null || true
+grep -q 'probe still running (no output for ' "${quiet_out}" || {
+	echo 'a silent stage must still report progress' >&2
+	cat "${quiet_out}" >&2
+	exit 1
+}
+
+# The stamp is per-run state and must not survive the update.
+stamp_file="${update_activity_file}"
+_updateCleanup
+[[ ! -e ${stamp_file} ]] || { echo 'activity stamp was left behind' >&2; exit 1; }
 
 printf 'update timing sandbox checks passed\n'

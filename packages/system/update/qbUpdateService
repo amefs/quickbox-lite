@@ -17,6 +17,7 @@ else
 	function _qbFormatMs() { printf '%d.0s\n' "$(( ${1:-0} / 1000 ))"; }
 	function _qbReportMs() { return 0; }
 	function _qbReportLap() { return 0; }
+	function _qbTouchActivity() { return 0; }
 fi
 
 # Output policy: a helper that succeeds is a detail, a helper that fails is the
@@ -38,26 +39,32 @@ fi
 function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
-function _print() {
-	printf "${_norm}%s${_norm}\n" "$@"
-	printf "%s\n" "$@" >>"${OUTTO}"
-}
-function _info() {
-	printf "${_cyan}➜ %s${_norm}\n" "$@"
-	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
-}
-function _success() {
-	printf "${_green}✓ %s${_norm}\n" "$@"
-	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
-}
-function _warning() {
-	printf "${_tan}⚠ %s${_norm}\n" "$@"
-	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
-}
-function _error() {
-	printf "${_red}✗ %s${_norm}\n" "$@"
-	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
-}
+# Inside an update these printers already exist: qbUpdate defines them and uses
+# them to refresh its progress window, so redefining them here would silently
+# drop that tracking. A standalone run (tests, manual invocation) still needs a
+# local copy.
+if [[ $(type -t _info) != function ]]; then
+	function _print() {
+		printf "${_norm}%s${_norm}\n" "$@"
+		printf "%s\n" "$@" >>"${OUTTO}"
+	}
+	function _info() {
+		printf "${_cyan}➜ %s${_norm}\n" "$@"
+		printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+	}
+	function _success() {
+		printf "${_green}✓ %s${_norm}\n" "$@"
+		printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+	}
+	function _warning() {
+		printf "${_tan}⚠ %s${_norm}\n" "$@"
+		printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+	}
+	function _error() {
+		printf "${_red}✗ %s${_norm}\n" "$@"
+		printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+	}
+fi
 
 function _verlte() {
 	[  "$1" = "$(echo -e "$1\n$2" | sort -V | head -n1)" ]
