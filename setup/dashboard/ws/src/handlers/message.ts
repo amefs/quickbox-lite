@@ -90,11 +90,13 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
         case "/db/output.log": {
             const rawOffset = req.args["offset"];
             const rawLength = req.args["length"];
+            const rawEpoch = req.args["epoch"];
             const offset = rawOffset ? parseInt(rawOffset, 10) : undefined;
             const length = rawLength ? parseInt(rawLength, 10) : undefined;
             return readOutputLog(
                 Number.isNaN(offset) ? undefined : offset,
                 Number.isNaN(length) ? undefined : length,
+                typeof rawEpoch === "string" ? rawEpoch : undefined,
             );
         }
         default:

@@ -279,6 +279,7 @@ result=$?
 _lockCheck
 _setLock || exit 1
 trap _releaseUpdateInstallLock EXIT
+_initializeUpdateLog || exit 1
 echo entered >>/run/quickbox-test/update-entered.log
 sleep 4
 touch /run/quickbox-test/update-finished

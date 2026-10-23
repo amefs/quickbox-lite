@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { statSync, openSync, readSync, closeSync, existsSync } from "fs";
+import { statSync, openSync, readSync, closeSync, existsSync, readFileSync } from "fs";
 import path from "path";
 import { WatchedConfig } from "../shared/watched-config";
 
@@ -65,6 +65,12 @@ export interface OutputLogResult {
     end: number;
     /** Total file size in bytes */
     size: number;
+    /**
+     * Opaque identity of the current log epoch. It changes whenever `qbUpdate`
+     * or `clean_log` intentionally starts a new log. Compare for equality only;
+     * the value has no ordering guarantee.
+     */
+    epoch: string;
 }
 
 interface OutputLogCacheEntry extends OutputLogResult {
@@ -84,16 +90,38 @@ let lastReadCache: OutputLogCacheEntry | undefined;
  *   - 0..fileSize: reads from that position.
  *   - > fileSize: file was truncated/rotated — resets to auto-mode.
  * @param length - Maximum number of bytes to read. Capped by configured `maxLength`.
+ * @param expectedEpoch - Epoch the caller's byte offset belongs to. A different
+ *   epoch forces a read from byte zero, because offsets do not cross epochs.
  */
-export function readOutputLog(offset?: number, length?: number): OutputLogResult {
-    const logPath = resolveLogPath();
+export function readOutputLog(offset?: number, length?: number, expectedEpoch?: string): OutputLogResult {
+    return readOutputLogAtPath(resolveLogPath(), offset, length, expectedEpoch);
+}
+
+function readEpoch(logPath: string): string {
+    try {
+        return readFileSync(`${logPath}.epoch`, "utf8").trim();
+    } catch {
+        // Older installations have no epoch marker until the next update.
+        return "";
+    }
+}
+
+export function readOutputLogAtPath(logPath: string, offset?: number, length?: number, expectedEpoch?: string): OutputLogResult {
+    let epoch = readEpoch(logPath);
     const config = getConfig();
 
     let stat;
     try {
         stat = statSync(logPath);
+        // Re-check after stat so a reset during this request does not pair a new
+        // log body with the previous epoch.
+        const currentEpoch = readEpoch(logPath);
+        if (currentEpoch !== epoch) {
+            epoch = currentEpoch;
+            stat = statSync(logPath);
+        }
     } catch {
-        return { content: "", start: 0, end: 0, size: 0 };
+        return { content: "", start: 0, end: 0, size: 0, epoch };
     }
 
     const fileSize = stat.size;
@@ -105,7 +133,11 @@ export function readOutputLog(offset?: number, length?: number): OutputLogResult
 
     // Determine start position
     let startPos: number;
-    if (offset === undefined || offset < 0 || offset > fileSize) {
+    if (expectedEpoch !== undefined && expectedEpoch !== epoch) {
+        // The byte offset belongs to a previous log. Restart at byte zero so
+        // the client receives the new epoch's head before it tails.
+        startPos = 0;
+    } else if (offset === undefined || offset < 0 || offset > fileSize) {
         // Auto-mode: return the tail of the file
         startPos = Math.max(0, fileSize - requestedLen);
     } else {
@@ -114,7 +146,7 @@ export function readOutputLog(offset?: number, length?: number): OutputLogResult
 
     if (startPos >= fileSize) {
         // No new data
-        return { content: "", start: fileSize, end: fileSize, size: fileSize };
+        return { content: "", start: fileSize, end: fileSize, size: fileSize, epoch };
     }
 
     const bytesToRead = Math.min(requestedLen, fileSize - startPos);
@@ -122,6 +154,7 @@ export function readOutputLog(offset?: number, length?: number): OutputLogResult
     if (cached &&
         cached.logPath === logPath &&
         cached.mtimeMs === mtimeMs &&
+        cached.epoch === epoch &&
         cached.size === fileSize &&
         cached.start === startPos &&
         cached.bytesToRead === bytesToRead) {
@@ -130,6 +163,7 @@ export function readOutputLog(offset?: number, length?: number): OutputLogResult
             start: cached.start,
             end: cached.end,
             size: cached.size,
+            epoch: cached.epoch,
         };
     }
 
@@ -148,12 +182,14 @@ export function readOutputLog(offset?: number, length?: number): OutputLogResult
         start: startPos,
         end: startPos + bytesRead,
         size: fileSize,
+        epoch,
     };
     lastReadCache = {
         ...result,
         bytesToRead,
         logPath,
         mtimeMs,
+        epoch,
     };
     return result;
 }

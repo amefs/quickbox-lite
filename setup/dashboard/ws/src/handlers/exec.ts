@@ -130,6 +130,12 @@ export function buildUpdateRunnerScript(command: string, statusPath: string) {
     // unit's PrivateTmp /tmp does not survive that restart. Keep the updater and
     // its health check on a persistent directory under the dashboard db instead.
     const updateTmpDir = path.join(getDashboardDbDir(), "tmp");
+    const epochPath = path.join(getDashboardDbDir(), "output.log.epoch");
+    // qbUpdate publishes this marker only after it owns both locks. When the
+    // marker already exists, wait for it to change before reporting success so
+    // a CLI update (which only holds the core lock) cannot be reported as a
+    // successful Web launch. Legacy installs without a marker keep the old
+    // immediate acknowledgement until the first new update creates one.
     return [
         `exec 9>${shellQuote(lockPath)} || { printf 'failed\\n' > ${shellQuote(statusPath)}; exit 78; }`,
         "if ! flock -n 9; then",
@@ -143,30 +149,50 @@ export function buildUpdateRunnerScript(command: string, statusPath: string) {
         "  exit 78",
         "fi",
         `export TMPDIR=${shellQuote(updateTmpDir)}`,
-        `printf 'ok\\n' > ${shellQuote(statusPath)}`,
-        `echo $$ > ${shellQuote(updatePidPath())}`,
-        `cleanup() { exit_code=$?; rm -f ${shellQuote(updatePidPath())}; echo "[$(date -Is)] quickbox update finished (exit=\${exit_code})"; exit "$exit_code"; }`,
+        `cleanup() { exit_code=$?; rm -f ${shellQuote(updatePidPath())}; exit "$exit_code"; }`,
         "trap cleanup EXIT",
         "trap 'exit 129' HUP",
         "trap 'exit 130' INT",
         "trap 'kill -TERM \"${command_pid:-}\" 2>/dev/null || true; exit 143' TERM",
-        `exec 1>>${shellQuote(outputLogPath())} 2>&1`,
-        "echo \"[$(date -Is)] quickbox update started (pid=$$)\"",
+        `epoch_path=${shellQuote(epochPath)}`,
+        'epoch_before=""',
+        'if [[ -f "$epoch_path" ]]; then epoch_before=$(cat "$epoch_path" 2>/dev/null || true); fi',
         `bash -c ${shellQuote(command)} &`,
         "command_pid=$!",
+        'if [[ -z "$epoch_before" ]]; then',
+        `  printf 'ok\\n' > ${shellQuote(statusPath)}`,
+        "else",
+        "  acked=0",
+        "  for ((attempt = 0; attempt < 30; attempt++)); do",
+        '    epoch_after=$(cat "$epoch_path" 2>/dev/null || true)',
+        '    if [[ -s "$epoch_path" && "$epoch_after" != "$epoch_before" ]]; then',
+        `      printf 'ok\\n' > ${shellQuote(statusPath)}`,
+        "      acked=1",
+        "      break",
+        "    fi",
+        '    if ! kill -0 "$command_pid" 2>/dev/null; then break; fi',
+        "    sleep 0.1",
+        "  done",
+        '  if [[ "$acked" -eq 0 ]]; then',
+        '    if kill -0 "$command_pid" 2>/dev/null; then',
+        `      printf 'ok\\n' > ${shellQuote(statusPath)}`,
+        "    else",
+        '      wait "$command_pid"',
+        "      command_status=$?",
+        '      if [[ "$command_status" -eq 75 ]]; then',
+        `        printf 'busy\\n' > ${shellQuote(statusPath)}`,
+        "      else",
+        `        printf 'failed\\n' > ${shellQuote(statusPath)}`,
+        "      fi",
+        '      exit "$command_status"',
+        "    fi",
+        "  fi",
+        "fi",
+        `echo $$ > ${shellQuote(updatePidPath())}`,
         "wait \"$command_pid\"",
         "command_status=$?",
         "exit \"$command_status\"",
     ].join("\n");
-}
-
-function appendUpdateLauncherLog(message: string) {
-    try {
-        fs.mkdirSync(getDashboardDbDir(), { recursive: true });
-        fs.appendFileSync(outputLogPath(), `${message}\n`);
-    } catch {
-        // The runner still attempts to write the same log path after it starts.
-    }
 }
 
 function delay(ms: number) {
@@ -212,16 +238,13 @@ export async function launchPersistentUpdate(command: string): Promise<UpdateLau
         });
         child.unref();
         childPid = child.pid ?? undefined;
-        appendUpdateLauncherLog(
-            `[${new Date().toISOString()}] quickbox update scheduled as detached process ${childPid ?? "unknown"}`,
-        );
     } catch (error) {
         fs.rmSync(statusPath, { force: true });
         return { state: "failed", detail: error instanceof Error ? error.message : String(error) };
     }
 
     // Give the runner a bounded window to report the lock outcome.
-    const deadline = Date.now() + 1500;
+    const deadline = Date.now() + 6000;
     let observed = "";
     while (Date.now() < deadline) {
         observed = readTextFile(statusPath);
@@ -239,7 +262,7 @@ export async function launchPersistentUpdate(command: string): Promise<UpdateLau
         return { state: "busy", detail: "Update already in progress" };
     }
     if (observed === "failed") {
-        return { state: "failed", detail: `Could not acquire ${getUpdateLockPath()}` };
+        return { state: "failed", detail: "Update runner was refused before it owned the update locks" };
     }
     if (childPid !== undefined && observed === "" && !isPidAlive(childPid)) {
         return { state: "failed", detail: "Update runner exited before acquiring the lock" };

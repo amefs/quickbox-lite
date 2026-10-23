@@ -475,16 +475,10 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                                 <div className="modal-footer" style={{ background: "rgba(0, 0, 0, 0.4)", border: "0!important" }}>
                                     <button
                                         id="sysResponseCloseAction"
-                                        data-default-click-handler="boxHandler"
                                         data-default-refresh-after-close="true"
-                                        data-default-package="log"
-                                        data-default-operation="clean"
                                         data-label-default={i18n.t("CLOSE_REFRESH")}
                                         data-label-log-view={i18n.t("CANCEL")}
-                                        data-click-handler="boxHandler"
                                         data-refresh-after-close="true"
-                                        data-package="log"
-                                        data-operation="clean"
                                         data-dismiss="modal"
                                         className="btn btn-xs btn-danger"
                                     >

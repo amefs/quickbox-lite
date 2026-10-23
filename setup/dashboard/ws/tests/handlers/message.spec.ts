@@ -216,13 +216,14 @@ describe("handlers/message", () => {
             expect(widgetResult).to.equal(nodeResult);
         });
 
-        it("should return an object with content, start, end and size for /db/output.log", async () => {
+        it("should return an object with content, start, end, size and epoch for /db/output.log", async () => {
             const result = await resolveWidget("/db/output.log");
             expect(result).to.be.an("object");
             expect(result).to.have.property("content");
             expect(result).to.have.property("start");
             expect(result).to.have.property("end");
             expect(result).to.have.property("size");
+            expect(result).to.have.property("epoch");
         });
 
         it("should support offset parameter for /db/output.log", async () => {

@@ -13,4 +13,38 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-printf "" >/srv/dashboard/db/output.log
+log_file="/srv/dashboard/db/output.log"
+epoch_file="${log_file}.epoch"
+lock_file="${QUICKBOX_UPDATE_CORE_LOCK:-/run/lock/quickbox-update-core.lock}"
+
+if ! command -v flock >/dev/null 2>&1; then
+	printf 'flock is required to clear %s safely\n' "${log_file}" >&2
+	exit 1
+fi
+if ! exec 9>"${lock_file}"; then
+	printf 'Cannot open update lock: %s\n' "${lock_file}" >&2
+	exit 1
+fi
+if ! flock -n 9; then
+	printf 'An update is running; refusing to clear %s\n' "${log_file}" >&2
+	exit 75
+fi
+
+epoch_tmp="${epoch_file}.$$"
+# Publish the new epoch first: a reader must never see the cleared log with the
+# old epoch, otherwise it can append the next chunk at a stale byte offset.
+if ! (umask 022; printf '%s-%s\n' "$(date +%s%N)" "$$" >"${epoch_tmp}"); then
+	rm -f "${epoch_tmp}"
+	printf 'Cannot write log epoch: %s\n' "${epoch_file}" >&2
+	exit 1
+fi
+if ! mv -f "${epoch_tmp}" "${epoch_file}"; then
+	rm -f "${epoch_tmp}"
+	printf 'Cannot publish log epoch: %s\n' "${epoch_file}" >&2
+	exit 1
+fi
+rm -f "${log_file}.generation"
+if ! { : >"${log_file}"; } 2>/dev/null; then
+	printf 'Cannot clear %s\n' "${log_file}" >&2
+	exit 1
+fi

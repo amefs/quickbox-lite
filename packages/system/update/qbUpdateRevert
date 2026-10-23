@@ -88,16 +88,31 @@ if [[ -L "${HISTORY_FILE}" ]]; then
 fi
 
 if [[ ${LIST_ONLY} -eq 1 ]]; then
-	if [[ -s "${HISTORY_FILE}" ]]; then
-		printf 'TIMESTAMP\tBRANCH\tCOMMIT\tREPOSITORY\n'
-		cat "${HISTORY_FILE}"
-	elif [[ -f "${STATE_FILE}" ]]; then
-		printf 'TIMESTAMP\tBRANCH\tCOMMIT\tREPOSITORY\n'
-		printf '%s\t%s\t%s\t%s\n' \
-			"$(_state_value QUICKBOX_REPO_TIMESTAMP)" \
-			"$(_state_value QUICKBOX_REPO_BRANCH)" \
-			"$(_state_value QUICKBOX_REPO_COMMIT)" \
-			"$(_state_value QUICKBOX_REPO)"
+	if [[ -s "${HISTORY_FILE}" || -f "${STATE_FILE}" ]]; then
+		{
+			printf 'TIMESTAMP\tBRANCH\tCOMMIT\tREPOSITORY\n'
+			if [[ -s "${HISTORY_FILE}" ]]; then
+				cat "${HISTORY_FILE}"
+			else
+				printf '%s\t%s\t%s\t%s\n' \
+					"$(_state_value QUICKBOX_REPO_TIMESTAMP)" \
+					"$(_state_value QUICKBOX_REPO_BRANCH)" \
+					"$(_state_value QUICKBOX_REPO_COMMIT)" \
+					"$(_state_value QUICKBOX_REPO)"
+			fi
+		} | awk -F '\t' '
+			NF {
+				row++
+				for (col = 1; col <= 4; col++) {
+					cell[row, col] = $col
+					if (length($col) > width[col]) width[col] = length($col)
+				}
+			}
+			END {
+				format = "%-" width[1] "s  %-" width[2] "s  %-" width[3] "s  %s\n"
+				for (i = 1; i <= row; i++)
+					printf format, cell[i, 1], cell[i, 2], cell[i, 3], cell[i, 4]
+			}'
 	else
 		_info "No repository state recorded under ${BACKUP_ROOT}"
 	fi

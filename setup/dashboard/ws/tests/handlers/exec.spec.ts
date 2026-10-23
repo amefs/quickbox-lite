@@ -250,6 +250,73 @@ describe("handlers/exec", () => {
             expect(fs.existsSync(path.join(dbDir, "update.pid"))).to.equal(false);
         });
 
+        it("should leave the previous log intact when a runner is refused by the lock", async function() {
+            if (!hasFlock) {
+                this.skip();
+            }
+            const outputPath = path.join(dbDir, "output.log");
+            fs.writeFileSync(outputPath, "previous diagnostic log\n");
+            const holder = spawn("/bin/bash", ["-c", `exec 9>"${lockPath}"; flock -n 9 || exit 1; sleep 5`], {
+                stdio: "ignore",
+            });
+            try {
+                const deadline = Date.now() + 3000;
+                while (probeUpdateLock(lockPath) !== "busy" && Date.now() < deadline) {
+                    await new Promise((resolve) => setTimeout(resolve, 50));
+                }
+                const statusPath = path.join(sandbox, "status-busy");
+                const child = spawn("/bin/bash", ["-c", buildUpdateRunnerScript("echo should-not-run", statusPath)], {
+                    stdio: "ignore",
+                });
+                const code = await new Promise<number | null>((resolve) => child.on("exit", resolve));
+                expect(code).to.equal(75);
+                expect(fs.readFileSync(outputPath, "utf8")).to.equal("previous diagnostic log\n");
+            } finally {
+                holder.kill("SIGKILL");
+            }
+        });
+
+        it("should wait for a new epoch before reporting a successful update launch", async () => {
+            const epochPath = path.join(dbDir, "output.log.epoch");
+            fs.writeFileSync(epochPath, "epoch-old\n");
+            const statusPath = path.join(sandbox, "status-epoch");
+            const command = `sleep 0.4; printf 'epoch-new\\n' > ${JSON.stringify(epochPath)}; sleep 0.4`;
+            const script = `flock() { return 0; }\n${buildUpdateRunnerScript(command, statusPath)}`;
+            const child = spawn("/bin/bash", ["-c", script], { stdio: "ignore" });
+            await new Promise((resolve) => setTimeout(resolve, 150));
+            // The old epoch must not be acknowledged as a completed launch.
+            expect(fs.existsSync(statusPath)).to.equal(false);
+            const deadline = Date.now() + 3000;
+            while (!fs.existsSync(statusPath) && Date.now() < deadline) {
+                await new Promise((resolve) => setTimeout(resolve, 20));
+            }
+            expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal("ok");
+            const code = await new Promise<number | null>((resolve) => child.on("exit", resolve));
+            expect(code).to.equal(0);
+        });
+
+        it("should report busy when the updater is rejected by the inner lock", async () => {
+            const epochPath = path.join(dbDir, "output.log.epoch");
+            fs.writeFileSync(epochPath, "epoch-old\n");
+            const statusPath = path.join(sandbox, "status-inner-busy");
+            const script = `flock() { return 0; }\n${buildUpdateRunnerScript("exit 75", statusPath)}`;
+            const child = spawn("/bin/bash", ["-c", script], { stdio: "ignore" });
+            const code = await new Promise<number | null>((resolve) => child.on("exit", resolve));
+            expect(code).to.equal(75);
+            expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal("busy");
+        });
+
+        it("should report failed when the updater exits before publishing an epoch", async () => {
+            const epochPath = path.join(dbDir, "output.log.epoch");
+            fs.writeFileSync(epochPath, "epoch-old\n");
+            const statusPath = path.join(sandbox, "status-inner-failed");
+            const script = `flock() { return 0; }\n${buildUpdateRunnerScript("exit 1", statusPath)}`;
+            const child = spawn("/bin/bash", ["-c", script], { stdio: "ignore" });
+            const code = await new Promise<number | null>((resolve) => child.on("exit", resolve));
+            expect(code).to.equal(1);
+            expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal("failed");
+        });
+
         it("should keep command exit status and clean the pid without platform flock", async () => {
             const statusPath = path.join(sandbox, "status");
             const script = `flock() { return 0; }\n${buildUpdateRunnerScript("exit 42", statusPath)}`;

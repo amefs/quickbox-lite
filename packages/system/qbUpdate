@@ -73,15 +73,17 @@ function _error() {
 	printf "${_red}✗ %s${_norm}\n" "$@"
 	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
 }
+function _updateRefused() {
+	# Refusal diagnostics go to stderr, never the shared output log.
+	printf '%s\n' "$*" >&2
+}
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _lockCheck() {
 	if [[ -f "/install/.install.lock" ]]; then
 		prevApp=$(cat /install/.install.lock)
-		_info "$prevApp update is running."
-		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
-		_error "Exiting..."
+		_updateRefused "$prevApp update is running; remove /install/.install.lock only if it is stale."
 		exit 1
 	fi
 }
@@ -106,7 +108,7 @@ function _lockCleanup() {
 function _updateLockCheck() {
 	local lock="${QUICKBOX_UPDATE_CORE_LOCK:-/run/lock/quickbox-update-core.lock}"
 	if ! command -v flock >/dev/null 2>&1; then
-		_error "flock is required for safe updates"
+		_updateRefused "flock is required for safe updates"
 		return 1
 	fi
 	# qbUpdateRevert holds this same descriptor across checkout and reinstall.
@@ -115,15 +117,15 @@ function _updateLockCheck() {
 		if flock -n 8; then
 			return 0
 		fi
-		_error "Cannot reuse the inherited update lock: ${lock}"
+		_updateRefused "Cannot reuse the inherited update lock: ${lock}"
 		return 75
 	fi
 	if ! exec 8>"${lock}"; then
-		_error "Cannot open the update lock: ${lock}"
+		_updateRefused "Cannot open the update lock: ${lock}"
 		return 1
 	fi
 	if ! flock -n 8; then
-		_error "Another update already holds ${lock}"
+		_updateRefused "Another update already holds ${lock}"
 		return 75
 	fi
 	return 0
@@ -137,6 +139,33 @@ function _updateAbort() {
 	fi
 	_releaseUpdateInstallLock
 	exit 1
+}
+
+function _initializeUpdateLog() {
+	local epoch_tmp="${OUTTO}.epoch.$$"
+	# Publish the new epoch before truncating. A reader must never pair new
+	# content with an old epoch: a fresh run can grow past the previous byte
+	# offset before the next poll, which would silently append the wrong slice.
+	if ! (umask 022; printf '%s-%s\n' "$(date +%s%N)" "$$" >"${epoch_tmp}"); then
+		rm -f "${epoch_tmp}"
+		_updateRefused "Cannot write log epoch: ${OUTTO}.epoch"
+		return 1
+	fi
+	if ! mv -f "${epoch_tmp}" "${OUTTO}.epoch"; then
+		rm -f "${epoch_tmp}"
+		_updateRefused "Cannot publish log epoch: ${OUTTO}.epoch"
+		return 1
+	fi
+	# Remove the marker used before the generation -> epoch rename.
+	rm -f "${OUTTO}.generation"
+	# Truncate in place so active readers and dashboard-stage hardlinks keep the
+	# same log file. The epoch is already visible, so a reader that loses the
+	# race resets and re-reads from byte zero instead of appending.
+	if ! { : >"${OUTTO}"; } 2>/dev/null; then
+		_updateRefused "Cannot initialize update log: ${OUTTO}"
+		return 1
+	fi
+	printf '[%s] QuickBox update started (pid=%s)\n' "$(date -Is)" "$$" >>"${OUTTO}"
 }
 
 # Old rollback copies are only useful for a bounded time. Prune them before this
@@ -413,6 +442,9 @@ update_lock_status=$?
 _lockCheck
 _setLock || exit 1
 trap _releaseUpdateInstallLock EXIT
+# Keep the previous output available until this invocation owns both locks;
+# _initializeUpdateLog then publishes the new epoch before truncating.
+_initializeUpdateLog || exit 1
 if [[ $core == 0 ]]; then
 	_updateStep "system packages" _installSystemUpdates
 fi

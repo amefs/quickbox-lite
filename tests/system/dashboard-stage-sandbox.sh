@@ -37,6 +37,8 @@ mkdir -p "${live}/ws/node_modules/old-dep" "${live}/db" "${live}/skins" "${sourc
 printf 'old package\n' >"${live}/ws/node_modules/old-dep/index.js"
 printf 'old runtime\n' >"${live}/ws/dist.js"
 printf 'old log\n' >"${live}/db/output.log"
+printf 'epoch-old\n' >"${live}/db/output.log.epoch"
+printf 'legacy-marker\n' >"${live}/db/output.log.generation"
 printf 'new package metadata\n' >"${source_tree}/ws/package.json"
 printf 'new runtime\n' >"${source_tree}/ws/dist.js"
 
@@ -67,6 +69,11 @@ printf 'written through old descriptor\n' >&9
 exec 9>&-
 grep -q 'written through old descriptor' "${live}/db/output.log"
 test "$(stat -c %i "${live}/db/output.log" 2>/dev/null || stat -f %i "${live}/db/output.log")" = "$(stat -c %i "${previous}/db/output.log" 2>/dev/null || stat -f %i "${previous}/db/output.log")"
+# The epoch marker must survive activation on the same inode as the live log,
+# while the pre-rename generation marker is retired.
+test "$(cat "${live}/db/output.log.epoch")" = 'epoch-old'
+test ! -e "${live}/db/output.log.generation"
+test "$(stat -c %i "${live}/db/output.log.epoch" 2>/dev/null || stat -f %i "${live}/db/output.log.epoch")" = "$(stat -c %i "${previous}/db/output.log.epoch" 2>/dev/null || stat -f %i "${previous}/db/output.log.epoch")"
 
 # Backup/restore records missing files and removes newly-created files.
 missing="${sandbox}/config/new.conf"

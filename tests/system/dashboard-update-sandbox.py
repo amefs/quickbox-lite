@@ -25,6 +25,8 @@ def run_case(stage):
             'srv/dashboard/ws/dist.js': 'old-runtime',
             'srv/dashboard/ws/node_modules/old/index.js': 'old-dependency',
             'srv/dashboard/db/output.log': 'old-log\n',
+            'srv/dashboard/db/output.log.epoch': 'epoch-old\n',
+            'srv/dashboard/db/output.log.generation': 'legacy-marker\n',
             'srv/dashboard/db/master.txt': 'fixture\n',
             'srv/dashboard/db/update.pid': '12345\n',
             'srv/dashboard/skins/custom.css': 'custom-style',
@@ -124,11 +126,13 @@ exit "$result"
         live = root / 'srv/dashboard'
         assert 'after-update-via-original-fd' in (live / 'db/output.log').read_text(), result.stderr
         assert (live / 'db/master.txt').read_text() == 'fixture\n'
+        assert (live / 'db/output.log.epoch').read_text() == 'epoch-old\n'
         assert (live / 'db/update.pid').read_text() == '12345\n'
         assert (live / 'skins/custom.css').read_text() == 'custom-style'
         if stage == 'success':
             assert result.returncode == 0, (result.stdout, result.stderr)
             assert (live / 'ws/dist.js').read_text() == 'new-runtime-v2'
+            assert not (live / 'db/output.log.generation').exists()
             assert (live / 'ws/node_modules/new/index.js').read_text() == 'new-dependency'
             assert not (live / 'ws/node_modules/old').exists()
             backups = root / 'backups'

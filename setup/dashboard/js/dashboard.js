@@ -336,8 +336,9 @@
     if (typeof response === "object" && response !== null && "content" in response) {
       let previousEnd = task._endOffset;
       let nextChunk = "";
-      let replaced = false;
-      if (previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
+      let epochChanged = response.epoch !== undefined && task._epoch !== response.epoch;
+      let replaced = epochChanged;
+      if (epochChanged || previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
         task._rawContent = response.content;
         task._endOffset = response.end;
         replaced = true;
@@ -348,6 +349,9 @@
           task._rawContent = (task._rawContent || "") + nextChunk;
         }
         task._endOffset = response.end;
+      }
+      if (response.epoch !== undefined) {
+        task._epoch = response.epoch;
       }
       renderSshOutput(el, task, nextChunk, replaced);
     } else {
@@ -429,6 +433,7 @@
         id: "#sshoutput",
         time: 2000,
         _endOffset: -1,
+        _epoch: undefined,
         _requestLength: 65536,
         before: function (task) {
           if (!window.jQuery("#sysResponse").is(":visible")) {
@@ -438,6 +443,9 @@
             task.url = "/db/output.log?offset=" + task._endOffset + "&length=" + task._requestLength;
           } else {
             task.url = "/db/output.log?length=" + task._requestLength;
+          }
+          if (task._epoch !== undefined) {
+            task.url += "&epoch=" + encodeURIComponent(task._epoch);
           }
           return true;
         },
@@ -964,10 +972,7 @@
       return;
     }
 
-    let defaultHandler = closeButton.dataset.defaultClickHandler || "boxHandler";
     let defaultRefreshAfterClose = closeButton.dataset.defaultRefreshAfterClose || "true";
-    let defaultPackage = closeButton.dataset.defaultPackage || "log";
-    let defaultOperation = closeButton.dataset.defaultOperation || "clean";
     let defaultLabel = closeButton.dataset.labelDefault || closeButton.textContent || "";
     let logViewLabel = closeButton.dataset.labelLogView || defaultLabel;
 
@@ -976,14 +981,15 @@
       closeButton.removeAttribute("data-refresh-after-close");
       closeButton.removeAttribute("data-package");
       closeButton.removeAttribute("data-operation");
+      closeButton.dataset.refreshAfterClose = "false";
       closeButton.textContent = logViewLabel;
       return;
     }
 
-    closeButton.dataset.clickHandler = defaultHandler;
+    closeButton.removeAttribute("data-click-handler");
     closeButton.dataset.refreshAfterClose = defaultRefreshAfterClose;
-    closeButton.dataset.package = defaultPackage;
-    closeButton.dataset.operation = defaultOperation;
+    closeButton.removeAttribute("data-package");
+    closeButton.removeAttribute("data-operation");
     closeButton.textContent = defaultLabel;
   }
 
@@ -1038,6 +1044,11 @@
         if (boxHandlerButton instanceof HTMLElement && boxHandlerButton.dataset.refreshAfterClose === "true") {
           reloadAfterExec = true;
         }
+      }
+      let responseCloseButton = target.closest("#sysResponseCloseAction");
+      if (responseCloseButton instanceof HTMLElement && responseCloseButton.dataset.refreshAfterClose === "true") {
+        reloadAfterExec = true;
+        maybeReloadAfterExec();
       }
     });
     loadNodeFragments();

@@ -208,6 +208,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.json(readOutputLog(
             parseQueryNumber(req.query.offset),
             parseQueryNumber(req.query.length),
+            typeof req.query.epoch === "string" ? req.query.epoch : undefined,
         ));
     });
 

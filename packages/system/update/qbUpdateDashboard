@@ -68,17 +68,19 @@ function _dashboardPrepareStage() {
 	rm -rf "${stage}" || return 1
 	mkdir -p "${stage}" || return 1
 	rsync -a "${live}/" "${stage}/" || return 1
-	rsync -a --delete --exclude=output.log --exclude=interface.txt --exclude=master.txt --exclude=ws.secret --exclude=nginx-ws-gateway.conf --exclude=.smoked.lock --exclude=.defaulted.lock --exclude=custom.css --exclude=update.pid --exclude=update.state --exclude=db/tmp "${source}"* "${stage}/" || return 1
+	rsync -a --delete --exclude=output.log --exclude=output.log.epoch --exclude=interface.txt --exclude=master.txt --exclude=ws.secret --exclude=nginx-ws-gateway.conf --exclude=.smoked.lock --exclude=.defaulted.lock --exclude=custom.css --exclude=update.pid --exclude=update.state --exclude=db/tmp "${source}"* "${stage}/" || return 1
 	install -d -m 0700 -o www-data -g www-data "${stage}/db/tmp" || return 1
 	(cd "${stage}/ws" && npm ci --production >>"${OUTTO}" 2>&1) || return 1
 	# Keep open runtime file descriptors (especially the updater's output.log)
 	# attached to the path in the newly activated tree by sharing their inode.
-	for runtime_file in output.log interface.txt master.txt update.pid update.state; do
+	for runtime_file in output.log output.log.epoch interface.txt master.txt update.pid update.state; do
 		if [[ -f "${live}/db/${runtime_file}" ]]; then
 			rm -f "${stage}/db/${runtime_file}" || return 1
 			ln "${live}/db/${runtime_file}" "${stage}/db/${runtime_file}" || return 1
 		fi
 	done
+	# Retire the pre-rename marker even when the source tree has no db/ directory.
+	rm -f "${stage}/db/output.log.generation" || return 1
 	return 0
 }
 
