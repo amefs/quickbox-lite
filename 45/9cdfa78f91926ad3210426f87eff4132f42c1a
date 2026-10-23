@@ -1,0 +1,16 @@
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+setup/dashboard/ws/src/auth.ts
+  h_3705811fa4502c 69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "459cdfa78f91926ad3210426f87eff4132f42c1a",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
