@@ -17,7 +17,9 @@ HELPER = REPO / 'packages/system/auxiliary/qbEnsureNodejs'
 
 class NodeUpdateTest(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix='quickbox-nodejs-')
+        # Keep the sandbox root outside /tmp/quickbox*: the caller fixtures
+        # below rewrite that prefix to isolate their own temporary paths.
+        self.temporary = tempfile.TemporaryDirectory(prefix='nodejs-sandbox-')
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.bin = self.root / 'bin'
