@@ -37,16 +37,11 @@ function _qbRunHelper() {
 		capture_dir=/tmp
 	fi
 	capture=$(mktemp "${capture_dir}/qb-update-step.XXXXXX" 2>/dev/null) || {
-		# No capture file: run the step anyway. Losing the quiet output is
-		# better than skipping the work.
 		"$@"
 		return $?
 	}
 	"$@" >>"${capture}" 2>&1
 	status=$?
-	# The log keeps the detail for both outcomes; it is what the Dashboard log
-	# view and a later post-mortem read. Appending is best effort: an unwritable
-	# log must not turn a successful step into a failure.
 	if [[ -n ${OUTTO:-} ]]; then
 		cat "${capture}" >>"${OUTTO}" 2>/dev/null || true
 	fi
@@ -57,7 +52,6 @@ function _qbRunHelper() {
 		sed 's/^/   /' "${capture}"
 	fi
 	rm -f "${capture}"
-	# Whatever the helper printed, the stage did make progress.
 	_qbTouchActivity
 	return "${status}"
 }

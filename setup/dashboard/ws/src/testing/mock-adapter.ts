@@ -175,7 +175,6 @@ export function runBoxCommand(operation: string, target: string) {
     return false;
 }
 
-/** Apply an already validated command to the active test profile, without executing it. */
 export function runMockCommand(payload: string): boolean | undefined {
     if (!isTestMode()) {
         return undefined;

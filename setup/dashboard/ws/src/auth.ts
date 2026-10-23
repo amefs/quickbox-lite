@@ -66,7 +66,7 @@ export function readGatewaySecret(): GatewaySecretState {
                 return { secret: value };
             }
         } catch {
-            // Try the next candidate, then fall back to the cached value.
+            continue;
         }
     }
 
@@ -80,15 +80,10 @@ export function getGatewaySecret(): string {
     return readGatewaySecret().secret;
 }
 
-/** Test helper: drop the cached secret so env/file changes take effect. */
 export function resetGatewaySecretCache(): void {
     cachedSecret = "";
 }
 
-/**
- * Startup gate. In production a usable secret is mandatory: running without it
- * would expose every management command on the Node port.
- */
 export function validateProductionAuth(): string | null {
     if (!isProduction()) {
         return null;
@@ -116,9 +111,6 @@ export function secretsEqual(left: string, right: string): boolean {
 }
 
 export function shouldEnforceGateway(): boolean {
-    // Production is fail-closed: validateProductionAuth() guarantees a secret at
-    // startup, and an empty secret here means every request must be rejected
-    // rather than silently bypassing the gateway check.
     if (isProduction()) {
         return true;
     }
@@ -243,8 +235,6 @@ function matchesAllowedOrigin(parsed: URL): boolean {
             );
         }
         warnHostOnlyEntry(entry);
-        // Legacy host-only entries match the host on any port, which is exactly
-        // their documented (and deprecated) scope.
         const allowedAuthority = parseAuthority(entry, originProtocol);
         if (allowedAuthority === null) {
             return entry === originHost;
@@ -254,8 +244,6 @@ function matchesAllowedOrigin(parsed: URL): boolean {
 }
 
 export function isAllowedOrigin(origin: string | undefined, hostHeader: string | undefined, protocol = "http"): boolean {
-    // Non-browser clients may omit Origin; they are still gated by the gateway
-    // secret (AUTH-01), never by the browser-only origin check.
     if (origin === undefined || origin === "") {
         return true;
     }
@@ -330,10 +318,6 @@ export function gatewayAuthMiddleware(req: Request, res: Response, next: NextFun
     next();
 }
 
-/**
- * Reports a production misconfiguration. Returns the problem message so the
- * caller can exit non-zero; never logs the secret itself.
- */
 export function assertProductionAuth(): string | null {
     const problem = validateProductionAuth();
     if (problem !== null) {

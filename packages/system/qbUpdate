@@ -543,13 +543,11 @@ function _updateHeartbeatStop() {
 	update_heartbeat_pid=""
 }
 
-# Records one finished stage for the end-of-run report.
 function _updateRecordStage() {
 	update_stage_labels[${#update_stage_labels[@]}]="$1"
 	update_stage_ms[${#update_stage_ms[@]}]="$2"
 }
 
-# One row of the timing report: name, duration, proportional bar and share.
 function _updateTimingRow() {
 	local label="$1" ms="${2:-0}" total="${3:-0}" pct=0 cells bar=""
 	if [[ ! ${ms} =~ ^[0-9]+$ ]]; then
@@ -571,9 +569,6 @@ function _updateTimingRow() {
 	printf '  %-34s %8s  %-20s %3d%%\n' "${label}" "$(_qbFormatMs "${ms}")" "${bar}" "${pct}"
 }
 
-# Renders the per-stage report. The residual row keeps the numbers honest:
-# whatever no stage covered (lock setup, profile reload, cleanup) is shown
-# instead of silently disappearing into the total.
 function _printUpdateTiming() {
 	local total accounted=0 residual=0 i
 	if [[ ! ${update_started_ms:-0} =~ ^[0-9]+$ ]] || (( update_started_ms <= 0 )); then
@@ -598,9 +593,6 @@ function _printUpdateTiming() {
 	printf '  %-34s %8s\n' "total" "$(_qbFormatMs "${total}")"
 }
 
-# Runs one update stage and aborts the whole update when it fails, so a partial
-# deployment is never reported as completed. Every stage is measured; the
-# measurement reaches the terminal immediately and the log at the same time.
 function _updateStep() {
 	local stage="$1"
 	shift

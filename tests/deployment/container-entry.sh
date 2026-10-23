@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Refresh a previously built dependency image with the current read-only checkout.
-# Dependency lock changes require a rebuild; never silently test stale packages.
 set -euo pipefail
 cmp /input/setup/dashboard/ws/package-lock.json /opt/quickbox-source/setup/dashboard/ws/package-lock.json || {
   echo 'Dashboard dependencies changed: rebuild the deployment image without QUICKBOX_DEPLOYMENT_SKIP_BUILD.' >&2

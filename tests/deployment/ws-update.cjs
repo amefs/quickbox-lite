@@ -62,8 +62,6 @@ async function waitFor(predicate) {
     // The reverse direction: a CLI update only holds the inner core lock, so
     // the Web launcher must wait for the epoch acknowledgement and report busy
     // instead of claiming that it started.
-    // The systemd restart above replaced the service process, so the sockets
-    // opened at the start are dead and a fresh connection is required.
     const web = await connect();
     sockets.push(web);
     fs.rmSync(marker, { force: true });

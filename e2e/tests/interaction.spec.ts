@@ -253,8 +253,6 @@ test.describe("Full Page Interactions", () => {
     });
 });
 
-// ── Command failure dialog ──────────────────────────────────
-
 test.describe("Command failure dialog", () => {
     test("should show the Bootstrap alert modal and escape failed command output", async ({ page }, testInfo) => {
         await setMockProfile(page, "partial-running");

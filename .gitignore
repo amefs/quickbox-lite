@@ -58,5 +58,4 @@ node_modules/
 localazy.keys.json
 !setup/dashboard/ws/src/vendor/
 
-# Python bytecode
 __pycache__/

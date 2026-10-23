@@ -55,11 +55,6 @@ function updatePidPath() {
     return path.join(getDashboardDbDir(), "update.pid");
 }
 
-/**
- * Authoritative update lock. It lives outside /srv/dashboard so a dashboard
- * rsync (`--delete`) can never remove it, and outside the service's private
- * /tmp so the CLI and the WebSocket path share the same lock.
- */
 export function getUpdateLockPath(): string {
     return process.env.QUICKBOX_UPDATE_LOCK ?? "/run/lock/quickbox-update.lock";
 }
@@ -101,11 +96,6 @@ export function isUpdateInProgress(pidPath = updatePidPath()): boolean {
     return pid !== null && isPidAlive(pid);
 }
 
-/**
- * Non-destructive probe of the authoritative lock. `unknown` means flock is
- * unavailable (for example on a development macOS host), in which case the
- * launch still relies on the lock acquired inside the runner itself.
- */
 export function probeUpdateLock(lockPath = getUpdateLockPath()): "free" | "busy" | "unknown" {
     try {
         const result = spawnSync("flock", ["-n", "-E", "75", lockPath, "true"], { timeout: 5000 });
@@ -217,11 +207,6 @@ export interface UpdateLaunchResult {
     detail?: string;
 }
 
-/**
- * Starts the detached updater and reports what the runner actually did. The
- * runner acquires the flock before touching anything; the caller only reports
- * success once that lock was acquired.
- */
 export async function launchPersistentUpdate(command: string): Promise<UpdateLaunchResult> {
     if (probeUpdateLock() === "busy") {
         return { state: "busy", detail: "Update already in progress" };

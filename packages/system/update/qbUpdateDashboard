@@ -226,8 +226,6 @@ function _updatedashboard() {
 	fi
 	_qbReportLap "ws gateway secret" "${lap}"
 
-	# 3. Sync the dashboard runtime files.
-	# Activation is delayed until all file transfer and dependency installation succeeds.
 
 	# 4. Install the dashboard vhost (user authentication, no loopback bypass).
 	lap=$(_qbNowMs)

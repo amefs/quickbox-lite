@@ -6,7 +6,6 @@ E2E_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 COMPOSE_FILE="$E2E_ROOT/docker-compose.yml"
 WS_ROOT="$(CDPATH= cd -- "$E2E_ROOT/../setup/dashboard/ws" && pwd)"
 
-# An explicit target belongs to the caller; do not start or stop services for it.
 if [ -n "${E2E_BASE_URL:-}" ]; then
   export WS_BASE_URL="${WS_BASE_URL:-${E2E_BASE_URL%/}/ws}"
   exec npx playwright test "$@"

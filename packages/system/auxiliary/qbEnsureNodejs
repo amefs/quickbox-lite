@@ -122,13 +122,9 @@ if [[ -n ${current_version} ]] && _is_supported "${current_version}"; then
 fi
 
 if [[ ${current_major} -gt 24 ]]; then
-	# Nothing to do and nothing to check: this host is ahead of the managed
-	# line and a "patch" would be a downgrade.
 	printf 'Keeping the installed Node.js %s (newer than the managed 24.x line).\n' \
 		"${current_version}"
 elif [[ -n ${sourcelist} && ${reuse_satisfied} -eq 1 ]]; then
-	# A core update only asks whether the runtime still satisfies the policy.
-	# Patching is the job of a full update.
 	printf 'Keeping the installed Node.js %s (only-core update).\n' "${current_version}"
 elif [[ -n ${sourcelist} ]]; then
 	# Fast path: the runtime is already what this host is supposed to run, so

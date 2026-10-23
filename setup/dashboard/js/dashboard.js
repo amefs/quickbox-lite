@@ -197,8 +197,6 @@
     window.jQuery(".tooltips").tooltip();
   }
 
-  // Reads the interaction state of the live table. Must run before the widget
-  // HTML is replaced, otherwise the instance and its state are already gone.
   function capturePackageTableState(task) {
     let $ = window.jQuery;
     if (!$ || !$.fn || !$.fn.DataTable || !$.fn.DataTable.isDataTable("#dataTable1")) {
@@ -591,7 +589,6 @@
           }
           task._lastHtml = response.response;
           if (task.beforeHtml && typeof task.beforeHtml === "function") {
-            // Runs while the previous DOM (and its component instances) still exist.
             task.beforeHtml(task);
           }
           window.jQuery(task.id).html(response.response);
@@ -935,9 +932,6 @@
     });
 
     // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready).
-    // A pre-fetch never overwrites a payload the WebSocket already delivered, and
-    // no longer infers readiness from the presence of child nodes (the CPU load
-    // widget is text only).
     function applyPrefetchHtml(selector, html) {
       if (widgetWriteSourceOf(selector) !== "") {
         return;

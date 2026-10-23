@@ -98,9 +98,6 @@ function _init() {
 	if (! export | grep -q sbin); then
 		export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
 	fi
-	# Restore tracked file modes and LF endings before any repository script is
-	# sourced or executed. The helper also runs a scoped fallback over deployable
-	# paths; it never walks .git, node_modules or runtime state.
 	local normalize_helper="${local_prefix}packages/system/auxiliary/qbNormalizeRepo"
 	if [[ ! -s "${normalize_helper}" ]]; then
 		_error "Repository normalizer is missing or empty: ${normalize_helper}"
@@ -131,8 +128,6 @@ function _init() {
 			apt-get -y install git curl wget dos2unix python3 apt-transport-https gnupg2 ca-certificates bind9-dnsutils unzip jq >/dev/null 2>&1
 		fi
 		echo -e "XXX\n20\nPreparing scripts... \nXXX"
-		# Executable bits and line endings were normalized before this progress
-		# block; no blanket dos2unix/chmod over the checkout is needed.
 		if [[ -d /usr/local/bin/quickbox ]]; then
 			rm -rf /usr/local/bin/quickbox
 		fi
@@ -970,8 +965,6 @@ function _insngx() {
 
 	cp ${local_setup_template}nginx/ssl-params.conf.template /etc/nginx/snippets/ssl-params.conf
 
-	# Only install the proxy snippet verbatim when nothing exists yet; otherwise
-	# migrate the broken legacy directives and keep user customization.
 	if [[ -f /etc/nginx/snippets/proxy.conf ]]; then
 		if ! bash /usr/local/bin/quickbox/system/auxiliary/qbNginxProxyMigrate \
 			--template ${local_setup_template}nginx/proxy.conf.template >>"${OUTTO}" 2>&1; then
@@ -1076,8 +1069,6 @@ function _insdashboard() {
 	echo "${IFACE}" >/srv/dashboard/db/interface.txt
 	echo "${username}" >/srv/dashboard/db/master.txt
 
-	# Ownership: runtime code stays root owned, only the runtime state
-	# directories are writable by the service user.
 	if ! chown -R root:root /srv/dashboard ||
 		! chown -R www-data:www-data /srv/dashboard/db /srv/dashboard/skins; then
 		echo ">> Failed to set dashboard ownership" >>"${OUTTO}" 2>&1
