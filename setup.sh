@@ -967,12 +967,12 @@ function _insngx() {
 
 	if [[ -f /etc/nginx/snippets/proxy.conf ]]; then
 		if ! bash /usr/local/bin/quickbox/system/auxiliary/qbNginxProxyMigrate \
-			--template ${local_setup_template}nginx/proxy.conf.template >>"${OUTTO}" 2>&1; then
+			--template ${local_setup_template}nginx/proxy.conf >>"${OUTTO}" 2>&1; then
 			echo ">> Failed to migrate the nginx proxy snippet" >>"${OUTTO}" 2>&1
 			exit 1
 		fi
 	else
-		cp ${local_setup_template}nginx/proxy.conf.template /etc/nginx/snippets/proxy.conf
+		cp ${local_setup_template}nginx/proxy.conf /etc/nginx/snippets/proxy.conf
 	fi
 	mkdir -p /etc/nginx/snippets
 	chown root:root /etc/nginx/snippets/proxy.conf 2>/dev/null

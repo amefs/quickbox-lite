@@ -11,10 +11,10 @@ import path from "path";
 import execHandler, {
     buildUpdateRunnerScript,
     decodeExecOutput,
-    getUpdateLockPath,
+    getWebLauncherLockPath,
     isPidAlive,
     isUpdateInProgress,
-    probeUpdateLock,
+    probeWebLauncherLock,
     readUpdatePid,
     releaseExecSlot,
     resetExecSlotsForTests,
@@ -186,15 +186,15 @@ describe("handlers/exec", () => {
 
         it("should use a lock location outside the dashboard sync tree", () => {
             Reflect.deleteProperty(process.env, "QUICKBOX_UPDATE_LOCK");
-            expect(getUpdateLockPath()).to.equal("/run/lock/quickbox-update.lock");
-            expect(getUpdateLockPath().startsWith("/srv/dashboard")).to.equal(false);
+            expect(getWebLauncherLockPath()).to.equal("/run/lock/quickbox-update.lock");
+            expect(getWebLauncherLockPath().startsWith("/srv/dashboard")).to.equal(false);
         });
 
         it("should report a free lock when nothing holds it", function() {
             if (!hasFlock) {
                 this.skip();
             }
-            expect(probeUpdateLock(lockPath)).to.equal("free");
+            expect(probeWebLauncherLock(lockPath)).to.equal("free");
         });
 
         it("should report busy while another holder keeps the lock", async function() {
@@ -206,10 +206,10 @@ describe("handlers/exec", () => {
             });
             try {
                 const deadline = Date.now() + 3000;
-                let state = probeUpdateLock(lockPath);
+                let state = probeWebLauncherLock(lockPath);
                 while (state !== "busy" && Date.now() < deadline) {
                     await new Promise((resolve) => setTimeout(resolve, 50));
-                    state = probeUpdateLock(lockPath);
+                    state = probeWebLauncherLock(lockPath);
                 }
                 expect(state).to.equal("busy");
             } finally {
@@ -261,7 +261,7 @@ describe("handlers/exec", () => {
             });
             try {
                 const deadline = Date.now() + 3000;
-                while (probeUpdateLock(lockPath) !== "busy" && Date.now() < deadline) {
+                while (probeWebLauncherLock(lockPath) !== "busy" && Date.now() < deadline) {
                     await new Promise((resolve) => setTimeout(resolve, 50));
                 }
                 const statusPath = path.join(sandbox, "status-busy");

@@ -38,7 +38,7 @@ def run_case(stage):
             'payload/ws/package.json': '{}',
             'templates/nginx/dashboard.conf.template':
                 'location / {\n    # qb-auth-begin\n    auth_basic "fixture";\n}\n',
-            'templates/nginx/proxy.conf.template': 'new-proxy',
+            'templates/nginx/proxy.conf': 'new-proxy',
             'templates/systemd/quickbox-ws.service.template': 'new-unit',
         }
         for name, value in fixtures.items():
@@ -121,6 +121,7 @@ exit "$result"
         result = subprocess.run(
             ['bash', str(driver)],
             env=dict(os.environ, SANDBOX=str(root), FAIL_STAGE=stage,
+                     QB_UPDATE_LIB_DIR=str(REPO / 'packages/system/update'),
                      QB_UPDATE_BACKUP_LIB=str(REPO / 'packages/system/update/qbUpdateBackup'),
                      QB_UPDATE_STEP_LIB=str(REPO / 'packages/system/update/qbUpdateStep'),
                      QB_UPDATE_TIMER_LIB=str(REPO / 'packages/system/update/qbUpdateTimer')),
@@ -166,9 +167,11 @@ with tempfile.TemporaryDirectory(prefix='quickbox-cli-lock-') as temporary:
     root = Path(temporary)
     definitions = (REPO / 'packages/system/qbUpdate').read_text().split('# MAIN PROCESS')[0]
     (root / 'library.sh').write_text(definitions.replace('/install/', str(root) + '/'))
+    library_env = dict(os.environ, TERM='xterm',
+                       QB_UPDATE_LIB_DIR=str(REPO / 'packages/system/update'))
     outcome = subprocess.run(
         ['bash', '-c', 'source "$1"; _setLock || exit 1; trap _releaseUpdateInstallLock EXIT; exit 42',
-         'bash', str(root / 'library.sh')], env=dict(os.environ, TERM='xterm'),
+         'bash', str(root / 'library.sh')], env=library_env,
         capture_output=True, text=True)
     assert outcome.returncode == 42, outcome.stderr
     assert not (root / '.install.lock').exists()

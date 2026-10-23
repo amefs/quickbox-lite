@@ -12,7 +12,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Usage: qbNginxProxyMigrate [--template <proxy.conf.template>] [--no-verify]
+# Usage: qbNginxProxyMigrate [--template <file>] [--no-verify]
 
 set -uo pipefail
 
@@ -39,7 +39,7 @@ while [[ $# -gt 0 ]]; do
 		shift
 		;;
 	-h | --help)
-		echo "Usage: qbNginxProxyMigrate [--template <proxy.conf.template>] [--no-verify]"
+		echo "Usage: qbNginxProxyMigrate [--template <file>] [--no-verify]"
 		exit 0
 		;;
 	*)

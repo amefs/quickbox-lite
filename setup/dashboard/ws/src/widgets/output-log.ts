@@ -97,17 +97,16 @@ export function readOutputLog(offset?: number, length?: number, expectedEpoch?: 
     return readOutputLogAtPath(resolveLogPath(), offset, length, expectedEpoch);
 }
 
-function readEpoch(logPath: string): string {
+function readEpoch(logPath: string): string | null {
     try {
         return readFileSync(`${logPath}.epoch`, "utf8").trim();
     } catch {
-        // Older installations have no epoch marker until the next update.
-        return "";
+        return null;
     }
 }
 
 export function readOutputLogAtPath(logPath: string, offset?: number, length?: number, expectedEpoch?: string): OutputLogResult {
-    let epoch = readEpoch(logPath);
+    let epoch = readEpoch(logPath) ?? "";
     const config = getConfig();
 
     let stat;
@@ -115,7 +114,7 @@ export function readOutputLogAtPath(logPath: string, offset?: number, length?: n
         stat = statSync(logPath);
         // Re-check after stat so a reset during this request does not pair a new
         // log body with the previous epoch.
-        const currentEpoch = readEpoch(logPath);
+        const currentEpoch = readEpoch(logPath) ?? "";
         if (currentEpoch !== epoch) {
             epoch = currentEpoch;
             stat = statSync(logPath);

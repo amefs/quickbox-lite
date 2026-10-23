@@ -44,23 +44,15 @@ update_stage_ms=()
 update_heartbeat_pid=""
 update_activity_file=""
 
-# The clock lives in a file shared with the service and dashboard stages. It
-# sits next to those stages, one directory below this driver. A missing helper
-# must never fail an update, so fall back to no-op stubs: the stage names still
-# reach the log, only the durations disappear.
-update_timer_lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/update/qbUpdateTimer"
-if [[ -f "${update_timer_lib}" ]]; then
-	# shellcheck source=packages/system/update/qbUpdateTimer
-	# shellcheck disable=SC1090,SC1091
-	source "${update_timer_lib}"
-else
-	printf '⚠ Update timing helper is missing: %s\n' "${update_timer_lib}" >&2
-	function _qbNowMs() { printf '0\n'; }
-	function _qbFormatMs() { printf '%d.0s\n' "$(( ${1:-0} / 1000 ))"; }
-	function _qbReportMs() { return 0; }
-	function _qbReportLap() { return 0; }
-	function _qbTouchActivity() { return 0; }
+# The service and dashboard stages live one directory below this driver.
+_qb_lib_dir="${QB_UPDATE_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/update}"
+if [[ ! -f "${_qb_lib_dir}/qbUpdateLib" ]]; then
+	printf '✗ Update helpers are missing: %s\n' "${_qb_lib_dir}" >&2
+	exit 1
 fi
+# shellcheck source=packages/system/update/qbUpdateLib
+# shellcheck disable=SC1090,SC1091
+source "${_qb_lib_dir}/qbUpdateLib"
 
 function _parseUpdateArgs() {
 	while [[ $# -gt 0 ]]; do
@@ -83,34 +75,6 @@ function _parseUpdateArgs() {
 	done
 }
 
-function _execute() {
-	($1 >>"${OUTTO}" 2>&1)
-}
-function _print() {
-	printf "${_norm}%s${_norm}\n" "$@"
-	printf "%s\n" "$@" >>"${OUTTO}"
-	_qbTouchActivity
-}
-function _info() {
-	printf "${_cyan}➜ %s${_norm}\n" "$@"
-	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
-	_qbTouchActivity
-}
-function _success() {
-	printf "${_green}✓ %s${_norm}\n" "$@"
-	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
-	_qbTouchActivity
-}
-function _warning() {
-	printf "${_tan}⚠ %s${_norm}\n" "$@"
-	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
-	_qbTouchActivity
-}
-function _error() {
-	printf "${_red}✗ %s${_norm}\n" "$@"
-	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
-	_qbTouchActivity
-}
 function _updateRefused() {
 	# Refusal diagnostics go to stderr, never the shared output log.
 	printf '%s\n' "$*" >&2
@@ -151,33 +115,10 @@ function _updateCleanup() {
 	_releaseUpdateInstallLock
 }
 
-# Authoritative update lock. The WS launcher holds its own flock around the
-# detached runner; this one serializes every real update body (WS or CLI), so
-# two entry points can never run the update body at the same time.
+# The WS launcher holds its own flock around the detached runner; the core lock
+# below serializes the update body itself, so both entry points queue here.
 function _updateLockCheck() {
-	local lock="${QUICKBOX_UPDATE_CORE_LOCK:-/run/lock/quickbox-update-core.lock}"
-	if ! command -v flock >/dev/null 2>&1; then
-		_updateRefused "flock is required for safe updates"
-		return 1
-	fi
-	# qbUpdateRevert holds this same descriptor across checkout and reinstall.
-	# Reuse its open file description instead of locking the file a second time.
-	if [[ "${QUICKBOX_UPDATE_CORE_LOCK_INHERITED:-}" == "${lock}" ]]; then
-		if flock -n 8; then
-			return 0
-		fi
-		_updateRefused "Cannot reuse the inherited update lock: ${lock}"
-		return 75
-	fi
-	if ! exec 8>"${lock}"; then
-		_updateRefused "Cannot open the update lock: ${lock}"
-		return 1
-	fi
-	if ! flock -n 8; then
-		_updateRefused "Another update already holds ${lock}"
-		return 75
-	fi
-	return 0
+	_qbAcquireUpdateLock
 }
 
 function _updateAbort() {
@@ -192,29 +133,19 @@ function _updateAbort() {
 }
 
 function _initializeUpdateLog() {
-	local epoch_tmp="${OUTTO}.epoch.$$"
-	# Publish the new epoch before truncating. A reader must never pair new
-	# content with an old epoch: a fresh run can grow past the previous byte
-	# offset before the next poll, which would silently append the wrong slice.
-	if ! (umask 022; printf '%s-%s\n' "$(date +%s%N)" "$$" >"${epoch_tmp}"); then
-		rm -f "${epoch_tmp}"
-		_updateRefused "Cannot write log epoch: ${OUTTO}.epoch"
-		return 1
-	fi
-	if ! mv -f "${epoch_tmp}" "${OUTTO}.epoch"; then
-		rm -f "${epoch_tmp}"
+	local epoch_status=0
+	_qbPublishLogEpoch "${OUTTO}" || epoch_status=$?
+	case "${epoch_status}" in
+	0) ;;
+	1)
 		_updateRefused "Cannot publish log epoch: ${OUTTO}.epoch"
 		return 1
-	fi
-	# Remove the marker used before the generation -> epoch rename.
-	rm -f "${OUTTO}.generation"
-	# Truncate in place so active readers and dashboard-stage hardlinks keep the
-	# same log file. The epoch is already visible, so a reader that loses the
-	# race resets and re-reads from byte zero instead of appending.
-	if ! { : >"${OUTTO}"; } 2>/dev/null; then
+		;;
+	*)
 		_updateRefused "Cannot initialize update log: ${OUTTO}"
 		return 1
-	fi
+		;;
+	esac
 	printf '[%s] QuickBox update started (pid=%s)\n' "$(date -Is)" "$$" >>"${OUTTO}"
 }
 

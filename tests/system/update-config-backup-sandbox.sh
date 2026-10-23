@@ -19,6 +19,7 @@ SH
 chmod +x "${sandbox}/bin/lsb_release"
 PATH="${sandbox}/bin:${PATH}"
 
+export QB_UPDATE_LIB_DIR="${repo_root}/packages/system/update"
 definitions="${sandbox}/definitions.sh"
 sed -n '1,/^# MAIN PROCESS$/p' "${repo_root}/packages/system/qbUpdate" >"${definitions}"
 set +u

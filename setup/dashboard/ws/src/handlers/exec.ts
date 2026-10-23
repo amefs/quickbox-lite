@@ -55,7 +55,10 @@ function updatePidPath() {
     return path.join(getDashboardDbDir(), "update.pid");
 }
 
-export function getUpdateLockPath(): string {
+// The launcher's own lock, distinct from the core lock that qbUpdate takes to
+// serialize the update body. Holding it means a web-triggered update is already
+// starting or running; a CLI update does not take it.
+export function getWebLauncherLockPath(): string {
     return process.env.QUICKBOX_UPDATE_LOCK ?? "/run/lock/quickbox-update.lock";
 }
 
@@ -96,7 +99,7 @@ export function isUpdateInProgress(pidPath = updatePidPath()): boolean {
     return pid !== null && isPidAlive(pid);
 }
 
-export function probeUpdateLock(lockPath = getUpdateLockPath()): "free" | "busy" | "unknown" {
+export function probeWebLauncherLock(lockPath = getWebLauncherLockPath()): "free" | "busy" | "unknown" {
     try {
         const result = spawnSync("flock", ["-n", "-E", "75", lockPath, "true"], { timeout: 5000 });
         if (result.error) {
@@ -115,7 +118,7 @@ export function probeUpdateLock(lockPath = getUpdateLockPath()): "free" | "busy"
 }
 
 export function buildUpdateRunnerScript(command: string, statusPath: string) {
-    const lockPath = getUpdateLockPath();
+    const lockPath = getWebLauncherLockPath();
     // The updater survives a restart of the WS unit (KillMode=process), but the
     // unit's PrivateTmp /tmp does not survive that restart. Keep the updater and
     // its health check on a persistent directory under the dashboard db instead.
@@ -208,7 +211,7 @@ export interface UpdateLaunchResult {
 }
 
 export async function launchPersistentUpdate(command: string): Promise<UpdateLaunchResult> {
-    if (probeUpdateLock() === "busy") {
+    if (probeWebLauncherLock() === "busy") {
         return { state: "busy", detail: "Update already in progress" };
     }
 
@@ -357,7 +360,7 @@ const execHandler = (payload: unknown, client: Socket) => {
                     ret.message = "Detached Update Started";
                     ret.stdout = [
                         `Launcher PID: ${result.pid ?? "unknown"}`,
-                        `Lock file: ${getUpdateLockPath()}`,
+                        `Lock file: ${getWebLauncherLockPath()}`,
                         `PID file: ${updatePidPath()}`,
                         `Log file: ${outputLogPath()}`,
                     ].join("\n");

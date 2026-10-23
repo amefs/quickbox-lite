@@ -39,7 +39,7 @@ def run_case(nginx_binary, deny_health=False):
         template = (REPO / 'setup/templates/nginx/dashboard.conf.template').read_text()
         for old, new in [('/srv/dashboard', str(REPO / 'setup/dashboard')),
                          ('/etc/htpasswd', str(runtime / 'htpasswd')),
-                         ('snippets/proxy.conf', str(REPO / 'setup/templates/nginx/proxy.conf.template')),
+                         ('snippets/proxy.conf', str(REPO / 'setup/templates/nginx/proxy.conf')),
                          ('/etc/nginx/snippets/quickbox-ws-gateway.conf', str(runtime / 'gateway.conf')),
                          ('127.0.0.1:8575', f'127.0.0.1:{node_port}')]:
             template = template.replace(old, new)

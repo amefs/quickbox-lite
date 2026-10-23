@@ -72,6 +72,7 @@ sys.exit(0 if result else 1)
                         COMMAND_LOG=str(self.log), SYSTEM_NODE=str(self.runtime),
                         TMPDIR=str(self.root), FAIL_STAGE='', TARGET_VERSION='v24.22.1',
                         INSTALLED_PKG='24.22.1-1nodesource1', CANDIDATE_PKG='24.22.1-1nodesource1',
+                        QB_UPDATE_LIB_DIR=str(REPO / 'packages/system/update'),
                         QB_UPDATE_STEP_LIB=str(REPO / 'packages/system/update/qbUpdateStep'))
 
     def write_command(self, name, source):

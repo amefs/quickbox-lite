@@ -25,6 +25,11 @@ _success() { printf '✓ %s\n' "$@" >&2; }
 _warning() { printf '⚠ %s\n' "$@" >&2; }
 _error() { printf '✗ %s\n' "$@" >&2; }
 
+_qb_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+# shellcheck source=packages/system/update/qbUpdateLib
+# shellcheck disable=SC1090,SC1091
+source "${_qb_lib_dir}/qbUpdateLib"
+
 usage() {
 	cat <<'EOF'
 Usage: qbUpdateRevert [--list] [--yes] [<commit>]
@@ -121,19 +126,7 @@ fi
 
 # Serialize the checkout and reinstallation with normal updates. The child
 # updater inherits descriptor 8 and keeps this lock until installation ends.
-lock="${QUICKBOX_UPDATE_CORE_LOCK:-/run/lock/quickbox-update-core.lock}"
-if ! command -v flock >/dev/null 2>&1; then
-	_error "flock is required for safe updates"
-	exit 1
-fi
-if ! exec 8>"${lock}"; then
-	_error "Cannot open the update lock: ${lock}"
-	exit 1
-fi
-if ! flock -n 8; then
-	_error "Another update already holds ${lock}"
-	exit 75
-fi
+_qbAcquireUpdateLock || exit $?
 
 if [[ ! -f "${STATE_FILE}" ]]; then
 	_error "No repository state found: ${STATE_FILE}"
@@ -228,7 +221,7 @@ fi
 
 _success "Repository restored to ${branch}@${resolved}"
 _info "Reinstalling QuickBox from ${resolved}"
-if QUICKBOX_REPO_ROOT="${repo}" QUICKBOX_UPDATE_CORE_LOCK_INHERITED="${lock}" \
+if QUICKBOX_REPO_ROOT="${repo}" QUICKBOX_UPDATE_CORE_LOCK_INHERITED="${_qb_update_lock}" \
 	bash "${repo}/packages/system/qbUpdate" --from-checkout; then
 	new_sha=$(git -C "${repo}" rev-parse --verify HEAD 2>/dev/null || true)
 	if [[ "${new_sha}" != "${resolved}" ]]; then

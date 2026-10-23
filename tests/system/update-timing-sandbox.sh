@@ -43,6 +43,8 @@ export PATH
 mkdir -p "${sandbox}/system/update"
 sed -n '1,/^# MAIN PROCESS$/p' "${repo_root}/packages/system/qbUpdate" >"${sandbox}/system/qbUpdate"
 cp "${repo_root}/packages/system/update/qbUpdateTimer" "${sandbox}/system/update/qbUpdateTimer"
+cp "${repo_root}/packages/system/update/qbUpdateStep" "${sandbox}/system/update/qbUpdateStep"
+cp "${repo_root}/packages/system/update/qbUpdateLib" "${sandbox}/system/update/qbUpdateLib"
 set +u
 # shellcheck source=/dev/null
 source "${sandbox}/system/qbUpdate"
@@ -200,8 +202,9 @@ fi
 
 # A missing helper must degrade to no-op durations instead of failing the
 # update: the stages still run, only the measurements disappear.
-mkdir -p "${sandbox}/broken"
+mkdir -p "${sandbox}/broken/update"
 cp "${sandbox}/system/qbUpdate" "${sandbox}/broken/qbUpdate"
+cp "${sandbox}/system/update/qbUpdateLib" "${sandbox}/broken/update/qbUpdateLib"
 (
 	set +u
 	# shellcheck source=/dev/null

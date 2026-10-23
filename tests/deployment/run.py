@@ -113,7 +113,7 @@ def setup():
     Path('/root/.admin.info').write_bytes(b'fixture:' + encoded)
     hashed = subprocess.check_output(['openssl', 'passwd', '-apr1', 'fixture-password']).decode().strip()
     Path('/etc/htpasswd.d/htpasswd.fixture').write_text('fixture:' + hashed + '\n')
-    shutil.copy(REPO / 'setup/templates/nginx/proxy.conf.template', '/etc/nginx/snippets/proxy.conf')
+    shutil.copy(REPO / 'setup/templates/nginx/proxy.conf', '/etc/nginx/snippets/proxy.conf')
     shutil.copy(REPO / 'setup/templates/sudoers.template', '/etc/sudoers.d/quickbox-test')
     Path('/etc/sudoers.d/quickbox-test').chmod(0o440)
     run(['visudo', '-cf', '/etc/sudoers'])
@@ -205,7 +205,7 @@ def legacy():
         Path('/srv/dashboard/db', filename).write_text(content)
     shutil.copy(baseline / 'setup/templates/systemd/quickbox-ws.service.template',
                 '/etc/systemd/system/quickbox-ws.service')
-    shutil.copy(baseline / 'setup/templates/nginx/proxy.conf.template', '/etc/nginx/snippets/proxy.conf')
+    shutil.copy(baseline / 'setup/templates/nginx/proxy.conf', '/etc/nginx/snippets/proxy.conf')
     Path('/etc/nginx/snippets/proxy.conf').open('a').write('\n# retained custom fixture\nproxy_buffer_size 8k;\n')
     for filename in ['/etc/quickbox/ws.secret', '/etc/nginx/snippets/quickbox-ws-gateway.conf']:
         Path(filename).unlink(missing_ok=True)

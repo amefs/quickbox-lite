@@ -80,6 +80,8 @@ _updatelanguage() { printf 'language\n' >>"$TEST_EVENTS"; }
     write(system / 'qbUpdate', driver)
     write(system / 'update/qbUpdateRevert',
           (REPO / 'packages/system/update/qbUpdateRevert').read_text())
+    for shared in ('qbUpdateLib', 'qbUpdateTimer', 'qbUpdateStep'):
+        shutil.copy(REPO / 'packages/system/update' / shared, system / 'update' / shared)
     box = (REPO / 'packages/system/box').read_text().replace(
         '/usr/local/bin/quickbox/', str(work / 'packages') + '/')
     write(system / 'box', box)

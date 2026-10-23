@@ -1,70 +1,10 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# The clock is shared with qbUpdate and qbUpdateDashboard. Standalone
-# invocation (tests or a manual run) resolves the file next to this script.
-_qb_timer_lib="${QB_UPDATE_TIMER_LIB:-/usr/local/bin/quickbox/system/update/qbUpdateTimer}"
-if [[ ! -f "${_qb_timer_lib}" ]]; then
-	_qb_timer_lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/qbUpdateTimer"
-fi
-if [[ -f "${_qb_timer_lib}" ]]; then
-	# shellcheck source=packages/system/update/qbUpdateTimer
-	# shellcheck disable=SC1090,SC1091
-	source "${_qb_timer_lib}"
-else
-	printf '⚠ Update timing helper is missing: %s\n' "${_qb_timer_lib}" >&2
-	function _qbNowMs() { printf '0\n'; }
-	function _qbFormatMs() { printf '%d.0s\n' "$(( ${1:-0} / 1000 ))"; }
-	function _qbReportMs() { return 0; }
-	function _qbReportLap() { return 0; }
-	function _qbTouchActivity() { return 0; }
-fi
-
-# Output policy: a helper that succeeds is a detail, a helper that fails is the
-# diagnosis. Standalone invocation resolves the file next to this script too.
-_qb_step_lib="${QB_UPDATE_STEP_LIB:-/usr/local/bin/quickbox/system/update/qbUpdateStep}"
-if [[ ! -f "${_qb_step_lib}" ]]; then
-	_qb_step_lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/qbUpdateStep"
-fi
-if [[ -f "${_qb_step_lib}" ]]; then
-	# shellcheck source=packages/system/update/qbUpdateStep
-	# shellcheck disable=SC1090,SC1091
-	source "${_qb_step_lib}"
-else
-	function _qbIsVerbose() { return 1; }
-	function _qbRunHelper() { local message="$1"; shift; "$@"; }
-	function _qbDetail() { return 0; }
-fi
-
-function _execute() {
-	($1 >>"${OUTTO}" 2>&1)
-}
-# Inside an update these printers already exist: qbUpdate defines them and uses
-# them to refresh its progress window, so redefining them here would silently
-# drop that tracking. A standalone run (tests, manual invocation) still needs a
-# local copy.
-if [[ $(type -t _info) != function ]]; then
-	function _print() {
-		printf "${_norm}%s${_norm}\n" "$@"
-		printf "%s\n" "$@" >>"${OUTTO}"
-	}
-	function _info() {
-		printf "${_cyan}➜ %s${_norm}\n" "$@"
-		printf ">> Info: %s\n" "$@" >>"${OUTTO}"
-	}
-	function _success() {
-		printf "${_green}✓ %s${_norm}\n" "$@"
-		printf ">> Success: %s\n" "$@" >>"${OUTTO}"
-	}
-	function _warning() {
-		printf "${_tan}⚠ %s${_norm}\n" "$@"
-		printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
-	}
-	function _error() {
-		printf "${_red}✗ %s${_norm}\n" "$@"
-		printf ">> Error: %s\n" "$@" >>"${OUTTO}"
-	}
-fi
+_qb_lib_dir="${QB_UPDATE_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)}"
+# shellcheck source=packages/system/update/qbUpdateLib
+# shellcheck disable=SC1090,SC1091
+source "${_qb_lib_dir}/qbUpdateLib"
 
 function _verlte() {
 	[  "$1" = "$(echo -e "$1\n$2" | sort -V | head -n1)" ]

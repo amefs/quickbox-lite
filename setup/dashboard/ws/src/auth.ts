@@ -14,11 +14,11 @@ const LEGACY_SECRET_FILE = "/srv/dashboard/db/ws.secret";
 const MIN_SECRET_LENGTH = 16;
 
 /**
- * Last successfully loaded secret. The secret is read on demand (so a rotated
- * file is picked up without a restart), but a failed read must never degrade
- * into "no authentication": we keep using the last known value instead.
+ * Read on demand so a rotated secret file is picked up without a restart. A
+ * failed read keeps the previous value: degrading to an empty secret would
+ * silently disable the gateway instead of keeping the last working one.
  */
-let cachedSecret = "";
+let lastKnownGoodSecret = "";
 
 function isProduction(): boolean {
     return process.env.NODE_ENV === "production";
@@ -52,8 +52,8 @@ export interface GatewaySecretState {
 export function readGatewaySecret(): GatewaySecretState {
     const fromEnv = process.env.QUICKBOX_WS_GATEWAY_SECRET;
     if (typeof fromEnv === "string" && fromEnv.trim() !== "") {
-        cachedSecret = fromEnv.trim();
-        return { secret: cachedSecret };
+        lastKnownGoodSecret = fromEnv.trim();
+        return { secret: lastKnownGoodSecret };
     }
 
     const attempted: string[] = [];
@@ -62,7 +62,7 @@ export function readGatewaySecret(): GatewaySecretState {
         try {
             const value = readFileSync(secretFile, "utf8").trim();
             if (value !== "") {
-                cachedSecret = value;
+                lastKnownGoodSecret = value;
                 return { secret: value };
             }
         } catch {
@@ -71,7 +71,7 @@ export function readGatewaySecret(): GatewaySecretState {
     }
 
     return {
-        secret: cachedSecret,
+        secret: lastKnownGoodSecret,
         error: `gateway secret is missing, empty or unreadable (${attempted.join(", ")})`,
     };
 }
@@ -81,7 +81,7 @@ export function getGatewaySecret(): string {
 }
 
 export function resetGatewaySecretCache(): void {
-    cachedSecret = "";
+    lastKnownGoodSecret = "";
 }
 
 export function validateProductionAuth(): string | null {
@@ -157,14 +157,15 @@ function effectivePort(url: URL): string {
     return url.port !== "" ? url.port : defaultPort(normalizeProtocol(url.protocol) ?? "http:");
 }
 
+/** Characters that would let a crafted Host header smuggle in a different host. */
+const FORBIDDEN_AUTHORITY_CHARS = /[/\\?#@]/;
+
 function parseAuthority(authority: string, protocol: string): URL | null {
     const trimmed = authority.trim();
     if (trimmed === "") {
         return null;
     }
-    // An authority must not contain a path, query, fragment or userinfo; those
-    // would let a crafted Host header smuggle a different host into the check.
-    if (/[/\\?#@]/.test(trimmed)) {
+    if (FORBIDDEN_AUTHORITY_CHARS.test(trimmed)) {
         return null;
     }
     try {
@@ -208,39 +209,53 @@ function warnHostOnlyEntry(entry: string): void {
     );
 }
 
-/**
- * Full origins are compared exactly (protocol + host + port). Host-only entries
- * are still accepted for backwards compatibility but are reported as deprecated.
- */
-function matchesAllowedOrigin(parsed: URL): boolean {
-    const originProtocol = normalizeProtocol(parsed.protocol);
-    if (originProtocol === null) {
+interface OriginParts {
+    protocol: string;
+    host: string;
+    port: string;
+}
+
+function describeOrigin(parsed: URL): OriginParts | null {
+    const protocol = normalizeProtocol(parsed.protocol);
+    if (protocol === null) {
+        return null;
+    }
+    return { protocol, host: parsed.hostname.toLowerCase(), port: effectivePort(parsed) };
+}
+
+function matchesFullOriginEntry(entry: string, origin: OriginParts): boolean {
+    let allowed: URL;
+    try {
+        allowed = new URL(entry);
+    } catch {
         return false;
     }
-    const originHost = parsed.hostname.toLowerCase();
-    const originPort = effectivePort(parsed);
+    return (
+        normalizeProtocol(allowed.protocol) === origin.protocol &&
+        allowed.hostname.toLowerCase() === origin.host &&
+        effectivePort(allowed) === origin.port
+    );
+}
 
-    return parseAllowedOrigins().some((entry) => {
-        if (entry.includes("://")) {
-            let allowed: URL;
-            try {
-                allowed = new URL(entry);
-            } catch {
-                return false;
-            }
-            return (
-                normalizeProtocol(allowed.protocol) === originProtocol &&
-                allowed.hostname.toLowerCase() === originHost &&
-                effectivePort(allowed) === originPort
-            );
-        }
-        warnHostOnlyEntry(entry);
-        const allowedAuthority = parseAuthority(entry, originProtocol);
-        if (allowedAuthority === null) {
-            return entry === originHost;
-        }
-        return allowedAuthority.hostname.toLowerCase() === originHost;
-    });
+function matchesLegacyHostOnlyEntry(entry: string, origin: OriginParts): boolean {
+    warnHostOnlyEntry(entry);
+    const allowedAuthority = parseAuthority(entry, origin.protocol);
+    if (allowedAuthority === null) {
+        return entry === origin.host;
+    }
+    return allowedAuthority.hostname.toLowerCase() === origin.host;
+}
+
+function matchesAllowedOrigin(parsed: URL): boolean {
+    const origin = describeOrigin(parsed);
+    if (origin === null) {
+        return false;
+    }
+    return parseAllowedOrigins().some((entry) =>
+        entry.includes("://")
+            ? matchesFullOriginEntry(entry, origin)
+            : matchesLegacyHostOnlyEntry(entry, origin),
+    );
 }
 
 export function isAllowedOrigin(origin: string | undefined, hostHeader: string | undefined, protocol = "http"): boolean {
