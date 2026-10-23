@@ -1,0 +1,21 @@
+tests/system/run-dashboard-sandboxes.sh
+  s_a6df46a0fc42ae::t_ab6f5f4e0d9174 5-7
+tests/system/repo-state-revert-sandbox.sh
+  s_a6df46a0fc42ae::t_583bd3bc85d88f 6-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4c9e9bcc93b2f811ba532b36329d080ea41f70cd",
+  "prompts": {},
+  "sessions": {
+    "s_a6df46a0fc42ae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a168c4-b233-76d1-a071-a6ec99085cd8",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
