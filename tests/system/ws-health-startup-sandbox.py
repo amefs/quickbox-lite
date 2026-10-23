@@ -15,7 +15,15 @@ HELPER = REPO / 'packages/system/auxiliary/qbWsHealthCheck'
 SECRET = 'disposable-health-startup-secret'
 
 
+class FixtureServer(ThreadingHTTPServer):
+    """Server carrying the per-test switches that Handler reads off ``self.server``."""
+    reject_gateway = False
+    allow_anonymous = False
+
+
 class Handler(BaseHTTPRequestHandler):
+    server: FixtureServer
+
     def do_GET(self):
         authenticated = self.headers.get('X-Quickbox-Gateway') == SECRET
         status = 200 if authenticated else 401
@@ -44,7 +52,7 @@ def check_listener(environment, delay=False, reject_gateway=False, allow_anonymo
                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             time.sleep(0.5)
             assert health.poll() is None, 'health check failed before the listener became ready'
-        server = ThreadingHTTPServer(('127.0.0.1', port), Handler)
+        server = FixtureServer(('127.0.0.1', port), Handler)
         server.reject_gateway = reject_gateway
         server.allow_anonymous = allow_anonymous
         thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -55,6 +63,7 @@ def check_listener(environment, delay=False, reject_gateway=False, allow_anonymo
         stdout, stderr = health.communicate(timeout=5)
         expected = 1 if reject_gateway or allow_anonymous else 0
         assert health.returncode == expected, (health.returncode, stdout, stderr)
+        return stderr
     finally:
         if health is not None and health.poll() is None:
             health.kill()
@@ -73,7 +82,17 @@ with tempfile.TemporaryDirectory(prefix='quickbox-health-') as temporary:
     environment = dict(os.environ, QUICKBOX_WS_SECRET_FILE=str(secret))
     check_listener(environment, delay=True)
     print('delayed listener startup: passed')
-    check_listener(environment, reject_gateway=True)
+
+    # A passing run reports one verdict line: the individual probes are detail
+    # that would otherwise bury the update output.
+    quiet = check_listener(environment, delay=True)
+    assert len(quiet.strip().splitlines()) == 1, quiet
+    assert 'dashboard health check passed' in quiet and 'checks)' in quiet, quiet
+    print('a passing run reports a single verdict line: passed')
+
+    rejected = check_listener(environment, reject_gateway=True)
+    assert 'dashboard health check failed' in rejected and 'of' in rejected, rejected
+    assert rejected.strip().count('✗') > 1, 'a failing run must replay the probes'
     print('rejected gateway credentials remain a failure: passed')
     check_listener(environment, allow_anonymous=True)
     print('anonymous management access remains a failure: passed')

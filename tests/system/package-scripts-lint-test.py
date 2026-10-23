@@ -12,6 +12,7 @@ import unittest
 
 REPO = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location('package_lint', REPO / 'scripts/lint-package-scripts.py')
+assert SPEC is not None and SPEC.loader is not None
 LINT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(LINT)
 TEMPLATES = {action: (LINT.PACKAGE / 'templates' / (action + '.sh.template')).read_text()
