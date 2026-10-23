@@ -1,0 +1,124 @@
+.agents/agents/comment-audit.md
+  h_3705811fa4502c 1-52
+.agents/agents/comment-sicko.md
+  h_3705811fa4502c 1-32
+.agents/agents/poteto-agent.md
+  h_3705811fa4502c 1-9
+.agents/skills/no-comments/SKILL.md
+  h_3705811fa4502c 1-24
+.agents/skills/poteto-help/SKILL.md
+  h_3705811fa4502c 1-162
+.agents/skills/poteto-help/references/prompting.md
+  h_3705811fa4502c 1-51
+.agents/skills/poteto-help/references/recipes.md
+  h_3705811fa4502c 1-51
+.agents/skills/poteto-mode/SKILL.md
+  h_3705811fa4502c 1-149
+.agents/skills/poteto-mode/playbooks/authoring-a-skill.md
+  h_3705811fa4502c 1-12
+.agents/skills/poteto-mode/playbooks/autonomous-run.md
+  h_3705811fa4502c 1-13
+.agents/skills/poteto-mode/playbooks/autopilot-full.md
+  h_3705811fa4502c 1-25
+.agents/skills/poteto-mode/playbooks/autopilot-stack.md
+  h_3705811fa4502c 1-12
+.agents/skills/poteto-mode/playbooks/babysit.md
+  h_3705811fa4502c 1-23
+.agents/skills/poteto-mode/playbooks/bug-fix.md
+  h_3705811fa4502c 1-15
+.agents/skills/poteto-mode/playbooks/eval.md
+  h_3705811fa4502c 1-25
+.agents/skills/poteto-mode/playbooks/feature.md
+  h_3705811fa4502c 1-21
+.agents/skills/poteto-mode/playbooks/hillclimb.md
+  h_3705811fa4502c 1-21
+.agents/skills/poteto-mode/playbooks/investigation.md
+  h_3705811fa4502c 1-14
+.agents/skills/poteto-mode/playbooks/multi-phase-plan.md
+  h_3705811fa4502c 1-155
+.agents/skills/poteto-mode/playbooks/opening-a-pr.md
+  h_3705811fa4502c 1-34
+.agents/skills/poteto-mode/playbooks/orchestrate.md
+  h_3705811fa4502c 1-112
+.agents/skills/poteto-mode/playbooks/pause-safely.md
+  h_3705811fa4502c 1-10
+.agents/skills/poteto-mode/playbooks/perf-issue.md
+  h_3705811fa4502c 1-25
+.agents/skills/poteto-mode/playbooks/prototype.md
+  h_3705811fa4502c 1-14
+.agents/skills/poteto-mode/playbooks/refactoring.md
+  h_3705811fa4502c 1-16
+.agents/skills/poteto-mode/playbooks/runtime-forensics.md
+  h_3705811fa4502c 1-11
+.agents/skills/poteto-mode/playbooks/session-pickup.md
+  h_3705811fa4502c 1-11
+.agents/skills/poteto-mode/playbooks/shipping.md
+  h_3705811fa4502c 1-12
+.agents/skills/poteto-mode/playbooks/trace-forensics.md
+  h_3705811fa4502c 1-14
+.agents/skills/poteto-mode/playbooks/visual-parity.md
+  h_3705811fa4502c 1-11
+.agents/skills/poteto-mode/playbooks/worktree-cleanup.md
+  h_3705811fa4502c 1-12
+.agents/skills/poteto-mode/references/bugbot-triage.md
+  h_3705811fa4502c 1-142
+.agents/skills/poteto-mode/scripts/bootstrap.ts
+  h_3705811fa4502c 1-62
+.agents/skills/poteto-mode/scripts/bun.lock
+  h_3705811fa4502c 1-67
+.agents/skills/poteto-mode/scripts/check-plan.mjs
+  h_3705811fa4502c 1-205
+.agents/skills/poteto-mode/scripts/check-plan.test.ts
+  h_3705811fa4502c 1-96
+.agents/skills/poteto-mode/scripts/orch/orch.test.ts
+  h_3705811fa4502c 1-761
+.agents/skills/poteto-mode/scripts/orch/orch.ts
+  h_3705811fa4502c 1-590
+.agents/skills/poteto-mode/scripts/orch/store.ts
+  h_3705811fa4502c 1-1677
+.agents/skills/poteto-mode/scripts/package.json
+  h_3705811fa4502c 1-16
+.agents/skills/poteto-mode/scripts/watch-pr/cli.test.ts
+  h_3705811fa4502c 1-224
+.agents/skills/poteto-mode/scripts/watch-pr/cli.ts
+  h_3705811fa4502c 1-223
+.agents/skills/poteto-mode/scripts/watch-pr/fakes.test-helper.ts
+  h_3705811fa4502c 1-129
+.agents/skills/poteto-mode/scripts/watch-pr/github.test.ts
+  h_3705811fa4502c 1-436
+.agents/skills/poteto-mode/scripts/watch-pr/github.ts
+  h_3705811fa4502c 1-718
+.agents/skills/poteto-mode/scripts/watch-pr/policy.test.ts
+  h_3705811fa4502c 1-420
+.agents/skills/poteto-mode/scripts/watch-pr/policy.ts
+  h_3705811fa4502c 1-836
+.agents/skills/poteto-mode/scripts/watch-pr/render.ts
+  h_3705811fa4502c 1-169
+.agents/skills/poteto-mode/scripts/watch-pr/tsconfig.json
+  h_3705811fa4502c 1-13
+.agents/skills/poteto-mode/scripts/watch-pr/types.compile.ts
+  h_3705811fa4502c 1-93
+.agents/skills/poteto-mode/scripts/watch-pr/types.ts
+  h_3705811fa4502c 1-413
+.agents/skills/poteto-mode/scripts/watch-pr/watch-pr
+  h_3705811fa4502c 1-6
+.agents/skills/poteto-mode/scripts/worktree-audit.sh
+  h_3705811fa4502c 1-126
+.agents/skills/swarm/SKILL.md
+  h_3705811fa4502c 1-41
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+setup/dashboard/ws/src/auth.ts
+  h_3705811fa4502c 69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "91955b886b818a5fc30aa50f6c6d7d19767e30ed",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
