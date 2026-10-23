@@ -179,10 +179,9 @@ function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	mkdir -p /tmp/quickbox
 	cd /tmp/quickbox || exit 1
-	if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
-		_execute "curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh"
-		_execute "sudo bash nodesource_setup.sh"
-		_execute "apt-get install -y --force-reinstall true nodejs"
+	if ! _execute "bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs"; then
+		_error "Could not install or update Node.js 24."
+		exit 1
 	fi
 
 	_execute "npm install -g npm-check-updates"

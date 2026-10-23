@@ -1004,28 +1004,12 @@ function _insngx() {
 }
 
 function _insnodejs() {
-	# install Nodejs for background service
-	cd /tmp || exit 1
-	curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh
-	bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-	exitstatus=$?
-	counter=0
-	while [[ ${exitstatus} -eq 1 ]]; do
-		if [[ ${counter} -gt 2 ]]; then
-			_errorcolor
-			echo -e "XXX\n00\n${ERROR_TEXT_NODEJS}\nXXX"
-			_defaultcolor
-			echo ">> ${ERROR_TEXT_NODEJS}" >>"${OUTTO}" 2>&1
-			exit 1
-		else
-			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-			exitstatus=$?
-			((counter++))
-		fi
-	done
-	apt-get install -y nodejs >>"${OUTTO}" 2>&1
-	if [[ -f /tmp/nodesource_setup.sh ]]; then
-		rm nodesource_setup.sh
+	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs >>"${OUTTO}" 2>&1; then
+		_errorcolor
+		echo -e "XXX\n00\n${ERROR_TEXT_NODEJS}\nXXX"
+		_defaultcolor
+		echo ">> ${ERROR_TEXT_NODEJS}" >>"${OUTTO}" 2>&1
+		exit 1
 	fi
 }
 

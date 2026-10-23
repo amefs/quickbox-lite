@@ -86,67 +86,16 @@ function _updateservice() {
 		return 1
 	fi
 	_fix_nginx_app_include || return 1
-	# Update nginx service
-	if [[ ! -f /install/.quickbox-ws.lock ]]; then
-		_info "QuickBox Websockets service is not installed"
-		# Install nodejs for websocks method
-		if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
-			_info "Installing Node.js..."
-			cd /tmp || exit 1
-			_execute "curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh" || return 1
-			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-			exitstatus=$?
-			counter=0
-			while [[ ${exitstatus} -eq 1 ]]; do
-				if [[ ${counter} -gt 2 ]]; then
-					_error "Fail to update nodejs source list! exit"
-					exit 1
-				else
-					bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-					exitstatus=$?
-					((counter++))
-					_warning "Fail to update nodejs source list! retry..."
-				fi
-			done
-			_execute "sudo bash nodesource_setup.sh" || return 1
-			_execute "apt-get install -y nodejs" || return 1
-			if [[ -f /tmp/nodesource_setup.sh ]]; then
-				rm nodesource_setup.sh
-			fi
-			_success "Node.js installed"
-		fi
-		# The dashboard updater stages dependencies and activates the unit only
-		# after the complete runtime is ready.
-		_info "Dashboard service installation is deferred to the staged dashboard update"
-	else
-		# upgrade to v22
-		_info "Upgrade nodejs to v22"
-		if [[ ! $(which npm) ]] || [[ ! $(node --version) =~ "v22" ]]; then
-			_info "Upgrading Node.js..."
-			cd /tmp || exit 1
-			_execute "curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh" || return 1
-			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-			exitstatus=$?
-			counter=0
-			while [[ ${exitstatus} -eq 1 ]]; do
-				if [[ ${counter} -gt 2 ]]; then
-					_error "Fail to update nodejs source list! exit"
-					exit 1
-				else
-					bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-					exitstatus=$?
-					((counter++))
-					_warning "Fail to update nodejs source list! retry..."
-				fi
-			done
-			_execute "apt-get install -y nodejs" || return 1
-			if [[ -f /tmp/nodesource_setup.sh ]]; then
-				rm nodesource_setup.sh
-			fi
-			_success "Node.js upgraded"
-		fi
-		_info "Dashboard dependency activation is deferred to the staged dashboard update"
+	# Refresh the system runtime even when Node.js 24 is already installed.
+	# The dashboard updater stages dependencies and restarts the service only
+	# after the new runtime is ready.
+	_info "Installing or updating Node.js 24..."
+	if ! _execute "bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs"; then
+		_error "Failed to install or update Node.js 24"
+		return 1
 	fi
+	_success "Node.js 24 is ready"
+	_info "Dashboard dependency activation is deferred to the staged dashboard update"
 	# Update flexget nginx reverse proxy
 	username=$(cat /root/.admin.info | cut -d: -f1)
 	if [[ -f /etc/nginx/apps/${username}.flexget.conf ]]; then

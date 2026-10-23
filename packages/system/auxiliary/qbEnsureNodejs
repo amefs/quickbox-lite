@@ -1,0 +1,28 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Install or update the system Node.js 24 runtime used by quickbox-ws.
+
+set -euo pipefail
+
+# Include the October 2026 security fixes; newer 24.x patches are accepted.
+minimum_version=24.22.1
+setup_dir=$(mktemp -d)
+trap 'rm -rf "${setup_dir}"' EXIT
+
+printf 'Updating the NodeSource repository for Node.js 24...\n'
+curl -fsSL --retry 3 --retry-max-time 60 \
+	https://deb.nodesource.com/setup_24.x -o "${setup_dir}/setup.sh"
+bash "${setup_dir}/setup.sh"
+# Always run install, including on existing 24.x installations, so APT applies
+# available patches. The NodeSource setup script refreshes the package index.
+apt-get install -y nodejs
+
+# Match ExecStart in quickbox-ws.service, rather than a shell's nvm/PATH node.
+installed_version=$(/usr/bin/node --version)
+if [[ ! "${installed_version}" =~ ^v24\.[0-9]+\.[0-9]+$ ]] || \
+	! dpkg --compare-versions "${installed_version#v}" ge "${minimum_version}"; then
+	printf 'Node.js update failed: /usr/bin/node is %s; expected Node.js 24 >= %s.\n' \
+		"${installed_version}" "${minimum_version}" >&2
+	exit 1
+fi
+printf 'System Node.js updated to %s.\n' "${installed_version}"

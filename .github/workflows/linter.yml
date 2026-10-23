@@ -16,7 +16,7 @@ jobs:
     - name: Install nodejs
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 24
   
     - name: Install dependencies
       run: |
@@ -51,7 +51,7 @@ jobs:
     - name: Install nodejs
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 24
   
     - name: Install dependencies
       run: |
@@ -73,7 +73,7 @@ jobs:
       uses: azohra/shell-linter@latest
       with:
         # todo: scripts in packages
-        path: "onekey.sh,setup.sh,bump-version.sh,packages/system/auxiliary/qbEnsureWsGateway,packages/system/auxiliary/qbNginxProxyMigrate,packages/system/auxiliary/qbNormalizeRepo,packages/system/auxiliary/qbWsHealthCheck"
+        path: "onekey.sh,setup.sh,bump-version.sh,packages/system/auxiliary/qbEnsureNodejs,packages/system/auxiliary/qbEnsureWsGateway,packages/system/auxiliary/qbNginxProxyMigrate,packages/system/auxiliary/qbNormalizeRepo,packages/system/auxiliary/qbWsHealthCheck"
 
     - name: Check dashboard system script syntax
       shell: bash
@@ -88,6 +88,7 @@ jobs:
           packages/system/theme/themeSelect-defaulted packages/system/theme/themeSelect-smoked \
           packages/system/auxiliary/qbEnsureWsGateway packages/system/auxiliary/qbNginxProxyMigrate \
           packages/system/auxiliary/qbNormalizeRepo packages/system/auxiliary/qbWsHealthCheck \
+          packages/system/auxiliary/qbEnsureNodejs \
           packages/system/auxiliary/qbNginxAuth; do
           bash -n "${script}"
         done
@@ -96,6 +97,7 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
+        python3 tests/system/nodejs-update-sandbox.py
         bash tests/system/dashboard-stage-sandbox.sh
         python3 tests/system/qb-ensure-ws-gateway-sandbox.py
         python3 tests/system/ws-health-startup-sandbox.py
