@@ -13,4 +13,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-printf "" >/srv/dashboard/db/output.log
+log_file="/srv/dashboard/db/output.log"
+
+# shellcheck source=packages/system/update/qbUpdateLib
+# shellcheck disable=SC1090,SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../update" >/dev/null 2>&1 && pwd)/qbUpdateLib" || {
+	printf 'Update helpers are missing; cannot clear %s safely\n' "${log_file}" >&2
+	exit 1
+}
+
+_qbAcquireUpdateLock || exit $?
+
+if ! _qbPublishLogEpoch "${log_file}"; then
+	printf 'Cannot clear %s\n' "${log_file}" >&2
+	exit 1
+fi
