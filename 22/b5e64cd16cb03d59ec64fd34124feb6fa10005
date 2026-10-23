@@ -1,0 +1,56 @@
+packages/system/qbUpdate
+  h_3705811fa4502c 47-51,53-55,118-119,121,136-140,143-144,147-148
+packages/system/update/qbUpdateService
+  h_3705811fa4502c 4-7
+tests/system/dashboard-update-sandbox.py
+  h_3705811fa4502c 41,124,170-171,174
+setup/dashboard/ws/src/auth.ts
+  h_3705811fa4502c 17-19,21,55-56,65,74,84,160-162,168,212-248,250-251,254-258
+setup/dashboard/ws/tests/handlers/exec.spec.ts
+  h_3705811fa4502c 14,17,189-190,197,209,212,264
+tests/system/repo-state-revert-sandbox.sh
+  h_3705811fa4502c 57
+setup/dashboard/ws/src/handlers/exec.ts
+  h_3705811fa4502c 58-61,102,121,214,363
+tests/system/repo-reinstall-sandbox.py
+  h_3705811fa4502c 83-84
+tests/deployment/run.py
+  h_3705811fa4502c 116,208
+tests/system/nodejs-update-sandbox.py
+  h_3705811fa4502c 75
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 7-8,10,12-14,147
+packages/system/update/qbUpdateLib
+  h_3705811fa4502c 1-131
+packages/system/auxiliary/qbNginxProxyMigrate
+  h_3705811fa4502c 15,42
+setup.sh
+  h_3705811fa4502c 970,975
+tests/system/nginx-production-sandbox.py
+  h_3705811fa4502c 42
+scripts/check-system-script-syntax.sh
+  h_3705811fa4502c 27
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+tests/system/update-timing-sandbox.sh
+  h_3705811fa4502c 46-47,205,207
+tests/system/update-config-backup-sandbox.sh
+  h_3705811fa4502c 22
+packages/system/auxiliary/clean_log
+  h_3705811fa4502c 18-21,23,25-27
+setup/dashboard/ws/src/widgets/output-log.ts
+  h_3705811fa4502c 100,104,109,117
+packages/system/update/qbUpdateRevert
+  h_3705811fa4502c 28-32,129,224
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "22b5e64cd16cb03d59ec64fd34124feb6fa10005",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
