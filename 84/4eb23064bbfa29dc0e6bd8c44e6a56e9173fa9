@@ -1,0 +1,49 @@
+packages/system/auxiliary/qbNginxProxyMigrate
+  h_3705811fa4502c 220-221,223-229,231
+  h_3705811fa4502c 211-219,222,230
+tests/system/backup-retention-sandbox.py
+  h_3705811fa4502c 1-166,197-239
+  h_3705811fa4502c 167-196
+packages/system/auxiliary/qbEnsureSudoers
+  h_3705811fa4502c 77-79,89-90,92-98
+  h_3705811fa4502c 25-26,80-88,91,99,110-111
+tests/system/dashboard-update-sandbox.py
+  h_3705811fa4502c 134-138
+  h_3705811fa4502c 120-122
+packages/system/qbUpdate
+  h_3705811fa4502c 122-131,300,304,330-331
+  h_3705811fa4502c 31-35,115-117,132-299,301-303,305-329,398-399,402-403,407,410
+tests/system/dashboard-stage-sandbox.sh
+  h_3705811fa4502c 80-86
+  h_3705811fa4502c 87-109
+packages/system/auxiliary/qbBackupPrune
+  h_3705811fa4502c 1-7,9-106,108-110,130-158,160-199
+  h_3705811fa4502c 8,107,111-129,159
+.github/workflows/linter.yml
+  h_3705811fa4502c 76,92,95,109
+  h_3705811fa4502c 93-94,110-111
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 58-61,88-89
+  h_3705811fa4502c 7-18,43-44,48,55-57,90-115
+packages/system/box
+  h_3705811fa4502c 91,182-184,312-316,326
+packages/system/update/qbUpdateBackup
+  h_3705811fa4502c 1-224
+packages/system/update/qbUpdateRevert
+  h_3705811fa4502c 1-193
+tests/system/repo-state-revert-sandbox.sh
+  h_3705811fa4502c 1-75
+tests/system/update-config-backup-sandbox.sh
+  h_3705811fa4502c 1-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "844eb23064bbfa29dc0e6bd8c44e6a56e9173fa9",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
