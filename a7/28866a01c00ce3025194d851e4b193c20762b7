@@ -1,0 +1,14 @@
+setup/dashboard/ws/src/handlers/message.ts
+  h_3705811fa4502c 61-76,90-91,103,105-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a728866a01c00ce3025194d851e4b193c20762b7",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
