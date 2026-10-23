@@ -37,10 +37,16 @@ jobs:
       run: |
           cd setup/dashboard/ws || exit 1
           npm run build
-          git diff --exit-code -- dist/server.js || {
-            echo "dist/server.js is out of date: rebuild it and commit the artifact." >&2
-            exit 1
-          }
+          if git diff --quiet -- dist/server.js; then
+            echo "dist/server.js is up to date."
+            exit 0
+          fi
+          echo "::error file=setup/dashboard/ws/dist/server.js::dist/server.js is out of date: rebuild it and commit the artifact."
+          git diff --numstat -- dist/server.js
+          echo "committed size: $(git show :dist/server.js | wc -c | tr -d ' ') bytes"
+          echo "rebuilt size:   $(wc -c < dist/server.js | tr -d ' ') bytes"
+          echo "Run 'npm run build' in setup/dashboard/ws and commit the result." >&2
+          exit 1
 
   es-linter-for-js:
     runs-on: ubuntu-22.04

@@ -21,6 +21,12 @@ async function connect() {
 }
 function launch(socket) {
   return new Promise((resolve, reject) => {
+    if (!socket.connected) {
+      // socket.io silently buffers an emit on a closed socket, which would only
+      // surface as a ten second timeout naming the wrong cause.
+      reject(new Error(`cannot launch an update over a closed socket (${socket.id})`));
+      return;
+    }
     const timer = setTimeout(() => reject(new Error('no update launch response')), 10000);
     socket.once('exec', (result) => { clearTimeout(timer); resolve(result); });
     socket.emit('exec', 'box:update:quickbox --only-core');
@@ -56,12 +62,16 @@ async function waitFor(predicate) {
     // The reverse direction: a CLI update only holds the inner core lock, so
     // the Web launcher must wait for the epoch acknowledgement and report busy
     // instead of claiming that it started.
+    // The systemd restart above replaced the service process, so the sockets
+    // opened at the start are dead and a fresh connection is required.
+    const web = await connect();
+    sockets.push(web);
     fs.rmSync(marker, { force: true });
     fs.rmSync('/run/quickbox-test/update-finished', { force: true });
     const cli2 = spawn('/usr/local/bin/quickbox/system/box', ['update', 'quickbox', '--only-core']);
     const cli2Status = new Promise((resolve) => cli2.once('exit', resolve));
     await waitFor(() => fs.existsSync(marker));
-    const third = await launch(sockets[0]);
+    const third = await launch(web);
     assert.equal(third.success, false, JSON.stringify(third));
     assert.match(third.message, /in progress/i, JSON.stringify(third));
     await waitFor(() => fs.existsSync('/run/quickbox-test/update-finished'));
