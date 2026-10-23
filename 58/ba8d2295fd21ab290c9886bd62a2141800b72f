@@ -1,0 +1,28 @@
+packages/system/box
+  h_3705811fa4502c 91
+packages/system/qbUpdate
+  h_3705811fa4502c 30,39-62,69,72,132-137,173-174,416-598,600-601,605-617,620-621,653-654,673-677,683
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 19-37,86-87,93-96,98,115,188,194,198,203,209,281,285,294,299,306,309,340,342,356,358-360,367,372,375
+packages/system/update/qbUpdateService
+  h_3705811fa4502c 4-21,99,103,108-109,111,116,121,123,162-165,221-223
+packages/system/update/qbUpdateTimer
+  h_3705811fa4502c 1-89
+scripts/check-system-script-syntax.sh
+  h_3705811fa4502c 25
+tests/system/run-dashboard-sandboxes.sh
+  h_3705811fa4502c 21
+tests/system/update-timing-sandbox.sh
+  h_3705811fa4502c 1-159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "58ba8d2295fd21ab290c9886bd62a2141800b72f",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
