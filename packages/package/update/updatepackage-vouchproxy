@@ -13,11 +13,6 @@
 ################################################################################
 
 ################################################################################
-# CORE VARIABLE
-################################################################################
-set -euo pipefail
-
-################################################################################
 # HELP FUNCTIONS
 ################################################################################
 export NEWT_COLORS='
@@ -119,7 +114,7 @@ Please wait until the process is completed
 
 function _updateApp() {
 	_info "Updating ${APP_TITLE} image and restarting service..."
-	_execute "docker compose -f /opt/vouch-proxy/docker-compose.yml pull"
+	_execute "docker compose -f /opt/vouch-proxy/docker-compose.yml pull" || { _error "Failed to pull the ${APP_TITLE} image."; _lockCleanup; exit 1; }
 
 	if [[ -f "/opt/vouch-proxy/config.yml" ]] && ! grep -q "post_logout_redirect_uris:" /opt/vouch-proxy/config.yml; then
 	  _info "Patching Vouch config with post-logout redirect allowlist..."
@@ -185,7 +180,7 @@ if end_session and 'post_logout_redirect_uris:' in text and end_session not in t
 PYEOF
 	fi
 
-	_execute "systemctl restart ${APP_SERVICE}"
+	_execute "systemctl restart ${APP_SERVICE}" || { _error "Failed to restart ${APP_SERVICE}."; _lockCleanup; exit 1; }
 
 	if [[ -f "/etc/nginx/apps/vouchproxy-auth.conf" ]] && ! grep -q "location = /logout" /etc/nginx/apps/vouchproxy-auth.conf; then
 	  _info "Patching nginx vouch auth route for logout..."
@@ -211,9 +206,9 @@ if marker in content and 'location = /logout' not in content:
 PYEOF
 	fi
 
-	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider vouch --migrate"
-	_execute "nginx -t"
-	_execute "nginx -s reload"
+	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider vouch --migrate" || { _error "Failed to migrate existing authentication configuration."; _lockCleanup; exit 1; }
+	_execute "nginx -t" || { _error "nginx configuration test failed."; _lockCleanup; exit 1; }
+	_execute "nginx -s reload" || { _error "Failed to reload nginx."; _lockCleanup; exit 1; }
 
 	_success "${APP_TITLE} updated."
 }

@@ -22,12 +22,12 @@ DISTRO=$(lsb_release -is)
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
-_norm=$(tput sgr0)
-_red=$(tput setaf 1)
-_green=$(tput setaf 2)
-_tan=$(tput setaf 3)
-_cyan=$(tput setaf 6)
-_dim=$(tput dim 2>/dev/null)
+_norm=$(tput sgr0 2>/dev/null || true)
+_red=$(tput setaf 1 2>/dev/null || true)
+_green=$(tput setaf 2 2>/dev/null || true)
+_tan=$(tput setaf 3 2>/dev/null || true)
+_cyan=$(tput setaf 6 2>/dev/null || true)
+_dim=$(tput dim 2>/dev/null || true)
 OUTTO=/srv/dashboard/db/output.log
 update_backup_dir=""
 update_backup_ready=0

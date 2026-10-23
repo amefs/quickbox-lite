@@ -13,11 +13,6 @@
 ################################################################################
 
 ################################################################################
-# CORE VARIABLE
-################################################################################
-set -euo pipefail
-
-################################################################################
 # HELP FUNCTIONS
 ################################################################################
 export NEWT_COLORS='
@@ -397,13 +392,13 @@ EOF
   echo "}" >>/etc/nginx/conf.d/vouch-user-map.conf
 
   chmod +x /usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate || true
-  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --migrate"
+  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --migrate" || { _error "Failed to migrate existing authentication configuration."; _validationExit; }
 
-  _execute "systemctl daemon-reload"
-  _execute "systemctl enable ${APP_SERVICE}"
-  _execute "systemctl restart ${APP_SERVICE}"
-  _execute "nginx -t"
-  _execute "nginx -s reload"
+  _execute "systemctl daemon-reload" || { _error "Failed to reload systemd units."; _validationExit; }
+  _execute "systemctl enable ${APP_SERVICE}" || { _error "Failed to enable ${APP_SERVICE}."; _validationExit; }
+  _execute "systemctl restart ${APP_SERVICE}" || { _error "Failed to start ${APP_SERVICE}."; _validationExit; }
+  _execute "nginx -t" || { _error "nginx configuration test failed."; _validationExit; }
+  _execute "nginx -s reload" || { _error "Failed to reload nginx."; _validationExit; }
   _success "${APP_TITLE} configured."
 }
 

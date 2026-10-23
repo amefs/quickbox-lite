@@ -13,11 +13,6 @@
 ################################################################################
 
 ################################################################################
-# CORE VARIABLE
-################################################################################
-set -euo pipefail
-
-################################################################################
 # HELP FUNCTIONS
 ################################################################################
 export NEWT_COLORS='
@@ -518,11 +513,11 @@ map \$auth_resp_remote_user \$qb_authelia_local_user {
 }
 EOF
 
-  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate"
+  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate" || { _error "Failed to migrate existing authentication configuration."; _validationExit; }
 
-  _execute "systemctl daemon-reload"
-  _execute "systemctl enable ${APP_SERVICE}"
-  _execute "systemctl restart ${APP_SERVICE}"
+  _execute "systemctl daemon-reload" || { _error "Failed to reload systemd units."; _validationExit; }
+  _execute "systemctl enable ${APP_SERVICE}" || { _error "Failed to enable ${APP_SERVICE}."; _validationExit; }
+  _execute "systemctl restart ${APP_SERVICE}" || { _error "Failed to start ${APP_SERVICE}."; _validationExit; }
 
   if [[ "$AUTH_MODE" == "mfa" ]]; then
     totp_output="$(docker compose -f /opt/authelia/docker-compose.yml exec -T authelia authelia storage user totp generate "$admin_user" 2>>"${OUTTO}" || true)"
@@ -541,8 +536,8 @@ EOF
     fi
   fi
 
-  _execute "nginx -t"
-  _execute "nginx -s reload"
+  _execute "nginx -t" || { _error "nginx configuration test failed."; _validationExit; }
+  _execute "nginx -s reload" || { _error "Failed to reload nginx."; _validationExit; }
 
   if [[ "$AUTH_MODE" == "mfa" ]]; then
     _print "Authelia MFA TOTP setup link (scan in authenticator app):"

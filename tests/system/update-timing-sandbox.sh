@@ -8,7 +8,11 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 sandbox=$(mktemp -d "${TMPDIR:-/tmp}/quickbox-timing.XXXXXX")
 trap 'rm -rf "${sandbox}"' EXIT
 
-export TERM="${TERM:-xterm}"
+# qbUpdate initializes its terminal colors with `tput` while its definitions
+# are sourced below, and `tput` fails for a TERM without terminfo entries (a CI
+# runner exports TERM=dumb). The test is about timings, not colours, so the
+# terminal is pinned instead of inherited.
+export TERM=xterm
 
 # The driver reads the distribution at source time; a stub keeps this sandbox
 # independent of the host.
@@ -127,6 +131,7 @@ grep -q 'repository ' "${sandbox}/history.log"
 # and without failing the run.
 QUICKBOX_BACKUP_DIR="${sandbox}/missing"
 export QUICKBOX_BACKUP_DIR
+# shellcheck disable=SC2034 # read back by _saveUpdateTiming from the driver
 update_started_ms=$(_qbNowMs)
 _saveUpdateTiming
 [[ ! -e "${sandbox}/missing" ]] || { echo 'a missing backup root must stay untouched' >&2; exit 1; }
@@ -155,5 +160,24 @@ cp "${sandbox}/system/qbUpdate" "${sandbox}/broken/qbUpdate"
 	[[ $(_qbFormatMs 5000) == '5.0s' ]] || exit 1
 	_qbReportLap "no helper" 10 || exit 1
 ) || { echo 'a missing timing helper must not break the driver' >&2; exit 1; }
+
+# The colour initialisation must never abort a caller. Sourcing the driver under
+# `set -e` with a TERM that has no terminfo entry (a CI runner exports TERM=dumb)
+# or with no TERM at all used to kill the script right there, before a single
+# stage could report anything; the colours simply have to disappear instead.
+for terminal in dumb ''; do
+	(
+		set -e
+		set +u
+		TERM="${terminal}"
+		export TERM
+		# shellcheck source=/dev/null
+		source "${sandbox}/system/qbUpdate"
+		[[ -z ${_norm} && -z ${_red} && -z ${_cyan} ]] || exit 1
+	) || {
+		echo "sourcing the driver failed with TERM=${terminal:-<unset>}" >&2
+		exit 1
+	}
+done
 
 printf 'update timing sandbox checks passed\n'

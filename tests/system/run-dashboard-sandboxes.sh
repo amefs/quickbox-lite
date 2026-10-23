@@ -2,8 +2,11 @@
 # Run the fast Dashboard deployment checks without changing machine paths.
 set -euo pipefail
 
-# Some scripts initialize terminal colors even in non-interactive tests.
-export TERM="${TERM:-xterm}"
+# A sandbox must not inherit the ambient terminal: the scripts it sources
+# initialize their colours with `tput`, and CI runners export TERM=dumb. The
+# colour initialisation is guarded (see update-timing-sandbox.sh), but pinning a
+# real terminal keeps these checks identical on every host.
+export TERM=xterm
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "${repo_root}"

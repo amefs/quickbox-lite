@@ -84,9 +84,6 @@ jobs:
     - name: Check system script syntax
       run: bash scripts/check-system-script-syntax.sh
 
-    - name: Run dashboard sandbox tests
-      run: bash tests/system/run-dashboard-sandboxes.sh
-
   package-script-linter:
     runs-on: ubuntu-22.04
 

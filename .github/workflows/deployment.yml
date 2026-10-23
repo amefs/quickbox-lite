@@ -14,6 +14,13 @@ on:
 permissions:
   contents: read
 jobs:
+  sandboxes:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update, backup and repository sandboxes (hermetic, no host paths)
+        run: bash tests/system/run-dashboard-sandboxes.sh
   linux-container:
     runs-on: ubuntu-22.04
     timeout-minutes: 20
