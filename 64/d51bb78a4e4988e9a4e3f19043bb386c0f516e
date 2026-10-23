@@ -1,0 +1,14 @@
+.agents/comment-audit-plan.md
+  h_3705811fa4502c 5-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "64d51bb78a4e4988e9a4e3f19043bb386c0f516e",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
