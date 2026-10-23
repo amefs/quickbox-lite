@@ -98,9 +98,6 @@ function _init() {
 	if (! export | grep -q sbin); then
 		export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
 	fi
-	# Restore tracked file modes and LF endings before any repository script is
-	# sourced or executed. The helper also runs a scoped fallback over deployable
-	# paths; it never walks .git, node_modules or runtime state.
 	local normalize_helper="${local_prefix}packages/system/auxiliary/qbNormalizeRepo"
 	if [[ ! -s "${normalize_helper}" ]]; then
 		_error "Repository normalizer is missing or empty: ${normalize_helper}"
@@ -131,8 +128,6 @@ function _init() {
 			apt-get -y install git curl wget dos2unix python3 apt-transport-https gnupg2 ca-certificates bind9-dnsutils unzip jq >/dev/null 2>&1
 		fi
 		echo -e "XXX\n20\nPreparing scripts... \nXXX"
-		# Executable bits and line endings were normalized before this progress
-		# block; no blanket dos2unix/chmod over the checkout is needed.
 		if [[ -d /usr/local/bin/quickbox ]]; then
 			rm -rf /usr/local/bin/quickbox
 		fi
@@ -832,23 +827,23 @@ function _askSwap() {
 	swap_path=$(whiptail --title "$INFO_TITLE_SWAP" --inputbox "${INFO_TEXT_SWAP_1} \n${INFO_TEXT_SWAP_2}" 10 72 --ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3)
 	if [[ ${swap_path} == "" ]]; then
 		swap_path="/root/.swapfile"
-	elif [[ ! -d $(dirname ${swap_path}) ]]; then
+	elif [[ ! -d $(dirname "${swap_path}") ]]; then
 		swap_path="/root/.swapfile"
 	fi
 	{
 		if [[ ! -f ${swap_path} ]]; then
-			touch ${swap_path} || exit 1
+			touch "${swap_path}" || exit 1
 		fi
 		echo -e "XXX\n10\n$INFO_TEXT_SWAPON_0$INFO_TEXT_DONE\nXXX"
 		sleep 1
 		echo -e "XXX\n10\n$INFO_TEXT_SWAPON_1\nXXX"
-		dd if=/dev/zero of=${swap_path} bs=1M count=2048 >/dev/null 2>&1
+		dd if=/dev/zero of="${swap_path}" bs=1M count=2048 >/dev/null 2>&1
 		echo -e "XXX\n50\n$INFO_TEXT_SWAPON_1$INFO_TEXT_DONE\nXXX"
 		sleep 1
 		echo -e "XXX\n50\n$INFO_TEXT_SWAPON_2\nXXX"
-		chmod 600 ${swap_path} >/dev/null 2>&1
-		mkswap ${swap_path} >/dev/null 2>&1
-		swapon ${swap_path} >/dev/null 2>&1
+		chmod 600 "${swap_path}" >/dev/null 2>&1
+		mkswap "${swap_path}" >/dev/null 2>&1
+		swapon "${swap_path}" >/dev/null 2>&1
 		swapon -s >/dev/null 2>&1
 		echo -e "XXX\n75\n$INFO_TEXT_SWAPON_2$INFO_TEXT_DONE\nXXX"
 		sleep 1
@@ -970,16 +965,14 @@ function _insngx() {
 
 	cp ${local_setup_template}nginx/ssl-params.conf.template /etc/nginx/snippets/ssl-params.conf
 
-	# Only install the proxy snippet verbatim when nothing exists yet; otherwise
-	# migrate the broken legacy directives and keep user customization.
 	if [[ -f /etc/nginx/snippets/proxy.conf ]]; then
 		if ! bash /usr/local/bin/quickbox/system/auxiliary/qbNginxProxyMigrate \
-			--template ${local_setup_template}nginx/proxy.conf.template >>"${OUTTO}" 2>&1; then
+			--template ${local_setup_template}nginx/proxy.conf >>"${OUTTO}" 2>&1; then
 			echo ">> Failed to migrate the nginx proxy snippet" >>"${OUTTO}" 2>&1
 			exit 1
 		fi
 	else
-		cp ${local_setup_template}nginx/proxy.conf.template /etc/nginx/snippets/proxy.conf
+		cp ${local_setup_template}nginx/proxy.conf /etc/nginx/snippets/proxy.conf
 	fi
 	mkdir -p /etc/nginx/snippets
 	chown root:root /etc/nginx/snippets/proxy.conf 2>/dev/null
@@ -1004,28 +997,12 @@ function _insngx() {
 }
 
 function _insnodejs() {
-	# install Nodejs for background service
-	cd /tmp || exit 1
-	curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh
-	bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-	exitstatus=$?
-	counter=0
-	while [[ ${exitstatus} -eq 1 ]]; do
-		if [[ ${counter} -gt 2 ]]; then
-			_errorcolor
-			echo -e "XXX\n00\n${ERROR_TEXT_NODEJS}\nXXX"
-			_defaultcolor
-			echo ">> ${ERROR_TEXT_NODEJS}" >>"${OUTTO}" 2>&1
-			exit 1
-		else
-			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-			exitstatus=$?
-			((counter++))
-		fi
-	done
-	apt-get install -y nodejs >>"${OUTTO}" 2>&1
-	if [[ -f /tmp/nodesource_setup.sh ]]; then
-		rm nodesource_setup.sh
+	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs >>"${OUTTO}" 2>&1; then
+		_errorcolor
+		echo -e "XXX\n00\n${ERROR_TEXT_NODEJS}\nXXX"
+		_defaultcolor
+		echo ">> ${ERROR_TEXT_NODEJS}" >>"${OUTTO}" 2>&1
+		exit 1
 	fi
 }
 
@@ -1092,8 +1069,6 @@ function _insdashboard() {
 	echo "${IFACE}" >/srv/dashboard/db/interface.txt
 	echo "${username}" >/srv/dashboard/db/master.txt
 
-	# Ownership: runtime code stays root owned, only the runtime state
-	# directories are writable by the service user.
 	if ! chown -R root:root /srv/dashboard ||
 		! chown -R www-data:www-data /srv/dashboard/db /srv/dashboard/skins; then
 		echo ">> Failed to set dashboard ownership" >>"${OUTTO}" 2>&1

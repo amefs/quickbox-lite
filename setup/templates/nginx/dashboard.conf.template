@@ -39,6 +39,17 @@ location ^~ /db/interface.txt {
     return 404;
 }
 
+# Establish Basic Auth's root credential scope before the panel starts API requests.
+location = /ws {
+    absolute_redirect off;
+    return 308 /$is_args$args;
+}
+
+location = /ws/ {
+    absolute_redirect off;
+    return 308 /$is_args$args;
+}
+
 # Loopback callers are NOT exempt from user authentication here: the gateway
 # secret identifies the proxy, not a logged-in user (see AUTH-01).
 location ^~ /ws {
