@@ -81,8 +81,6 @@ app.use(createAppRouter({
 export { app };
 
 if (process.env.NODE_ENV !== "test" || process.env.MOCK_ENABLED === "1") {
-    // Fail closed: without a readable gateway secret the management API would be
-    // reachable by anything that can open the Node port.
     if (assertProductionAuth() !== null) {
         process.exit(1);
     }

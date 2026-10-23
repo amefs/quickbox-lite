@@ -7,6 +7,16 @@ import type { NextFunction, Request, Response } from "express";
 
 export const GATEWAY_HEADER = "x-quickbox-gateway";
 
+export function shouldUpgradeDashboardSocket(headers: IncomingHttpHeaders): boolean {
+    const agent = headerValue(headers, "user-agent");
+    const basicAuth = /^Basic\s/i.test(headerValue(headers, "authorization"));
+    const appleWebKit = /AppleWebKit/i.test(agent) &&
+        (/iPhone|iPad|iPod/i.test(agent) || !/Chrome|Chromium|Edg|OPR|Android/i.test(agent));
+    // WebKit can challenge again on each WebSocket upgrade after HTTP Basic login.
+    // Keep its authenticated polling connection; nginx still checks every request.
+    return !(basicAuth && appleWebKit);
+}
+
 /** Root managed secret location, see qbEnsureWsGateway. */
 const DEFAULT_SECRET_FILE = "/etc/quickbox/ws.secret";
 /** Pre-migration location, still readable so upgrades keep working mid-flight. */
@@ -14,11 +24,11 @@ const LEGACY_SECRET_FILE = "/srv/dashboard/db/ws.secret";
 const MIN_SECRET_LENGTH = 16;
 
 /**
- * Last successfully loaded secret. The secret is read on demand (so a rotated
- * file is picked up without a restart), but a failed read must never degrade
- * into "no authentication": we keep using the last known value instead.
+ * Read on demand so a rotated secret file is picked up without a restart. A
+ * failed read keeps the previous value: degrading to an empty secret would
+ * silently disable the gateway instead of keeping the last working one.
  */
-let cachedSecret = "";
+let lastKnownGoodSecret = "";
 
 function isProduction(): boolean {
     return process.env.NODE_ENV === "production";
@@ -52,8 +62,8 @@ export interface GatewaySecretState {
 export function readGatewaySecret(): GatewaySecretState {
     const fromEnv = process.env.QUICKBOX_WS_GATEWAY_SECRET;
     if (typeof fromEnv === "string" && fromEnv.trim() !== "") {
-        cachedSecret = fromEnv.trim();
-        return { secret: cachedSecret };
+        lastKnownGoodSecret = fromEnv.trim();
+        return { secret: lastKnownGoodSecret };
     }
 
     const attempted: string[] = [];
@@ -62,16 +72,16 @@ export function readGatewaySecret(): GatewaySecretState {
         try {
             const value = readFileSync(secretFile, "utf8").trim();
             if (value !== "") {
-                cachedSecret = value;
+                lastKnownGoodSecret = value;
                 return { secret: value };
             }
         } catch {
-            // Try the next candidate, then fall back to the cached value.
+            continue;
         }
     }
 
     return {
-        secret: cachedSecret,
+        secret: lastKnownGoodSecret,
         error: `gateway secret is missing, empty or unreadable (${attempted.join(", ")})`,
     };
 }
@@ -80,15 +90,10 @@ export function getGatewaySecret(): string {
     return readGatewaySecret().secret;
 }
 
-/** Test helper: drop the cached secret so env/file changes take effect. */
 export function resetGatewaySecretCache(): void {
-    cachedSecret = "";
+    lastKnownGoodSecret = "";
 }
 
-/**
- * Startup gate. In production a usable secret is mandatory: running without it
- * would expose every management command on the Node port.
- */
 export function validateProductionAuth(): string | null {
     if (!isProduction()) {
         return null;
@@ -116,9 +121,6 @@ export function secretsEqual(left: string, right: string): boolean {
 }
 
 export function shouldEnforceGateway(): boolean {
-    // Production is fail-closed: validateProductionAuth() guarantees a secret at
-    // startup, and an empty secret here means every request must be rejected
-    // rather than silently bypassing the gateway check.
     if (isProduction()) {
         return true;
     }
@@ -165,14 +167,15 @@ function effectivePort(url: URL): string {
     return url.port !== "" ? url.port : defaultPort(normalizeProtocol(url.protocol) ?? "http:");
 }
 
+/** Characters that would let a crafted Host header smuggle in a different host. */
+const FORBIDDEN_AUTHORITY_CHARS = /[/\\?#@]/;
+
 function parseAuthority(authority: string, protocol: string): URL | null {
     const trimmed = authority.trim();
     if (trimmed === "") {
         return null;
     }
-    // An authority must not contain a path, query, fragment or userinfo; those
-    // would let a crafted Host header smuggle a different host into the check.
-    if (/[/\\?#@]/.test(trimmed)) {
+    if (FORBIDDEN_AUTHORITY_CHARS.test(trimmed)) {
         return null;
     }
     try {
@@ -216,46 +219,56 @@ function warnHostOnlyEntry(entry: string): void {
     );
 }
 
-/**
- * Full origins are compared exactly (protocol + host + port). Host-only entries
- * are still accepted for backwards compatibility but are reported as deprecated.
- */
-function matchesAllowedOrigin(parsed: URL): boolean {
-    const originProtocol = normalizeProtocol(parsed.protocol);
-    if (originProtocol === null) {
+interface OriginParts {
+    protocol: string;
+    host: string;
+    port: string;
+}
+
+function describeOrigin(parsed: URL): OriginParts | null {
+    const protocol = normalizeProtocol(parsed.protocol);
+    if (protocol === null) {
+        return null;
+    }
+    return { protocol, host: parsed.hostname.toLowerCase(), port: effectivePort(parsed) };
+}
+
+function matchesFullOriginEntry(entry: string, origin: OriginParts): boolean {
+    let allowed: URL;
+    try {
+        allowed = new URL(entry);
+    } catch {
         return false;
     }
-    const originHost = parsed.hostname.toLowerCase();
-    const originPort = effectivePort(parsed);
+    return (
+        normalizeProtocol(allowed.protocol) === origin.protocol &&
+        allowed.hostname.toLowerCase() === origin.host &&
+        effectivePort(allowed) === origin.port
+    );
+}
 
-    return parseAllowedOrigins().some((entry) => {
-        if (entry.includes("://")) {
-            let allowed: URL;
-            try {
-                allowed = new URL(entry);
-            } catch {
-                return false;
-            }
-            return (
-                normalizeProtocol(allowed.protocol) === originProtocol &&
-                allowed.hostname.toLowerCase() === originHost &&
-                effectivePort(allowed) === originPort
-            );
-        }
-        warnHostOnlyEntry(entry);
-        // Legacy host-only entries match the host on any port, which is exactly
-        // their documented (and deprecated) scope.
-        const allowedAuthority = parseAuthority(entry, originProtocol);
-        if (allowedAuthority === null) {
-            return entry === originHost;
-        }
-        return allowedAuthority.hostname.toLowerCase() === originHost;
-    });
+function matchesLegacyHostOnlyEntry(entry: string, origin: OriginParts): boolean {
+    warnHostOnlyEntry(entry);
+    const allowedAuthority = parseAuthority(entry, origin.protocol);
+    if (allowedAuthority === null) {
+        return entry === origin.host;
+    }
+    return allowedAuthority.hostname.toLowerCase() === origin.host;
+}
+
+function matchesAllowedOrigin(parsed: URL): boolean {
+    const origin = describeOrigin(parsed);
+    if (origin === null) {
+        return false;
+    }
+    return parseAllowedOrigins().some((entry) =>
+        entry.includes("://")
+            ? matchesFullOriginEntry(entry, origin)
+            : matchesLegacyHostOnlyEntry(entry, origin),
+    );
 }
 
 export function isAllowedOrigin(origin: string | undefined, hostHeader: string | undefined, protocol = "http"): boolean {
-    // Non-browser clients may omit Origin; they are still gated by the gateway
-    // secret (AUTH-01), never by the browser-only origin check.
     if (origin === undefined || origin === "") {
         return true;
     }
@@ -330,10 +343,6 @@ export function gatewayAuthMiddleware(req: Request, res: Response, next: NextFun
     next();
 }
 
-/**
- * Reports a production misconfiguration. Returns the problem message so the
- * caller can exit non-zero; never logs the secret itself.
- */
 export function assertProductionAuth(): string | null {
     const problem = validateProductionAuth();
     if (problem !== null) {

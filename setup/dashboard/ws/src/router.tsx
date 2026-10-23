@@ -16,6 +16,7 @@ import { isTestMode, setActiveProfile } from "./testing";
 import { dashboardMenu, resolveDashboardMenuState } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
 import { packageManagementCenter } from "./widgets/package-management-center";
+import { runningTask } from "./widgets/running-task";
 import { serviceControl } from "./widgets/service-control";
 import { upTime } from "./widgets/up";
 import { diskData } from "./widgets/disk-data";
@@ -24,6 +25,7 @@ import { widgetsLoad } from "./widgets/load";
 import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAction } from "./plugins";
 import { systemStaticInfoWithProviders } from "./system-static";
 import { readOutputLog } from "./widgets/output-log";
+import { shouldUpgradeDashboardSocket } from "./auth";
 
 export interface AppRouterOptions {
     /** Absolute path to the dashboard root (setup/dashboard). Used by /debug/assets/* static routes. */
@@ -79,14 +81,16 @@ export function createAppRouter(options: AppRouterOptions): Router {
     const renderDashboard = async (req: Request, res: Response, basePath = "") => {
         const locale = resolveRequestLocale(req);
         const html = await withLocale(locale, async () => {
-            const [menuState, serviceControlHtml, packageManagementCenterHtml] = await Promise.all([
+            const [menuState, serviceControlHtml, packageManagementCenterHtml, runningTaskHtml] = await Promise.all([
                 resolveDashboardMenuState(),
                 serviceControl(),
                 packageManagementCenter(),
+                runningTask(),
             ]);
             const ssrFragments: DashboardSsrFragments = {
                 serviceControlHtml,
                 packageManagementCenterHtml,
+                runningTaskHtml,
                 uptimeHtml: upTime(),
                 diskDataHtml: "",
                 ramStatsHtml: "",
@@ -97,6 +101,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
             return ReactDOMServer.renderToString(
                 <DashboardPage
                     basePath={basePath}
+                    socketUpgrade={shouldUpgradeDashboardSocket(req.headers)}
                     locale={locale}
                     menuState={menuState}
                     ssrFragments={ssrFragments}
@@ -208,6 +213,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.json(readOutputLog(
             parseQueryNumber(req.query.offset),
             parseQueryNumber(req.query.length),
+            typeof req.query.epoch === "string" ? req.query.epoch : undefined,
         ));
     });
 
