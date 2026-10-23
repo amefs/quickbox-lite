@@ -27,6 +27,7 @@ _red=$(tput setaf 1)
 _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
+_dim=$(tput dim 2>/dev/null)
 OUTTO=/srv/dashboard/db/output.log
 update_backup_dir=""
 update_backup_ready=0
@@ -35,14 +36,40 @@ update_config_committed=0
 update_service_started=0
 core=0
 from_checkout=0
+show_timings=0
+# Timing state for the end-of-run report. Indexed arrays keep the shared
+# helpers usable on the bash shipped by every supported release.
+update_started_ms=0
+update_stage_labels=()
+update_stage_ms=()
+update_heartbeat_pid=""
+
+# The clock lives in a file shared with the service and dashboard stages. It
+# sits next to those stages, one directory below this driver. A missing helper
+# must never fail an update, so fall back to no-op stubs: the stage names still
+# reach the log, only the durations disappear.
+update_timer_lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/update/qbUpdateTimer"
+if [[ -f "${update_timer_lib}" ]]; then
+	# shellcheck source=packages/system/update/qbUpdateTimer
+	# shellcheck disable=SC1090,SC1091
+	source "${update_timer_lib}"
+else
+	printf '⚠ Update timing helper is missing: %s\n' "${update_timer_lib}" >&2
+	function _qbNowMs() { printf '0\n'; }
+	function _qbFormatMs() { printf '%d.0s\n' "$(( ${1:-0} / 1000 ))"; }
+	function _qbReportMs() { return 0; }
+	function _qbReportLap() { return 0; }
+fi
 
 function _parseUpdateArgs() {
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
 		--only-core) core=1 ;;
 		--from-checkout) from_checkout=1; core=1 ;;
+		--timings) show_timings=1 ;;
 		*)
 			printf 'Unknown update option: %s\n' "$1" >&2
+			printf 'Available options: --only-core, --from-checkout, --timings\n' >&2
 			return 2
 			;;
 		esac
@@ -102,6 +129,12 @@ function _lockCleanup() {
 	_success "QuickBox update finished!"
 }
 
+# Exit trap: a heartbeat subshell must never outlive the update that owns it.
+function _updateCleanup() {
+	_updateHeartbeatStop
+	_releaseUpdateInstallLock
+}
+
 # Authoritative update lock. The WS launcher holds its own flock around the
 # detached runner; this one serializes every real update body (WS or CLI), so
 # two entry points can never run the update body at the same time.
@@ -137,6 +170,8 @@ function _updateAbort() {
 	if [[ ${update_config_committed:-0} -ne 1 ]]; then
 		_restoreUpdateConfig || _error "Automatic configuration rollback failed; inspect ${update_backup_dir:-the update log}"
 	fi
+	_saveUpdateTiming
+	_printUpdateTiming
 	_releaseUpdateInstallLock
 	exit 1
 }
@@ -378,15 +413,212 @@ function _restoreUpdateConfig() {
 	return "${rc}"
 }
 
+# Progress ticks for one stage. The interval process is started in the
+# background and awaited, so a TERM from _updateHeartbeatStop is handled
+# immediately instead of after the current sleep finishes: a tick must never
+# outlive the stage that owns it or hold the updater's stdout open.
+function _updateHeartbeatLoop() {
+	local interval="$1" label="$2" sink="$3" waited=0 sleeper=""
+	trap 'kill "${sleeper:-}" 2>/dev/null; exit 0' TERM INT
+	while :; do
+		sleep "${interval}" &
+		sleeper=$!
+		wait "${sleeper}"
+		waited=$(( waited + interval ))
+		if [[ ${sink} == log ]]; then
+			printf '>> Timing: %s still running (%s)\n' \
+				"${label}" "$(_qbFormatMs $(( waited * 1000 )))" >>"${OUTTO}"
+		else
+			printf '%s   … %s still running (%s)%s\n' \
+				"${_dim}" "${label}" "$(_qbFormatMs $(( waited * 1000 )))" "${_norm}"
+		fi
+	done
+}
+
+# Live progress for long stages. Every 10 seconds the running stage repeats how
+# long it has been going, so a silent `npm ci` or apt step is visibly alive
+# instead of looking hung. A terminal keeps these lines to itself; without one
+# (the Dashboard launcher discards stdout) the same signal goes to the shared
+# log every 30 seconds, which is what the Dashboard log view reads.
+function _updateHeartbeatStart() {
+	local label="$1"
+	update_heartbeat_pid=""
+	# Descriptor 8 is the authoritative update lock (_updateLockCheck). A tick
+	# must not inherit it: a tick that outlived its stage would keep the lock
+	# busy and block the next update or a rollback.
+	if [[ -t 1 ]]; then
+		(_updateHeartbeatLoop 10 "${label}" terminal) 8>&- &
+		update_heartbeat_pid=$!
+		return 0
+	fi
+	[[ -n ${OUTTO:-} && -f ${OUTTO} && -w ${OUTTO} ]] || return 0
+	# The log sink writes to the file itself, so the subshell must not keep the
+	# caller's stdout: a lingering tick would otherwise block a piped caller
+	# waiting for end-of-file.
+	(_updateHeartbeatLoop 30 "${label}" log) 8>&- >/dev/null 2>&1 &
+	update_heartbeat_pid=$!
+}
+
+function _updateHeartbeatStop() {
+	[[ -n ${update_heartbeat_pid:-} ]] || return 0
+	kill "${update_heartbeat_pid}" 2>/dev/null
+	wait "${update_heartbeat_pid}" 2>/dev/null
+	update_heartbeat_pid=""
+}
+
+# Records one finished stage for the end-of-run report.
+function _updateRecordStage() {
+	update_stage_labels[${#update_stage_labels[@]}]="$1"
+	update_stage_ms[${#update_stage_ms[@]}]="$2"
+}
+
+# One row of the timing report: name, duration, proportional bar and share.
+function _updateTimingRow() {
+	local label="$1" ms="${2:-0}" total="${3:-0}" pct=0 cells bar=""
+	if [[ ! ${ms} =~ ^[0-9]+$ ]]; then
+		ms=0
+	fi
+	if [[ ${total} =~ ^[0-9]+$ ]] && (( total > 0 )); then
+		pct=$(( ms * 100 / total ))
+	fi
+	# A rounded or residual measurement may exceed the wall clock; the bar has
+	# to stay inside its 20 cells regardless.
+	if (( pct > 100 )); then
+		pct=100
+	fi
+	cells=$(( pct / 5 ))
+	while (( cells > 0 )); do
+		bar+="#"
+		cells=$(( cells - 1 ))
+	done
+	printf '  %-34s %8s  %-20s %3d%%\n' "${label}" "$(_qbFormatMs "${ms}")" "${bar}" "${pct}"
+}
+
+# Path of the recorded timing history, or failure when the backup root is not
+# usable. A broken root must never change the update result.
+function _updateTimingHistory() {
+	local root="${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}"
+	if [[ ! -d "${root}" || ! -w "${root}" || -L "${root}/update-timings.tsv" ]]; then
+		return 1
+	fi
+	printf '%s/update-timings.tsv\n' "${root}"
+}
+
+# Appends this run to the timing history and keeps the last 50 runs, so a
+# slower update can be compared with the runs before it.
+function _saveUpdateTiming() {
+	local file total pairs="" i count tmp
+	if [[ ! ${update_started_ms:-0} =~ ^[0-9]+$ ]] || (( update_started_ms <= 0 )); then
+		return 0
+	fi
+	file=$(_updateTimingHistory) || return 0
+	total=$(( $(_qbNowMs) - update_started_ms ))
+	if (( total < 0 )); then
+		total=0
+	fi
+	for (( i = 0; i < ${#update_stage_labels[@]}; i++ )); do
+		pairs+="${update_stage_labels[i]}=${update_stage_ms[i]};"
+	done
+	printf '%s\t%d\t%s\n' "$(date +%Y%m%d-%H%M%S)" "${total}" "${pairs}" >>"${file}" 2>/dev/null || return 0
+	count=$(wc -l <"${file}" 2>/dev/null) || count=0
+	if [[ ${count} =~ ^[0-9]+$ ]] && (( count > 50 )); then
+		tmp="${file}.tmp.$$"
+		if tail -n 50 "${file}" >"${tmp}" 2>/dev/null; then
+			mv -f "${tmp}" "${file}" 2>/dev/null || rm -f "${tmp}"
+		else
+			rm -f "${tmp}"
+		fi
+	fi
+	return 0
+}
+
+# Renders the per-stage report. The residual row keeps the numbers honest:
+# whatever no stage covered (lock setup, profile reload, cleanup) is shown
+# instead of silently disappearing into the total.
+function _printUpdateTiming() {
+	local total accounted=0 residual=0 i file
+	if [[ ! ${update_started_ms:-0} =~ ^[0-9]+$ ]] || (( update_started_ms <= 0 )); then
+		return 0
+	fi
+	total=$(( $(_qbNowMs) - update_started_ms ))
+	if (( total < 0 )); then
+		total=0
+	fi
+	printf '%s➜ Update timing (total %s)%s\n' "${_cyan}" "$(_qbFormatMs "${total}")" "${_norm}"
+	if [[ -n ${OUTTO:-} && -f ${OUTTO} && -w ${OUTTO} ]]; then
+		printf '>> Timing: update total %s (%dms)\n' "$(_qbFormatMs "${total}")" "${total}" >>"${OUTTO}"
+	fi
+	for (( i = 0; i < ${#update_stage_labels[@]}; i++ )); do
+		_updateTimingRow "${update_stage_labels[i]}" "${update_stage_ms[i]}" "${total}"
+		accounted=$(( accounted + update_stage_ms[i] ))
+	done
+	residual=$(( total - accounted ))
+	if (( residual > 500 )); then
+		_updateTimingRow "other (locks, prepare, cleanup)" "${residual}" "${total}"
+	fi
+	printf '  %-34s %8s\n' "total" "$(_qbFormatMs "${total}")"
+	if file=$(_updateTimingHistory) && [[ -f "${file}" ]]; then
+		printf '%s   history: %s (box update quickbox --timings)%s\n' "${_dim}" "${file}" "${_norm}"
+	fi
+}
+
+# Prints the recorded runs, newest last, with the same per-stage rows.
+function _showUpdateTiming() {
+	local file limit=5 ts total pairs label ms entry rest
+	file=$(_updateTimingHistory) || {
+		printf 'No timing history location available: %s\n' \
+			"${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}" >&2
+		return 1
+	}
+	if [[ ! -f "${file}" ]]; then
+		printf 'No timing history recorded yet: %s\n' "${file}" >&2
+		return 1
+	fi
+	printf '➜ Update timing history (last %s runs): %s\n' "${limit}" "${file}"
+	while IFS=$'\t' read -r ts total pairs; do
+		[[ -n ${ts} ]] || continue
+		printf '\n[%s] total %s\n' "${ts}" "$(_qbFormatMs "${total}")"
+		while [[ -n ${pairs} ]]; do
+			entry=${pairs%%;*}
+			# A separated entry is the rest after the first ';'. When nothing
+			# separates them the rest is identical, so the list is finished.
+			rest=${pairs#*;}
+			if [[ ${rest} == "${pairs}" ]]; then
+				pairs=""
+			else
+				pairs=${rest}
+			fi
+			label=${entry%=*}
+			ms=${entry##*=}
+			[[ -n ${label} && ${ms} =~ ^[0-9]+$ ]] || continue
+			_updateTimingRow "${label}" "${ms}" "${total}"
+		done
+	done < <(tail -n "${limit}" "${file}")
+}
+
 # Runs one update stage and aborts the whole update when it fails, so a partial
-# deployment is never reported as completed.
+# deployment is never reported as completed. Every stage is measured; the
+# measurement reaches the terminal immediately and the log at the same time.
 function _updateStep() {
 	local stage="$1"
 	shift
-	if ! "$@"; then
-		_error "Update stage failed: ${stage}"
+	local start_ms elapsed status
+	start_ms=$(_qbNowMs)
+	_updateHeartbeatStart "${stage}"
+	"$@"
+	status=$?
+	_updateHeartbeatStop
+	elapsed=$(( $(_qbNowMs) - start_ms ))
+	if (( elapsed < 0 )); then
+		elapsed=0
+	fi
+	if [[ ${status} -ne 0 ]]; then
+		_updateRecordStage "${stage} (failed)" "${elapsed}"
+		_error "Update stage failed: ${stage} (after $(_qbFormatMs "${elapsed}"))"
 		_updateAbort "${stage}"
 	fi
+	_updateRecordStage "${stage}" "${elapsed}"
+	_qbReportMs "${stage}" "${elapsed}"
 }
 
 function _installSystemUpdates() {
@@ -418,6 +650,8 @@ function _reloadScript() {
 function _fin() {
 	source ~/.profile
 	source ~/.bashrc
+	_saveUpdateTiming
+	_printUpdateTiming
 	_lockCleanup
 	echo >>"${OUTTO}" 2>&1
 	echo "[QuickBox] Seedbox & GUI Update Completed ! " >>"${OUTTO}" 2>&1
@@ -436,12 +670,17 @@ local_setup_dashboard=${local_prefix}setup/dashboard/
 # MAIN PROCESS
 ################################################################################
 _parseUpdateArgs "$@" || exit $?
+if [[ ${show_timings} -eq 1 ]]; then
+	_showUpdateTiming
+	exit $?
+fi
+update_started_ms=$(_qbNowMs)
 _updateLockCheck
 update_lock_status=$?
 [[ ${update_lock_status} -eq 0 ]] || exit "${update_lock_status}"
 _lockCheck
 _setLock || exit 1
-trap _releaseUpdateInstallLock EXIT
+trap _updateCleanup EXIT
 # Keep the previous output available until this invocation owns both locks;
 # _initializeUpdateLog then publishes the new epoch before truncating.
 _initializeUpdateLog || exit 1

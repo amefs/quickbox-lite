@@ -1,6 +1,24 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# The clock is shared with qbUpdate and qbUpdateDashboard. Standalone
+# invocation (tests or a manual run) resolves the file next to this script.
+_qb_timer_lib="${QB_UPDATE_TIMER_LIB:-/usr/local/bin/quickbox/system/update/qbUpdateTimer}"
+if [[ ! -f "${_qb_timer_lib}" ]]; then
+	_qb_timer_lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/qbUpdateTimer"
+fi
+if [[ -f "${_qb_timer_lib}" ]]; then
+	# shellcheck source=packages/system/update/qbUpdateTimer
+	# shellcheck disable=SC1090,SC1091
+	source "${_qb_timer_lib}"
+else
+	printf '⚠ Update timing helper is missing: %s\n' "${_qb_timer_lib}" >&2
+	function _qbNowMs() { printf '0\n'; }
+	function _qbFormatMs() { printf '%d.0s\n' "$(( ${1:-0} / 1000 ))"; }
+	function _qbReportMs() { return 0; }
+	function _qbReportLap() { return 0; }
+fi
+
 function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
@@ -78,23 +96,31 @@ function _fix_nginx_app_include() {
 
 function _updateservice() {
 	_info "Updating QuickBox service..."
+	local lap ttyd_status
 	# Older installs may not grant www-data the managed command set, or may
 	# leave the sudoers files with modes that sudo reports as invalid. Repair
 	# the managed policy before the downgraded WS service depends on it.
+	lap=$(_qbNowMs)
 	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureSudoers; then
 		_error "Failed to install the dashboard sudoers policy"
 		return 1
 	fi
+	_qbReportLap "sudoers policy" "${lap}"
+	lap=$(_qbNowMs)
 	_fix_nginx_app_include || return 1
+	_qbReportLap "nginx app include" "${lap}"
 	# Refresh the system runtime even when Node.js 24 is already installed.
 	# The dashboard updater stages dependencies and restarts the service only
 	# after the new runtime is ready.
 	_info "Installing or updating Node.js 24..."
+	lap=$(_qbNowMs)
 	if ! _execute "bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs"; then
 		_error "Failed to install or update Node.js 24"
 		return 1
 	fi
+	_qbReportLap "Node.js 24" "${lap}"
 	_success "Node.js 24 is ready"
+	lap=$(_qbNowMs)
 	_info "Dashboard dependency activation is deferred to the staged dashboard update"
 	# Update flexget nginx reverse proxy
 	username=$(cat /root/.admin.info | cut -d: -f1)
@@ -133,6 +159,10 @@ function _updateservice() {
 	if (! which jq > /dev/null); then
 		_execute "apt-get install -y jq"
 	fi
+	_qbReportLap "motd and helper packages" "${lap}"
+	# The ttyd block talks to the GitHub API, which is the part of this stage
+	# most likely to be slow on a restricted network.
+	lap=$(_qbNowMs)
 	if [[ ! -f /etc/systemd/system/ttyd.service ]]; then
 		_info "replace shellinabox with ttyd"
 		# stop shellinabox
@@ -188,6 +218,9 @@ WEBC
 		_execute "systemctl daemon-reload"
 		_execute "systemctl restart ttyd.service"
 	fi
+	ttyd_status=$?
+	_qbReportLap "ttyd" "${lap}"
+	return "${ttyd_status}"
 }
 
 function _startservice() {

@@ -1,0 +1,89 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Shared wall-clock helpers for the QuickBox update pipeline.
+#
+# qbUpdate, qbUpdateService and qbUpdateDashboard source this file so every
+# stage and every expensive sub-step can report how long it took. A slow update
+# then points at one step instead of an opaque "the update took a while".
+#
+# The file must stay free of side effects and safe to source from a script that
+# runs under `set -u`; it only defines functions.
+
+# Prints the current time in milliseconds.
+#
+# EPOCHREALTIME (bash 5) needs no subprocess, GNU date is the portable fallback,
+# Time::HiRes covers hosts with a BSD date (for example a developer sandbox) and
+# whole seconds are the last resort.
+function _qbNowMs() {
+	local value
+	if [[ -n ${EPOCHREALTIME:-} ]]; then
+		# EPOCHREALTIME follows the locale decimal separator, so strip every
+		# non-digit instead of splitting on a specific character.
+		value=${EPOCHREALTIME//[!0-9]/}
+		if [[ ${#value} -gt 3 ]]; then
+			printf '%s\n' "${value:0:${#value}-3}"
+			return 0
+		fi
+	fi
+	if value=$(date +%s%3N 2>/dev/null) && [[ ${value} =~ ^[0-9]+$ ]]; then
+		printf '%s\n' "${value}"
+		return 0
+	fi
+	if command -v perl >/dev/null 2>&1; then
+		value=$(perl -MTime::HiRes=time -e 'printf "%d\n", time() * 1000' 2>/dev/null)
+		if [[ ${value} =~ ^[0-9]+$ ]]; then
+			printf '%s\n' "${value}"
+			return 0
+		fi
+	fi
+	printf '%s000\n' "$(date +%s)"
+}
+
+# Formats a millisecond count as 0.4s, 12.6s, 2m05s or 1h02m.
+function _qbFormatMs() {
+	local ms=${1:-0}
+	if [[ ! ${ms} =~ ^[0-9]+$ ]]; then
+		ms=0
+	fi
+	if (( ms < 60000 )); then
+		printf '%d.%ds' $(( ms / 1000 )) $(( (ms % 1000) / 100 ))
+	elif (( ms < 3600000 )); then
+		printf '%dm%02ds' $(( ms / 60000 )) $(( (ms % 60000) / 1000 ))
+	else
+		printf '%dh%02dm' $(( ms / 3600000 )) $(( (ms % 3600000) / 60000 ))
+	fi
+}
+
+# Prints one indented duration line for a finished sub-step and records the
+# same measurement in the shared update log, so the Dashboard log view keeps
+# the detail after the terminal is gone. Colours stay optional for callers
+# that never initialize them.
+function _qbReportMs() {
+	local label="$1" elapsed=${2:-0}
+	if [[ ! ${elapsed} =~ ^[0-9]+$ ]]; then
+		elapsed=0
+	fi
+	printf '%s   ⏱ %s: %s%s\n' "${_dim:-}" "${label}" "$(_qbFormatMs "${elapsed}")" "${_norm:-}"
+	# Writing the log is best effort: an unwritable log must not turn a
+	# successful stage into a failure, and a missing file must stay silent.
+	if [[ -n ${OUTTO:-} && -f ${OUTTO} && -w ${OUTTO} ]]; then
+		printf '>> Timing: %s took %s (%dms)\n' \
+			"${label}" "$(_qbFormatMs "${elapsed}")" "${elapsed}" >>"${OUTTO}"
+	fi
+	return 0
+}
+
+# Measures the time since a _qbNowMs value and reports it. Callers that also
+# need the millisecond count should compute it themselves and use _qbReportMs.
+function _qbReportLap() {
+	local label="$1" start_ms="${2:-}" elapsed
+	if [[ ! ${start_ms} =~ ^[0-9]+$ ]]; then
+		return 0
+	fi
+	elapsed=$(( $(_qbNowMs) - start_ms ))
+	if (( elapsed < 0 )); then
+		elapsed=0
+	fi
+	_qbReportMs "${label}" "${elapsed}"
+}

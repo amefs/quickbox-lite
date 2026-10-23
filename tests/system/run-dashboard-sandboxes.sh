@@ -18,6 +18,7 @@ scripts=(
 	repo-state-revert-sandbox.sh
 	repo-reinstall-sandbox.py
 	update-config-backup-sandbox.sh
+	update-timing-sandbox.sh
 )
 
 for script in "${scripts[@]}"; do
