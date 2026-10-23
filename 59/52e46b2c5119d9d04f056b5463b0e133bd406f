@@ -1,0 +1,20 @@
+.github/workflows/linter.yml
+  h_3705811fa4502c 40-49
+setup/dashboard/ws/src/handlers/message.ts
+  h_3705811fa4502c 61-76,90-91,103,105-107
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+tests/deployment/ws-update.cjs
+  h_3705811fa4502c 24-29,65-68,74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5952e46b2c5119d9d04f056b5463b0e133bd406f",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
