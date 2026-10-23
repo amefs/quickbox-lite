@@ -1,0 +1,19 @@
+tests/system/nodejs-update-sandbox.py
+  s_a6df46a0fc42ae::t_22af1d0c6cea58 20-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c041991ef92da85cef4b1add0c02a017559da02e",
+  "prompts": {},
+  "sessions": {
+    "s_a6df46a0fc42ae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a168c4-b233-76d1-a071-a6ec99085cd8",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
