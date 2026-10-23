@@ -1,0 +1,75 @@
+packages/system/qbUpdate
+  s_08bffd8bdfd863::t_356d68ca08a798 76,79,86,111,120,124,128,158
+  s_08bffd8bdfd863::t_d8fd84bb28c3a5 77-78,145-146
+  s_08bffd8bdfd863::t_3d012c4da32ddd 144,147-152,156-157,167,170
+  s_08bffd8bdfd863::t_cad632c60214d9 153-155
+  s_08bffd8bdfd863::t_f8ced624e84486 159-161,164-166
+  s_08bffd8bdfd863::t_a1fcb5daffbb74 168-169
+setup/dashboard/ws/src/controllers/output-log.ts
+  s_08bffd8bdfd863::t_50f76229dac212 12
+setup/dashboard/ws/src/router.tsx
+  s_08bffd8bdfd863::t_85df8f10a08566 211
+setup/dashboard/ws/src/handlers/message.ts
+  s_08bffd8bdfd863::t_7c120fedabea67 93,99
+setup/dashboard/js/dashboard.js
+  s_08bffd8bdfd863::t_46021b38f0ea2c 984,989,991-992,1048-1051
+  s_08bffd8bdfd863::t_125a684afbc9e0 339-341,353-355,436,1052
+  s_08bffd8bdfd863::t_0058c2b67914ff 447-449
+setup/dashboard/ws/src/handlers/exec.ts
+  s_08bffd8bdfd863::t_1767cfdfcd5a71 152
+setup/dashboard/ws/tests/controllers/output-log.spec.ts
+  s_08bffd8bdfd863::t_d5f556751199f3 14,23,28
+setup/dashboard/ws/tests/widgets/output-log.spec.ts
+  s_08bffd8bdfd863::t_b3aa90757424a2 18
+  s_08bffd8bdfd863::t_f0bcdcb5cd8e9e 5-7,9,70-83
+  s_08bffd8bdfd863::t_dc84c1042adb75 84-86
+setup/dashboard/ws/tests/handlers/exec.spec.ts
+  s_08bffd8bdfd863::t_5f0a61b03fa912 253-278,286-287,291,301-302,306,316
+  s_08bffd8bdfd863::t_f2c39f4458676c 279-281,283-285
+  s_08bffd8bdfd863::t_b792190c71e00a 288-290
+  s_08bffd8bdfd863::t_3d95d077fc865c 292-294,298-300
+  s_08bffd8bdfd863::t_d4d799b2a8f605 303-305
+  s_08bffd8bdfd863::t_b3c083238056df 307-309,313-315
+  s_08bffd8bdfd863::t_189d17a05b9f28 317-319
+packages/system/auxiliary/clean_log
+  s_08bffd8bdfd863::t_fa3ea0dd6b535f 17-22
+  s_08bffd8bdfd863::t_bb7fff951348bf 16
+  s_08bffd8bdfd863::t_d4e1032d587045 23-25
+packages/system/update/qbUpdateRevert
+  s_798e82bb3c63c6::t_63fdc61b52d400 112,114
+  s_798e82bb3c63c6::t_1cfadb30e17b38 91-111,113,115
+packages/system/update/qbUpdateDashboard
+  s_08bffd8bdfd863::t_d0e7117fa29e53 71,76
+setup/dashboard/ws/src/widgets/output-log.ts
+  s_08bffd8bdfd863::t_d122f60d64757b 3,68-69
+  s_08bffd8bdfd863::t_9bad4df23ebba4 97-110,116
+  s_08bffd8bdfd863::t_c8dc9c9e62a1dc 70,93-94,96
+  s_08bffd8bdfd863::t_14ddc55a736046 71-73
+  s_08bffd8bdfd863::t_e3f84aa249cb7c 117-119
+setup/dashboard/ws/dist/server.js
+  s_08bffd8bdfd863::t_f1ef586426e985 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6de13422dbc47c88bd088ad6beca56344fdc3be7",
+  "prompts": {},
+  "sessions": {
+    "s_08bffd8bdfd863": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a168c3-6681-7023-bee1-e204f972bf49",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_798e82bb3c63c6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a168ac-5836-7392-abaa-19840ffaeb40",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
