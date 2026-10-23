@@ -22,10 +22,10 @@ set -uo pipefail
 
 TEMPLATE="${1:-/etc/QuickBox/setup/templates/sudoers.template}"
 TARGET="${QUICKBOX_SUDOERS_FILE:-/etc/sudoers.d/dashboard}"
-BACKUP_ROOT="${QUICKBOX_SUDOERS_BACKUP:-/var/backups/quickbox}"
+# The specific override wins, then the shared update backup root.
+BACKUP_ROOT="${QUICKBOX_SUDOERS_BACKUP:-${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}}"
 TARGET_DIR=$(dirname "${TARGET}")
 TS=$(date +%Y%m%d-%H%M%S)
-BACKUP_DIR="${BACKUP_ROOT}/${TS}-sudoers"
 
 _info() { printf '➜ %s\n' "$@" >&2; }
 _success() { printf '✓ %s\n' "$@" >&2; }
@@ -74,7 +74,29 @@ if ! visudo -cf "${TMP}" >/dev/null 2>&1; then
 	exit 1
 fi
 
-mkdir -p "${BACKUP_DIR}" || {
+if [[ -L "${BACKUP_ROOT}" ]]; then
+	_error "refusing symlinked backup root: ${BACKUP_ROOT}"
+	exit 1
+fi
+if [[ -e "${BACKUP_ROOT}" && ! -d "${BACKUP_ROOT}" ]]; then
+	_error "backup root is not a directory: ${BACKUP_ROOT}"
+	exit 1
+fi
+if [[ ! -e "${BACKUP_ROOT}" ]]; then
+	(umask 077; mkdir -p "${BACKUP_ROOT}") || {
+		_error "cannot create the backup root: ${BACKUP_ROOT}"
+		exit 1
+	}
+	chmod 0700 "${BACKUP_ROOT}" || _warning "cannot restrict ${BACKUP_ROOT} to mode 0700"
+fi
+# Never reuse a directory from an earlier run in the same second.
+BACKUP_DIR="${BACKUP_ROOT}/${TS}-sudoers"
+suffix=2
+while [[ -e "${BACKUP_DIR}" || -L "${BACKUP_DIR}" ]]; do
+	BACKUP_DIR="${BACKUP_ROOT}/${TS}-sudoers-${suffix}"
+	suffix=$((suffix + 1))
+done
+(umask 077; mkdir -p "${BACKUP_DIR}") || {
 	_error "cannot create backup directory: ${BACKUP_DIR}"
 	exit 1
 }
@@ -85,6 +107,8 @@ if [[ -f "${TARGET}" ]]; then
 		exit 1
 	}
 	_info "previous sudoers backup: ${BACKUP_DIR}/dashboard"
+else
+	printf '%s\n' "${TARGET}" >"${BACKUP_DIR}/.absent" || exit 1
 fi
 
 mv -f "${TMP}" "${TARGET}" || {

@@ -117,7 +117,9 @@ exec 9>&-
 exit "$result"
 ''')
         result = subprocess.run(
-            ['bash', str(driver)], env=dict(os.environ, SANDBOX=str(root), FAIL_STAGE=stage),
+            ['bash', str(driver)],
+            env=dict(os.environ, SANDBOX=str(root), FAIL_STAGE=stage,
+                     QB_UPDATE_BACKUP_LIB=str(REPO / 'packages/system/update/qbUpdateBackup')),
             capture_output=True, text=True)
         live = root / 'srv/dashboard'
         assert 'after-update-via-original-fd' in (live / 'db/output.log').read_text(), result.stderr
@@ -129,6 +131,11 @@ exit "$result"
             assert (live / 'ws/dist.js').read_text() == 'new-runtime-v2'
             assert (live / 'ws/node_modules/new/index.js').read_text() == 'new-dependency'
             assert not (live / 'ws/node_modules/old').exists()
+            backups = root / 'backups'
+            assert backups.stat().st_mode & 0o777 == 0o700
+            dashboard_backups = list(backups.glob('*-dashboard'))
+            assert len(dashboard_backups) == 1, dashboard_backups
+            assert dashboard_backups[0].stat().st_mode & 0o777 == 0o700
         else:
             assert result.returncode != 0, (stage, result.stdout, result.stderr)
             assert (live / 'ws/dist.js').read_text() == 'old-runtime', stage

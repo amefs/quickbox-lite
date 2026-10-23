@@ -28,11 +28,27 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 OUTTO=/srv/dashboard/db/output.log
-if [[ $1 == "--only-core" ]]; then
-	core=1
-else
-	core=0
-fi
+update_backup_dir=""
+update_backup_ready=0
+update_backup_available=0
+update_config_committed=0
+update_service_started=0
+core=0
+from_checkout=0
+
+function _parseUpdateArgs() {
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+		--only-core) core=1 ;;
+		--from-checkout) from_checkout=1; core=1 ;;
+		*)
+			printf 'Unknown update option: %s\n' "$1" >&2
+			return 2
+			;;
+		esac
+		shift
+	done
+}
 
 function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
@@ -93,6 +109,15 @@ function _updateLockCheck() {
 		_error "flock is required for safe updates"
 		return 1
 	fi
+	# qbUpdateRevert holds this same descriptor across checkout and reinstall.
+	# Reuse its open file description instead of locking the file a second time.
+	if [[ "${QUICKBOX_UPDATE_CORE_LOCK_INHERITED:-}" == "${lock}" ]]; then
+		if flock -n 8; then
+			return 0
+		fi
+		_error "Cannot reuse the inherited update lock: ${lock}"
+		return 75
+	fi
 	if ! exec 8>"${lock}"; then
 		_error "Cannot open the update lock: ${lock}"
 		return 1
@@ -107,8 +132,221 @@ function _updateLockCheck() {
 function _updateAbort() {
 	local stage="$1"
 	printf '[QuickBox] Update aborted at stage: %s (%s)\n' "${stage}" "$(date -Is)" >>"${OUTTO}"
+	if [[ ${update_config_committed:-0} -ne 1 ]]; then
+		_restoreUpdateConfig || _error "Automatic configuration rollback failed; inspect ${update_backup_dir:-the update log}"
+	fi
 	_releaseUpdateInstallLock
 	exit 1
+}
+
+# Old rollback copies are only useful for a bounded time. Prune them before this
+# run creates new ones; pruning never blocks an update.
+function _pruneBackups() {
+	local prune_helper="/usr/local/bin/quickbox/system/auxiliary/qbBackupPrune"
+	if [[ ! -f "${prune_helper}" ]]; then
+		_warning "Backup pruning helper is missing: ${prune_helper}"
+		return 0
+	fi
+	if ! bash "${prune_helper}" >>"${OUTTO}" 2>&1; then
+		_warning "Failed to prune old backups under ${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}"
+	fi
+	return 0
+}
+
+# Record the pre-update commit so a destructive git reset can be undone with
+# `box revert`. Only a small state file and a one-line history entry are kept.
+function _saveRepoState() {
+	local repo="${QUICKBOX_REPO_ROOT:-/etc/QuickBox}"
+	local root="${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}"
+	local branch sha ts state_tmp history
+	if [[ ! -d "${repo}/.git" ]]; then
+		_info "No local git metadata to record in ${repo}"
+		return 0
+	fi
+	if [[ -L "${root}" ]]; then
+		_error "Refusing symlinked backup root: ${root}"
+		return 1
+	fi
+	if [[ -e "${root}" && ! -d "${root}" ]]; then
+		_error "Backup root is not a directory: ${root}"
+		return 1
+	fi
+	(umask 077; mkdir -p "${root}") || {
+		_error "Cannot create the backup root: ${root}"
+		return 1
+	}
+	branch=$(git -C "${repo}" symbolic-ref --short -q HEAD 2>/dev/null || printf 'detached')
+	sha=$(git -C "${repo}" rev-parse --verify HEAD 2>/dev/null) || {
+		_warning "Cannot record the current repository commit; no HEAD in ${repo}"
+		return 0
+	}
+	if [[ -e "${root}/repo-state.env" && ! -f "${root}/repo-state.env" ]]; then
+		_error "Repository state path is not a regular file: ${root}/repo-state.env"
+		return 1
+	fi
+	ts=$(date +%Y%m%d-%H%M%S)
+	# Pin the commit with local refs so git gc cannot collect it after a
+	# branch switch or hard reset.
+	git -C "${repo}" update-ref "refs/quickbox/pre-update/${ts}" "${sha}" || {
+		_error "Cannot record the pre-update repository ref in ${repo}"
+		return 1
+	}
+	git -C "${repo}" update-ref refs/quickbox/pre-update-latest "${sha}" || {
+		_error "Cannot record the latest pre-update repository ref in ${repo}"
+		return 1
+	}
+	state_tmp=$(mktemp "${root}/.repo-state.XXXXXX") || return 1
+	if ! {
+		printf 'QUICKBOX_REPO=%s\n' "${repo}"
+		printf 'QUICKBOX_REPO_BRANCH=%s\n' "${branch}"
+		printf 'QUICKBOX_REPO_COMMIT=%s\n' "${sha}"
+		printf 'QUICKBOX_REPO_TIMESTAMP=%s\n' "${ts}"
+	} >"${state_tmp}"; then
+		rm -f "${state_tmp}"
+		return 1
+	fi
+	chmod 0600 "${state_tmp}" || {
+		rm -f "${state_tmp}"
+		return 1
+	}
+	mv -f "${state_tmp}" "${root}/repo-state.env" || {
+		rm -f "${state_tmp}"
+		return 1
+	}
+	history="${root}/repo-history.tsv"
+	if [[ -L "${history}" ]]; then
+		_error "Refusing symlinked repository history: ${history}"
+		return 1
+	fi
+	if [[ -e "${history}" && ! -f "${history}" ]]; then
+		_error "Repository history path is not a regular file: ${history}"
+		return 1
+	fi
+	if [[ ! -e "${history}" ]]; then
+		(umask 077; : >"${history}") || return 1
+	fi
+	chmod 0600 "${history}" 2>/dev/null || _warning "Cannot restrict the repository history: ${history}"
+	printf '%s\t%s\t%s\t%s\n' "${ts}" "${branch}" "${sha}" "${repo}" >>"${history}" ||
+		_warning "Cannot append the repository state history: ${history}"
+	_success "Pre-update repository commit: ${branch}@${sha} (state: ${root}/repo-state.env)"
+	return 0
+}
+
+# The helper is shipped by the repository that _updateRepo just refreshed, so it
+# is loaded after the repository stage.
+function _loadBackupHelper() {
+	local helper="${local_prefix}packages/system/update/qbUpdateBackup"
+	if [[ ! -f "${helper}" ]]; then
+		_warning "Update backup helper is missing; continuing without the managed configuration snapshot: ${helper}"
+		update_backup_available=0
+		return 0
+	fi
+	# shellcheck source=packages/system/update/qbUpdateBackup
+	# shellcheck disable=SC1090,SC1091
+	if ! source "${helper}"; then
+		_warning "Update backup helper could not be loaded; continuing without the managed configuration snapshot: ${helper}"
+		update_backup_available=0
+		return 0
+	fi
+	update_backup_available=1
+	return 0
+}
+
+# Every configuration file that the update pipeline may rewrite. The dashboard
+# paths are included here so the dashboard stage can share one rollback set.
+function _managedUpdatePaths() {
+	local username="" motd
+	if [[ -f /root/.admin.info ]]; then
+		username=$(cut -d: -f1 </root/.admin.info 2>/dev/null || true)
+	fi
+	printf '%s\n' \
+		/etc/nginx/sites-enabled/default \
+		/etc/profile \
+		/etc/update-motd.d/01-custom \
+		/etc/systemd/system/ttyd.service \
+		/etc/init.d/ttyd \
+		/usr/local/bin/ttyd \
+		/install/.ttyd.lock \
+		/install/.shellinabox.lock \
+		/etc/sudoers.d/dashboard \
+		/etc/sudoers.d/quickbox \
+		/root/.bash_qb \
+		/root/.bash_qb.bak \
+		/root/.bash_qb_extras \
+		/root/.bash_qb_extras.bak \
+		/etc/skel/.bashrc \
+		/etc/skel/.bash_logout \
+		/etc/skel/.profile \
+		/etc/nginx/apps/dashboard.conf \
+		/etc/nginx/snippets/proxy.conf \
+		/etc/nginx/snippets/quickbox-ws-gateway.conf \
+		/etc/systemd/system/quickbox-ws.service \
+		/etc/quickbox/ws.secret \
+		/srv/dashboard/db/ws.secret \
+		/srv/dashboard/db/nginx-ws-gateway.conf
+	if [[ -n "${username}" ]]; then
+		printf '/etc/nginx/apps/%s.flexget.conf\n' "${username}"
+		printf '/etc/nginx/apps/%s.console.conf\n' "${username}"
+	fi
+	# The service stage changes the mode of every motd script, not only the
+	# managed one, so record the rest of the directory as well.
+	for motd in /etc/update-motd.d/*; do
+		if [[ -e "${motd}" && "${motd}" != "/etc/update-motd.d/01-custom" ]]; then
+			printf '%s\n' "${motd}"
+		fi
+	done
+}
+
+function _backupUpdateConfig() {
+	local root backup_dir path
+	local -a paths=()
+	if [[ ${update_backup_available:-0} -ne 1 ]]; then
+		_warning "Managed configuration backup is unavailable; skipping"
+		return 0
+	fi
+	root=$(_qbBackupRoot) || return 1
+	backup_dir=$(_qbBackupUniqueDir "${root}/$(date +%Y%m%d-%H%M%S)-update")
+	while IFS= read -r path; do
+		[[ -n "${path}" ]] && paths+=("${path}")
+	done < <(_managedUpdatePaths)
+	if [[ ${#paths[@]} -eq 0 ]]; then
+		_error "No managed configuration paths to back up"
+		return 1
+	fi
+	if ! _qbBackupCreate "${backup_dir}" "${paths[@]}"; then
+		rm -rf "${backup_dir}"
+		_error "Failed to create the update configuration backup"
+		return 1
+	fi
+	update_backup_dir="${backup_dir}"
+	update_backup_ready=1
+	_info "Update rollback backup: ${update_backup_dir}"
+	return 0
+}
+
+function _restoreUpdateConfig() {
+	[[ ${update_backup_ready:-0} -eq 1 && -n ${update_backup_dir:-} ]] || return 0
+	local rc=0
+	_warning "Restoring managed configuration from ${update_backup_dir}"
+	_qbBackupRestoreAll "${update_backup_dir}" || rc=1
+	if [[ ${update_service_started:-0} -eq 1 ]]; then
+		if command -v systemctl >/dev/null 2>&1; then
+			systemctl daemon-reload >>"${OUTTO}" 2>&1 || rc=1
+		fi
+		if command -v nginx >/dev/null 2>&1; then
+			if nginx -t >>"${OUTTO}" 2>&1; then
+				nginx -s reload >>"${OUTTO}" 2>&1 || rc=1
+			else
+				rc=1
+			fi
+		fi
+	fi
+	if [[ ${rc} -eq 0 ]]; then
+		_warning "Managed configuration rollback completed"
+	else
+		_error "Managed configuration rollback was incomplete; inspect ${update_backup_dir}"
+	fi
+	return "${rc}"
 }
 
 # Runs one update stage and aborts the whole update when it fails, so a partial
@@ -131,7 +369,7 @@ function _installSystemUpdates() {
 }
 
 function _preloadScript() {
-	source /usr/local/bin/quickbox/system/update/qbUpdateRepo || return 1
+	source "${local_prefix}packages/system/update/qbUpdateRepo" || return 1
 	if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
 		if [[ ! -f /install/.legacy.lock ]]; then
 			touch /install/.legacy.lock
@@ -143,9 +381,9 @@ function _preloadScript() {
 }
 
 function _reloadScript() {
-	source /usr/local/bin/quickbox/system/update/qbUpdateRepo || return 1
-	source /usr/local/bin/quickbox/system/update/qbUpdateService || return 1
-	source /usr/local/bin/quickbox/system/update/qbUpdateDashboard || return 1
+	source "${local_prefix}packages/system/update/qbUpdateRepo" || return 1
+	source "${local_prefix}packages/system/update/qbUpdateService" || return 1
+	source "${local_prefix}packages/system/update/qbUpdateDashboard" || return 1
 }
 
 function _fin() {
@@ -160,13 +398,15 @@ function _fin() {
 }
 
 # initialization environment
-local_prefix=/etc/QuickBox/
+local_prefix="${QUICKBOX_REPO_ROOT:-/etc/QuickBox}"
+local_prefix="${local_prefix%/}/"
 local_setup_template=${local_prefix}setup/templates/
 local_setup_dashboard=${local_prefix}setup/dashboard/
 
 ################################################################################
 # MAIN PROCESS
 ################################################################################
+_parseUpdateArgs "$@" || exit $?
 _updateLockCheck
 update_lock_status=$?
 [[ ${update_lock_status} -eq 0 ]] || exit "${update_lock_status}"
@@ -177,12 +417,22 @@ if [[ $core == 0 ]]; then
 	_updateStep "system packages" _installSystemUpdates
 fi
 _preloadScript || _updateAbort "preload update scripts"
-_updateStep "repository" _updateRepo
+if [[ ${from_checkout} -eq 0 ]]; then
+	_pruneBackups
+	_updateStep "repository state" _saveRepoState
+	_updateStep "repository" _updateRepo
+else
+	_info "Reinstalling from the current checkout: ${local_prefix}"
+fi
 _updateStep "permissions" _setPerm
+_loadBackupHelper || _updateAbort "load update backup helper"
+_updateStep "update configuration backup" _backupUpdateConfig
 _updateStep "shell profile" _bashrc
 _updateStep "skel" _updateskel
 _reloadScript || _updateAbort "load update scripts"
+update_service_started=1
 _updateStep "service" _updateservice
 _updateStep "dashboard" _updatedashboard
+update_config_committed=1
 _updateStep "language" _updatelanguage
 _fin

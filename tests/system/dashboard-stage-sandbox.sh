@@ -77,6 +77,36 @@ mkdir -p "$(dirname "${missing}")"
 _dashboardRestore "${backup}" "${missing}"
 test ! -e "${missing}"
 
+# A same-second rerun must not reuse (and overwrite) the earlier directory.
+collision="${sandbox}/collision/20240101-000000-dashboard"
+mkdir -p "${collision}"
+test "$(_dashboardBackupDir "${collision}")" = "${collision}-2"
+mkdir -p "${collision}-2"
+test "$(_dashboardBackupDir "${collision}")" = "${collision}-3"
+
+# The manifest records mode and checksum, and restore verifies it before use.
+managed="${sandbox}/config/managed.conf"
+mkdir -p "$(dirname "${managed}")"
+printf 'old value\n' >"${managed}"
+chmod 0640 "${managed}"
+backup2="${sandbox}/rollback2"
+_dashboardBackup "${backup2}" "${managed}"
+grep -q '^file' "${backup2}/manifest.tsv"
+printf 'new value\n' >"${managed}"
+chmod 0600 "${managed}"
+_dashboardRestore "${backup2}" "${managed}"
+test "$(cat "${managed}")" = 'old value'
+test "$(stat -c %a "${managed}" 2>/dev/null || stat -f %Lp "${managed}")" = '640'
+
+# A modified backup copy must be rejected instead of restoring corrupt content.
+printf 'tampered\n' >>"${backup2}/$(printf '%s' "${managed}" | sed -e 's#/#_#g')"
+printf 'changed again\n' >"${managed}"
+if _dashboardRestore "${backup2}" "${managed}"; then
+  echo 'expected the tampered backup to be rejected' >&2
+  exit 1
+fi
+test "$(cat "${managed}")" = 'changed again'
+
 # _setPerm and _updateskel must return injected normalization/rsync failures.
 export QUICKBOX_REPO_ROOT="${sandbox}/repo" QUICKBOX_SKEL_DIR="${sandbox}/skel" local_setup_template="${sandbox}/templates/"
 mkdir -p "${QUICKBOX_REPO_ROOT}/packages/system/auxiliary" "${QUICKBOX_SKEL_DIR}" "${local_setup_template}skel"

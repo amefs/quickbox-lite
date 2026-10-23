@@ -4,6 +4,18 @@
 # Dashboard update step for qbUpdate. Every step reports its own failure so the
 # caller never reports "update finished" after a partial deployment.
 
+_qb_backup_lib="${QB_UPDATE_BACKUP_LIB:-/usr/local/bin/quickbox/system/update/qbUpdateBackup}"
+if [[ ! -f "${_qb_backup_lib}" ]]; then
+	_qb_backup_lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/qbUpdateBackup"
+fi
+if [[ ! -f "${_qb_backup_lib}" ]]; then
+	printf '✗ Update backup helper is missing: %s\n' "${_qb_backup_lib}" >&2
+	return 1
+fi
+# shellcheck source=packages/system/update/qbUpdateBackup
+# shellcheck disable=SC1090,SC1091
+source "${_qb_backup_lib}" || return 1
+
 function _execute() {
 	($1 >>"${OUTTO}" 2>&1)
 }
@@ -28,37 +40,25 @@ function _error() {
 	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
 }
 
-# Copies every existing path into a timestamped rollback directory.
+# Copies every existing path into a timestamped rollback directory. The shared
+# helper also records mode/owner and a SHA-256 checksum.
 function _dashboardBackup() {
 	local backup_dir="$1"
 	shift
-	(umask 077; mkdir -p "${backup_dir}") || return 1
-	chmod 0700 "${backup_dir}" || return 1
-	local path target
-	for path in "$@"; do
-		if [[ ! -e "${path}" ]]; then
-			printf '%s\n' "${path}" >>"${backup_dir}/.absent" || return 1
-			continue
-		fi
-		target="${backup_dir}/$(printf '%s' "${path}" | sed -e 's#/#_#g')"
-		cp -p "${path}" "${target}" || return 1
-	done
-	return 0
+	_qbBackupCreate "${backup_dir}" "$@"
 }
 
 # Restores a single backed-up file when activation failed.
 function _dashboardRestore() {
 	local backup_dir="$1"
 	local original="$2"
-	local source
-	source="${backup_dir}/$(printf '%s' "${original}" | sed -e 's#/#_#g')"
-	if [[ -f "${source}" ]]; then
-		mkdir -p "$(dirname "${original}")" && \cp -p "${source}" "${original}" && _warning "Restored ${original}"
-	elif grep -Fxq "${original}" "${backup_dir}/.absent" 2>/dev/null; then
-		rm -f "${original}" && _warning "Removed newly created ${original}"
-	else
-		_error "No rollback record available for ${original}"; return 1
-	fi
+	_qbBackupRestorePath "${backup_dir}" "${original}"
+}
+
+# Returns an unused backup directory name, so two runs in the same second never
+# share (and overwrite) one rollback copy.
+function _dashboardBackupDir() {
+	_qbBackupUniqueDir "$1"
 }
 
 # Prepare a complete replacement away from the live tree. This function only
@@ -85,18 +85,34 @@ function _dashboardPrepareStage() {
 function _updatedashboard() {
 	_info "Updating QuickBox dashboard..."
 
-	local backup_dir
-	backup_dir="${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}/$(date +%Y%m%d-%H%M%S)-dashboard"
-	if ! _dashboardBackup "${backup_dir}" \
-		/etc/nginx/apps/dashboard.conf \
-		/etc/nginx/snippets/proxy.conf \
-		/etc/nginx/snippets/quickbox-ws-gateway.conf \
-		/etc/systemd/system/quickbox-ws.service \
-		/etc/quickbox/ws.secret \
-		/srv/dashboard/db/ws.secret \
-		/srv/dashboard/db/nginx-ws-gateway.conf; then
-		_error "Failed to create a rollback backup"
-		return 1
+	local backup_root backup_dir required
+	local -a backup_paths=(
+		/etc/nginx/apps/dashboard.conf
+		/etc/nginx/snippets/proxy.conf
+		/etc/nginx/snippets/quickbox-ws-gateway.conf
+		/etc/systemd/system/quickbox-ws.service
+		/etc/quickbox/ws.secret
+		/srv/dashboard/db/ws.secret
+		/srv/dashboard/db/nginx-ws-gateway.conf
+	)
+
+	# qbUpdate creates one complete set before the service stage. Standalone
+	# invocation (tests or manual runs) keeps the local fallback.
+	backup_dir="${update_backup_dir:-}"
+	if [[ -n "${backup_dir}" ]]; then
+		for required in "${backup_paths[@]}"; do
+			if ! _qbBackupHasPath "${backup_dir}" "${required}"; then
+				_error "Shared update backup misses ${required}: ${backup_dir}"
+				return 1
+			fi
+		done
+	else
+		backup_root=$(_qbBackupRoot) || return 1
+		backup_dir=$(_dashboardBackupDir "${backup_root}/$(date +%Y%m%d-%H%M%S)-dashboard")
+		if ! _dashboardBackup "${backup_dir}" "${backup_paths[@]}"; then
+			_error "Failed to create a rollback backup"
+			return 1
+		fi
 	fi
 	_info "Rollback backup: ${backup_dir}"
 	# Build the full replacement away from the live tree. Preserve runtime state,
