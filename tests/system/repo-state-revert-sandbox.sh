@@ -3,6 +3,10 @@
 # against a temporary repository.
 set -eo pipefail
 
+# CI runners may not set TERM, but qbUpdate initializes its terminal colors
+# while its function definitions are sourced below.
+export TERM="${TERM:-xterm}"
+
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 sandbox=$(mktemp -d "${TMPDIR:-/tmp}/quickbox-repo-state.XXXXXX")
 trap 'chmod -R u+w "${sandbox}" 2>/dev/null || true; rm -rf "${sandbox}" 2>/dev/null || true' EXIT

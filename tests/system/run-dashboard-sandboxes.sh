@@ -2,6 +2,9 @@
 # Run the fast Dashboard deployment checks without changing machine paths.
 set -euo pipefail
 
+# Some scripts initialize terminal colors even in non-interactive tests.
+export TERM="${TERM:-xterm}"
+
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "${repo_root}"
 
