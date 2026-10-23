@@ -1,0 +1,49 @@
+packages/system/qbUpdate
+  h_3705811fa4502c 70-75,78
+  s_798e82bb3c63c6::t_e71530d3ee7a02 680-682
+  s_798e82bb3c63c6::t_75e090c2d989a9 679
+packages/system/box
+  h_3705811fa4502c 91
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 38-53,143-144,160,206-207,216-217,377-378,380-384,394-395,397-398
+packages/system/update/qbUpdateTimer
+  h_3705811fa4502c 71-72,79,101
+  h_3705811fa4502c 58-69,85-88,98-100
+packages/system/auxiliary/qbEnsureNodejs
+  h_3705811fa4502c 4-16,25-159,162-165,168
+packages/system/update/qbUpdateService
+  h_3705811fa4502c 22-37,116,121-122,132-141,143-145,150,233,235,249-253
+tests/system/ws-health-startup-sandbox.py
+  h_3705811fa4502c 58,77-87
+tests/system/nodejs-update-sandbox.py
+  h_3705811fa4502c 30-36,49-59,63-67,73-75,82-86,90-93,96,112-162,169,175,181-192
+scripts/check-system-script-syntax.sh
+  h_3705811fa4502c 26
+packages/system/auxiliary/qbWsHealthCheck
+  h_3705811fa4502c 15-19,29,35-53,60-63,65,103,105,111,113,120,122,128,131,213,216,221,225,227,232,234,239-247,251-253
+tests/system/dashboard-update-sandbox.py
+  h_3705811fa4502c 124-126
+packages/system/update/qbUpdateStep
+  h_3705811fa4502c 1-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "12c57fc397e8cc012fc02c12dc57574337c72bd1",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_798e82bb3c63c6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a168ac-5836-7392-abaa-19840ffaeb40",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
