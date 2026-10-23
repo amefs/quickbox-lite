@@ -1,0 +1,97 @@
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 7-18,43-44,48,55-61,88-115
+tests/system/backup-retention-sandbox.py
+  h_3705811fa4502c 1-239
+tests/system/dashboard-update-sandbox.py
+  h_3705811fa4502c 120-122,134-138
+tests/system/update-config-backup-sandbox.sh
+  h_3705811fa4502c 1-85
+scripts/check-system-script-syntax.sh
+  s_798e82bb3c63c6::t_4806418bcf0700 1-35
+README_zh.md
+  s_798e82bb3c63c6::t_9400b3a630d410 156
+  s_798e82bb3c63c6::t_5b44254de2739f 157-166,169-174
+  s_798e82bb3c63c6::t_175ea1e7cfba28 168
+  s_798e82bb3c63c6::t_19e0066394e7a1 167
+packages/system/qbUpdate
+  s_798e82bb3c63c6::t_5b44254de2739f 114-119
+  s_798e82bb3c63c6::t_e71530d3ee7a02 36-51,112-113,120,372,384-386,401-402,409,420-426
+  h_3705811fa4502c 31-35,135-137,142-351,428-429,433,436
+packages/system/update/qbUpdateBackup
+  h_3705811fa4502c 1-224
+tests/system/dashboard-stage-sandbox.sh
+  h_3705811fa4502c 80-109
+.github/workflows/linter.yml
+  s_798e82bb3c63c6::t_4806418bcf0700 78-82
+  h_3705811fa4502c 76
+packages/system/box
+  h_3705811fa4502c 182,312,314-316,326
+  s_798e82bb3c63c6::t_e71530d3ee7a02 91,180,183,313
+  s_634a93d9b17f3a::t_50a5b265a6a25c 181
+README.md
+  s_798e82bb3c63c6::t_19e0066394e7a1 171
+  s_798e82bb3c63c6::t_9400b3a630d410 172
+  s_798e82bb3c63c6::t_175ea1e7cfba28 173-174,179-180
+  s_798e82bb3c63c6::t_5b44254de2739f 160-170,175-178,181
+tests/system/repo-state-revert-sandbox.sh
+  s_798e82bb3c63c6::t_9400b3a630d410 68-70
+  s_798e82bb3c63c6::t_19e0066394e7a1 16-24
+  h_3705811fa4502c 1-15,25-38,52-63,66,71-87,89-92,94,96,98-102
+  s_798e82bb3c63c6::t_3007b323596473 39-51,64-65,67,88,93,95,97
+tests/system/repo-reinstall-sandbox.py
+  s_798e82bb3c63c6::t_8c9a03db27efbd 209-231
+  s_798e82bb3c63c6::t_b1e58ce1350169 35,61,63-64,66-67,77-79,86-91,146,155,187-207
+  s_798e82bb3c63c6::t_3007b323596473 1-34,36-60,62,65,68-76,80-85,92-145,147-154,156-186,208,232
+packages/system/auxiliary/qbNginxProxyMigrate
+  h_3705811fa4502c 211-231
+tests/system/run-dashboard-sandboxes.sh
+  s_798e82bb3c63c6::t_4806418bcf0700 1-26
+packages/system/update/qbUpdateRevert
+  s_798e82bb3c63c6::t_19e0066394e7a1 167-173,217
+  s_798e82bb3c63c6::t_175ea1e7cfba28 36,181
+  h_3705811fa4502c 1-3,5-6,9-35,37-106,123-165,174-180,182-214,228
+  s_798e82bb3c63c6::t_e71530d3ee7a02 4,7-8,107-122,215,218-227
+  s_798e82bb3c63c6::t_5b44254de2739f 216
+  s_2df05b56a88f9a::t_b521d9580a78dd 166
+packages/system/auxiliary/qbBackupPrune
+  h_3705811fa4502c 1-199
+packages/system/auxiliary/qbEnsureSudoers
+  h_3705811fa4502c 25-26,77-99,110-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9c770dee834084fda61f6ca30077d2aa619a7db0",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_2df05b56a88f9a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16348-fa4d-7a10-a9e5-2fd1e04aabad",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_634a93d9b17f3a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a166b0-85b3-74f3-ab5e-a21d2e6f68ed",
+        "model": "unknown"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_798e82bb3c63c6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a168ac-5836-7392-abaa-19840ffaeb40",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}
