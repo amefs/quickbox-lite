@@ -1,0 +1,24 @@
+packages/system/qbUpdate
+  h_3705811fa4502c 45,62,78,92,97,102,107,112,143-144,147-150,431-456,462-463,465-472,474,477-497,499-506,508,513-517,519,521-522,527,535,578,609
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 36,58-83
+packages/system/update/qbUpdateService
+  h_3705811fa4502c 20,42-67
+packages/system/update/qbUpdateStep
+  h_3705811fa4502c 60-61
+packages/system/update/qbUpdateTimer
+  h_3705811fa4502c 58-67,77-78
+tests/system/update-timing-sandbox.sh
+  h_3705811fa4502c 3-4,106-113,117-121,159-207
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e4e31c73efd6aa09665c3f2f7f04c68bb5a8db97",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
