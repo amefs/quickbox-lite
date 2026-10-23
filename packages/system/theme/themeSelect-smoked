@@ -17,7 +17,6 @@ function _updatedashboard() {
 	rm -rf ${dashboard}db/.defaulted.lock >/dev/null 2>&1 || return 1
 	printf "" >${dashboard}db/.smoked.lock || return 1
 	service nginx reload >/dev/null 2>&1 || return 1
-	sleep 5
 
 }
 

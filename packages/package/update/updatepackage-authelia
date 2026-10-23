@@ -13,11 +13,6 @@
 ################################################################################
 
 ################################################################################
-# CORE VARIABLE
-################################################################################
-set -euo pipefail
-
-################################################################################
 # HELP FUNCTIONS
 ################################################################################
 export NEWT_COLORS='
@@ -208,13 +203,13 @@ path.write_text(text)
 PYEOF
 	fi
 
-	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --restore"
-	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate"
+	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --restore" || { _error "Failed to restore the previous authentication configuration."; _lockCleanup; exit 1; }
+	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate" || { _error "Failed to migrate existing authentication configuration."; _lockCleanup; exit 1; }
 
-	_execute "docker compose -f /opt/authelia/docker-compose.yml pull"
-	_execute "systemctl restart ${APP_SERVICE}"
-	_execute "nginx -t"
-	_execute "nginx -s reload"
+	_execute "docker compose -f /opt/authelia/docker-compose.yml pull" || { _error "Failed to pull the ${APP_TITLE} image."; _lockCleanup; exit 1; }
+	_execute "systemctl restart ${APP_SERVICE}" || { _error "Failed to restart ${APP_SERVICE}."; _lockCleanup; exit 1; }
+	_execute "nginx -t" || { _error "nginx configuration test failed."; _lockCleanup; exit 1; }
+	_execute "nginx -s reload" || { _error "Failed to reload nginx."; _lockCleanup; exit 1; }
 
 	_success "${APP_TITLE} updated."
 }

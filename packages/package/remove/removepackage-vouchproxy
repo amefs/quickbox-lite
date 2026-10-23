@@ -13,11 +13,6 @@
 ################################################################################
 
 ################################################################################
-# CORE VARIABLE
-################################################################################
-set -euo pipefail
-
-################################################################################
 # HELP FUNCTIONS
 ################################################################################
 export NEWT_COLORS='
@@ -126,20 +121,20 @@ function _removeAppLock() {
 
 function _removeApp() {
 	_info "Stopping ${APP_TITLE} service..."
-	_execute "systemctl disable ${APP_SERVICE}"
-	_execute "systemctl stop ${APP_SERVICE}"
-	_execute "docker compose -f /opt/vouch-proxy/docker-compose.yml down"
+	_execute "systemctl disable ${APP_SERVICE}" || true
+	_execute "systemctl stop ${APP_SERVICE}" || true
+	_execute "docker compose -f /opt/vouch-proxy/docker-compose.yml down" || true
 	rm -f /etc/systemd/system/${APP_SERVICE}.service
-	_execute "systemctl daemon-reload"
+	_execute "systemctl daemon-reload" || true
 
 	_info "Cleaning nginx integration..."
 	rm -f /etc/nginx/apps/vouchproxy-auth.conf
 	rm -f /etc/nginx/conf.d/vouch-user-map.conf
 	if [[ "$RESTORE_AUTH" == "1" ]]; then
-	  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --restore"
+	  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --restore" || { _error "Failed to restore the previous authentication configuration."; _lockCleanup; exit 1; }
 	fi
-	_execute "nginx -t"
-	_execute "nginx -s reload"
+	_execute "nginx -t" || { _error "nginx configuration test failed."; _lockCleanup; exit 1; }
+	_execute "nginx -s reload" || { _error "Failed to reload nginx."; _lockCleanup; exit 1; }
 
 	rm -rf /opt/vouch-proxy
 
