@@ -1,0 +1,30 @@
+.github/workflows/linter.yml
+  h_3705811fa4502c 76,92-93,107
+packages/system/auxiliary/qbBackupPrune
+  h_3705811fa4502c 1-174
+packages/system/auxiliary/qbEnsureSudoers
+  h_3705811fa4502c 76-87
+packages/system/auxiliary/qbNginxProxyMigrate
+  h_3705811fa4502c 211-219,221
+packages/system/qbUpdate
+  h_3705811fa4502c 114-127,199
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 64-74,99-107
+tests/system/backup-retention-sandbox.py
+  h_3705811fa4502c 1-209
+tests/system/dashboard-stage-sandbox.sh
+  h_3705811fa4502c 80-86
+tests/system/dashboard-update-sandbox.py
+  h_3705811fa4502c 132-136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "943d79b00941cf576b6125a4163dd8c17cfcf083",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
