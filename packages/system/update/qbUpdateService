@@ -1,29 +1,10 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-function _execute() {
-	($1 >>"${OUTTO}" 2>&1)
-}
-function _print() {
-	printf "${_norm}%s${_norm}\n" "$@"
-	printf "%s\n" "$@" >>"${OUTTO}"
-}
-function _info() {
-	printf "${_cyan}➜ %s${_norm}\n" "$@"
-	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
-}
-function _success() {
-	printf "${_green}✓ %s${_norm}\n" "$@"
-	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
-}
-function _warning() {
-	printf "${_tan}⚠ %s${_norm}\n" "$@"
-	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
-}
-function _error() {
-	printf "${_red}✗ %s${_norm}\n" "$@"
-	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
-}
+_qb_lib_dir="${QB_UPDATE_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)}"
+# shellcheck source=packages/system/update/qbUpdateLib
+# shellcheck disable=SC1090,SC1091
+source "${_qb_lib_dir}/qbUpdateLib"
 
 function _verlte() {
 	[  "$1" = "$(echo -e "$1\n$2" | sort -V | head -n1)" ]
@@ -78,75 +59,42 @@ function _fix_nginx_app_include() {
 
 function _updateservice() {
 	_info "Updating QuickBox service..."
+	local lap ttyd_status
+	local -a node_args=()
 	# Older installs may not grant www-data the managed command set, or may
 	# leave the sudoers files with modes that sudo reports as invalid. Repair
 	# the managed policy before the downgraded WS service depends on it.
-	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureSudoers; then
-		_error "Failed to install the dashboard sudoers policy"
+	lap=$(_qbNowMs)
+	if ! _qbRunHelper "Failed to install the dashboard sudoers policy" \
+		bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureSudoers; then
 		return 1
 	fi
+	_qbReportLap "sudoers policy" "${lap}"
+	lap=$(_qbNowMs)
 	_fix_nginx_app_include || return 1
-	# Update nginx service
-	if [[ ! -f /install/.quickbox-ws.lock ]]; then
-		_info "QuickBox Websockets service is not installed"
-		# Install nodejs for websocks method
-		if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
-			_info "Installing Node.js..."
-			cd /tmp || exit 1
-			_execute "curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh" || return 1
-			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-			exitstatus=$?
-			counter=0
-			while [[ ${exitstatus} -eq 1 ]]; do
-				if [[ ${counter} -gt 2 ]]; then
-					_error "Fail to update nodejs source list! exit"
-					exit 1
-				else
-					bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-					exitstatus=$?
-					((counter++))
-					_warning "Fail to update nodejs source list! retry..."
-				fi
-			done
-			_execute "sudo bash nodesource_setup.sh" || return 1
-			_execute "apt-get install -y nodejs" || return 1
-			if [[ -f /tmp/nodesource_setup.sh ]]; then
-				rm nodesource_setup.sh
-			fi
-			_success "Node.js installed"
-		fi
-		# The dashboard updater stages dependencies and activates the unit only
-		# after the complete runtime is ready.
-		_info "Dashboard service installation is deferred to the staged dashboard update"
+	_qbReportLap "nginx app include" "${lap}"
+	# Refresh the system runtime even when Node.js 24 is already installed.
+	# The dashboard updater stages dependencies and restarts the service only
+	# after the new runtime is ready.
+	#
+	# `--only-core` is the recovery path after a partial or failed update, and
+	# it may run on a slow link: it only asks whether the installed runtime
+	# still satisfies the policy instead of fetching patches again.
+	if [[ ${QB_UPDATE_ONLY_CORE:-0} -eq 1 ]]; then
+		_info "Checking Node.js 24..."
+		node_args=(--reuse)
 	else
-		# upgrade to v22
-		_info "Upgrade nodejs to v22"
-		if [[ ! $(which npm) ]] || [[ ! $(node --version) =~ "v22" ]]; then
-			_info "Upgrading Node.js..."
-			cd /tmp || exit 1
-			_execute "curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh" || return 1
-			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-			exitstatus=$?
-			counter=0
-			while [[ ${exitstatus} -eq 1 ]]; do
-				if [[ ${counter} -gt 2 ]]; then
-					_error "Fail to update nodejs source list! exit"
-					exit 1
-				else
-					bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-					exitstatus=$?
-					((counter++))
-					_warning "Fail to update nodejs source list! retry..."
-				fi
-			done
-			_execute "apt-get install -y nodejs" || return 1
-			if [[ -f /tmp/nodesource_setup.sh ]]; then
-				rm nodesource_setup.sh
-			fi
-			_success "Node.js upgraded"
-		fi
-		_info "Dashboard dependency activation is deferred to the staged dashboard update"
+		_info "Installing or updating Node.js 24..."
 	fi
+	lap=$(_qbNowMs)
+	if ! _qbRunHelper "Failed to install or update Node.js 24" \
+		bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs \
+		${node_args[@]+"${node_args[@]}"}; then
+		return 1
+	fi
+	_qbReportLap "Node.js 24" "${lap}"
+	lap=$(_qbNowMs)
+	_qbDetail "Dashboard dependency activation is deferred to the staged dashboard update"
 	# Update flexget nginx reverse proxy
 	username=$(cat /root/.admin.info | cut -d: -f1)
 	if [[ -f /etc/nginx/apps/${username}.flexget.conf ]]; then
@@ -184,6 +132,10 @@ function _updateservice() {
 	if (! which jq > /dev/null); then
 		_execute "apt-get install -y jq"
 	fi
+	_qbReportLap "motd and helper packages" "${lap}"
+	# The ttyd block talks to the GitHub API, which is the part of this stage
+	# most likely to be slow on a restricted network.
+	lap=$(_qbNowMs)
 	if [[ ! -f /etc/systemd/system/ttyd.service ]]; then
 		_info "replace shellinabox with ttyd"
 		# stop shellinabox
@@ -225,9 +177,9 @@ WEBC
 	current_version=$(ttyd -v | awk '{print $3}') 2> /dev/null
 	current_version=${current_version%-*}
 	latest_version=$(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | jq -r ".tag_name")
-	_info "ttyd current version: ${current_version}, latest version: ${latest_version}"
+	_qbDetail "ttyd current version: ${current_version}, latest version: ${latest_version}"
 	if (_verlt "$current_version" "$latest_version"); then
-		_info "ttyd update available"
+		_info "Updating ttyd: ${current_version} -> ${latest_version}"
 		_download_latest_ttyd
 		_execute "systemctl restart ttyd.service"
 		_info "ttyd update success"
@@ -239,6 +191,13 @@ WEBC
 		_execute "systemctl daemon-reload"
 		_execute "systemctl restart ttyd.service"
 	fi
+	ttyd_status=$?
+	_qbReportLap "ttyd" "${lap}"
+	if [[ ${ttyd_status} -ne 0 ]]; then
+		return "${ttyd_status}"
+	fi
+	_success "QuickBox service updated"
+	return 0
 }
 
 function _startservice() {
