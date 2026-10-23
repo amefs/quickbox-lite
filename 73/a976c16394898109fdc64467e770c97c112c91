@@ -1,0 +1,18 @@
+.agents/comment-audit-plan.md
+  h_3705811fa4502c 19-29
+tests/system/backup-retention-sandbox.py
+  h_3705811fa4502c 52-279
+tests/system/repo-normalize-sandbox.py
+  h_3705811fa4502c 12,35-205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "73a976c16394898109fdc64467e770c97c112c91",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
