@@ -1,0 +1,240 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Restore and reinstall the QuickBox commit recorded before an update.
+#
+# The updater stores the pre-update commit in <backup-root>/repo-state.env and
+# appends one line per update to <backup-root>/repo-history.tsv. Reinstallation
+# uses the restored checkout without fetching a newer repository version.
+#
+# Usage: qbUpdateRevert [--list] [--yes] [<commit>]
+#
+# Author: TautCony
+
+set -uo pipefail
+
+BACKUP_ROOT="${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}"
+STATE_FILE="${BACKUP_ROOT}/repo-state.env"
+HISTORY_FILE="${BACKUP_ROOT}/repo-history.tsv"
+ASSUME_YES=0
+LIST_ONLY=0
+TARGET=""
+
+_info() { printf '➜ %s\n' "$@" >&2; }
+_success() { printf '✓ %s\n' "$@" >&2; }
+_warning() { printf '⚠ %s\n' "$@" >&2; }
+_error() { printf '✗ %s\n' "$@" >&2; }
+
+_qb_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+# shellcheck source=packages/system/update/qbUpdateLib
+# shellcheck disable=SC1090,SC1091
+source "${_qb_lib_dir}/qbUpdateLib"
+
+# Initialize the lock path for static analysis; _qbAcquireUpdateLock confirms
+# and opens this same path before the inherited value is used below.
+_qb_update_lock="${QUICKBOX_UPDATE_CORE_LOCK:-/run/lock/quickbox-update-core.lock}"
+
+usage() {
+	cat <<'EOF'
+Usage: qbUpdateRevert [--list] [--yes] [<commit>]
+
+  --list      show recorded pre-update commits
+  --yes       do not ask for confirmation
+  <commit>    restore this commit instead of the latest recorded one
+
+Restore the /etc/QuickBox checkout, then reinstall its core files and Dashboard.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	--list)
+		LIST_ONLY=1
+		shift
+		;;
+	--yes | -y)
+		ASSUME_YES=1
+		shift
+		;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	-*)
+		_error "Unknown option: $1"
+		usage >&2
+		exit 2
+		;;
+	*)
+		if [[ -n "${TARGET}" ]]; then
+			_error "Only one commit may be supplied"
+			exit 2
+		fi
+		TARGET="$1"
+		shift
+		;;
+	esac
+done
+
+if [[ "$(id -u)" -ne 0 ]] && [[ "${QUICKBOX_ALLOW_NON_ROOT:-0}" != "1" ]]; then
+	_error "qbUpdateRevert must run as root"
+	exit 1
+fi
+
+_state_value() {
+	local key="$1"
+	[[ -f "${STATE_FILE}" ]] || return 1
+	sed -n "s/^${key}=//p" "${STATE_FILE}" | tail -n 1
+}
+
+if [[ -L "${STATE_FILE}" ]]; then
+	_error "Refusing symlinked repository state: ${STATE_FILE}"
+	exit 1
+fi
+if [[ -L "${HISTORY_FILE}" ]]; then
+	_error "Refusing symlinked repository history: ${HISTORY_FILE}"
+	exit 1
+fi
+
+if [[ ${LIST_ONLY} -eq 1 ]]; then
+	if [[ -s "${HISTORY_FILE}" || -f "${STATE_FILE}" ]]; then
+		{
+			printf 'TIMESTAMP\tBRANCH\tCOMMIT\tREPOSITORY\n'
+			if [[ -s "${HISTORY_FILE}" ]]; then
+				cat "${HISTORY_FILE}"
+			else
+				printf '%s\t%s\t%s\t%s\n' \
+					"$(_state_value QUICKBOX_REPO_TIMESTAMP)" \
+					"$(_state_value QUICKBOX_REPO_BRANCH)" \
+					"$(_state_value QUICKBOX_REPO_COMMIT)" \
+					"$(_state_value QUICKBOX_REPO)"
+			fi
+		} | awk -F '\t' '
+			NF {
+				row++
+				for (col = 1; col <= 4; col++) {
+					cell[row, col] = $col
+					if (length($col) > width[col]) width[col] = length($col)
+				}
+			}
+			END {
+				format = "%-" width[1] "s  %-" width[2] "s  %-" width[3] "s  %s\n"
+				for (i = 1; i <= row; i++)
+					printf format, cell[i, 1], cell[i, 2], cell[i, 3], cell[i, 4]
+			}'
+	else
+		_info "No repository state recorded under ${BACKUP_ROOT}"
+	fi
+	exit 0
+fi
+
+# Serialize the checkout and reinstallation with normal updates. The child
+# updater inherits descriptor 8 and keeps this lock until installation ends.
+_qbAcquireUpdateLock || exit $?
+
+if [[ ! -f "${STATE_FILE}" ]]; then
+	_error "No repository state found: ${STATE_FILE}"
+	_error "Run this command on a machine that has completed or attempted a QuickBox update."
+	exit 1
+fi
+repo=$(_state_value QUICKBOX_REPO)
+recorded_branch=$(_state_value QUICKBOX_REPO_BRANCH)
+recorded_sha=$(_state_value QUICKBOX_REPO_COMMIT)
+recorded_ts=$(_state_value QUICKBOX_REPO_TIMESTAMP)
+
+if [[ -z "${repo}" || -z "${recorded_sha}" ]]; then
+	_error "The repository state file is incomplete: ${STATE_FILE}"
+	exit 1
+fi
+if [[ ! -d "${repo}/.git" ]]; then
+	_error "The recorded repository is not a git checkout: ${repo}"
+	exit 1
+fi
+if [[ ! "${recorded_sha}" =~ ^[0-9a-fA-F]{7,64}$ ]]; then
+	_error "The recorded commit is invalid: ${recorded_sha}"
+	exit 1
+fi
+
+branch="${recorded_branch:-detached}"
+if [[ "${branch}" != "detached" ]]; then
+	if [[ "${branch}" == -* ]] || ! git check-ref-format --branch "${branch}" >/dev/null 2>&1; then
+		_error "The recorded branch is invalid: ${branch}"
+		exit 1
+	fi
+fi
+
+# An explicit commit may be a full SHA or another commit-ish. Resolve it before
+# touching the working tree so a typo cannot trigger a partial reset.
+target_input="${TARGET:-${recorded_sha}}"
+resolved=$(git -C "${repo}" rev-parse --verify --end-of-options "${target_input}^{commit}" 2>/dev/null) || {
+	_warning "Commit is not present locally: ${target_input}"
+	_info "Trying to fetch the repository history"
+	git -C "${repo}" fetch --all --prune >&2 || true
+	resolved=$(git -C "${repo}" rev-parse --verify --end-of-options "${target_input}^{commit}" 2>/dev/null) || {
+		_error "Cannot resolve commit: ${target_input}"
+		exit 1
+	}
+}
+
+# Reinstallation is supported between versions that provide this mode. Reject
+# older targets before checkout so their updater cannot fetch the latest code.
+if ! git -C "${repo}" grep -q -F -- '--from-checkout)' "${resolved}" -- packages/system/qbUpdate; then
+	_error "The selected version does not support reinstallation from its checkout: ${resolved}"
+	exit 1
+fi
+
+current_branch=$(git -C "${repo}" symbolic-ref --short -q HEAD 2>/dev/null || printf 'detached')
+current_sha=$(git -C "${repo}" rev-parse --verify HEAD 2>/dev/null || true)
+
+printf 'Repository: %s\n' "${repo}"
+printf 'Current:    %s@%s\n' "${current_branch}" "${current_sha:-unknown}"
+printf 'Restore:    %s@%s (recorded %s)\n' "${branch}" "${resolved}" "${recorded_ts:-unknown}"
+printf 'This resets tracked files to the recorded commit. Local changes are discarded.\n'
+printf 'The restored version will then be reinstalled.\n'
+
+if [[ ${ASSUME_YES} -ne 1 ]]; then
+	printf 'Continue? [y/N] '
+	answer=""
+	read -r answer || answer=""
+	case "${answer}" in
+	[yY] | [yY][eE][sS]) ;;
+	*)
+		_info "Aborted"
+		exit 1
+		;;
+	esac
+fi
+
+if [[ "${branch}" == "detached" ]]; then
+	git -C "${repo}" -c advice.detachedHead=false checkout --force --detach "${resolved}" || exit 1
+elif [[ "${current_branch}" == "${branch}" ]]; then
+	git -C "${repo}" reset --hard "${resolved}" || exit 1
+else
+	git -C "${repo}" checkout --force -B "${branch}" "${resolved}" || exit 1
+fi
+
+if [[ -f "${repo}/.gitmodules" ]]; then
+	git -C "${repo}" submodule update --init --recursive || exit 1
+fi
+
+new_sha=$(git -C "${repo}" rev-parse --verify HEAD 2>/dev/null || true)
+if [[ "${new_sha}" != "${resolved}" ]]; then
+	_error "Repository verification failed after reset (expected ${resolved}, found ${new_sha:-unknown})"
+	exit 1
+fi
+
+_success "Repository restored to ${branch}@${resolved}"
+_info "Reinstalling QuickBox from ${resolved}"
+if QUICKBOX_REPO_ROOT="${repo}" QUICKBOX_UPDATE_CORE_LOCK_INHERITED="${_qb_update_lock}" \
+	bash "${repo}/packages/system/qbUpdate" --from-checkout; then
+	new_sha=$(git -C "${repo}" rev-parse --verify HEAD 2>/dev/null || true)
+	if [[ "${new_sha}" != "${resolved}" ]]; then
+		_error "Repository changed during reinstallation (expected ${resolved}, found ${new_sha:-unknown})"
+		exit 1
+	fi
+else
+	_error "Repository restored to ${resolved}, but reinstallation failed; inspect the update log"
+	exit 1
+fi
+_success "QuickBox restored and reinstalled from ${resolved}"
+exit 0

@@ -1,0 +1,131 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Shared bootstrap for the QuickBox update pipeline.
+#
+# Sourcing this file loads the clock (qbUpdateTimer), the step output policy
+# (qbUpdateStep), the printers, the update lock and the log epoch. A partial
+# checkout must still be able to run an update, so a missing clock or step
+# helper degrades to no-ops: stage names keep reaching the log, only the
+# durations disappear.
+
+_qb_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+# The QB_UPDATE_<NAME>_LIB overrides let a sandbox point at the checkout while
+# the installed tree keeps resolving siblings next to this file.
+function _qbSourceLib() {
+	local lib="$1" path=""
+	case "${lib}" in
+	qbUpdateTimer) path="${QB_UPDATE_TIMER_LIB:-}" ;;
+	qbUpdateStep) path="${QB_UPDATE_STEP_LIB:-}" ;;
+	qbUpdateBackup) path="${QB_UPDATE_BACKUP_LIB:-}" ;;
+	esac
+	[[ -n ${path} ]] || path="${_qb_lib_dir}/${lib}"
+	[[ -f ${path} ]] || return 1
+	# shellcheck source=/dev/null
+	source "${path}"
+}
+
+if ! _qbSourceLib qbUpdateTimer; then
+	printf '⚠ Update timing helper is missing: %s\n' "${_qb_lib_dir}/qbUpdateTimer" >&2
+	function _qbNowMs() { printf '0\n'; }
+	function _qbFormatMs() { printf '%d.0s\n' "$(( ${1:-0} / 1000 ))"; }
+	function _qbReportMs() { return 0; }
+	function _qbReportLap() { return 0; }
+	function _qbTouchActivity() { return 0; }
+fi
+
+if ! _qbSourceLib qbUpdateStep; then
+	function _qbIsVerbose() { return 1; }
+	function _qbRunHelper() { local message="$1"; shift; "$@"; }
+	function _qbDetail() { return 0; }
+fi
+
+if [[ $(type -t _info) != function ]]; then
+	function _print() {
+		printf "${_norm}%s${_norm}\n" "$@"
+		printf "%s\n" "$@" >>"${OUTTO}"
+		_qbTouchActivity
+	}
+	function _info() {
+		printf "${_cyan}➜ %s${_norm}\n" "$@"
+		printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+		_qbTouchActivity
+	}
+	function _success() {
+		printf "${_green}✓ %s${_norm}\n" "$@"
+		printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+		_qbTouchActivity
+	}
+	function _warning() {
+		printf "${_tan}⚠ %s${_norm}\n" "$@"
+		printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+		_qbTouchActivity
+	}
+	function _error() {
+		printf "${_red}✗ %s${_norm}\n" "$@"
+		printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+		_qbTouchActivity
+	}
+fi
+
+function _execute() {
+	($1 >>"${OUTTO}" 2>&1)
+}
+
+# Serializes every update body, whichever entry point started it. The lock is
+# opened on descriptor 8 and the descriptor is inherited by a child updater, so
+# qbUpdateRevert holds it across the checkout and the reinstall it triggers.
+#
+# Returns 75 when another holder is active, 1 on a setup failure.
+function _qbAcquireUpdateLock() {
+	_qb_update_lock="${QUICKBOX_UPDATE_CORE_LOCK:-/run/lock/quickbox-update-core.lock}"
+	if ! command -v flock >/dev/null 2>&1; then
+		printf 'flock is required for safe updates\n' >&2
+		return 1
+	fi
+	if [[ "${QUICKBOX_UPDATE_CORE_LOCK_INHERITED:-}" == "${_qb_update_lock}" ]]; then
+		if flock -n 8; then
+			return 0
+		fi
+		printf 'Cannot reuse the inherited update lock: %s\n' "${_qb_update_lock}" >&2
+		return 75
+	fi
+	if ! exec 8>"${_qb_update_lock}"; then
+		printf 'Cannot open the update lock: %s\n' "${_qb_update_lock}" >&2
+		return 1
+	fi
+	if ! flock -n 8; then
+		printf 'Another update already holds %s\n' "${_qb_update_lock}" >&2
+		return 75
+	fi
+	return 0
+}
+
+# Publishes a new log epoch and then truncates the log in place.
+#
+# The order is the contract: the epoch must be visible before the truncation,
+# and the truncation must keep the inode so readers holding the log (the
+# Dashboard tail and the dashboard stage hardlinks) reset to byte zero instead
+# of appending the next chunk at a stale offset.
+#
+# Prints nothing. Returns 0 on success, 1 when the epoch cannot be written or
+# published, 2 when the log cannot be truncated.
+function _qbPublishLogEpoch() {
+	local log="$1"
+	local epoch="${log}.epoch"
+	local tmp="${epoch}.$$"
+	if ! (umask 022; printf '%s-%s\n' "$(date +%s%N)" "$$" >"${tmp}") 2>/dev/null; then
+		rm -f "${tmp}"
+		return 1
+	fi
+	if ! mv -f "${tmp}" "${epoch}" 2>/dev/null; then
+		rm -f "${tmp}"
+		return 1
+	fi
+	rm -f "${log}.generation"
+	if ! { : >"${log}"; } 2>/dev/null; then
+		return 2
+	fi
+	return 0
+}

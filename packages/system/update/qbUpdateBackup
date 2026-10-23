@@ -1,0 +1,224 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Shared rollback backup helpers for the update scripts.
+#
+# A backup set is a private directory containing:
+#   manifest.tsv   one record per path: kind, path, mode, uid, gid, sha256
+#   .absent        newline list of paths that did not exist (compatibility)
+#   <flattened>    one copy per existing path, named by replacing / with _
+#
+# The helper is sourced, not executed. Callers must provide _error/_warning or
+# accept the plain stderr fallback.
+#
+# Author: TautCony
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	printf '✗ qbUpdateBackup is a sourced library, not an executable\n' >&2
+	exit 2
+fi
+
+_qbBackupSay() {
+	printf '%s\n' "$*" >&2
+}
+_qbBackupError() {
+	if declare -F _error >/dev/null 2>&1; then _error "$*"; else _qbBackupSay "✗ $*"; fi
+}
+_qbBackupWarning() {
+	if declare -F _warning >/dev/null 2>&1; then _warning "$*"; else _qbBackupSay "⚠ $*"; fi
+}
+# One hash implementation for the supported Debian/Ubuntu targets and for the
+# macOS development sandbox.
+_qbBackupHash() {
+	local file="$1"
+	if command -v sha256sum >/dev/null 2>&1; then
+		sha256sum "$file" | awk '{print $1}'
+	elif command -v shasum >/dev/null 2>&1; then
+		shasum -a 256 "$file" | awk '{print $1}'
+	else
+		return 1
+	fi
+}
+
+# Messages from this function must stay off stdout: callers capture the path
+# with a command substitution.
+_qbBackupRootMessage() {
+	printf '%s\n' "$1" >&2
+	if [[ -n "${OUTTO:-}" ]]; then
+		printf '>> %s\n' "$1" >>"${OUTTO}" 2>/dev/null || true
+	fi
+}
+
+# Return the validated backup root. A new root is private; an existing one is
+# never chmodded, because QUICKBOX_BACKUP_DIR may point at a shared directory.
+_qbBackupRoot() {
+	local root="${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}"
+	local mode
+	if [[ -L "${root}" ]]; then
+		_qbBackupRootMessage "✗ refusing symlinked backup root: ${root}"
+		return 1
+	fi
+	if [[ -e "${root}" ]]; then
+		if [[ ! -d "${root}" ]]; then
+			_qbBackupRootMessage "✗ backup root is not a directory: ${root}"
+			return 1
+		fi
+		mode=$(stat -c %a "${root}" 2>/dev/null || stat -f %Lp "${root}" 2>/dev/null) || mode=""
+		if [[ -n "${mode}" ]] && ((8#${mode} & 8#22)); then
+			_qbBackupRootMessage "⚠ backup root is writable by group/other: ${root}"
+		fi
+	else
+		(umask 077; mkdir -p "${root}") || {
+			_qbBackupRootMessage "✗ cannot create backup root: ${root}"
+			return 1
+		}
+		chmod 0700 "${root}" || {
+			_qbBackupRootMessage "✗ cannot restrict backup root to mode 0700: ${root}"
+			return 1
+		}
+	fi
+	printf '%s\n' "${root}"
+}
+
+# Return an unused directory name, including the same-second suffix used by the
+# update helpers.
+_qbBackupUniqueDir() {
+	local base="$1" candidate="$1" suffix=2
+	while [[ -e "${candidate}" || -L "${candidate}" ]]; do
+		candidate="${base}-${suffix}"
+		suffix=$((suffix + 1))
+	done
+	printf '%s\n' "${candidate}"
+}
+
+# _qbBackupCreate <backup_dir> <path...>
+# Copies existing paths and records absent ones. The manifest is written last,
+# so a failed backup set is never mistaken for a complete one.
+_qbBackupCreate() {
+	local backup_dir="$1"
+	shift
+	local path target flattened hash mode uid gid
+	local manifest="${backup_dir}/manifest.tsv"
+	local manifest_tmp="${backup_dir}/.manifest.tmp"
+
+	(umask 077; mkdir -p "${backup_dir}") || return 1
+	chmod 0700 "${backup_dir}" || return 1
+	: >"${manifest_tmp}" || return 1
+	: >"${backup_dir}/.absent" || return 1
+
+	for path in "$@"; do
+		[[ -n "${path}" ]] || continue
+		flattened=$(printf '%s' "${path}" | sed -e 's#/#_#g')
+		target="${backup_dir}/${flattened}"
+		if [[ ! -e "${path}" ]]; then
+			printf '%s\n' "${path}" >>"${backup_dir}/.absent" || return 1
+			printf 'absent\t%s\n' "${path}" >>"${manifest_tmp}" || return 1
+			continue
+		fi
+		command cp -p "${path}" "${target}" || return 1
+		hash=$(_qbBackupHash "${target}") || hash="-"
+		mode=$(stat -c %a "${path}" 2>/dev/null || stat -f %Lp "${path}" 2>/dev/null) || mode="-"
+		uid=$(stat -c %u "${path}" 2>/dev/null || stat -f %u "${path}" 2>/dev/null) || uid="-"
+		gid=$(stat -c %g "${path}" 2>/dev/null || stat -f %g "${path}" 2>/dev/null) || gid="-"
+		printf 'file\t%s\t%s\t%s\t%s\t%s\n' \
+			"${path}" "${mode}" "${uid}" "${gid}" "${hash}" >>"${manifest_tmp}" || return 1
+	done
+
+	mv -f "${manifest_tmp}" "${manifest}" || return 1
+	return 0
+}
+
+# _qbBackupHasPath <backup_dir> <path>
+_qbBackupHasPath() {
+	local backup_dir="$1" path="$2"
+	local manifest="${backup_dir}/manifest.tsv"
+	if [[ -f "${manifest}" ]]; then
+		awk -F '\t' -v wanted="${path}" '$2 == wanted { found = 1 } END { exit !found }' "${manifest}"
+		return
+	fi
+	[[ -f "${backup_dir}/$(printf '%s' "${path}" | sed -e 's#/#_#g')" ]] && return 0
+	[[ -f "${backup_dir}/.absent" ]] && grep -Fxq "${path}" "${backup_dir}/.absent"
+}
+
+# Restore one path from a set. New manifests are checksum-verified; old sets
+# that only contain .absent or a flattened copy still work.
+_qbBackupRestorePath() {
+	local backup_dir="$1" original="$2"
+	local manifest="${backup_dir}/manifest.tsv"
+	local line kind path mode uid gid expected source actual
+
+	if [[ -f "${manifest}" ]]; then
+		line=$(awk -F '\t' -v wanted="${original}" '$2 == wanted { print; exit }' "${manifest}")
+		if [[ -n "${line}" ]]; then
+			IFS=$'\t' read -r kind path mode uid gid expected <<<"${line}"
+			if [[ "${kind}" == "absent" ]]; then
+				rm -f "${original}" && {
+					_qbBackupWarning "Removed newly created ${original}"
+					return 0
+				}
+				_qbBackupError "Cannot remove newly created ${original}"
+				return 1
+			fi
+			source="${backup_dir}/$(printf '%s' "${original}" | sed -e 's#/#_#g')"
+			if [[ ! -f "${source}" ]]; then
+				_qbBackupError "Backup copy is missing for ${original}"
+				return 1
+			fi
+			if [[ "${expected}" != "-" ]]; then
+				actual=$(_qbBackupHash "${source}") || {
+					_qbBackupError "Cannot verify the backup copy for ${original}"
+					return 1
+				}
+				if [[ "${actual}" != "${expected}" ]]; then
+					_qbBackupError "Backup checksum mismatch for ${original}"
+					return 1
+				fi
+			fi
+			mkdir -p "$(dirname "${original}")" || return 1
+			command cp -p "${source}" "${original}" || return 1
+			if [[ "${mode}" != "-" && -n "${mode}" ]]; then
+				chmod "${mode}" "${original}" || return 1
+			fi
+			if [[ "$(id -u)" -eq 0 && "${uid}" != "-" && "${gid}" != "-" ]]; then
+				chown "${uid}:${gid}" "${original}" || return 1
+			fi
+			_qbBackupWarning "Restored ${original}"
+			return 0
+		fi
+	fi
+
+	# Compatibility with backup sets created before manifest.tsv existed.
+	source="${backup_dir}/$(printf '%s' "${original}" | sed -e 's#/#_#g')"
+	if [[ -f "${source}" ]]; then
+		mkdir -p "$(dirname "${original}")" || return 1
+		command cp -p "${source}" "${original}" || return 1
+		_qbBackupWarning "Restored ${original}"
+		return 0
+	fi
+	if [[ -f "${backup_dir}/.absent" ]] && grep -Fxq "${original}" "${backup_dir}/.absent"; then
+		rm -f "${original}" && {
+			_qbBackupWarning "Removed newly created ${original}"
+			return 0
+		}
+		return 1
+	fi
+	_qbBackupError "No rollback record available for ${original}"
+	return 1
+}
+
+# _qbBackupRestoreAll <backup_dir>
+_qbBackupRestoreAll() {
+	local backup_dir="$1"
+	local manifest="${backup_dir}/manifest.tsv"
+	local kind path mode uid gid expected rc=0
+
+	if [[ ! -f "${manifest}" ]]; then
+		_qbBackupError "Backup manifest is missing: ${manifest}"
+		return 1
+	fi
+	while IFS=$'\t' read -r kind path mode uid gid expected; do
+		[[ -n "${path}" ]] || continue
+		_qbBackupRestorePath "${backup_dir}" "${path}" || rc=1
+	done <"${manifest}"
+	return "${rc}"
+}
