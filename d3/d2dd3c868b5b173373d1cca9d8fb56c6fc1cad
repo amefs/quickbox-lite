@@ -1,0 +1,44 @@
+packages/system/auxiliary/qbEnsureNodejs
+  s_284c7847cc9ce9::t_e6a4930b23028a 1-28
+.github/workflows/linter.yml
+  s_284c7847cc9ce9::t_898523ed716f4e 19,54
+  s_284c7847cc9ce9::t_ec598fdb4a0b4f 76,91,100
+setup.sh
+  s_284c7847cc9ce9::t_e6a4930b23028a 1007-1012
+packages/system/update/qbUpdateService
+  s_2df05b56a88f9a::t_4da953c17c18ca 89-95,97-98
+.github/workflows/deployment.yml
+  s_284c7847cc9ce9::t_898523ed716f4e 35,73
+packages/package/install/installpackage-flood
+  s_284c7847cc9ce9::t_e6a4930b23028a 182-184
+tests/system/nodejs-update-sandbox.py
+  s_284c7847cc9ce9::t_ec598fdb4a0b4f 1-109,111-119,121-133,135-139,141-144
+  s_284c7847cc9ce9::t_898523ed716f4e 110,134,140
+  s_284c7847cc9ce9::t_8c4632067ab074 120
+tests/deployment/Dockerfile
+  s_284c7847cc9ce9::t_898523ed716f4e 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d3d2dd3c868b5b173373d1cca9d8fb56c6fc1cad",
+  "prompts": {},
+  "sessions": {
+    "s_284c7847cc9ce9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16806-2fc6-7421-8b6f-0985b99fd207",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_2df05b56a88f9a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16348-fa4d-7a10-a9e5-2fd1e04aabad",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
