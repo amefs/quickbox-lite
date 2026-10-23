@@ -1,9 +1,5 @@
-# Normalize every text file to LF on checkout, regardless of the platform
-# setting of core.autocrlf. Git still detects binary files, and the explicit
-# binary rules below keep their current behavior.
 * text=auto eol=lf
 
-# Text files that must stay LF even when edited on Windows.
 *.md text eol=lf
 *.sh text eol=lf
 *.py text eol=lf

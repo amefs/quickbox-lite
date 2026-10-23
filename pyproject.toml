@@ -1,0 +1,18 @@
+[project]
+name = "quickbox-lite"
+version = "0.0.0"
+description = "Python tooling for the QuickBox Lite repository"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = ["prettytable"]
+
+[dependency-groups]
+dev = [
+    "flake8",
+    "pyright>=1.1.414",
+]
+
+[tool.uv]
+# This repository ships shell and JavaScript artifacts, not a Python package:
+# uv must not try to build or install the project itself.
+package = false
