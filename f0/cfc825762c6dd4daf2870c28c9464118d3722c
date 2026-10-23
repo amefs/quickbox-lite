@@ -1,0 +1,34 @@
+packages/system/auxiliary/qbEnsureNodejs
+  h_3705811fa4502c 4-16,25-159,162-165,168
+packages/system/auxiliary/qbWsHealthCheck
+  h_3705811fa4502c 15-19,29,35-53,60-63,65,103,105,111,113,120,122,128,131,213,216,221,225,227,232,234,239-247,251-253
+packages/system/box
+  h_3705811fa4502c 91
+packages/system/qbUpdate
+  h_3705811fa4502c 70-75,78,679-682
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 38-53,143-144,160,206-207,216-217,377-378,380-384,394-395,397-398
+packages/system/update/qbUpdateService
+  h_3705811fa4502c 22-37,116,121-122,132-141,143-145,150,233,235,249-253
+packages/system/update/qbUpdateStep
+  h_3705811fa4502c 1-74
+scripts/check-system-script-syntax.sh
+  h_3705811fa4502c 26
+tests/system/dashboard-update-sandbox.py
+  h_3705811fa4502c 124-126
+tests/system/nodejs-update-sandbox.py
+  h_3705811fa4502c 30-36,49-59,63-67,73-75,82-86,90-93,96,112-162,169,175,181-192
+tests/system/ws-health-startup-sandbox.py
+  h_3705811fa4502c 58,77-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f0cfc825762c6dd4daf2870c28c9464118d3722c",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
