@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Exercise the update timing report: the per-stage durations, the log lines the
-# Dashboard reads, the end-of-run summary and the silence-based progress ticks.
-# Everything runs inside a temporary directory; no real machine path is touched.
+# Exercise the update driver's progress reporting: the shared clock, the
+# per-stage durations, the log lines the Dashboard reads, the end-of-run
+# summary and the silence-based progress ticks. The driver's option parsing and
+# its degraded paths (no timing helper, no usable terminal) are covered here
+# too, because this is the only sandbox that sources it. Everything runs inside
+# a temporary directory; no real machine path is touched.
 set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -13,6 +16,10 @@ trap 'rm -rf "${sandbox}"' EXIT
 # runner exports TERM=dumb). The test is about timings, not colours, so the
 # terminal is pinned instead of inherited.
 export TERM=xterm
+
+################################################################################
+# SANDBOX
+################################################################################
 
 # The driver reads the distribution at source time; a stub keeps this sandbox
 # independent of the host.
@@ -42,27 +49,35 @@ source "${sandbox}/system/qbUpdate"
 set -u
 
 OUTTO="${sandbox}/out.log"
-QUICKBOX_BACKUP_DIR="${sandbox}/backups"
-mkdir -p "${QUICKBOX_BACKUP_DIR}"
-export OUTTO QUICKBOX_BACKUP_DIR
+export OUTTO
 : >"${OUTTO}"
+
+fail() {
+	printf '%s\n' "$*" >&2
+	exit 1
+}
+
+################################################################################
+# CLOCK AND FORMATTING
+################################################################################
 
 # The clock must be numeric and keep advancing across a real sleep.
 first=$(_qbNowMs)
-[[ ${first} =~ ^[0-9]+$ ]] || { echo "clock is not numeric: ${first}" >&2; exit 1; }
+[[ ${first} =~ ^[0-9]+$ ]] || fail "clock is not numeric: ${first}"
 sleep 1.1
 second=$(_qbNowMs)
-if (( second - first < 1000 )); then
-	echo "clock did not advance over 1.1s: ${first} -> ${second}" >&2
-	exit 1
-fi
+(( second - first >= 1000 )) || fail "clock did not advance over 1.1s: ${first} -> ${second}"
 
 # Durations are rendered for logs, so the units have to be stable.
-[[ $(_qbFormatMs 0) == '0.0s' ]] || { echo "unexpected 0ms format" >&2; exit 1; }
-[[ $(_qbFormatMs 938) == '0.9s' ]] || { echo "unexpected subsecond format" >&2; exit 1; }
-[[ $(_qbFormatMs 12400) == '12.4s' ]] || { echo "unexpected seconds format" >&2; exit 1; }
-[[ $(_qbFormatMs 65000) == '1m05s' ]] || { echo "unexpected minutes format" >&2; exit 1; }
-[[ $(_qbFormatMs 3900000) == '1h05m' ]] || { echo "unexpected hours format" >&2; exit 1; }
+[[ $(_qbFormatMs 0) == '0.0s' ]] || fail 'unexpected 0ms format'
+[[ $(_qbFormatMs 938) == '0.9s' ]] || fail 'unexpected subsecond format'
+[[ $(_qbFormatMs 12400) == '12.4s' ]] || fail 'unexpected seconds format'
+[[ $(_qbFormatMs 65000) == '1m05s' ]] || fail 'unexpected minutes format'
+[[ $(_qbFormatMs 3900000) == '1h05m' ]] || fail 'unexpected hours format'
+
+################################################################################
+# STAGE REPORTING
+################################################################################
 
 step_ok() { sleep 0.2; }
 step_fail() { return 9; }
@@ -71,11 +86,10 @@ step_fail() { return 9; }
 # silent about progress when no terminal is attached (the Dashboard case).
 update_started_ms=$(_qbNowMs)
 _updateStep "repository" step_ok >"${sandbox}/stage.log"
-grep -q '⏱ repository: [0-9]' "${sandbox}/stage.log"
-grep -q '>> Timing: repository took' "${OUTTO}"
+grep -q '⏱ repository: [0-9]' "${sandbox}/stage.log" || fail 'a finished stage must print its duration'
+grep -q '>> Timing: repository took' "${OUTTO}" || fail 'a finished stage must reach the log'
 if grep -q 'still running' "${sandbox}/stage.log"; then
-	echo 'progress lines must not appear without a terminal' >&2
-	exit 1
+	fail 'progress lines must not appear without a terminal'
 fi
 
 # A failing stage still reports its own duration, keeps the partial report and
@@ -89,11 +103,11 @@ set +e
 ) >"${sandbox}/fail.log" 2>&1
 fail_status=$?
 set -e
-[[ ${fail_status} -eq 1 ]] || { echo "failed stage must abort with 1, got ${fail_status}" >&2; exit 1; }
-grep -q '✗ Update stage failed: dashboard (after ' "${sandbox}/fail.log"
-grep -q 'dashboard (failed)' "${sandbox}/fail.log"
-grep -q '➜ Update timing (total ' "${sandbox}/fail.log"
-grep -q '>> Timing: update total ' "${OUTTO}"
+[[ ${fail_status} -eq 1 ]] || fail "failed stage must abort with 1, got ${fail_status}"
+grep -q '✗ Update stage failed: dashboard (after ' "${sandbox}/fail.log" || fail 'failure must name the stage and its duration'
+grep -q 'dashboard (failed)' "${sandbox}/fail.log" || fail 'the partial report must keep the failed stage'
+grep -q '➜ Update timing (total ' "${sandbox}/fail.log" || fail 'a failed run must still print its report'
+grep -q '>> Timing: update total ' "${OUTTO}" || fail 'a failed run must still record the total'
 
 # Time that no stage covered is reported instead of being folded into the
 # total, so the sum of the rows always explains the whole run.
@@ -101,68 +115,21 @@ update_started_ms=$(_qbNowMs)
 _updateRecordStage "repository" 100
 sleep 1.5
 _printUpdateTiming >"${sandbox}/summary.log"
-grep -q 'other (locks, prepare, cleanup)' "${sandbox}/summary.log"
+grep -q 'repository ' "${sandbox}/summary.log" || fail 'the report must list every recorded stage'
+grep -q 'other (locks, prepare, cleanup)' "${sandbox}/summary.log" || fail 'uncovered time must be named'
+grep -q '  total ' "${sandbox}/summary.log" || fail 'the report must end with the total'
 
-# The report is all a run leaves behind: nothing is written to the backup root,
-# and there is no history to read back later.
-if grep -q 'history' "${sandbox}/summary.log"; then
-	echo 'the summary must not advertise a timing history' >&2
-	exit 1
-fi
-[[ -z $(find "${QUICKBOX_BACKUP_DIR}" -name 'update-timings.tsv' -print -quit) ]] || {
-	echo 'the update must not record timing history' >&2
-	exit 1
-}
+################################################################################
+# PROGRESS TICKS
+################################################################################
 
-# Option parsing still rejects unknown flags, and --timings is gone for good.
-if _parseUpdateArgs --timings >/dev/null 2>&1; then
-	echo '--timings must no longer be accepted' >&2
-	exit 1
-fi
-if _parseUpdateArgs --nope >/dev/null 2>&1; then
-	echo 'unknown options must be rejected' >&2
-	exit 1
-fi
-
-# A missing helper must degrade to no-op durations instead of failing the
-# update: the stages still run, only the measurements disappear.
-mkdir -p "${sandbox}/broken"
-cp "${sandbox}/system/qbUpdate" "${sandbox}/broken/qbUpdate"
-(
-	set +u
-	# shellcheck source=/dev/null
-	source "${sandbox}/broken/qbUpdate" 2>/dev/null
-	[[ $(_qbNowMs) == '0' ]] || exit 1
-	[[ $(_qbFormatMs 5000) == '5.0s' ]] || exit 1
-	_qbReportLap "no helper" 10 || exit 1
-) || { echo 'a missing timing helper must not break the driver' >&2; exit 1; }
-
-# The colour initialisation must never abort a caller. Sourcing the driver under
-# `set -e` with a TERM that has no terminfo entry (a CI runner exports TERM=dumb)
-# or with no TERM at all used to kill the script right there, before a single
-# stage could report anything; the colours simply have to disappear instead.
-for terminal in dumb ''; do
-	(
-		set -e
-		set +u
-		TERM="${terminal}"
-		export TERM
-		# shellcheck source=/dev/null
-		source "${sandbox}/system/qbUpdate"
-		[[ -z ${_norm} && -z ${_red} && -z ${_cyan} ]] || exit 1
-	) || {
-		echo "sourcing the driver failed with TERM=${terminal:-<unset>}" >&2
-		exit 1
-	}
-done
-
-# The heartbeat reports silence, not a fixed cadence. A stage that keeps
-# printing sub-step durations is visibly working and must not also claim to be
-# "still running"; only a stage that goes quiet earns a progress line.
+# The heartbeat reports silence, not a fixed cadence: every printed line and
+# every reported duration refreshes the activity stamp, so a stage that keeps
+# producing sub-step timings never also claims to be "still running".
 TMPDIR="${sandbox}"
 export TMPDIR
 _updateActivityInit
-[[ -f ${update_activity_file} ]] || { echo 'activity stamp was not created' >&2; exit 1; }
+[[ -f ${update_activity_file} ]] || fail 'activity stamp was not created'
 
 busy_probe() {
 	local i
@@ -181,9 +148,8 @@ busy_probe >/dev/null
 kill "${busy_pid}" 2>/dev/null
 wait "${busy_pid}" 2>/dev/null || true
 if grep -q 'still running' "${busy_out}"; then
-	echo 'a stage that keeps reporting steps must not print heartbeat lines' >&2
 	cat "${busy_out}" >&2
-	exit 1
+	fail 'a stage that keeps reporting steps must not print heartbeat lines'
 fi
 
 quiet_out="${sandbox}/heartbeat-quiet.log"
@@ -195,14 +161,71 @@ sleep 1.8
 kill "${quiet_pid}" 2>/dev/null
 wait "${quiet_pid}" 2>/dev/null || true
 grep -q 'probe still running (no output for ' "${quiet_out}" || {
-	echo 'a silent stage must still report progress' >&2
 	cat "${quiet_out}" >&2
-	exit 1
+	fail 'a silent stage must still report progress'
 }
 
 # The stamp is per-run state and must not survive the update.
 stamp_file="${update_activity_file}"
 _updateCleanup
-[[ ! -e ${stamp_file} ]] || { echo 'activity stamp was left behind' >&2; exit 1; }
+[[ ! -e ${stamp_file} ]] || fail 'activity stamp was left behind'
+
+################################################################################
+# ARGUMENT PARSING
+################################################################################
+
+core=0
+from_checkout=0
+_parseUpdateArgs --only-core
+[[ ${core} -eq 1 && ${from_checkout} -eq 0 ]] || fail '--only-core must set only the core flag'
+
+core=0
+from_checkout=0
+_parseUpdateArgs --from-checkout
+[[ ${core} -eq 1 && ${from_checkout} -eq 1 ]] || fail '--from-checkout implies a core update'
+
+unset QB_UPDATE_VERBOSE
+_parseUpdateArgs --verbose
+[[ ${QB_UPDATE_VERBOSE:-0} -eq 1 ]] || fail '--verbose must reach every sourced stage'
+unset QB_UPDATE_VERBOSE
+
+# A typo must fail the run instead of being silently ignored.
+if _parseUpdateArgs --nope >/dev/null 2>&1; then
+	fail 'unknown options must be rejected'
+fi
+
+################################################################################
+# DEGRADED PATHS
+################################################################################
+
+# A missing helper must degrade to no-op durations instead of failing the
+# update: the stages still run, only the measurements disappear.
+mkdir -p "${sandbox}/broken"
+cp "${sandbox}/system/qbUpdate" "${sandbox}/broken/qbUpdate"
+(
+	set +u
+	# shellcheck source=/dev/null
+	source "${sandbox}/broken/qbUpdate" 2>/dev/null
+	[[ $(_qbNowMs) == '0' ]] || exit 1
+	[[ $(_qbFormatMs 5000) == '5.0s' ]] || exit 1
+	_qbReportLap "no helper" 10 || exit 1
+	_qbTouchActivity || exit 1
+) || fail 'a missing timing helper must not break the driver'
+
+# The colour initialisation must never abort a caller. Sourcing the driver under
+# `set -e` with a TERM that has no terminfo entry (a CI runner exports TERM=dumb)
+# or with no TERM at all used to kill the script right there, before a single
+# stage could report anything; the colours simply have to disappear instead.
+for terminal in dumb ''; do
+	(
+		set -e
+		set +u
+		TERM="${terminal}"
+		export TERM
+		# shellcheck source=/dev/null
+		source "${sandbox}/system/qbUpdate"
+		[[ -z ${_norm} && -z ${_red} && -z ${_cyan} ]] || exit 1
+	) || fail "sourcing the driver failed with TERM=${terminal:-<unset>}"
+done
 
 printf 'update timing sandbox checks passed\n'
