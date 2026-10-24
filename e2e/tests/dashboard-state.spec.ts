@@ -8,7 +8,11 @@
 
 import { test, expect, type Page } from "@playwright/test";
 
-const WS_BASE_URL = process.env.WS_BASE_URL || `http://127.0.0.1:${process.env.TEST_WS_PORT || "8575"}`;
+import { WS_BASE_URL, resetMockProfile } from "./support/helpers";
+
+test.beforeEach(async ({ page }) => {
+    await resetMockProfile(page);
+});
 
 interface TableState {
     search: string;
@@ -35,14 +39,18 @@ async function readPackageTableState(page: Page): Promise<TableState | null> {
             return null;
         }
         const table = $("#dataTable1").DataTable();
-        const nodes = document.querySelectorAll("#dataTable1 tbody tr");
+        // DataTables only keeps the rows of the current page in the tbody, so the
+        // row count reflects what the filter and paging actually produce. The
+        // "no results" placeholder is a row too and must not be counted.
+        const nodes = Array.from(document.querySelectorAll("#dataTable1 tbody tr"))
+            .filter((node) => node.querySelector("td.dataTables_empty") === null);
         return {
             search: table.search(),
             order: table.order(),
             page: table.page(),
             length: table.page.len(),
-            rowCount: document.querySelectorAll("#dataTable1").length,
-            visibleRows: Array.from(nodes).map((node) => (node.textContent ?? "").trim()),
+            rowCount: nodes.length,
+            visibleRows: nodes.map((node) => (node.textContent ?? "").trim()),
         };
     });
 }
@@ -109,8 +117,11 @@ async function requestWidgetViaSocket(page: Page, key: string, url: string): Pro
                     reject(new Error("socket is not available"));
                     return;
                 }
+                // Bind the narrowed value: TypeScript does not carry the guard
+                // into the deferred callbacks below.
+                const activeSocket = socket;
                 const timeout = setTimeout(() => {
-                    socket.off("message", handler);
+                    activeSocket.off("message", handler);
                     reject(new Error(`timed out waiting for ${request.key}`));
                 }, 30000);
                 function handler(payload: unknown): void {
@@ -119,11 +130,11 @@ async function requestWidgetViaSocket(page: Page, key: string, url: string): Pro
                         return;
                     }
                     clearTimeout(timeout);
-                    socket.off("message", handler);
+                    activeSocket.off("message", handler);
                     resolve(message.response);
                 }
-                socket.on("message", handler);
-                socket.emit("message", { key: request.key, url: request.url, locale: "en" });
+                activeSocket.on("message", handler);
+                activeSocket.emit("message", { key: request.key, url: request.url, locale: "en" });
             }),
         { key, url },
     );
@@ -384,8 +395,16 @@ test.describe("prefetch ordering", () => {
         expect(wsText).not.toContain("STALE-PREFETCH");
         expect(await page.locator("#cpuload").getAttribute("data-qb-write-source")).toBeNull();
 
+        // Wait for the held prefetch to actually reach the page instead of
+        // sleeping: the stale HTML can only be written after this response.
+        const prefetchResponse = page.waitForResponse((response) => response.url().includes("/node/load"));
         releasePrefetch();
-        await page.waitForTimeout(1000);
+        await prefetchResponse;
+        // Two frames guarantee the fetch continuation (`applyPrefetchHtml`) has
+        // run before the assertions below read the DOM.
+        await page.evaluate(() => new Promise<void>((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }));
 
         expect(await page.locator("#cpuload").innerText()).toBe(wsText);
         expect(await page.locator("#stale-cpu-marker").count()).toBe(0);
@@ -394,7 +413,7 @@ test.describe("prefetch ordering", () => {
 
 interface JQueryLike {
     (selector: string): JQueryCollection;
-    fn: Record<string, { isDataTable?: (selector: string) => boolean }>;
+    fn: Record<string, { isDataTable: (selector: string) => boolean }>;
 }
 
 interface DataTableApi {

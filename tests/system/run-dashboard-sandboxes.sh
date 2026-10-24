@@ -11,29 +11,17 @@ export TERM=xterm
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "${repo_root}"
 
-case "${1:-all}" in
-runtime) scripts=(nodejs-update-sandbox.py) ;;
-dashboard) scripts=(dashboard-stage-sandbox.sh qb-ensure-ws-gateway-sandbox.py ws-health-startup-sandbox.py ws-health-proxy-sandbox.py theme-selection-sandbox.py dashboard-update-sandbox.py) ;;
-backups) scripts=(backup-retention-sandbox.py update-config-backup-sandbox.sh) ;;
-repository) scripts=(repo-state-revert-sandbox.sh repo-reinstall-sandbox.py) ;;
-progress) scripts=(update-timing-sandbox.sh) ;;
-all)
-	result=0
-	for group in runtime dashboard backups repository progress; do
-		bash "${repo_root}/tests/system/run-dashboard-sandboxes.sh" "${group}" || result=1
-	done
-	exit "${result}"
-	;;
-*) printf 'Unknown sandbox group: %s\n' "$1" >&2; exit 2 ;;
-esac
+group="${1:-all}"
 
-result=0
-for script in "${scripts[@]}"; do
-	printf '::group::%s\n' "${script}"
-	case "${script}" in
-	*.py) python3 "tests/system/${script}" || result=1 ;;
-	*.sh) bash "tests/system/${script}" || result=1 ;;
-	esac
-	printf '::endgroup::\n'
-done
-exit "${result}"
+# The group -> script manifest lives in tests/system/test_sandboxes.py, so this
+# wrapper holds no list of its own and every script is individually runnable:
+#   python3 -m unittest tests.system.test_sandboxes -k backup_retention -v
+if [[ "${group}" == "all" ]]; then
+	exec python3 -m unittest tests.system.test_sandboxes -v
+fi
+
+if ! python3 -m tests.system.test_sandboxes --groups | grep -qx "${group}"; then
+	printf 'Unknown sandbox group: %s\n' "${group}" >&2
+	exit 2
+fi
+exec python3 -m unittest tests.system.test_sandboxes -k "test_${group}_" -v

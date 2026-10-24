@@ -79,14 +79,17 @@ def run_case(nginx_binary, deny_health=False):
                                           '-c', str(runtime / 'nginx.conf')],
                                          stdout=log, stderr=subprocess.STDOUT)
             processes.append(nginx)
+            ready = False
             for _ in range(100):
                 if nginx.poll() is not None:
                     raise AssertionError((runtime / 'nginx.log').read_text())
                 try:
                     with socket.create_connection(('127.0.0.1', nginx_port), timeout=0.1):
+                        ready = True
                         break
                 except OSError:
                     time.sleep(0.1)
+            assert ready, 'nginx listener did not become ready'
 
             def http_code(path, auth=False, origin=None, websocket=False):
                 args = ['curl', '-q', '--noproxy', '*', '-s', '--max-time', '1',

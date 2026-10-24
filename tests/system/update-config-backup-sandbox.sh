@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Exercise the qbUpdate configuration snapshot and rollback without touching
 # real /etc paths. The managed-path policy is replaced with sandbox files.
-set -eo pipefail
+set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 sandbox=$(mktemp -d "${TMPDIR:-/tmp}/quickbox-update-config.XXXXXX")
@@ -82,5 +82,11 @@ systemctl() { return 0; }
 nginx() { return 0; }
 update_service_started=1
 _restoreUpdateConfig
+
+# A second restore runs after the first one already consumed the snapshot: it
+# must be idempotent rather than re-applying or deleting the restored file.
+test "$(cat "${managed}")" = 'before'
+test "$(stat -c %a "${managed}" 2>/dev/null || stat -f %Lp "${managed}")" = '640'
+test ! -e "${created}"
 
 printf 'update config backup sandbox checks passed\n'

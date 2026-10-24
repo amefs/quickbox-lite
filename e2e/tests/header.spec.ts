@@ -3,7 +3,11 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "node:path";
 
-const wsBase = process.env.WS_BASE_URL || `http://127.0.0.1:${process.env.TEST_WS_PORT || "8575"}`;
+import { resetMockProfile, setMockProfile } from "./support/helpers";
+
+test.beforeEach(async ({ page }) => {
+    await resetMockProfile(page);
+});
 
 async function expectHeaderContained(page: Page) {
     const header = await page.locator(".headerpanel").boundingBox();
@@ -31,8 +35,7 @@ for (const theme of ["smoked", "defaulted"]) {
                 contentType: "text/css",
             }));
             try {
-                const response = await page.request.post(`${wsBase}/test/profile`, { data: { profile: "long-branch" } });
-                expect(response.ok()).toBeTruthy();
+                await setMockProfile(page, "long-branch");
                 for (const locale of ["zh", "en"]) {
                     await page.goto(`/?locale=${locale}`);
                     await expect(page.locator(".headermenu .label-warning")).toContainText("fix/dashboard-review-findings");
@@ -59,13 +62,12 @@ for (const theme of ["smoked", "defaulted"]) {
                     body: await page.locator(".headerpanel").screenshot({ path: testInfo.outputPath("long-branch-header.png") }),
                     contentType: "image/png",
                 });
-                const reset = await page.request.post(`${wsBase}/test/profile`, { data: { profile: "all-running" } });
-                expect(reset.ok()).toBeTruthy();
+                await setMockProfile(page, "all-running");
                 await page.reload();
                 await expect(page.locator(".headermenu .label-warning")).toHaveCount(0);
                 await expectHeaderContained(page);
             } finally {
-                await page.request.post(`${wsBase}/test/profile`, { data: { profile: "partial-running" } });
+                await resetMockProfile(page);
             }
         });
     }

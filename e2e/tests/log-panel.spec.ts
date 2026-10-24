@@ -3,12 +3,15 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "node:path";
 
-const wsBase = process.env.WS_BASE_URL || `http://127.0.0.1:${process.env.TEST_WS_PORT || "8575"}`;
+import { resetMockProfile, setMockProfile } from "./support/helpers";
+
+test.beforeEach(async ({ page }) => {
+    await resetMockProfile(page);
+});
 const log = Array.from({ length: 160 }, (_, index) => `第 ${index + 1} 行：\u001b[32m任务输出\u001b[0m ${"long-path/".repeat(16)} <script>unsafe()</script>\n`).join("");
 
 async function openLog(page: Page) {
-    const response = await page.request.post(`${wsBase}/test/profile`, { data: { profile: "installing" } });
-    expect(response.ok()).toBeTruthy();
+    await setMockProfile(page, "installing");
     await page.goto("/?locale=zh");
     // The running-task banner also offers a log view; this one comes from the
     // install-lock notice in the package panel.
@@ -103,10 +106,6 @@ async function expectFooterButtonsFollowTheRule(page: Page) {
         }
     }
 }
-
-test.afterEach(async ({ page }) => {
-    await page.request.post(`${wsBase}/test/profile`, { data: { profile: "partial-running" } });
-});
 
 for (const theme of ["smoked", "defaulted"]) {
     for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {

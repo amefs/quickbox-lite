@@ -233,7 +233,28 @@ python3 -m unittest discover -s tests/deployment -p 'test_*.py' -v
 bash tests/system/run-dashboard-sandboxes.sh
 ```
 
+Python tooling (`flake8`, `prettytable` for the benchmark helpers) is managed by
+uv; `Pipfile` is gone and `uv.lock` replaces `Pipfile.lock`:
+
+```sh
+uv sync                                     # create .venv from uv.lock
+uv run flake8 packages/system/auxiliary/    # same scope the linter job lints
+```
+
 The sandbox wrapper also accepts `runtime`, `dashboard`, `backups`, `repository`
 or `progress` to run one group. All sandbox mutations stay in temporary paths.
+Every sandbox is also a unittest case, so a single script or a single case can be
+run without going through the whole group:
+
+```sh
+python3 -m unittest tests.system.test_sandboxes -k backup_retention -v
+python3 tests/system/backup-retention-sandbox.py --list
+python3 tests/system/backup-retention-sandbox.py --case test_dry_run_removes_nothing
+```
+
+Group membership lives in `tests/system/test_sandboxes.py`. Cases inside a
+sandbox are discovered from its module namespace, so adding a `test_*` function
+is enough — there is no second list to update.
+
 The deployment harness rejects later phases if their required install/upgrade
 phase has not passed. The CI summary runner is `tests/deployment/report.py`.

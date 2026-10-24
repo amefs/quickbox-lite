@@ -10,6 +10,7 @@ import time
 PLANS = {
     'panel': {
         'prepare': 'Prepare Node dependencies and Chromium',
+        'typecheck': 'Type-check the browser suite',
         'tests': 'Dashboard rendering, widgets, state and interactions',
     },
     'sandboxes': {

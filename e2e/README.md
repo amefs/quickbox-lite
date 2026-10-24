@@ -59,6 +59,19 @@ Available profiles are defined in `../setup/dashboard/ws/src/testing/mock-profil
 ## Test suites
 
 - `tests/dashboard.spec.ts`: page load, widgets, service badges, and screenshots
-- `tests/interaction.spec.ts`: language switching, package UI, and service controls
-- `tests/debug-console.spec.ts`: WS debug console and API checks
 - `tests/dashboard-state.spec.ts`: PMC search/sort/pagination, layout and HTTP/WS ordering
+- `tests/debug-console.spec.ts`: WS debug console and API checks
+- `tests/header.spec.ts`: header controls at narrow viewports and long branch names
+- `tests/interaction.spec.ts`: language switching, package UI, and service controls
+- `tests/log-panel.spec.ts`: log viewer sizing and escaping
+- `tests/running-task.spec.ts`: running-task banner, log view and abort
+- `tests/side-panels.spec.ts`: right column card layout
+- `tests/sidebar.spec.ts`: sidebar behaviour across breakpoints
+
+Shared fixtures live in `tests/support/helpers.ts`. Every spec resets the mock
+profile in `beforeEach`, so no test depends on the profile a previously executed
+file left behind.
+
+`npm run typecheck` runs `tsc --noEmit` over the specs and `playwright.config.ts`;
+CI runs it before the suite so a type regression fails the job instead of being
+transpiled away.

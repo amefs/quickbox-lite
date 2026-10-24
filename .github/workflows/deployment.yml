@@ -59,6 +59,8 @@ jobs:
           key: chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
       - name: Prepare Node dependencies and Chromium
         run: python3 tests/deployment/report.py prepare bash tests/deployment/prepare.sh panel
+      - name: Type-check the browser suite
+        run: python3 tests/deployment/report.py typecheck npm run typecheck --prefix e2e
       - name: Dashboard rendering, widgets, state and interactions
         run: python3 tests/deployment/report.py tests npm test --prefix e2e
       - name: Acceptance summary

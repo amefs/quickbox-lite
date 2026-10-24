@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # Author: TautCony
 """Exercise qbNormalizeRepo against temporary Git and non-Git trees."""
-import os
 from pathlib import Path
 import stat
 import subprocess
+import sys
 import tempfile
+
+from sandbox_support import run_cases
 
 REPO = Path(__file__).resolve().parents[2]
 HELPER = REPO / 'packages/system/auxiliary/qbNormalizeRepo'
@@ -188,18 +190,6 @@ def test_crlf_helper_repairs_itself_through_the_stripped_bootstrap():
         assert mode(target) == 0o755
 
 
-def main():
-    for case in (
-        test_tracked_tree_keeps_index_mode_as_the_authority,
-        test_plain_tree_uses_the_deployable_path_scope,
-        test_missing_tree_is_refused,
-        test_lint_fix_changes_only_the_mode,
-        test_crlf_helper_repairs_itself_when_bash_runs_it,
-        test_crlf_helper_repairs_itself_through_the_stripped_bootstrap,
-    ):
-        case()
-    print('repository normalizer sandbox checks passed')
-
-
 if __name__ == '__main__':
-    main()
+    # Cases are discovered from this module, so a new test_* function is enough.
+    sys.exit(run_cases(globals(), 'repository normalizer sandbox'))

@@ -8,7 +8,11 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "node:path";
 
-const wsBase = process.env.WS_BASE_URL || `http://127.0.0.1:${process.env.TEST_WS_PORT || "8575"}`;
+import { resetMockProfile, setMockProfile } from "./support/helpers";
+
+test.beforeEach(async ({ page }) => {
+    await resetMockProfile(page);
+});
 
 async function readPanels(page: Page) {
     return page.evaluate(() => {
@@ -53,8 +57,7 @@ for (const theme of ["smoked", "defaulted"]) {
                 contentType: "text/css",
             }));
             try {
-                const response = await page.request.post(`${wsBase}/test/profile`, { data: { profile: "partial-running" } });
-                expect(response.ok()).toBeTruthy();
+                await setMockProfile(page, "partial-running");
                 await page.goto("/?locale=zh");
                 await expect(page.locator("#disk_data .qb-disk-metric").first()).toBeVisible();
 
@@ -82,7 +85,7 @@ for (const theme of ["smoked", "defaulted"]) {
                 expect(layout.uptime.left).toBeGreaterThanOrEqual(layout.loadBody.left);
                 expect(layout.uptime.right).toBeLessThanOrEqual(layout.loadBody.right + 1);
             } finally {
-                await page.request.post(`${wsBase}/test/profile`, { data: { profile: "partial-running" } });
+                await resetMockProfile(page);
             }
         });
     }

@@ -7,8 +7,11 @@ read or written. Age is expressed through directory modification times.
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import time
+
+from sandbox_support import run_cases
 
 REPO = Path(__file__).resolve().parents[2]
 HELPER = REPO / "packages/system/auxiliary/qbBackupPrune"
@@ -49,12 +52,15 @@ def dashboard_names(count):
     return [f"20240101-0000{index:02d}" for index in range(count)]
 
 
-def test_missing_backup_root_is_created():
+def test_missing_backup_root_is_left_alone():
     with tempfile.TemporaryDirectory(prefix="quickbox-prune-") as temporary:
         missing = Path(temporary) / "missing"
         result = run(missing)
         assert result.returncode == 0, result.stderr
+        # A missing root is not an error and is deliberately not created: the
+        # pruner has nothing to do and must not add state of its own.
         assert not missing.exists()
+        assert "does not exist" in result.stderr
 
 
 def test_unknown_entries_are_left_alone():
@@ -221,7 +227,11 @@ def test_symlinked_backup_root_is_rejected():
         linked = Path(temporary) / "linked"
         linked.symlink_to(target, target_is_directory=True)
         result = run(linked)
-        assert result.returncode != 0, "a symlinked backup root must be rejected"
+        # Exit code 1 is the deliberate rejection path; `!= 0` would also accept
+        # a crash or a syntax error.
+        assert result.returncode == 1, (result.returncode, result.stderr)
+        assert "refusing symlinked backup root" in result.stderr
+        assert target.is_dir()
 
 
 def test_proxy_migration_backup_is_private_and_idempotent():
@@ -255,25 +265,6 @@ def test_proxy_migration_backup_is_private_and_idempotent():
         assert len([entry for entry in backup_root.iterdir() if entry.is_dir()]) == 1
 
 
-def main():
-    for case in (
-        test_missing_backup_root_is_created,
-        test_unknown_entries_are_left_alone,
-        test_dashboard_family_keeps_newest_and_spares_other_entries,
-        test_old_excess_beyond_the_keep_count_is_removed,
-        test_age_gate_keeps_fresh_entries_over_the_keep_count,
-        test_zero_days_prunes_purely_by_keep_count,
-        test_dry_run_removes_nothing,
-        test_collision_suffixes_rank_as_newer_copies,
-        test_update_family_prunes_and_state_files_survive,
-        test_numeric_suffix_ordering,
-        test_non_numeric_keep_is_rejected,
-        test_symlinked_backup_root_is_rejected,
-        test_proxy_migration_backup_is_private_and_idempotent,
-    ):
-        case()
-    print("backup retention sandbox checks passed")
-
-
 if __name__ == "__main__":
-    main()
+    # Cases are discovered from this module, so a new test_* function is enough.
+    sys.exit(run_cases(globals(), "backup retention sandbox"))

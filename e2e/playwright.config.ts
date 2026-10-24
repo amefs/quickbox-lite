@@ -18,7 +18,9 @@ export default defineConfig({
     use: {
         baseURL,
         trace: "on-first-retry",
-        screenshot: "on",
+        // Specs already attach named full-page screenshots through snap(); an
+        // unconditional per-test screenshot duplicated every attachment pair.
+        screenshot: "only-on-failure",
         // No auth in test Docker setup
         httpCredentials: undefined,
     },
