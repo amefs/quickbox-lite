@@ -1,0 +1,31 @@
+setup/dashboard/ws/src/testing/mock-profiles.ts
+  s_ca0de8519dc96b::t_48220dc2fe7cdf 53,356-361
+setup/dashboard/ws/src/testing/bootstrap.ts
+  s_ca0de8519dc96b::t_48220dc2fe7cdf 157-160
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_ca0de8519dc96b::t_ad627447ff4cde 114-182,266-270,275-276,336,339
+e2e/tests/header.spec.ts
+  s_ca0de8519dc96b::t_1195362747aa7a 46-47
+  s_ca0de8519dc96b::t_e09195a670c552 1-38,40-45,48,57-58,60-61,64-72
+  s_ca0de8519dc96b::t_ee6708869a54f0 49,55-56
+  s_ca0de8519dc96b::t_fe0522ffe9dd55 39,50-54,59
+  s_ca0de8519dc96b::t_bfb78046552e56 62-63
+setup/dashboard/ws/dist/server.js
+  s_ca0de8519dc96b::t_43fc2d856ca4a6 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d17b63fed63f5bde7b76dd42e8e0621f00cca8be",
+  "prompts": {},
+  "sessions": {
+    "s_ca0de8519dc96b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16be9-0bf7-7082-944d-5fb9e6c11b2b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
