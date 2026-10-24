@@ -50,6 +50,7 @@ export interface MockNetworkInterface {
 export interface MockProfile {
     name: string;
     username: string;
+    branch?: string;
     processes: MockProcess[];
     memory: MockMemory;
     disks: MockDisk[];
@@ -60,6 +61,10 @@ export interface MockProfile {
     cpuCount: number;
     /** Lock files that exist (e.g. "/install/.rtorrent.lock") */
     lockFiles: string[];
+    /** Title recorded in /install/.install.lock while an operation runs */
+    installLockTitle?: string;
+    /** Lifecycle script that would be running for that title, as seen in /proc */
+    installLockOperation?: "install" | "remove" | "update";
     /** Systemd enabled services (e.g. "rtorrent@testuser") */
     enabledServices: string[];
     /** Torrent files per directory: { "/home/user/.sessions/": ["a.torrent", "b.torrent"] } */
@@ -352,6 +357,19 @@ export const emptySystem: MockProfile = {
 };
 
 const profiles: Record<string, MockProfile> = {
+    "installing": {
+        ...partialRunning,
+        name: "installing",
+        lockFiles: [...partialRunning.lockFiles, "/install/.install.lock"],
+        installLockTitle: "Jellyfin Media Server",
+        installLockOperation: "install",
+    },
+    "long-branch": {
+        ...allRunning,
+        name: "long-branch",
+        branch: "fix/dashboard-review-findings-with-an-extremely-long-branch-name(dd47129)",
+        lockFiles: [...allRunning.lockFiles, "/install/.developer.lock", "/install/.debug.lock"],
+    },
     "all-running": allRunning,
     "partial-running": partialRunning,
     "empty-system": emptySystem,

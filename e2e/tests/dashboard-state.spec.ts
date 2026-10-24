@@ -8,7 +8,11 @@
 
 import { test, expect, type Page } from "@playwright/test";
 
-const WS_BASE_URL = process.env.WS_BASE_URL || `http://127.0.0.1:${process.env.TEST_WS_PORT || "8575"}`;
+import { WS_BASE_URL, resetMockProfile } from "./support/helpers";
+
+test.beforeEach(async ({ page }) => {
+    await resetMockProfile(page);
+});
 
 interface TableState {
     search: string;
@@ -17,6 +21,12 @@ interface TableState {
     length: number;
     rowCount: number;
     visibleRows: string[];
+}
+
+interface PrefetchControl {
+    bodyReady: boolean;
+    releaseBody: () => void;
+    consumed: Promise<void>;
 }
 
 async function isPackageTableReady(page: Page): Promise<boolean> {
@@ -35,14 +45,18 @@ async function readPackageTableState(page: Page): Promise<TableState | null> {
             return null;
         }
         const table = $("#dataTable1").DataTable();
-        const nodes = document.querySelectorAll("#dataTable1 tbody tr");
+        // DataTables only keeps the rows of the current page in the tbody, so the
+        // row count reflects what the filter and paging actually produce. The
+        // "no results" placeholder is a row too and must not be counted.
+        const nodes = Array.from(document.querySelectorAll("#dataTable1 tbody tr"))
+            .filter((node) => node.querySelector("td.dataTables_empty") === null);
         return {
             search: table.search(),
             order: table.order(),
             page: table.page(),
             length: table.page.len(),
-            rowCount: document.querySelectorAll("#dataTable1").length,
-            visibleRows: Array.from(nodes).map((node) => (node.textContent ?? "").trim()),
+            rowCount: nodes.length,
+            visibleRows: nodes.map((node) => (node.textContent ?? "").trim()),
         };
     });
 }
@@ -109,8 +123,11 @@ async function requestWidgetViaSocket(page: Page, key: string, url: string): Pro
                     reject(new Error("socket is not available"));
                     return;
                 }
+                // Bind the narrowed value: TypeScript does not carry the guard
+                // into the deferred callbacks below.
+                const activeSocket = socket;
                 const timeout = setTimeout(() => {
-                    socket.off("message", handler);
+                    activeSocket.off("message", handler);
                     reject(new Error(`timed out waiting for ${request.key}`));
                 }, 30000);
                 function handler(payload: unknown): void {
@@ -119,11 +136,11 @@ async function requestWidgetViaSocket(page: Page, key: string, url: string): Pro
                         return;
                     }
                     clearTimeout(timeout);
-                    socket.off("message", handler);
+                    activeSocket.off("message", handler);
                     resolve(message.response);
                 }
-                socket.on("message", handler);
-                socket.emit("message", { key: request.key, url: request.url, locale: "en" });
+                activeSocket.on("message", handler);
+                activeSocket.emit("message", { key: request.key, url: request.url, locale: "en" });
             }),
         { key, url },
     );
@@ -191,6 +208,32 @@ test.describe("PMC widget state", () => {
         // The second identical payload hits the unchanged-HTML shortcut.
         await requestWidgetViaSocket(page, "PMC", "/node/pmc");
 
+        expect((await readPackageTableState(page))?.page).toBe(1);
+        await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
+    });
+
+    test("keeps the current page when refreshed widget content changes", async ({ page }) => {
+        await openDashboard(page);
+
+        if (!(await goToSecondPage(page))) {
+            test.skip(true, "the package list only has a single page");
+        }
+        expect((await readPackageTableState(page))?.page).toBe(1);
+
+        const html = await requestWidgetViaSocket(page, "PMC", "/node/pmc");
+        const refreshedHtml = html.replace(
+            'data-inner-id="panel-server-package-management"',
+            'data-inner-id="panel-server-package-management" data-r7-refresh="changed"',
+        );
+        expect(refreshedHtml).not.toBe(html);
+        expect(await deliverSocketMessage(page, {
+            key: "PMC",
+            success: true,
+            response: refreshedHtml,
+            locale: "en",
+        })).toBeGreaterThan(0);
+
+        await expect(page.locator('[data-r7-refresh="changed"]')).toHaveCount(1);
         expect((await readPackageTableState(page))?.page).toBe(1);
         await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
     });
@@ -332,6 +375,45 @@ test.describe("PMC widget state", () => {
 
 test.describe("prefetch ordering", () => {
     test("a late HTTP prefetch does not overwrite data already delivered by WS", async ({ page }) => {
+        await page.addInitScript(() => {
+            const win = window as unknown as { prefetchControl: PrefetchControl };
+            let releaseBody: () => void = () => {};
+            let finish: () => void = () => {};
+            const bodyGate = new Promise<void>((resolve) => { releaseBody = resolve; });
+            const consumed = new Promise<void>((resolve) => { finish = resolve; });
+            const control = { bodyReady: false, releaseBody, consumed };
+            win.prefetchControl = control;
+
+            const fetch = window.fetch.bind(window);
+            window.fetch = async (...args: Parameters<typeof fetch>) => {
+                const response = await fetch(...args);
+                const input = args[0];
+                const url = input instanceof Request ? input.url : String(input);
+                if (!new URL(url, location.href).pathname.endsWith("/node/load")) {
+                    return response;
+                }
+
+                const readText = response.text.bind(response);
+                response.text = async () => {
+                    const body = await readText();
+                    control.bodyReady = true;
+                    await bodyGate;
+
+                    // This task runs after the released text promise and the
+                    // dashboard's .then(applyPrefetchHtml) microtasks complete.
+                    const checkpoint = new MessageChannel();
+                    checkpoint.port1.onmessage = () => {
+                        checkpoint.port1.close();
+                        checkpoint.port2.close();
+                        finish();
+                    };
+                    checkpoint.port2.postMessage(null);
+                    return body;
+                };
+                return response;
+            };
+        });
+
         let releasePrefetch: () => void = () => {};
         const prefetchGate = new Promise<void>((resolve) => {
             releasePrefetch = resolve;
@@ -347,24 +429,38 @@ test.describe("prefetch ordering", () => {
         });
 
         await page.goto(WS_BASE_URL);
+        await expect.poll(async () => page.evaluate(() => {
+            return Boolean((window as unknown as { socket?: SocketLike }).socket?.connected);
+        })).toBe(true);
 
-        // The WebSocket payload must land first and record its source.
-        await expect(page.locator("#cpuload")).toHaveAttribute("data-qb-write-source", "ws", { timeout: 20000 });
+        // Deliver a real widget response while the HTTP prefetch is still held.
+        const wsHtml = await requestWidgetViaSocket(page, "TOP", "/node/load");
+        expect(wsHtml.length).toBeGreaterThan(0);
         const wsText = await page.locator("#cpuload").innerText();
         expect(wsText).not.toContain("STALE-PREFETCH");
+        expect(await page.locator("#cpuload").getAttribute("data-qb-write-source")).toBeNull();
 
         releasePrefetch();
-        await page.waitForTimeout(1000);
+        await expect.poll(() => page.evaluate(() => {
+            return (window as unknown as { prefetchControl: PrefetchControl }).prefetchControl.bodyReady;
+        })).toBe(true);
+        expect(await page.locator("#cpuload").innerText()).toBe(wsText);
+        expect(await page.locator("#stale-cpu-marker").count()).toBe(0);
+
+        await page.evaluate(async () => {
+            const control = (window as unknown as { prefetchControl: PrefetchControl }).prefetchControl;
+            control.releaseBody();
+            await control.consumed;
+        });
 
         expect(await page.locator("#cpuload").innerText()).toBe(wsText);
-        expect(await page.locator("#cpuload").getAttribute("data-qb-write-source")).toBe("ws");
         expect(await page.locator("#stale-cpu-marker").count()).toBe(0);
     });
 });
 
 interface JQueryLike {
     (selector: string): JQueryCollection;
-    fn: Record<string, { isDataTable?: (selector: string) => boolean }>;
+    fn: Record<string, { isDataTable: (selector: string) => boolean }>;
 }
 
 interface DataTableApi {
@@ -372,7 +468,7 @@ interface DataTableApi {
     search(value: string): DataTableApi;
     order(): [number, string][];
     order(value: [number, string][]): DataTableApi;
-    draw: (paging?: boolean) => DataTableApi;
+    draw: (paging?: boolean | "page") => DataTableApi;
     page: DataTablePage;
 }
 
@@ -389,5 +485,9 @@ interface JQueryCollection {
 }
 
 interface SocketLike {
+    connected: boolean;
     listeners: (event: string) => unknown[];
+    on: (event: string, listener: (payload: unknown) => void) => void;
+    off: (event: string, listener: (payload: unknown) => void) => void;
+    emit: (event: string, payload?: unknown) => void;
 }
