@@ -87,7 +87,11 @@ systemctl() {
     script = STATE / 'driver.sh'
     script.write_text(text)
     (STATE / 'injected').unlink(missing_ok=True)
-    environment = dict(ENV, FAILURE=failure)
+    environment = dict(
+        ENV,
+        FAILURE=failure,
+        QB_UPDATE_LIB_DIR='/usr/local/bin/quickbox/system/update',
+    )
     with (STATE / f'{"install" if fresh else "update"}-{failure or "success"}.log').open('w') as log:
         result = subprocess.run(['bash', str(script)], env=environment, stdout=log, stderr=subprocess.STDOUT)
     assert (result.returncode != 0) if failure else (result.returncode == 0), script
@@ -205,7 +209,7 @@ def legacy():
         Path('/srv/dashboard/db', filename).write_text(content)
     shutil.copy(baseline / 'setup/templates/systemd/quickbox-ws.service.template',
                 '/etc/systemd/system/quickbox-ws.service')
-    shutil.copy(baseline / 'setup/templates/nginx/proxy.conf', '/etc/nginx/snippets/proxy.conf')
+    shutil.copy(baseline / 'setup/templates/nginx/proxy.conf.template', '/etc/nginx/snippets/proxy.conf')
     Path('/etc/nginx/snippets/proxy.conf').open('a').write('\n# retained custom fixture\nproxy_buffer_size 8k;\n')
     for filename in ['/etc/quickbox/ws.secret', '/etc/nginx/snippets/quickbox-ws-gateway.conf']:
         Path(filename).unlink(missing_ok=True)
