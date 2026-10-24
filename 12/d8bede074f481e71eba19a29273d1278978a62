@@ -1,0 +1,62 @@
+.github/workflows/linter.yml
+  s_ca0de8519dc96b::t_5de082035853e9 93,111,122,180
+  s_ca0de8519dc96b::t_a78f1437e47db2 119-120
+  s_ca0de8519dc96b::t_b729cfe1a54788 4,134-179,181-183
+tests/deployment/run-auth.sh
+  s_ca0de8519dc96b::t_2eb8ad05a91017 5-21,23-24,27,29-30,32,34-35,39-40,42-64
+  s_ca0de8519dc96b::t_61166e6fbab58f 37
+tests/deployment/report.py
+  s_ca0de8519dc96b::t_afdc8c182f8f62 1-11,13-89
+  s_ca0de8519dc96b::t_1eb5bf0e4e3d6e 12
+tests/deployment/Dockerfile
+  s_ca0de8519dc96b::t_d027fdc22ca258 12,17-18
+  s_ca0de8519dc96b::t_ff82e63fe5f26c 3,13-16,20
+tests/system/run-dashboard-sandboxes.sh
+  s_ca0de8519dc96b::t_ff82e63fe5f26c 14-22,24-28,30,32,34-35,37,39
+  s_ca0de8519dc96b::t_972710cec1d028 23
+tests/deployment/README.md
+  s_ca0de8519dc96b::t_9c1dc0e3f3b395 57-60
+  s_ca0de8519dc96b::t_b729cfe1a54788 15-22
+  s_ca0de8519dc96b::t_f56d22315db060 3-8,13-14,23-56,61-68,77-79,87-91,93,95-103,105-122,124,126-130,132-138,148-182
+tests/deployment/test_acceptance.py
+  s_ca0de8519dc96b::t_08cb91e700207f 1-111,133-134
+  s_ca0de8519dc96b::t_bde86ee41dc5ef 112-132
+.github/workflows/deployment.yml
+  s_ca0de8519dc96b::t_61166e6fbab58f 15,93,138-139,186-187,189,225
+  s_ca0de8519dc96b::t_f42d600fb98a70 6-7,10,13-14,20,22-40,47-58,60-64,66-88,91-92,94,100-104,106-137,140-141,145-149,151,153-155,157-163,167-172,178,180-181,184-185,188,190,196-207,209-220
+  s_ca0de8519dc96b::t_cac0413f500e41 95
+  s_ca0de8519dc96b::t_1eb5bf0e4e3d6e 18-19,21
+  s_ca0de8519dc96b::t_945bced5acb875 59,65
+  s_ca0de8519dc96b::t_b729cfe1a54788 3
+  s_ca0de8519dc96b::t_a8b3c99ec73932 105,150,208
+tests/deployment/run.py
+  s_ca0de8519dc96b::t_2ed058e327ec3e 19-21,301-375,380-381,387-394,396-401,404
+tests/deployment/prepare-auth.py
+  s_ca0de8519dc96b::t_ff82e63fe5f26c 12
+  s_ca0de8519dc96b::t_9c1dc0e3f3b395 29-30
+tests/deployment/run-linux.sh
+  s_ca0de8519dc96b::t_cac0413f500e41 30
+  s_ca0de8519dc96b::t_bde86ee41dc5ef 44,58
+  s_ca0de8519dc96b::t_945bced5acb875 39-40
+  s_ca0de8519dc96b::t_2eb8ad05a91017 4-23,32,41-43,45-57
+tests/deployment/auth-compose.yml
+  s_ca0de8519dc96b::t_ff82e63fe5f26c 4
+tests/deployment/prepare.sh
+  s_ca0de8519dc96b::t_a757c640f525d1 1-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "12d8bede074f481e71eba19a29273d1278978a62",
+  "prompts": {},
+  "sessions": {
+    "s_ca0de8519dc96b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16be9-0bf7-7082-944d-5fb9e6c11b2b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
