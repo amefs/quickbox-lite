@@ -1,0 +1,60 @@
+e2e/tests/log-panel.spec.ts
+  h_3705811fa4502c 13-16,19,47-67,82,114-124
+e2e/tests/running-task.spec.ts
+  h_3705811fa4502c 1-51
+packages/system/auxiliary/qbAbortTask
+  h_3705811fa4502c 1-129
+packages/system/box
+  h_3705811fa4502c 62-80,117,159,163,185,211,251-255,356
+scripts/check-system-script-syntax.sh
+  h_3705811fa4502c 31
+setup/dashboard/js/dashboard.js
+  h_3705811fa4502c 386-394
+setup/dashboard/lang/lang_da.json
+  h_3705811fa4502c 138-142
+setup/dashboard/lang/lang_de.json
+  h_3705811fa4502c 138-142
+setup/dashboard/lang/lang_en.json
+  h_3705811fa4502c 138-142
+setup/dashboard/lang/lang_es.json
+  h_3705811fa4502c 138-142
+setup/dashboard/lang/lang_fr.json
+  h_3705811fa4502c 138-142
+setup/dashboard/lang/lang_zh-Hans-CN.json
+  h_3705811fa4502c 138-142
+setup/dashboard/ws/config/commands.json
+  h_3705811fa4502c 8,13,19
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+setup/dashboard/ws/src/controllers/dashboard.tsx
+  h_3705811fa4502c 11,18,22,30
+setup/dashboard/ws/src/dashboard-page.tsx
+  h_3705811fa4502c 25,292-318,362-367,369-373,376-380,586,706-715,732
+setup/dashboard/ws/src/handlers/message.ts
+  h_3705811fa4502c 18,104-105
+setup/dashboard/ws/src/router.tsx
+  h_3705811fa4502c 19,84,88,93
+setup/dashboard/ws/src/testing/bootstrap.ts
+  h_3705811fa4502c 161-170
+setup/dashboard/ws/src/testing/mock-adapter.ts
+  h_3705811fa4502c 161-164
+setup/dashboard/ws/src/testing/mock-profiles.ts
+  h_3705811fa4502c 64-65,362
+setup/dashboard/ws/src/widgets/running-task.tsx
+  h_3705811fa4502c 1-71
+setup/dashboard/ws/tests/handlers/utils/command.spec.ts
+  h_3705811fa4502c 136-144
+setup/dashboard/ws/tests/widgets/running-task.spec.ts
+  h_3705811fa4502c 1-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ec61d140a89f18cfc423498ddb9caa628714c913",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
