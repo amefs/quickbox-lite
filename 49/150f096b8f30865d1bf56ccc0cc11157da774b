@@ -1,0 +1,23 @@
+packages/system/auxiliary/qbNginxProxyMigrate
+  s_f226a553f67f7e::t_cb2440a3125b74 102-103
+setup.sh
+  s_f226a553f67f7e::t_ef0132b0a8e520 830,835,840,844-846
+packages/system/update/qbUpdateRevert
+  s_f226a553f67f7e::t_ef0132b0a8e520 33-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "49150f096b8f30865d1bf56ccc0cc11157da774b",
+  "prompts": {},
+  "sessions": {
+    "s_f226a553f67f7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16b9c-dfd6-7fe0-8122-b8b83411cc8a",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
