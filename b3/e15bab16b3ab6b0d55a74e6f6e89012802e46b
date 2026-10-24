@@ -1,0 +1,25 @@
+tests/system/update-timing-sandbox.sh
+  s_f226a553f67f7e::t_6f5d3232e226c1 203
+  h_3705811fa4502c 2-7,20-23,52,55-63,66,69,72-80,89-90,92,106-110,118-120,122-124,126-128,132,152,165,171-202,204-229
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b3e15bab16b3ab6b0d55a74e6f6e89012802e46b",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_f226a553f67f7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16b9c-dfd6-7fe0-8122-b8b83411cc8a",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
