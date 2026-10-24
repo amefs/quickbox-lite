@@ -314,16 +314,24 @@ PYEOF
 	#    It keeps its own verdict line: the individual probes only surface when
 	#    one of them fails or the update runs with --verbose.
 	lap=$(_qbNowMs)
+	local health_output health_deadline=$((SECONDS + 5))
 	local -a health_args=(--expect-proxy)
 	if _qbIsVerbose; then
 		health_args+=(--verbose)
 	fi
-	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck "${health_args[@]}"; then
-		_error "Dashboard health check failed"
-		_restoreDashboardRelease
-		_warning "Rollback backup kept at ${backup_dir}"
-		return 1
-	fi
+	# Reload returns before old nginx workers stop accepting connections. Require
+	# the complete health verdict to pass, allowing a short activation retry window.
+	while ! health_output=$(bash /usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck "${health_args[@]}" 2>&1); do
+		if (( SECONDS >= health_deadline )); then
+			printf '%s\n' "${health_output}" >&2
+			_error "Dashboard health check failed"
+			_restoreDashboardRelease
+			_warning "Rollback backup kept at ${backup_dir}"
+			return 1
+		fi
+		sleep 0.1
+	done
+	printf '%s\n' "${health_output}" >&2
 	_qbReportLap "health check" "${lap}"
 	rm -rf "${previous_dir}" "${stage_dir}"
 

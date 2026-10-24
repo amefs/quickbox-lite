@@ -152,6 +152,10 @@ Theme selection returns after the synchronous file copy, marker update and nginx
 reload succeed, without a fixed five-second pause. Deployment callers still run
 the full post-activation health check. Sandbox tests cover both themes, reload
 failure, handshake rejection, delayed/stalled responses and cookie selection.
+After an upgrade, the updater permits retries of the complete health check within
+a five-second activation window while nginx replaces its workers. A persistent
+failure still rolls back; standalone health probes retain immediate authentication
+failure verdicts.
 
 ## Native systemd acceptance
 
