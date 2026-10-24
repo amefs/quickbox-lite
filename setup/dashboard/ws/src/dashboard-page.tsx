@@ -212,6 +212,49 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
     width: 600px;
     max-width: calc(100vw - 30px);
 }
+#sysResponse .modal-dialog {
+    display: flex;
+    width: 600px;
+    max-width: calc(100% - 16px);
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+}
+#sysResponse .modal-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+}
+#sysResponse .modal-header, #sysResponse .modal-footer {
+    flex-shrink: 0;
+    background: #181818;
+    border: 0;
+}
+#sysResponse .modal-title {
+    color: #fff;
+}
+#sysResponse #sysPre {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+#sysResponse .sysout {
+    color: rgb(83, 223, 131);
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+#sysResponseCloseAction {
+    min-width: 80px;
+    min-height: 44px;
+    white-space: normal;
+}
 #quickbox-alert-modal .modal-header {
     align-items: center;
     display: flex;
@@ -538,16 +581,16 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                             </div>
                         </div>
                     </div>
-                    <div className="modal animate__bounceIn animate__animated" id="sysResponse" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sysResponse">
-                        <div className="modal-dialog" style={{ width: "600px" }}>
-                            <div className="modal-content" style={{ background: "rgba(0, 0, 0, 0.6)", border: "2px solid rgba(0, 0, 0, 0.2)" }}>
-                                <div className="modal-header" style={{ background: "rgba(0, 0, 0, 0.4)", border: "0!important" }}>
-                                    <h4 className="modal-title" style={{ color: "#fff" }}>{i18n.t("SYSTEM_RESPONSE_TITLE")}</h4>
+                    <div className="modal" id="sysResponse" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sysResponseTitle">
+                        <div className="modal-dialog">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h4 className="modal-title" id="sysResponseTitle">{i18n.t("SYSTEM_RESPONSE_TITLE")}</h4>
                                 </div>
-                                <div className="modal-body ps" style={{ background: "rgba(0, 0, 0, 0.4)", maxHeight: "600px" }} id="sysPre">
-                                    <pre style={{ color: "rgb(83, 223, 131)", margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }} className="sysout"><span id="sshoutput"></span></pre>
+                                <div className="modal-body" id="sysPre">
+                                    <pre className="sysout"><span id="sshoutput"></span></pre>
                                 </div>
-                                <div className="modal-footer" style={{ background: "rgba(0, 0, 0, 0.4)", border: "0!important" }}>
+                                <div className="modal-footer">
                                     <button
                                         id="sysResponseCloseAction"
                                         data-default-refresh-after-close="true"

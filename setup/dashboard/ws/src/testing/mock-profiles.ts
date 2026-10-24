@@ -353,6 +353,11 @@ export const emptySystem: MockProfile = {
 };
 
 const profiles: Record<string, MockProfile> = {
+    "installing": {
+        ...partialRunning,
+        name: "installing",
+        lockFiles: [...partialRunning.lockFiles, "/install/.install.lock"],
+    },
     "long-branch": {
         ...allRunning,
         name: "long-branch",

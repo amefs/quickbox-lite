@@ -316,6 +316,8 @@
   }
 
   function updateSshOutput(task, response) {
+    let container = document.getElementById("sysPre");
+    let followOutput = container && container.scrollHeight - container.scrollTop - container.clientHeight <= 24;
     let el = window.jQuery(task.id);
     if (typeof response === "object" && response !== null && "content" in response) {
       let previousEnd = task._endOffset;
@@ -348,11 +350,7 @@
         el.text(String(response || ""));
       }
     }
-    let container = document.getElementById("sysPre");
-    if (window.__psSysPre) {
-      window.__psSysPre.update();
-    }
-    if (container) {
+    if (container && followOutput) {
       container.scrollTop = container.scrollHeight;
     }
   }
@@ -980,10 +978,7 @@
     let psElements = document.querySelectorAll(".ps");
     if (typeof window.PerfectScrollbar === "function") {
       psElements.forEach(function (element) {
-        let psInstance = new window.PerfectScrollbar(element);
-        if (element.id === "sysPre") {
-          window.__psSysPre = psInstance;
-        }
+        new window.PerfectScrollbar(element);
       });
     } else {
       // Fallback: keep scrollable containers usable even if Perfect Scrollbar fails to load.
