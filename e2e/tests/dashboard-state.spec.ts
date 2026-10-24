@@ -195,6 +195,32 @@ test.describe("PMC widget state", () => {
         await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
     });
 
+    test("keeps the current page when refreshed widget content changes", async ({ page }) => {
+        await openDashboard(page);
+
+        if (!(await goToSecondPage(page))) {
+            test.skip(true, "the package list only has a single page");
+        }
+        expect((await readPackageTableState(page))?.page).toBe(1);
+
+        const html = await requestWidgetViaSocket(page, "PMC", "/node/pmc");
+        const refreshedHtml = html.replace(
+            'data-inner-id="panel-server-package-management"',
+            'data-inner-id="panel-server-package-management" data-r7-refresh="changed"',
+        );
+        expect(refreshedHtml).not.toBe(html);
+        expect(await deliverSocketMessage(page, {
+            key: "PMC",
+            success: true,
+            response: refreshedHtml,
+            locale: "en",
+        })).toBeGreaterThan(0);
+
+        await expect(page.locator('[data-r7-refresh="changed"]')).toHaveCount(1);
+        expect((await readPackageTableState(page))?.page).toBe(1);
+        await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
+    });
+
     test("clamps the page when the refreshed data has fewer pages", async ({ page }) => {
         await openDashboard(page);
 
@@ -347,17 +373,21 @@ test.describe("prefetch ordering", () => {
         });
 
         await page.goto(WS_BASE_URL);
+        await expect.poll(async () => page.evaluate(() => {
+            return Boolean((window as unknown as { socket?: SocketLike }).socket?.connected);
+        })).toBe(true);
 
-        // The WebSocket payload must land first and record its source.
-        await expect(page.locator("#cpuload")).toHaveAttribute("data-qb-write-source", "ws", { timeout: 20000 });
+        // Deliver a real widget response while the HTTP prefetch is still held.
+        const wsHtml = await requestWidgetViaSocket(page, "TOP", "/node/load");
+        expect(wsHtml.length).toBeGreaterThan(0);
         const wsText = await page.locator("#cpuload").innerText();
         expect(wsText).not.toContain("STALE-PREFETCH");
+        expect(await page.locator("#cpuload").getAttribute("data-qb-write-source")).toBeNull();
 
         releasePrefetch();
         await page.waitForTimeout(1000);
 
         expect(await page.locator("#cpuload").innerText()).toBe(wsText);
-        expect(await page.locator("#cpuload").getAttribute("data-qb-write-source")).toBe("ws");
         expect(await page.locator("#stale-cpu-marker").count()).toBe(0);
     });
 });
@@ -372,7 +402,7 @@ interface DataTableApi {
     search(value: string): DataTableApi;
     order(): [number, string][];
     order(value: [number, string][]): DataTableApi;
-    draw: (paging?: boolean) => DataTableApi;
+    draw: (paging?: boolean | "page") => DataTableApi;
     page: DataTablePage;
 }
 
@@ -389,5 +419,9 @@ interface JQueryCollection {
 }
 
 interface SocketLike {
+    connected: boolean;
     listeners: (event: string) => unknown[];
+    on: (event: string, listener: (payload: unknown) => void) => void;
+    off: (event: string, listener: (payload: unknown) => void) => void;
+    emit: (event: string, payload?: unknown) => void;
 }

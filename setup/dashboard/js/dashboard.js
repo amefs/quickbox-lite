@@ -87,36 +87,20 @@
       .replace(/'/g, "&#39;");
   }
 
-  // Component write ordering. A widget can be filled by the HTTP pre-fetch or by
-  // the WebSocket stream; the newest WebSocket payload must always win, so every
-  // write records its source instead of inferring readiness from the DOM.
-  var widgetWriteSource = {};
+  var WRITE_SOURCE = { PREFETCH: 1, WS: 2 };
+  var widgetWritePriority = {};
 
   function markWidgetWritten(selector, source) {
     if (!selector) { return; }
-    widgetWriteSource[selector] = source;
-    var element = document.querySelector(selector);
-    if (element instanceof HTMLElement) {
-      element.dataset.qbWriteSource = source;
-    }
+    widgetWritePriority[selector] = source;
   }
 
-  function widgetWriteSourceOf(selector) {
-    if (Object.prototype.hasOwnProperty.call(widgetWriteSource, selector)) {
-      return widgetWriteSource[selector];
-    }
-    var element = document.querySelector(selector);
-    if (element instanceof HTMLElement && element.dataset.qbWriteSource) {
-      return element.dataset.qbWriteSource;
-    }
-    return "";
+  function canWriteWidget(selector, source) {
+    return Boolean(selector) && source >= (widgetWritePriority[selector] || 0);
   }
 
   function resetWidgetWriteState() {
-    widgetWriteSource = {};
-    Array.prototype.forEach.call(document.querySelectorAll("[data-qb-write-source]"), function (element) {
-      delete element.dataset.qbWriteSource;
-    });
+    widgetWritePriority = {};
   }
 
   window.quickboxResetWidgetState = resetWidgetWriteState;
@@ -259,8 +243,7 @@
       page = pageCount - 1;
     }
     if (page > 0) {
-      // draw(false) keeps the paging position while the data is refreshed.
-      table.page(page).draw(false);
+      table.page(page).draw("page");
     }
     $(".tooltips").tooltip({ container: "body" });
   }
@@ -584,6 +567,9 @@
           return;
         }
         if (task.id !== undefined) {
+          if (!canWriteWidget(task.id, WRITE_SOURCE.WS)) {
+            return;
+          }
           if (task._lastHtml === response.response) {
             return;
           }
@@ -592,7 +578,7 @@
             task.beforeHtml(task);
           }
           window.jQuery(task.id).html(response.response);
-          markWidgetWritten(task.id, "ws");
+          markWidgetWritten(task.id, WRITE_SOURCE.WS);
           if (task.after && typeof task.after === "function") {
             task.after(task);
           }
@@ -933,7 +919,7 @@
 
     // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready).
     function applyPrefetchHtml(selector, html) {
-      if (widgetWriteSourceOf(selector) !== "") {
+      if (!canWriteWidget(selector, WRITE_SOURCE.PREFETCH)) {
         return;
       }
       let $el = window.jQuery(selector);
@@ -941,7 +927,7 @@
         return;
       }
       $el.html(html);
-      markWidgetWritten(selector, "prefetch");
+      markWidgetWritten(selector, WRITE_SOURCE.PREFETCH);
     }
 
     fetch(window.quickboxWidgetUrl("/node/load"), { credentials: "same-origin" })

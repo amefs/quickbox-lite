@@ -343,7 +343,7 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                     <div className="mainpanel">
                         <div className="contentpanel">
                             <div className="row">
-                                <div className="col-md-8" data-inner-id="left-panel-container">
+                                <div className="col-sm-8" data-inner-id="left-panel-container">
                                     <div className="panel panel-main panel-inverse" data-inner-id="panel-server-bandwidth-interface">
                                         <div className="panel-heading">
                                             <h4 className="panel-title">{i18n.t("BANDWIDTH_DATA")}</h4>
@@ -390,7 +390,7 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                                         <div id="pmc_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.packageManagementCenterHtml }}></div>
                                     )}
                                 </div>
-                                <div className="col-md-4 dash-right" data-inner-id="right-panel-container">
+                                <div className="col-sm-4 dash-right" data-inner-id="right-panel-container">
                                     <div className="panel panel-side panel-inverse-full panel-updates" data-inner-id="panel-server-load">
                                         <div className="panel-heading"><h4 className="panel-title text-success">{i18n.t("SERVER_LOAD")}</h4></div>
                                         <div className="panel-body">
