@@ -6,7 +6,7 @@ jobs. The native systemd job receives the same npm cache and compiled bundle.
 The existing Linter workflow owns the full WS unit suite; deployment acceptance
 does not repeat it.
 
-These suites mutate `/srv`, `/etc/nginx`, `/etc/quickbox`, `/install` and managed
+The Linux, systemd and authentication suites mutate `/srv`, `/etc/nginx`, `/etc/quickbox`, `/install` and managed
 service files. Run them only in their disposable container or a fresh CI VM.
 They never mount the host's deployment directories or Docker socket.
 
@@ -25,6 +25,7 @@ Actions and use **Run workflow**; this runs lint followed by acceptance.
 | Job | Application checks |
 | --- | --- |
 | Update and recovery sandboxes | Node runtime policy; staging/gateway/health/update; backup/configuration restore; repository revert/reinstall; progress/arguments |
+| Dashboard browser interactions | Page rendering; widgets and WS data; PMC state and mock actions; locale; debug console; error dialogs |
 | Prepare application image and offline dependencies | System tools; current and pinned baseline production dependencies; verified bundle; offline installation proof; reusable artifacts |
 | Linux application deployment | Fresh install/permissions/sudo; HTTP/TLS/Socket.IO; baseline/repeated upgrade; five injected failures and rollback; WS/CLI mutual exclusion |
 | Native systemd lifecycle | Real deployment; unit settings/automatic restart/port recovery; detached update across a WS service restart |
@@ -36,6 +37,14 @@ are grouped in the logs. Independent sandbox groups continue after a failure;
 stateful deployment and authentication steps stop after a failure. Cleanup and
 summary steps always run. Failures retain Linux/service logs or authentication
 Compose logs and browser screenshots.
+
+The browser interaction job starts alongside the sandboxes and image preparation
+after lint passes. It runs the full `e2e/tests` Playwright suite against the local
+Node dashboard in mock mode, without Docker, nginx or application installation.
+Package actions update mock state rather than installing software or changing
+host services. npm dependencies and Chromium are cached. HTML reports and browser
+test artifacts are uploaded on success or failure. Changes anywhere under `e2e/`,
+including tests and Playwright configuration, select acceptance.
 
 ## External dependencies
 
@@ -187,8 +196,8 @@ location snippets are used. No external accounts or secrets are required.
 Playwright checks login, HTTP access, polling, WebSockets, anonymous rejection,
 and tampered/expired cookies. Valid and corrupted provider cookies are also sent
 to the actual root health checker. The current root-page assertion checks only
-that the body is nonempty; the full `e2e/tests` application interaction suite is
-separate and uses its own mock server.
+that the body is nonempty; the separate Dashboard browser interactions job runs
+the full `e2e/tests` application interaction suite with its own mock server.
 
 A local CONNECT proxy preserves the fixture HTTPS origin and cookie domains
 without editing `/etc/hosts`. Certificate verification is disabled only in test

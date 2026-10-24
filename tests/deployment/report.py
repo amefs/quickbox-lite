@@ -8,6 +8,10 @@ import subprocess
 import time
 
 PLANS = {
+    'panel': {
+        'prepare': 'Prepare Node dependencies and Chromium',
+        'tests': 'Dashboard rendering, widgets, state and interactions',
+    },
     'sandboxes': {
         'runner': 'Acceptance runner regression checks',
         'runtime': 'Node runtime policy',

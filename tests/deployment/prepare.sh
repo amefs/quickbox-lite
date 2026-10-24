@@ -5,6 +5,11 @@ repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$repo"
 
 case "${1:-}" in
+panel)
+  npm ci --no-audit --no-fund --prefix setup/dashboard/ws
+  npm ci --no-audit --no-fund --prefix e2e
+  (cd e2e && npx --no-install playwright install --with-deps chromium)
+  ;;
 linux)
   docker load -i "$RUNNER_TEMP/deployment-image.tar.gz"
   bash tests/deployment/run-linux.sh --start
@@ -25,5 +30,5 @@ authentication)
   (cd e2e && npx --no-install playwright install --with-deps chromium)
   bash tests/deployment/run-auth.sh --prepare
   ;;
-*) echo 'Supply an environment: linux, systemd or authentication.' >&2; exit 2 ;;
+*) echo 'Supply an environment: panel, linux, systemd or authentication.' >&2; exit 2 ;;
 esac

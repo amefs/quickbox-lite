@@ -1,11 +1,27 @@
 # QuickBox Lite E2E Testing
 
-The E2E suite runs Playwright and the mock Node dashboard on the host. Docker runs only Nginx, so requests pass through the same `/ws` rewrite used by the deployed panel without copying the dashboard or database into containers.
+## Continuous integration
+
+After all lint checks pass, `Linter` calls the acceptance workflow, whose
+**Dashboard browser interactions** job runs this full suite with `npm test`.
+The job uses the local mock Node server and Chromium; it requires no Docker,
+nginx, application package installation or host service changes. Package actions
+only change mock state. It runs in parallel with deployment image preparation.
+Changes to tests, scripts or configuration under `e2e/` select acceptance.
+
+The job summary records preparation and test durations. The
+`dashboard-panel-browser-report` artifact includes the HTML report, screenshots
+and any failure traces, retained for seven days.
+
+The E2E suite runs Playwright and the mock Node dashboard on the host. The optional
+`npm run e2e` path also runs Nginx in Docker, so requests pass through the same
+`/ws` rewrite used by the deployed panel without copying the dashboard or database
+into containers.
 
 ## Prerequisites
 
-- Node.js 20+ and npm
-- Docker Engine or Docker Desktop with `docker compose`
+- Node.js 24 and npm
+- Docker Engine or Docker Desktop with `docker compose` only for `npm run e2e`
 - Chromium installed for Playwright (`npx playwright install chromium`)
 - Node dashboard dependencies installed from `setup/dashboard/ws`
 
@@ -45,3 +61,4 @@ Available profiles are defined in `../setup/dashboard/ws/src/testing/mock-profil
 - `tests/dashboard.spec.ts`: page load, widgets, service badges, and screenshots
 - `tests/interaction.spec.ts`: language switching, package UI, and service controls
 - `tests/debug-console.spec.ts`: WS debug console and API checks
+- `tests/dashboard-state.spec.ts`: PMC search/sort/pagination, layout and HTTP/WS ordering

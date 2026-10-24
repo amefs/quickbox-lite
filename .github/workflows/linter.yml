@@ -159,7 +159,7 @@ jobs:
             packages/package/install/installpackage-authelia \
             packages/package/install/installpackage-vouchproxy \
             packages/package/install/installpackage-flood \
-            tests e2e/scripts/deployment-auth.cjs 'e2e/package*.json' \
+            tests e2e \
             .github/workflows/deployment.yml .github/workflows/linter.yml \
             > "$RUNNER_TEMP/dashboard-changes.txt"
           if [[ -s "$RUNNER_TEMP/dashboard-changes.txt" ]]; then

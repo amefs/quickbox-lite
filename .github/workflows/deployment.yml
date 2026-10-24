@@ -36,6 +36,44 @@ jobs:
         if: always()
         run: python3 tests/deployment/report.py --summary
 
+  panel:
+    name: Dashboard browser interactions
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    env:
+      QUICKBOX_ACCEPTANCE_SUITE: panel
+      QUICKBOX_ACCEPTANCE_RESULTS: /tmp/quickbox-panel-results.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            setup/dashboard/ws/package-lock.json
+            e2e/package-lock.json
+      - name: Cache Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
+      - name: Prepare Node dependencies and Chromium
+        run: python3 tests/deployment/report.py prepare bash tests/deployment/prepare.sh panel
+      - name: Dashboard rendering, widgets, state and interactions
+        run: python3 tests/deployment/report.py tests npm test --prefix e2e
+      - name: Acceptance summary
+        if: always()
+        run: python3 tests/deployment/report.py --summary
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dashboard-panel-browser-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
   prepare-image:
     name: Prepare application image and offline dependencies
     runs-on: ubuntu-22.04
