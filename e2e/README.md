@@ -2,20 +2,20 @@
 
 ## Continuous integration
 
-After all lint checks pass, `Linter` calls the acceptance workflow, whose
-**Dashboard browser interactions** job runs this full suite with `npm test`.
-The job uses the local mock Node server and Chromium; it requires no Docker,
-nginx, application package installation or host service changes. Package actions
-only change mock state. It runs in parallel with deployment image preparation.
+After all lint checks pass, `Linter` calls the acceptance workflow, whose  
+**Dashboard browser interactions** job runs this full suite with `npm test`.  
+The job uses the local mock Node server and Chromium; it requires no Docker,  
+nginx, application package installation or host service changes. Package actions  
+only change mock state. It runs in parallel with deployment image preparation.  
 Changes to tests, scripts or configuration under `e2e/` select acceptance.
 
-The job summary records preparation and test durations. The
-`dashboard-panel-browser-report` artifact includes the HTML report, screenshots
+The job summary records preparation and test durations. The  
+`dashboard-panel-browser-report` artifact includes the HTML report, screenshots  
 and any failure traces, retained for seven days.
 
-The E2E suite runs Playwright and the mock Node dashboard on the host. The optional
-`npm run e2e` path also runs Nginx in Docker, so requests pass through the same
-`/ws` rewrite used by the deployed panel without copying the dashboard or database
+The E2E suite runs Playwright and the mock Node dashboard on the host. The optional  
+`npm run e2e` path also runs Nginx in Docker, so requests pass through the same  
+`/ws` rewrite used by the deployed panel without copying the dashboard or database  
 into containers.
 
 ## Prerequisites
@@ -68,10 +68,10 @@ Available profiles are defined in `../setup/dashboard/ws/src/testing/mock-profil
 - `tests/side-panels.spec.ts`: right column card layout
 - `tests/sidebar.spec.ts`: sidebar behaviour across breakpoints
 
-Shared fixtures live in `tests/support/helpers.ts`. Every spec resets the mock
-profile in `beforeEach`, so no test depends on the profile a previously executed
+Shared fixtures live in `tests/support/helpers.ts`. Every spec resets the mock  
+profile in `beforeEach`, so no test depends on the profile a previously executed  
 file left behind.
 
-`npm run typecheck` runs `tsc --noEmit` over the specs and `playwright.config.ts`;
-CI runs it before the suite so a type regression fails the job instead of being
+`npm run typecheck` runs `tsc --noEmit` over the specs and `playwright.config.ts`;  
+CI runs it before the suite so a type regression fails the job instead of being  
 transpiled away.

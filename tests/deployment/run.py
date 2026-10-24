@@ -50,7 +50,9 @@ def healthy():
 def driver(fresh=False, failure=''):
     if fresh:
         text = (REPO / 'setup.sh').read_text()
-        text = re.search(r'^function _insdashboard\(\) \{\n.*?^\}', text, re.M | re.S).group()
+        matched = re.search(r'^function _insdashboard\(\) \{\n.*?^\}', text, re.M | re.S)
+        assert matched is not None, '_insdashboard() is missing from setup.sh'
+        text = matched.group()
         # Runtime packages and the console-independent nginx fixture are already
         # installed. Execute the real Dashboard installation body after them.
         text += '\n_insngx() { :; }; _insnodejs() { :; }; _webconsole() { :; }\n'
@@ -148,8 +150,9 @@ http {
 ''')
     if os.environ.get('QUICKBOX_TEST_EXTERNAL') == '1':
         config = Path('/etc/nginx/nginx.conf')
-        config.write_text(config.read_text().replace('listen 127.0.0.1:18443 ssl;', 'listen 0.0.0.0:18443 ssl;').replace(
-            'access_log /var/log/nginx/access.log;', 'access_log /auth-fixtures/browser-access.log;'))
+        text = config.read_text().replace('listen 127.0.0.1:18443 ssl;', 'listen 0.0.0.0:18443 ssl;')
+        config.write_text(text.replace('access_log /var/log/nginx/access.log;',
+                                       'access_log /auth-fixtures/browser-access.log;'))
     run(['nginx', '-t'])
     if SYSTEMD:
         # Make the Type=simple readiness race deterministic: the main process
@@ -219,7 +222,8 @@ def legacy():
     shutil.rmtree('/srv/dashboard')
     baseline = Path(os.environ.get('QUICKBOX_TEST_BASELINE_DIR', '/opt/quickbox-baseline'))
     run(['rsync', '-a', str(baseline / 'setup/dashboard') + '/', '/srv/dashboard/'])
-    for filename, content in [('master.txt', 'fixture\n'), ('interface.txt', 'eth0\n'), ('output.log', 'legacy-output\n')]:
+    for filename, content in [('master.txt', 'fixture\n'), ('interface.txt', 'eth0\n'),
+                              ('output.log', 'legacy-output\n')]:
         Path('/srv/dashboard/db', filename).write_text(content)
     shutil.copy(baseline / 'setup/templates/systemd/quickbox-ws.service.template',
                 '/etc/systemd/system/quickbox-ws.service')

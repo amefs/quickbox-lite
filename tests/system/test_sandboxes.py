@@ -69,7 +69,8 @@ def _make_runner(group, script):
             )
         except subprocess.TimeoutExpired:
             self.fail(f"{script} exceeded the {TIMEOUT_SECONDS}s budget")
-        self.assertEqual(completed.returncode, 0, f"{script} exited with {completed.returncode}")
+        else:
+            self.assertEqual(completed.returncode, 0, f"{script} exited with {completed.returncode}")
 
     return run
 

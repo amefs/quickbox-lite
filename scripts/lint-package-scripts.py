@@ -175,7 +175,9 @@ def check_options(source, template, error):
         error('options', 'use the template getopt header and quote "$@"')
         return {}
     short, long = match.groups()
-    if not re.fullmatch(r'(?:[A-Za-z0-9]:?)+', short) or not re.fullmatch(r'[a-z][a-z0-9-]*:?(?:,[a-z][a-z0-9-]*:?)*', long):
+    valid_short = re.fullmatch(r'(?:[A-Za-z0-9]:?)+', short)
+    valid_long = re.fullmatch(r'[a-z][a-z0-9-]*:?(?:,[a-z][a-z0-9-]*:?)*', long)
+    if not valid_short or not valid_long:
         error('options', 'options must be flags or require one value (a single colon)')
     cases = list(CASE.finditer(source + '\n'))
     extra = ''.join(case[0] for case in cases if case[1] not in ('-h | --help', '-l | --log'))
@@ -218,6 +220,127 @@ def check_options(source, template, error):
     return declared
 
 
+def check_section_markers(view, error):
+    banners = list(SECTION.finditer(view))
+    title_offsets = {match.start() + len(SEPARATOR) + 1 for match in banners}
+    for match in SECTION_TITLE.finditer(view):
+        if match.start() not in title_offsets:
+            error('sections', 'stray or duplicate section title outside a complete banner: ' + match[1], match.start())
+    for match in BANNER.finditer(view):
+        if match[1] not in SECTION_NAMES:
+            error('sections', 'unknown section title: ' + match[1], match.start())
+    for match in HASH_LINE.finditer(view):
+        if len(match[0]) >= 20 and len(match[0]) != 80:
+            error('sections', "section separators must be exactly 80 '#' characters", match.start())
+
+
+def check_metadata(blocks, header, action, error):
+    title = re.search(r'^APP_TITLE="([^"\n]+)"$', blocks['APP VARIABLE'], re.M)
+    app = re.search(r'^APP_NAME="([a-z0-9-]+)"$', blocks['APP VARIABLE'], re.M)
+    if not title or not app:
+        error('metadata', 'declare a quoted, nonempty APP_TITLE and lowercase APP_NAME')
+    elif f'# [QuickBox Lite {title[1]} {ROLES[action]}]\n' not in header:
+        error('header', 'title must match APP_TITLE and the lifecycle action')
+    if 'OUTTO="/srv/dashboard/db/output.log"' not in blocks['APP VARIABLE'].splitlines():
+        error('metadata', 'declare OUTTO="/srv/dashboard/db/output.log" in APP VARIABLE')
+    for variable in ['APP_TITLE', 'APP_NAME', 'APP_LOCK', 'OUTTO']:
+        declarations = re.findall(r'^' + variable + r'=(.*)$', blocks['APP VARIABLE'], re.M)
+        if len(declarations) > 1:
+            error('metadata', 'duplicate metadata assignment: ' + variable)
+        if variable == 'APP_LOCK' and declarations and declarations[0] not in (
+                '".${APP_NAME}.lock"', '".${username}.${APP_NAME}.lock"'):
+            error('metadata', 'quote APP_LOCK using ${APP_NAME} (optionally scoped by ${username})')
+
+
+def check_function_declarations(source, view, layout, starts, action, error):
+    found = functions(source)
+    declaration_view = view
+    for _, start, end in reversed(found):
+        declaration_view = (declaration_view[:start]
+                            + '\n' * declaration_view[start:end].count('\n')
+                            + declaration_view[end:])
+    for match in FUNCTION_LIKE.finditer(declaration_view):
+        error('format', 'function declarations must use: function name() {', match.start())
+    for name, count in Counter(name for name, _, _ in found).items():
+        if count > 1:
+            error('functions', 'duplicate function definition: ' + name)
+    for name, start, _ in found:
+        if not source[start:].startswith(f'function {name}() {{\n'):
+            error('format', 'use a multiline function declaration: function ' + name + '() {', start)
+    required = ['_usage', '_lockCheck', '_setLock', '_lockCleanup', '_' + action + 'Info']
+    required += {'install': ['_installAppLock'], 'remove': ['_removeAppLock'], 'update': ['_updateApp']}[action]
+    bodies = {name: source[start:end] for name, start, end in found}
+    for name in required:
+        if name not in bodies:
+            error('functions', 'missing lifecycle function: ' + name)
+    for name, start, _ in found:
+        allowed = ['HELP FUNCTIONS', 'SCRIPT FUNCTIONS', action.upper() + ' FUNCTIONS']
+        if not any(label in allowed and begin <= start < end for label, begin, end in layout):
+            error('functions', name + ' must be defined in a function section', start)
+        if name in required:
+            section = 'SCRIPT FUNCTIONS' if name == '_usage' else action.upper() + ' FUNCTIONS'
+            section_end = next(end for label, _, end in layout if label == section)
+            if not starts[section] <= start < section_end:
+                error('functions', name + ' belongs in ' + section, start)
+    return required, bodies
+
+
+def check_section_purity(blocks, action, error):
+    # Executable lifecycle work belongs inside functions, before option parsing.
+    for section in ['SCRIPT FUNCTIONS', action.upper() + ' FUNCTIONS']:
+        body = blocks[section] + '\n'
+        view = shell_view(body)
+        for _, start, end in reversed(functions(body)):
+            view = view[:start] + '\n' * view[start:end].count('\n') + view[end:]
+        if any(line.strip() and not line.lstrip().startswith('#') for line in view.splitlines()):
+            error('functions', section + ' must contain only function definitions and comments')
+
+
+def check_locks(bodies, action, error):
+    for name in ['_lockCheck', '_setLock']:
+        if name in bodies and '/install/.install.lock' not in bodies[name]:
+            error('locks', name + ' must check/set the global operation lock')
+    cleanup = bodies.get('_lockCleanup', '')
+    if '/install/.install.lock' not in cleanup and '_clearInstallLock' not in cleanup:
+        error('locks', '_lockCleanup must release the global operation lock')
+    if action == 'install' and not re.search(r'\btouch[ \t]+"?/install/', bodies.get('_installAppLock', '')):
+        error('locks', '_installAppLock must create the package lock')
+    if action == 'remove' and not re.search(r'\brm[ \t]+-f[ \t]+"?/install/', bodies.get('_removeAppLock', '')):
+        error('locks', '_removeAppLock must remove the package lock')
+
+
+def check_usage_documents(declared, usage, error):
+    for flag in sorted(declared):
+        if flag in ('-h', '--help', '-l', '--log'):
+            continue
+        if flag.startswith('--'):
+            present = re.search(r'(?<![\w-])' + re.escape(flag) + r'(?![\w-])', usage)
+        else:
+            present = (re.search(r'(?<![\w-])-' + re.escape(flag[1]) + r'(?![\w-])', usage)
+                       or re.search(r'\[-[A-Za-z]*' + re.escape(flag[1]) + r'[A-Za-z]*\]', usage))
+        if not present:
+            error('usage', 'document ' + flag + ' in _usage')
+
+
+def check_main(blocks, bodies, required, action, error):
+    main = [line.strip() for line in shell_view(blocks['MAIN PROCESS']).splitlines()
+            if line.strip() and not line.lstrip().startswith('#')]
+    prefix = ['_lockCheck', '_setLock', '_' + action + 'Info']
+    if main[:3] != prefix or main[-1:] != ['_lockCleanup']:
+        error('lifecycle', 'main must start with ' + ', '.join(prefix) + ' and end with _lockCleanup')
+    for line in main:
+        if not re.fullmatch(r'_\w+(?:[ \t]+[^;]+)?|(?:if|elif) \[\[ .* \]\]; then|else|fi', line):
+            error('lifecycle', 'put executable steps in functions; main allows calls and [[ ]] conditionals')
+            break
+    calls = re.findall(r'^\s*(_\w+)(?:\s|$)', blocks['MAIN PROCESS'], re.M)
+    for name in calls:
+        if name not in bodies:
+            error('lifecycle', 'main calls an undefined function: ' + name)
+    for name in required[4:]:
+        if name not in calls:
+            error('lifecycle', 'main must call ' + name)
+
+
 def check_script(path, action, templates):
     errors = []
     locations = {}
@@ -241,17 +364,7 @@ def check_script(path, action, templates):
         error('syntax', syntax.stderr.strip())
         return errors
     view = shell_view(source)
-    banners = list(SECTION.finditer(view))
-    title_offsets = {match.start() + len(SEPARATOR) + 1 for match in banners}
-    for match in SECTION_TITLE.finditer(view):
-        if match.start() not in title_offsets:
-            error('sections', 'stray or duplicate section title outside a complete banner: ' + match[1], match.start())
-    for match in BANNER.finditer(view):
-        if match[1] not in SECTION_NAMES:
-            error('sections', 'unknown section title: ' + match[1], match.start())
-    for match in HASH_LINE.finditer(view):
-        if len(match[0]) >= 20 and len(match[0]) != 80:
-            error('sections', "section separators must be exactly 80 '#' characters", match.start())
+    check_section_markers(view, error)
     layout = sections(source)
     names = [name for name, _, _ in layout]
     expected = ['HELP FUNCTIONS', 'APP VARIABLE', 'SCRIPT FUNCTIONS', action.upper() + ' FUNCTIONS',
@@ -273,101 +386,18 @@ def check_script(path, action, templates):
     if any(line.strip() and not line.startswith('#') for line in header.splitlines()):
         error('header', 'only comments and blank lines may precede the first section')
     check_header_schema(source, error)
-    title = re.search(r'^APP_TITLE="([^"\n]+)"$', blocks['APP VARIABLE'], re.M)
-    app = re.search(r'^APP_NAME="([a-z0-9-]+)"$', blocks['APP VARIABLE'], re.M)
-    if not title or not app:
-        error('metadata', 'declare a quoted, nonempty APP_TITLE and lowercase APP_NAME')
-    elif f'# [QuickBox Lite {title[1]} {ROLES[action]}]\n' not in header:
-        error('header', 'title must match APP_TITLE and the lifecycle action')
-    if 'OUTTO="/srv/dashboard/db/output.log"' not in blocks['APP VARIABLE'].splitlines():
-        error('metadata', 'declare OUTTO="/srv/dashboard/db/output.log" in APP VARIABLE')
-    for variable in ['APP_TITLE', 'APP_NAME', 'APP_LOCK', 'OUTTO']:
-        declarations = re.findall(r'^' + variable + r'=(.*)$', blocks['APP VARIABLE'], re.M)
-        if len(declarations) > 1:
-            error('metadata', 'duplicate metadata assignment: ' + variable)
-        if variable == 'APP_LOCK' and declarations and declarations[0] not in (
-                '".${APP_NAME}.lock"', '".${username}.${APP_NAME}.lock"'):
-            error('metadata', 'quote APP_LOCK using ${APP_NAME} (optionally scoped by ${username})')
+    check_metadata(blocks, header, action, error)
     if blocks['HELP FUNCTIONS'] != templates[action]['HELP FUNCTIONS']:
         error('helpers', 'HELP FUNCTIONS must match the template logging/UI helpers')
-    found = functions(source)
-    declaration_view = view
-    for _, start, end in reversed(found):
-        declaration_view = (declaration_view[:start]
-                            + '\n' * declaration_view[start:end].count('\n')
-                            + declaration_view[end:])
-    for match in FUNCTION_LIKE.finditer(declaration_view):
-        error('format', 'function declarations must use: function name() {', match.start())
-    counts = Counter(name for name, _, _ in found)
-    for name, count in counts.items():
-        if count > 1:
-            error('functions', 'duplicate function definition: ' + name)
-    for name, start, _ in found:
-        if not source[start:].startswith(f'function {name}() {{\n'):
-            error('format', 'use a multiline function declaration: function ' + name + '() {', start)
-    required = ['_usage', '_lockCheck', '_setLock', '_lockCleanup', '_' + action + 'Info']
-    required += {'install': ['_installAppLock'], 'remove': ['_removeAppLock'], 'update': ['_updateApp']}[action]
-    bodies = {name: source[start:end] for name, start, end in found}
-    for name in required:
-        if name not in bodies:
-            error('functions', 'missing lifecycle function: ' + name)
-    for name, start, _ in found:
-        allowed = ['HELP FUNCTIONS', 'SCRIPT FUNCTIONS', action.upper() + ' FUNCTIONS']
-        if not any(label in allowed and begin <= start < end for label, begin, end in layout):
-            error('functions', name + ' must be defined in a function section', start)
-        if name in required:
-            section = 'SCRIPT FUNCTIONS' if name == '_usage' else action.upper() + ' FUNCTIONS'
-            section_end = next(end for label, _, end in layout if label == section)
-            if not starts[section] <= start < section_end:
-                error('functions', name + ' belongs in ' + section, start)
-    # Executable lifecycle work belongs inside functions, before option parsing.
-    for section in ['SCRIPT FUNCTIONS', action.upper() + ' FUNCTIONS']:
-        body = blocks[section] + '\n'
-        view = shell_view(body)
-        for _, start, end in reversed(functions(body)):
-            view = view[:start] + '\n' * view[start:end].count('\n') + view[end:]
-        if any(line.strip() and not line.lstrip().startswith('#') for line in view.splitlines()):
-            error('functions', section + ' must contain only function definitions and comments')
+    required, bodies = check_function_declarations(source, view, layout, starts, action, error)
+    check_section_purity(blocks, action, error)
     usage = bodies.get('_usage', '')
     if ROLES[action] not in usage or '--help' not in usage or '--log' not in usage:
         error('usage', '_usage must describe the action, --help and --log')
-    for name in ['_lockCheck', '_setLock']:
-        if name in bodies and '/install/.install.lock' not in bodies[name]:
-            error('locks', name + ' must check/set the global operation lock')
-    cleanup = bodies.get('_lockCleanup', '')
-    if '/install/.install.lock' not in cleanup and '_clearInstallLock' not in cleanup:
-        error('locks', '_lockCleanup must release the global operation lock')
-    if action == 'install' and not re.search(r'\btouch[ \t]+"?/install/', bodies.get('_installAppLock', '')):
-        error('locks', '_installAppLock must create the package lock')
-    if action == 'remove' and not re.search(r'\brm[ \t]+-f[ \t]+"?/install/', bodies.get('_removeAppLock', '')):
-        error('locks', '_removeAppLock must remove the package lock')
+    check_locks(bodies, action, error)
     declared = check_options(blocks['OPT GENERATOR'], templates[action]['OPT GENERATOR'], error)
-    for flag in sorted(declared):
-        if flag in ('-h', '--help', '-l', '--log'):
-            continue
-        if flag.startswith('--'):
-            present = re.search(r'(?<![\w-])' + re.escape(flag) + r'(?![\w-])', usage)
-        else:
-            present = (re.search(r'(?<![\w-])-' + re.escape(flag[1]) + r'(?![\w-])', usage)
-                       or re.search(r'\[-[A-Za-z]*' + re.escape(flag[1]) + r'[A-Za-z]*\]', usage))
-        if not present:
-            error('usage', 'document ' + flag + ' in _usage')
-    main = [line.strip() for line in shell_view(blocks['MAIN PROCESS']).splitlines()
-            if line.strip() and not line.lstrip().startswith('#')]
-    prefix = ['_lockCheck', '_setLock', '_' + action + 'Info']
-    if main[:3] != prefix or main[-1:] != ['_lockCleanup']:
-        error('lifecycle', 'main must start with ' + ', '.join(prefix) + ' and end with _lockCleanup')
-    for line in main:
-        if not re.fullmatch(r'_\w+(?:[ \t]+[^;]+)?|(?:if|elif) \[\[ .* \]\]; then|else|fi', line):
-            error('lifecycle', 'put executable steps in functions; main allows calls and [[ ]] conditionals')
-            break
-    calls = re.findall(r'^\s*(_\w+)(?:\s|$)', blocks['MAIN PROCESS'], re.M)
-    for name in calls:
-        if name not in bodies:
-            error('lifecycle', 'main calls an undefined function: ' + name)
-    for name in required[4:]:
-        if name not in calls:
-            error('lifecycle', 'main must call ' + name)
+    check_usage_documents(declared, usage, error)
+    check_main(blocks, bodies, required, action, error)
     return errors
 
 

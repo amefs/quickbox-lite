@@ -233,13 +233,32 @@ python3 -m unittest discover -s tests/deployment -p 'test_*.py' -v
 bash tests/system/run-dashboard-sandboxes.sh
 ```
 
-Python tooling (`flake8`, `prettytable` for the benchmark helpers) is managed by
-uv; `Pipfile` is gone and `uv.lock` replaces `Pipfile.lock`:
+Python tooling (`flake8`, `pyright`, `prettytable` for the benchmark helpers) is
+managed by uv; `Pipfile` is gone and `uv.lock` replaces `Pipfile.lock`:
 
 ```sh
-uv sync                                     # create .venv from uv.lock
-uv run flake8 packages/system/auxiliary/    # same scope the linter job lints
+uv sync                 # create .venv from uv.lock
+uv run flake8           # every tracked .py in the repository
+uv run pyright          # type-check, same rules Pylance applies in the editor
+uv run flake8 tests/    # narrow to one subtree when iterating
 ```
+
+`.python-version`, `pyproject.toml` and `pyrightconfig.json` pin 3.14 for the
+repository tooling in `scripts/` and `tests/`. Scripts under `packages/system`
+run on the target host instead: `installpackage-deluge` calls the same file with
+`python2` or `python3` depending on the Deluge version, and `setup.sh` only
+guarantees whichever single interpreter the distro ships. They are still part of
+the type-check: the Python 2/3 shim uses a `sys.version_info` branch instead of
+an undefined name, and `typings/deluge/config.pyi` declares the module the host
+provides, so pyright covers these files without any suppression.
+
+`.flake8` owns the lint scope: it excludes `.venv`, `node_modules`, `vendor`,
+build outputs and tool caches, so a bare `uv run flake8` lints only project
+sources and is what the `python-linter` job runs. The config carries no
+`ignore`, no `per-file-ignores` and no `# noqa` markers — a new warning is
+fixed at the source instead of being suppressed. `pyrightconfig.json` does the
+same for type checking — Pylance reads that file too, so the editor and CI
+cannot drift apart.
 
 The sandbox wrapper also accepts `runtime`, `dashboard`, `backups`, `repository`
 or `progress` to run one group. All sandbox mutations stay in temporary paths.

@@ -17,8 +17,17 @@ SECRET = 'health-proxy-fixture'
 BASIC = 'Basic ' + base64.b64encode(b'fixture:probe-password').decode()
 
 
+class FixtureServer(ThreadingHTTPServer):
+    """Server carrying the per-test switches that Handler reads off ``self.server``."""
+    backend = False
+    failure = ''
+    delay = 0
+    pending_reload = 0
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
+    server: FixtureServer
 
     def log_message(self, *args):
         pass
@@ -27,7 +36,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.server.backend:
             authenticated = self.headers.get('X-Quickbox-Gateway') == SECRET
         else:
-            authenticated = self.headers.get('Authorization') == BASIC or self.headers.get('Cookie') == 'health_session=valid'
+            authorization = self.headers.get('Authorization')
+            cookie = self.headers.get('Cookie')
+            authenticated = authorization == BASIC or cookie == 'health_session=valid'
         if self.path == '/qb-healthz':
             status = 200
         else:
@@ -48,7 +59,8 @@ class Handler(BaseHTTPRequestHandler):
                 if self.path.startswith('/socket.io/'):
                     time.sleep(self.server.delay)
                 key = self.headers.get('Sec-WebSocket-Key', '')
-                accept = base64.b64encode(hashlib.sha1((key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()).decode()
+                full_key = key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
+                accept = base64.b64encode(hashlib.sha1((full_key).encode()).digest()).decode()
                 self.send_response(status)
                 self.send_header('Upgrade', 'invalid' if self.server.failure == 'upgrade' else 'websocket')
                 self.send_header('Connection', 'keep-alive' if self.server.failure == 'connection' else 'Upgrade')
@@ -72,7 +84,7 @@ class ProxyHealthTest(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.servers = []
         for backend in (True, False):
-            server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+            server = FixtureServer(('127.0.0.1', 0), Handler)
             server.backend = backend
             server.failure = ''
             server.delay = 0
@@ -86,7 +98,8 @@ class ProxyHealthTest(unittest.TestCase):
         (self.root / 'secret').write_text(SECRET)
         (self.root / 'passphrase').write_text('fixture-passphrase')
         encoded = subprocess.check_output(['openssl', 'enc', '-aes-128-ecb', '-pbkdf2', '-a', '-e',
-                                          '-pass', f'file:{self.root / "passphrase"}', '-nosalt'], input=b'probe-password')
+                                          '-pass', f'file:{self.root / "passphrase"}', '-nosalt'],
+                                          input=b'probe-password')
         (self.root / 'admin').write_bytes(b'fixture:' + encoded)
         self.env = dict(os.environ, QUICKBOX_WS_SECRET_FILE=str(self.root / 'secret'),
                         QUICKBOX_WS_PORT=str(self.backend.server_port), QUICKBOX_NGINX_SCHEME='http',
@@ -101,7 +114,7 @@ class ProxyHealthTest(unittest.TestCase):
                                 text=True, capture_output=True, timeout=8)
         return result, time.monotonic() - started
 
-    def websocket(self, cookie_file='', host=None):
+    def websocket(self, cookie_file: str | Path = '', host=None):
         function = HELPER.read_text().split('_websocket_code() {', 1)[1].split('\n}\n', 1)[0]
         script = '_websocket_code() {' + function + '\n}\n_websocket_code "$URL"\n'
         env = dict(os.environ, URL=f'http://127.0.0.1:{self.proxy.server_port}/socket.io/?EIO=4&transport=websocket',
@@ -164,7 +177,8 @@ class ProxyHealthTest(unittest.TestCase):
 
     def test_wrong_credentials_are_rejected(self):
         encoded = subprocess.check_output(['openssl', 'enc', '-aes-128-ecb', '-pbkdf2', '-a', '-e',
-                                          '-pass', f'file:{self.root / "passphrase"}', '-nosalt'], input=b'wrong-password')
+                                          '-pass', f'file:{self.root / "passphrase"}', '-nosalt'],
+                                          input=b'wrong-password')
         (self.root / 'admin').write_bytes(b'fixture:' + encoded)
         result, elapsed = self.health()
         self.assertEqual(result.returncode, 1, result.stderr)

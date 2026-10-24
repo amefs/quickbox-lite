@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 DIRECTORY = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location('deployment_run', DIRECTORY / 'run.py')
+assert SPEC is not None and SPEC.loader is not None
 deployment = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(deployment)
 
@@ -39,7 +40,8 @@ class DeploymentPhasesTest(unittest.TestCase):
         cleanup.assert_called_once()
 
     def test_default_linux_sequence_and_failure_cleanup(self):
-        with patch.object(deployment, 'execute_phase', side_effect=[None, None, RuntimeError('upgrade failed')]) as execute, \
+        failures = [None, None, RuntimeError('upgrade failed')]
+        with patch.object(deployment, 'execute_phase', side_effect=failures) as execute, \
                 patch.object(deployment, 'cleanup') as cleanup:
             with self.assertRaisesRegex(RuntimeError, 'upgrade failed'):
                 self.invoke()

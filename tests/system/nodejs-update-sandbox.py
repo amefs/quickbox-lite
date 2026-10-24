@@ -48,8 +48,8 @@ printf 'apt-get %s\n' "$*" >>"$COMMAND_LOG"
 [[ "$FAIL_STAGE" != apt ]] || exit 28
 [[ "$FAIL_STAGE" != apt-update || "$1" != update ]] || exit 30
 if [[ "$1" == install ]]; then
-	printf '#!/bin/sh\nprintf "%%s\\n" "%s"\n' "$TARGET_VERSION" >"$SYSTEM_NODE"
-	chmod +x "$SYSTEM_NODE"
+    printf '#!/bin/sh\nprintf "%%s\\n" "%s"\n' "$TARGET_VERSION" >"$SYSTEM_NODE"
+    chmod +x "$SYSTEM_NODE"
 fi
 ''')
         self.write_command('apt-cache', '''#!/bin/bash
@@ -211,8 +211,10 @@ sys.exit(0 if result else 1)
                 (self.root / 'output.log').unlink(missing_ok=True)
                 source = (REPO / path).read_text()
                 if function != '_updateservice':
-                    source = re.search(r'^function ' + function + r'\(\) \{\n.*?^\}',
-                                       source, re.M | re.S).group()
+                    matched = re.search(r'^function ' + function + r'\(\) \{\n.*?^\}',
+                                        source, re.M | re.S)
+                    assert matched is not None, f'{function}() is missing from {path}'
+                    source = matched.group()
                 source = source.replace('/usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs',
                                         str(failing))
                 source = source.replace('/usr/local/bin/quickbox/system/auxiliary/qbEnsureSudoers',

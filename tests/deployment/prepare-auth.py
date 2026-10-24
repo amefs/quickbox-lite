@@ -9,15 +9,16 @@ root = Path(sys.argv[1])
 for name in ['authelia', 'vouch']:
     (root / name).mkdir(parents=True, exist_ok=True)
     (root / name).chmod(0o755)
-output = subprocess.check_output(['docker', 'run', '--rm', '--pull=never', '--network=none', 'authelia/authelia:4.39.28',
-                                  'authelia', 'crypto', 'hash', 'generate', 'argon2',
-                                  '--password', 'fixture-password'], text=True)
-digest = re.search(r'Digest: (\S+)', output).group(1)
+output = subprocess.check_output(
+    ['docker', 'run', '--rm', '--pull=never', '--network=none', 'authelia/authelia:4.39.28',
+     'authelia', 'crypto', 'hash', 'generate', 'argon2', '--password', 'fixture-password'], text=True)
+digest = re.search(r'Digest: (\S+)', output)
+assert digest is not None
 (root / 'authelia/users_database.yml').write_text(f'''
 users:
   fixture:
     displayname: Fixture Admin
-    password: '{digest}'
+    password: '{digest.group(1)}'
     email: fixture@example.com
     groups: [admins]
 ''')

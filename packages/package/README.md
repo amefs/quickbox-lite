@@ -1,37 +1,45 @@
-# Package 生命周期脚本规范
+# Package lifecycle script conventions
 
-本目录的 `install/installpackage-*`、`remove/removepackage-*` 和
-`update/updatepackage-*` 使用同一套脚本框架。新增或修改软件包时，以
-[`install.sh.template`](templates/install.sh.template)、
-[`remove.sh.template`](templates/remove.sh.template)、
-[`update.sh.template`](templates/update.sh.template) 为起点。
-模板是可复制的独立 Bash 文件；部署后的脚本不需要读取模板或加载新增的公共库。
+The `install/installpackage-*`, `remove/removepackage-*` and
+`update/updatepackage-*` scripts in this directory share one script framework.
+When adding or changing a package, start from
+[`install.sh.template`](templates/install.sh.template),
+[`remove.sh.template`](templates/remove.sh.template) and
+[`update.sh.template`](templates/update.sh.template).
+The templates are standalone Bash files meant to be copied; deployed scripts
+never read a template or load an extra shared library.
 
-## 运行检查
+## Running the checks
 
-在仓库根目录运行：
+From the repository root:
 
 ```sh
 python3 scripts/lint-package-scripts.py
 python3 tests/system/package-scripts-lint-test.py
 ```
 
-只依赖 Python 3.10+ 标准库和 Bash，不需要安装 Python 包。脚本从自身位置定位仓库，
-可以在任意工作目录调用。检查指定的 package 目录时使用：
+The checks need only the system Python 3 standard library and Bash; no Python
+package has to be installed. Each script locates the repository from its own
+path, so it can be called from any working directory. To check a specific
+package directory:
 
 ```sh
 python3 scripts/lint-package-scripts.py --root /path/to/packages/package
 ```
 
-`--root` 下必须有 `install`、`remove`、`update` 目录，检查标准仍来自本仓库的模板。
-lint 默认只读，使用 `bash -n` 检查语法，不会执行或 source 软件包脚本。
-成功返回 0，规范错误返回 1，依赖或读取失败返回 2。错误包含文件路径、行号和规则名。
-GitHub Actions 的 `package-script-linter` job 会运行检查和回归测试。
+`--root` must contain `install`, `remove` and `update` directories; the rules
+still come from this repository's templates. The linter is read-only by
+default: it validates syntax with `bash -n` and never executes or sources a
+package script. It exits 0 on success, 1 on a convention violation and 2 when a
+dependency or read fails. Every error carries the file path, line number and
+rule name. The `package-script-linter` job in GitHub Actions runs both the
+linter and its regression tests.
 
-## 文件框架
+## File layout
 
-文件使用 UTF-8、LF 换行和末尾换行，以 `#!/bin/bash` 开头。
-头部使用统一字段和顺序，字段值对齐到第 20 列：
+Files are UTF-8, use LF line endings, end with a newline and start with
+`#!/bin/bash`. The header carries a fixed field set in a fixed order, with
+values aligned to column 20:
 
 ```bash
 #!/bin/bash
@@ -50,30 +58,38 @@ GitHub Actions 的 `package-script-linter` job 会运行检查和回归测试。
 ################################################################################
 ```
 
-`GitHub`、`Author`、`Current version` 和 SPDX 标识为必填；`Maintainer` 仅在维护者与作者不同时添加，
-`Original Repo`、`Credits to` 只在存在上游来源时添加。字段顺序固定为
-`GitHub → Author → Maintainer → Current version → Original Repo → Credits to`，不要保留空的 `URL:` 字段。
-`Current version` 由 `bump-version.sh` 维护，标签和两个空格都不要改动；模板目录也在版本扫描范围内。
-标题后、SPDX 前各保留一个空 `#`；SPDX 后的空 `#` 之后只允许 `# shellcheck` 指令。
-头部只放注释，并保留 license 区域末尾的整行 `#` 标题分隔线。
-该分隔线与下一个分区的上边框是两条独立的线；分区标题文字只能出现在完整的分区边框中，不能在边框外重复。
-同一软件包的 install/remove/update 头字段值必须一致；lint 会检查字段必填、顺序、对齐、空值和跨脚本差异。
-模板使用 `Author: <author>` 和当前版本占位，复制后替换作者和可选来源字段。
-下列分区按顺序出现，每个分区用上下各 80 个 `#` 包围标题：
+`GitHub`, `Author`, `Current version` and the SPDX identifier are mandatory; add
+`Maintainer` only when the maintainer differs from the author, and
+`Original Repo` / `Credits to` only when an upstream exists. The order is fixed
+as `GitHub → Author → Maintainer → Current version → Original Repo → Credits to`;
+never keep an empty `URL:` field. `Current version` is maintained by
+`bump-version.sh` — do not change the label or its two spaces, and the template
+directory is part of the version scan. Keep one empty `#` after the title and
+one before the SPDX line; after the empty `#` that follows SPDX, only
+`# shellcheck` directives are allowed. The header holds comments only, and the
+license block keeps its closing full-line `#` separator. That separator and the
+top border of the next section are two distinct lines; a section title may
+appear only inside a complete banner, never repeated outside one. All three
+scripts of a package must agree on the header field values; the linter checks
+required fields, order, alignment, empty values and cross-script differences.
+Templates use `Author: <author>` and a placeholder version — replace the author
+and the optional source fields after copying. Sections appear in this order,
+each title wrapped in 80 `#` characters above and below:
 
-| 分区 | 内容 |
+| Section | Contents |
 | --- | --- |
-| `CORE VARIABLE`（可选） | 运行环境初始化、已有的 shell 选项 |
-| `HELP FUNCTIONS` | 与模板完全一致的终端颜色、NEWT 配色和日志函数 |
-| `APP VARIABLE` | 软件包身份、服务名、依赖、默认日志路径及专用变量 |
-| `SCRIPT FUNCTIONS` | `_usage` 和通用辅助函数，例如版本比较 |
-| `INSTALL FUNCTIONS` / `REMOVE FUNCTIONS` / `UPDATE FUNCTIONS` | 对应操作的锁管理及业务函数 |
-| `OPT GENERATOR` | 统一参数循环及软件包专用参数分支 |
-| `MAIN PROCESS` | 按依赖顺序调用生命周期函数 |
+| `CORE VARIABLE` (optional) | runtime environment setup, existing shell options |
+| `HELP FUNCTIONS` | terminal colours, NEWT palette and log helpers identical to the templates |
+| `APP VARIABLE` | package identity, service name, dependencies, default log path and package-specific variables |
+| `SCRIPT FUNCTIONS` | `_usage` and shared helpers such as version comparison |
+| `INSTALL FUNCTIONS` / `REMOVE FUNCTIONS` / `UPDATE FUNCTIONS` | lock handling and business functions for the matching action |
+| `OPT GENERATOR` | shared option loop plus package-specific option branches |
+| `MAIN PROCESS` | lifecycle calls in dependency order |
 
-lint 拒绝未知的分区标题，以及长度不是 80 的分隔线；许可头里的单个 `#` 行不受影响。
+The linter rejects unknown section titles and separators that are not exactly 80
+characters; the single `#` lines in the license header are exempt.
 
-所有外层函数采用多行定义：
+Every outer function uses a multiline definition:
 
 ```bash
 function _configureApp() {
@@ -82,12 +98,17 @@ function _configureApp() {
 }
 ```
 
-`function name() {` 必须写在同一行；`name() {`、`function name {`、把 `{` 放到下一行、单行函数等写法都会报错，避免函数定义逃过重复和必需函数检查。
-函数分区只放函数定义和注释；参数解析完成后再从主流程调用业务函数。
-公共帮助函数和参数框架采用模板中的 Tab 缩进；业务函数的内容、条件分支及现有缩进可以保留。
-heredoc 中生成的配置和嵌入脚本不参加外层框架检查，也不要求改变其缩进。
+`function name() {` must sit on one line; `name() {`, `function name {`, moving
+`{` to the next line and one-line functions are all rejected, so a definition
+cannot slip past the duplicate and required-function checks. Function sections
+contain definitions and comments only; real work is called from the main process
+after option parsing. The shared helpers and the option framework keep the
+templates' tab indentation; package-specific bodies, their conditionals and
+existing indentation may stay as they are. Configurations and embedded scripts
+produced inside a heredoc are excluded from the outer layout checks and keep
+their own indentation.
 
-## 元信息和日志
+## Metadata and logging
 
 ```bash
 APP_TITLE="Example App"
@@ -98,23 +119,30 @@ APP_LOCK=".${APP_NAME}.lock"
 OUTTO="/srv/dashboard/db/output.log"
 ```
 
-`APP_TITLE` 和 `APP_NAME` 必须是非空的双引号字符串，在同一个软件包的三类脚本中保持一致。
-文件名使用对外的软件包标识；`APP_NAME` 可以使用实际应用名，例如 `cifs` 对应 `samba`。
-有服务或依赖时声明 `APP_SERVICE`、`APP_BASEDEPS`，没有时可以省略。
-上述核心元信息不能重复赋值。
+`APP_TITLE` and `APP_NAME` must be non-empty double-quoted strings and identical
+across the three scripts of a package. The filename follows the public package
+identifier, while `APP_NAME` may use the real application name — `cifs` maps to
+`samba`, for example. Declare `APP_SERVICE` and `APP_BASEDEPS` when the package
+has a service or dependencies; omit them otherwise. None of the core metadata
+may be assigned twice.
 
-全局操作锁使用 `/install/.install.lock`，软件包安装标记按现有粒度保存。
-声明 `APP_LOCK` 时使用 `".${APP_NAME}.lock"` 或 `".${username}.${APP_NAME}.lock"`。
-已有直接使用用户级标记路径的脚本可以保留其路径，不能为统一外观而改变锁的粒度。
+The global operation lock is `/install/.install.lock`; package install markers
+keep their current granularity. When declared, `APP_LOCK` is either
+`".${APP_NAME}.lock"` or `".${username}.${APP_NAME}.lock"`. Scripts that already
+use a user-level marker path may keep it — never change lock granularity for the
+sake of uniformity.
 
-`HELP FUNCTIONS` 提供 `_execute`、`_print`、`_info`、`_success`、`_warning`、`_error`。
-日志输出默认追加到 `OUTTO`，`-l` / `--log` 可以覆盖。当前 `_execute` 沿用项目原有的
-单个命令字符串调用约定；需要管道、重定向或复杂引号的命令应直接写 Bash 并显式重定向日志。
+`HELP FUNCTIONS` provides `_execute`, `_print`, `_info`, `_success`, `_warning`
+and `_error`. Log output is appended to `OUTTO` by default; `-l` / `--log`
+overrides it. `_execute` keeps the project's existing single-command-string
+convention; commands that need pipes, redirection or complex quoting should be
+written directly in Bash with an explicit log redirect.
 
-## 参数约定
+## Option conventions
 
-每个脚本都提供 `-h` / `--help` 和 `-l` / `--log <logfile>`，并在 `_usage` 中说明。
-帮助正常退出时返回 0，`getopt` 拒绝参数时返回 1。使用 GNU getopt：
+Every script offers `-h` / `--help` and `-l` / `--log <logfile>` and documents
+them in `_usage`. Help exits 0; `getopt` rejecting an argument exits 1. Use GNU
+getopt:
 
 ```bash
 if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@"); then
@@ -124,11 +152,15 @@ fi
 eval set -- "${ARGS}"
 ```
 
-必须保留 `"$@"`、`eval set -- "${ARGS}"` 和 `OUTTO="$2"` 的引号，确保带空格或单引号的值能够正确传递。
-`_usage` 必须逐一说明 getopt 声明的短选项和长选项；lint 会检查遗漏的参数。
-专用参数在 `getopt` 的短、长选项中声明，并在公共 `--help` / `--log` 分支之后、`--)` 之前增加处理分支。
-所有声明都必须有处理分支，所有处理分支也必须有声明，别名的取值要求必须一致。
-需要值的参数在分支内只 `shift` 一次，并从 `$2` 读取值；不需要值的参数不得在分支内 `shift`。lint 会检查这两点。
+Keep the quoting around `"$@"`, `eval set -- "${ARGS}"` and `OUTTO="$2"` so that
+values containing spaces or single quotes survive. `_usage` must document every
+short and long option declared to getopt; the linter reports missing ones.
+Package-specific options are declared in getopt's short and long lists and
+handled in a branch placed after the shared `--help` / `--log` branches and
+before `--)`. Every declaration needs a handling branch and every branch needs a
+declaration, and aliases must agree on whether a value is required. An option
+that takes a value shifts exactly once inside its branch and reads `$2`; an
+option that takes none never shifts there. The linter checks both.
 
 ```bash
 	-v | --version)
@@ -137,24 +169,31 @@ eval set -- "${ARGS}"
 		;;
 ```
 
-不得保留只有声明、没有实际行为的参数；新增参数时同时更新 `_usage` 中的调用示例和说明。
+Never keep a declared option without real behaviour; when adding one, update the
+usage example and description in `_usage` as well.
 
-## 生命周期约定
+## Lifecycle conventions
 
-| 操作 | 开始步骤（顺序固定） | 中间步骤 | 结束步骤 |
+| Action | Opening steps (fixed order) | Middle steps | Closing step |
 | --- | --- | --- | --- |
-| install | `_lockCheck` → `_setLock` → `_installInfo` | 按需添加源、安装依赖、安装或配置应用、调用 `_installAppLock`、启动服务 | `_lockCleanup` |
-| remove | `_lockCheck` → `_setLock` → `_removeInfo` | 按需停止服务、移除依赖或应用、调用 `_removeAppLock` | `_lockCleanup` |
-| update | `_lockCheck` → `_setLock` → `_updateInfo` | 调用 `_updateApp`，按需重新配置、重启服务 | `_lockCleanup` |
+| install | `_lockCheck` → `_setLock` → `_installInfo` | add sources, install dependencies, install or configure the application, call `_installAppLock`, start services as needed | `_lockCleanup` |
+| remove | `_lockCheck` → `_setLock` → `_removeInfo` | stop services, remove dependencies or the application, call `_removeAppLock` as needed | `_lockCleanup` |
+| update | `_lockCheck` → `_setLock` → `_updateInfo` | call `_updateApp`, reconfigure and restart services as needed | `_lockCleanup` |
 
-`_usage` 放在 `SCRIPT FUNCTIONS`，其余必需的生命周期函数放在对应操作的函数分区。
-`_lockCheck` 检查全局操作锁和软件包自身的前置条件，`_setLock` 写入全局操作锁，
-`_lockCleanup` 删除全局操作锁，或调用已有的 `_clearInstallLock` 来完成清理。
-`_installAppLock` 必须创建软件包安装标记，`_removeAppLock` 必须删除该标记；空的成功提示函数不算完成锁管理。
-同一个软件包在 install/remove/update 中声明 `APP_LOCK` 时，表达式必须一致。
-主流程允许按软件包需要增加条件分支，所有调用的函数必须已定义。
+`_usage` lives in `SCRIPT FUNCTIONS`; the other required lifecycle functions live
+in the function section of their action. `_lockCheck` inspects the global
+operation lock and the package's own preconditions, `_setLock` writes the global
+operation lock, and `_lockCleanup` removes it or calls an existing
+`_clearInstallLock` to do so. `_installAppLock` must create the package install
+marker and `_removeAppLock` must remove it; an empty success helper does not
+count as lock handling. When `APP_LOCK` is declared, install/remove/update must
+use the same expression. The main process may add conditionals as a package
+needs, and every function it calls must be defined.
 
-软件包业务可以只需要依赖安装或配置步骤，不强制添加空的安装、服务或依赖函数。
-模板中的业务占位函数会报错退出，复制后必须实现相应业务再使用。
-lint 检查框架、参数对应关系和 Bash 语法；下载是否成功、命令失败处理、锁的并发和异常清理
-等运行行为仍需对应软件包的功能验证。
+A package may need only dependency installation or only configuration; there is
+no requirement to add empty install, service or dependency functions. The
+placeholder business functions in the templates exit with an error, so implement
+the real behaviour before using a copy. The linter checks the framework, the
+option wiring and Bash syntax; runtime behaviour — whether downloads succeed,
+how command failures are handled, lock concurrency and cleanup after errors —
+still needs functional testing of the package itself.

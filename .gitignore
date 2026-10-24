@@ -54,6 +54,9 @@ vendor/
 # Directories created by npm
 node_modules/
 
+# Python virtual environment created by uv
+.venv/
+
 # Key file for localazy
 localazy.keys.json
 !setup/dashboard/ws/src/vendor/

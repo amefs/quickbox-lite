@@ -15,7 +15,15 @@ HELPER = REPO / 'packages/system/auxiliary/qbWsHealthCheck'
 SECRET = 'disposable-health-startup-secret'
 
 
+class FixtureServer(ThreadingHTTPServer):
+    """Server carrying the per-test switches that Handler reads off ``self.server``."""
+    reject_gateway = False
+    allow_anonymous = False
+
+
 class Handler(BaseHTTPRequestHandler):
+    server: FixtureServer
+
     def do_GET(self):
         authenticated = self.headers.get('X-Quickbox-Gateway') == SECRET
         status = 200 if authenticated else 401
@@ -44,7 +52,7 @@ def check_listener(environment, delay=False, reject_gateway=False, allow_anonymo
                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             time.sleep(0.5)
             assert health.poll() is None, 'health check failed before the listener became ready'
-        server = ThreadingHTTPServer(('127.0.0.1', port), Handler)
+        server = FixtureServer(('127.0.0.1', port), Handler)
         server.reject_gateway = reject_gateway
         server.allow_anonymous = allow_anonymous
         thread = threading.Thread(target=server.serve_forever, daemon=True)
