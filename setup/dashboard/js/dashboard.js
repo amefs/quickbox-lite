@@ -55,7 +55,10 @@
 })();
 
 (function () {
-  let socket = io(location.origin, { path: (window.quickboxApiBase || "") + "/socket.io" });
+  let socket = io(location.origin, {
+    path: (window.quickboxApiBase || "") + "/socket.io",
+    upgrade: (window.quickboxRuntime || {}).socketUpgrade !== false
+  });
   window.socket = socket;
   socket.on("connect", function () {
     socket.emit("i18n", window.quickboxLocale || "en");
@@ -87,36 +90,20 @@
       .replace(/'/g, "&#39;");
   }
 
-  // Component write ordering. A widget can be filled by the HTTP pre-fetch or by
-  // the WebSocket stream; the newest WebSocket payload must always win, so every
-  // write records its source instead of inferring readiness from the DOM.
-  var widgetWriteSource = {};
+  var WRITE_SOURCE = { PREFETCH: 1, WS: 2 };
+  var widgetWritePriority = {};
 
   function markWidgetWritten(selector, source) {
     if (!selector) { return; }
-    widgetWriteSource[selector] = source;
-    var element = document.querySelector(selector);
-    if (element instanceof HTMLElement) {
-      element.dataset.qbWriteSource = source;
-    }
+    widgetWritePriority[selector] = source;
   }
 
-  function widgetWriteSourceOf(selector) {
-    if (Object.prototype.hasOwnProperty.call(widgetWriteSource, selector)) {
-      return widgetWriteSource[selector];
-    }
-    var element = document.querySelector(selector);
-    if (element instanceof HTMLElement && element.dataset.qbWriteSource) {
-      return element.dataset.qbWriteSource;
-    }
-    return "";
+  function canWriteWidget(selector, source) {
+    return Boolean(selector) && source >= (widgetWritePriority[selector] || 0);
   }
 
   function resetWidgetWriteState() {
-    widgetWriteSource = {};
-    Array.prototype.forEach.call(document.querySelectorAll("[data-qb-write-source]"), function (element) {
-      delete element.dataset.qbWriteSource;
-    });
+    widgetWritePriority = {};
   }
 
   window.quickboxResetWidgetState = resetWidgetWriteState;
@@ -197,8 +184,6 @@
     window.jQuery(".tooltips").tooltip();
   }
 
-  // Reads the interaction state of the live table. Must run before the widget
-  // HTML is replaced, otherwise the instance and its state are already gone.
   function capturePackageTableState(task) {
     let $ = window.jQuery;
     if (!$ || !$.fn || !$.fn.DataTable || !$.fn.DataTable.isDataTable("#dataTable1")) {
@@ -261,8 +246,7 @@
       page = pageCount - 1;
     }
     if (page > 0) {
-      // draw(false) keeps the paging position while the data is refreshed.
-      table.page(page).draw(false);
+      table.page(page).draw("page");
     }
     $(".tooltips").tooltip({ container: "body" });
   }
@@ -332,12 +316,15 @@
   }
 
   function updateSshOutput(task, response) {
+    let container = document.getElementById("sysPre");
+    let followOutput = container && container.scrollHeight - container.scrollTop - container.clientHeight <= 24;
     let el = window.jQuery(task.id);
     if (typeof response === "object" && response !== null && "content" in response) {
       let previousEnd = task._endOffset;
       let nextChunk = "";
-      let replaced = false;
-      if (previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
+      let epochChanged = response.epoch !== undefined && task._epoch !== response.epoch;
+      let replaced = epochChanged;
+      if (epochChanged || previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
         task._rawContent = response.content;
         task._endOffset = response.end;
         replaced = true;
@@ -348,6 +335,9 @@
           task._rawContent = (task._rawContent || "") + nextChunk;
         }
         task._endOffset = response.end;
+      }
+      if (response.epoch !== undefined) {
+        task._epoch = response.epoch;
       }
       renderSshOutput(el, task, nextChunk, replaced);
     } else {
@@ -360,11 +350,7 @@
         el.text(String(response || ""));
       }
     }
-    let container = document.getElementById("sysPre");
-    if (window.__psSysPre) {
-      window.__psSysPre.update();
-    }
-    if (container) {
+    if (container && followOutput) {
       container.scrollTop = container.scrollHeight;
     }
   }
@@ -398,6 +384,15 @@
         time: 30000
       },
       {
+        // Renders nothing while no operation holds the install lock, so the
+        // banner appears and disappears on its own.
+        key: "RUNNING_TASK",
+        url: "/node/task_status",
+        id: "#running_task_widget",
+        bootstrap: true,
+        time: 5000
+      },
+      {
         key: "NETWORK",
         url: "/node/net_status",
         override: updateNetworkStatus,
@@ -429,6 +424,7 @@
         id: "#sshoutput",
         time: 2000,
         _endOffset: -1,
+        _epoch: undefined,
         _requestLength: 65536,
         before: function (task) {
           if (!window.jQuery("#sysResponse").is(":visible")) {
@@ -438,6 +434,9 @@
             task.url = "/db/output.log?offset=" + task._endOffset + "&length=" + task._requestLength;
           } else {
             task.url = "/db/output.log?length=" + task._requestLength;
+          }
+          if (task._epoch !== undefined) {
+            task.url += "&epoch=" + encodeURIComponent(task._epoch);
           }
           return true;
         },
@@ -578,16 +577,18 @@
           return;
         }
         if (task.id !== undefined) {
+          if (!canWriteWidget(task.id, WRITE_SOURCE.WS)) {
+            return;
+          }
           if (task._lastHtml === response.response) {
             return;
           }
           task._lastHtml = response.response;
           if (task.beforeHtml && typeof task.beforeHtml === "function") {
-            // Runs while the previous DOM (and its component instances) still exist.
             task.beforeHtml(task);
           }
           window.jQuery(task.id).html(response.response);
-          markWidgetWritten(task.id, "ws");
+          markWidgetWritten(task.id, WRITE_SOURCE.WS);
           if (task.after && typeof task.after === "function") {
             task.after(task);
           }
@@ -927,11 +928,8 @@
     });
 
     // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready).
-    // A pre-fetch never overwrites a payload the WebSocket already delivered, and
-    // no longer infers readiness from the presence of child nodes (the CPU load
-    // widget is text only).
     function applyPrefetchHtml(selector, html) {
-      if (widgetWriteSourceOf(selector) !== "") {
+      if (!canWriteWidget(selector, WRITE_SOURCE.PREFETCH)) {
         return;
       }
       let $el = window.jQuery(selector);
@@ -939,7 +937,7 @@
         return;
       }
       $el.html(html);
-      markWidgetWritten(selector, "prefetch");
+      markWidgetWritten(selector, WRITE_SOURCE.PREFETCH);
     }
 
     fetch(window.quickboxWidgetUrl("/node/load"), { credentials: "same-origin" })
@@ -964,10 +962,7 @@
       return;
     }
 
-    let defaultHandler = closeButton.dataset.defaultClickHandler || "boxHandler";
     let defaultRefreshAfterClose = closeButton.dataset.defaultRefreshAfterClose || "true";
-    let defaultPackage = closeButton.dataset.defaultPackage || "log";
-    let defaultOperation = closeButton.dataset.defaultOperation || "clean";
     let defaultLabel = closeButton.dataset.labelDefault || closeButton.textContent || "";
     let logViewLabel = closeButton.dataset.labelLogView || defaultLabel;
 
@@ -976,14 +971,15 @@
       closeButton.removeAttribute("data-refresh-after-close");
       closeButton.removeAttribute("data-package");
       closeButton.removeAttribute("data-operation");
+      closeButton.dataset.refreshAfterClose = "false";
       closeButton.textContent = logViewLabel;
       return;
     }
 
-    closeButton.dataset.clickHandler = defaultHandler;
+    closeButton.removeAttribute("data-click-handler");
     closeButton.dataset.refreshAfterClose = defaultRefreshAfterClose;
-    closeButton.dataset.package = defaultPackage;
-    closeButton.dataset.operation = defaultOperation;
+    closeButton.removeAttribute("data-package");
+    closeButton.removeAttribute("data-operation");
     closeButton.textContent = defaultLabel;
   }
 
@@ -991,10 +987,7 @@
     let psElements = document.querySelectorAll(".ps");
     if (typeof window.PerfectScrollbar === "function") {
       psElements.forEach(function (element) {
-        let psInstance = new window.PerfectScrollbar(element);
-        if (element.id === "sysPre") {
-          window.__psSysPre = psInstance;
-        }
+        new window.PerfectScrollbar(element);
       });
     } else {
       // Fallback: keep scrollable containers usable even if Perfect Scrollbar fails to load.
@@ -1038,6 +1031,11 @@
         if (boxHandlerButton instanceof HTMLElement && boxHandlerButton.dataset.refreshAfterClose === "true") {
           reloadAfterExec = true;
         }
+      }
+      let responseCloseButton = target.closest("#sysResponseCloseAction");
+      if (responseCloseButton instanceof HTMLElement && responseCloseButton.dataset.refreshAfterClose === "true") {
+        reloadAfterExec = true;
+        maybeReloadAfterExec();
       }
     });
     loadNodeFragments();
