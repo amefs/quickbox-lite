@@ -359,24 +359,12 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
     word-break: break-word;
     overflow-wrap: anywhere;
 }
+/* The dialog is a viewer: closing it changes nothing, so the action is a plain
+   button shaped exactly like the ones in the other dialogs. No min-width or
+   min-height here — either one made this single button look like a slab next
+   to the Cancel/Confirm pairs elsewhere. */
 #sysResponse .modal-footer {
     padding: 12px 20px;
-}
-/* The close action is the only way out of this dialog, so it keeps a full
-   touch target on phones. Its text has to scale with that target: at btn-xs
-   size the label sat in a 44px box like a stray dot. */
-#sysResponseCloseAction {
-    min-width: 96px;
-    min-height: 38px;
-    padding: 8px 20px;
-    font-size: 14px;
-    line-height: 1.4;
-    white-space: normal;
-}
-@media (max-width: 480px) {
-    #sysResponseCloseAction {
-        min-height: 44px;
-    }
 }
 #quickbox-alert-modal .modal-header {
     align-items: center;
@@ -413,9 +401,6 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
 }
 #quickbox-alert-modal .modal-footer {
     padding: 12px 20px;
-}
-#quickbox-alert-modal .modal-footer .btn {
-    min-width: 88px;
 }
 ` }} />
                 <script src="/lib/jquery/jquery.min.js"></script>
@@ -726,7 +711,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                                         id="sysResponseCloseAction"
                                         data-default-refresh-after-close="true"
                                         data-label-default={i18n.t("CLOSE_REFRESH")}
-                                        data-label-log-view={i18n.t("CANCEL")}
+                                        data-label-log-view={i18n.t("CLOSE")}
                                         data-refresh-after-close="true"
                                         data-dismiss="modal"
                                         className="btn btn-danger"

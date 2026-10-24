@@ -108,6 +108,8 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
 
     const origExistsSync   = fs.existsSync.bind(fs);
     const origReadFileSync = fs.readFileSync.bind(fs);
+    const origReaddirSync  = fs.readdirSync.bind(fs);
+    const MOCK_OPERATION_PID = "4242";
 
     fs.existsSync = (filePath: unknown): boolean => {
         if (typeof filePath !== "string") {
@@ -150,9 +152,26 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         return origExistsSync(filePath);
     };
 
+    // /proc is faked just far enough for the running-task widget: one process
+    // whose cmdline is the lifecycle script of the active profile, which is how
+    // production tells an install from a removal.
+    fs.readdirSync = (dir: unknown, options?: unknown): unknown => {
+        if (dir === "/proc") {
+            return getActiveProfile().installLockOperation ? [MOCK_OPERATION_PID] : [];
+        }
+        return origReaddirSync(dir, options);
+    };
+
     fs.readFileSync = (filePath: unknown, options?: unknown): unknown => {
         if (typeof filePath === "string") {
             const p = getActiveProfile();
+
+            if (filePath === `/proc/${MOCK_OPERATION_PID}/cmdline`) {
+                const operation = p.installLockOperation;
+                if (operation) {
+                    return `/bin/bash\0/usr/local/bin/quickbox/package/${operation}/${operation}package-jellyfin\0`;
+                }
+            }
 
             if (filePath === "/install/.debug.lock" && p.branch) {
                 return p.branch + "\n";

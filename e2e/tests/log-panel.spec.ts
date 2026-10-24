@@ -44,25 +44,64 @@ async function expectLogInViewport(page: Page) {
     }
 }
 
-// The close action is the only way out of the dialog, so it keeps a touch-sized
-// target. Its label has to grow with the target instead of sitting inside it at
-// btn-xs size, which is what made the button look like a stray red block.
-async function expectCloseActionProportions(page: Page) {
-    const metrics = await page.locator("#sysResponseCloseAction").evaluate(el => {
+// One shared rule for every dialog footer button, so a single button cannot
+// drift away from the rest: the theme's base .btn metrics (14px on a 20px
+// line), 10px top / 9px bottom padding, a 1px border, and no min-width or
+// min-height of its own — a 41px tall control. Both shapes seen in review
+// break it: the btn-xs speck (22px) and a hand-tuned min-height slab (38-46px).
+// A deliberate change to the theme's .btn has to update this rule as well.
+const FOOTER_BUTTON = {
+    fontSize: 14,
+    lineHeight: 20,
+    paddingTop: 10,
+    paddingRight: 12,
+    paddingBottom: 9,
+    paddingLeft: 12,
+    borderY: 2,
+    height: 41,
+};
+
+async function expectFooterButtonsFollowTheRule(page: Page) {
+    const buttons = await page.evaluate(() => Array.from(document.querySelectorAll(".modal-footer .btn")).map(el => {
         const style = getComputedStyle(el);
         const rect = el.getBoundingClientRect();
+        const dialog = el.closest(".modal");
         return {
+            dialog: dialog instanceof HTMLElement ? dialog.id : "",
+            label: (el.textContent ?? "").trim(),
+            visible: rect.height > 0,
             fontSize: parseFloat(style.fontSize),
-            paddingY: parseFloat(style.paddingTop),
+            lineHeight: parseFloat(style.lineHeight),
+            paddingTop: parseFloat(style.paddingTop),
+            paddingRight: parseFloat(style.paddingRight),
+            paddingBottom: parseFloat(style.paddingBottom),
+            paddingLeft: parseFloat(style.paddingLeft),
+            borderY: parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth),
+            minWidth: style.minWidth,
+            minHeight: style.minHeight,
             height: rect.height,
-            width: rect.width,
         };
-    });
-    expect(metrics.fontSize).toBeGreaterThanOrEqual(14);
-    expect(metrics.paddingY).toBeGreaterThanOrEqual(6);
-    expect(metrics.width).toBeGreaterThanOrEqual(80);
-    expect(metrics.height).toBeGreaterThanOrEqual(36);
-    expect(metrics.height).toBeLessThanOrEqual(46);
+    }));
+
+    // Every dialog on the page is checked, not just the open one.
+    expect(buttons.length).toBeGreaterThan(3);
+    expect(buttons.some(button => button.visible)).toBe(true);
+    for (const button of buttons) {
+        const who = `${button.dialog || "dialog"} footer button "${button.label}"`;
+        expect(button.fontSize, who).toBe(FOOTER_BUTTON.fontSize);
+        expect(button.lineHeight, who).toBe(FOOTER_BUTTON.lineHeight);
+        expect(button.paddingTop, who).toBe(FOOTER_BUTTON.paddingTop);
+        expect(button.paddingRight, who).toBe(FOOTER_BUTTON.paddingRight);
+        expect(button.paddingBottom, who).toBe(FOOTER_BUTTON.paddingBottom);
+        expect(button.paddingLeft, who).toBe(FOOTER_BUTTON.paddingLeft);
+        expect(button.borderY, who).toBe(FOOTER_BUTTON.borderY);
+        expect(button.minWidth, who).toBe("0px");
+        expect(button.minHeight, who).toBe("0px");
+        if (button.visible) {
+            // Height is padding + text + border, never inflated by a min-height.
+            expect(button.height, who).toBeCloseTo(FOOTER_BUTTON.height, 0);
+        }
+    }
 }
 
 test.afterEach(async ({ page }) => {
@@ -79,7 +118,7 @@ for (const theme of ["smoked", "defaulted"]) {
             }));
             await openLog(page);
             await expectLogInViewport(page);
-            await expectCloseActionProportions(page);
+            await expectFooterButtonsFollowTheRule(page);
             await deliverLog(page, log);
             await expect(page.locator("#sshoutput")).toContainText("第 160 行");
             await expect(page.locator("#sshoutput script")).toHaveCount(0);
@@ -113,6 +152,8 @@ for (const theme of ["smoked", "defaulted"]) {
 
 test("log dialog ignores clicks outside the panel", async ({ page }) => {
     await openLog(page);
+    // Viewing a log changes nothing, so the action says so instead of "cancel".
+    await expect(page.locator("#sysResponseCloseAction")).toHaveText("关闭");
     await page.mouse.click(4, 4);
     await expect(page.locator("#sysResponse")).toBeVisible();
     await expect(page.locator("body")).toHaveClass(/modal-open/);

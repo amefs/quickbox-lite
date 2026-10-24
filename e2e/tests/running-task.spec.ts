@@ -18,8 +18,10 @@ test.afterEach(async ({ page }) => {
 test("names the running operation and opens its log", async ({ page }) => {
     await openInstalling(page);
     const banner = page.locator("#running_task_widget .qb-running-task");
-    await expect(banner).toContainText("Jellyfin Media Server");
-    await expect(banner).toHaveAttribute("data-task", "package");
+    // The verb matters: the lock alone only carries the display title.
+    await expect(banner).toContainText("正在安装: Jellyfin Media Server");
+    await expect(banner).toHaveAttribute("data-task", "install");
+    await expect(banner).toHaveAttribute("data-operation", "install");
 
     await banner.locator("[data-sysresponse-mode='log-view']").click();
     await expect(page.locator("#sysResponse")).toBeVisible();

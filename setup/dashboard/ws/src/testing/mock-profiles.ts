@@ -63,6 +63,8 @@ export interface MockProfile {
     lockFiles: string[];
     /** Title recorded in /install/.install.lock while an operation runs */
     installLockTitle?: string;
+    /** Lifecycle script that would be running for that title, as seen in /proc */
+    installLockOperation?: "install" | "remove" | "update";
     /** Systemd enabled services (e.g. "rtorrent@testuser") */
     enabledServices: string[];
     /** Torrent files per directory: { "/home/user/.sessions/": ["a.torrent", "b.torrent"] } */
@@ -360,6 +362,7 @@ const profiles: Record<string, MockProfile> = {
         name: "installing",
         lockFiles: [...partialRunning.lockFiles, "/install/.install.lock"],
         installLockTitle: "Jellyfin Media Server",
+        installLockOperation: "install",
     },
     "long-branch": {
         ...allRunning,
