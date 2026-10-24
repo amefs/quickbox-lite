@@ -50,6 +50,7 @@ export interface MockNetworkInterface {
 export interface MockProfile {
     name: string;
     username: string;
+    branch?: string;
     processes: MockProcess[];
     memory: MockMemory;
     disks: MockDisk[];
@@ -352,6 +353,12 @@ export const emptySystem: MockProfile = {
 };
 
 const profiles: Record<string, MockProfile> = {
+    "long-branch": {
+        ...allRunning,
+        name: "long-branch",
+        branch: "fix/dashboard-review-findings-with-an-extremely-long-branch-name(dd47129)",
+        lockFiles: [...allRunning.lockFiles, "/install/.developer.lock", "/install/.debug.lock"],
+    },
     "all-running": allRunning,
     "partial-running": partialRunning,
     "empty-system": emptySystem,

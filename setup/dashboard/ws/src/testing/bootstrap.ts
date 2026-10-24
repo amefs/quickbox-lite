@@ -154,6 +154,10 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         if (typeof filePath === "string") {
             const p = getActiveProfile();
 
+            if (filePath === "/install/.debug.lock" && p.branch) {
+                return p.branch + "\n";
+            }
+
             if (filePath === "/srv/dashboard/db/master.txt") {
                 return p.username + "\n";
             }

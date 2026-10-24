@@ -111,6 +111,75 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                 <link rel="stylesheet" href="/lib/lobipanel/css/lobipanel.min.css" />
                 <link rel="stylesheet" href="/skins/quick.css" />
                 <style dangerouslySetInnerHTML={{ __html: `
+.headerbar .header-right {
+    float: none;
+    min-width: 0;
+}
+.headerbar .headermenu {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    height: 64px;
+}
+.headerbar .headermenu > li {
+    float: none;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+.headerbar .headermenu > .header-branch {
+    flex: 0 1 auto;
+    padding: 0 12px;
+}
+.header-branch .label {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.5;
+}
+.header-branch-name, .header-menu-short {
+    display: none;
+}
+.headermenu .header-account .btn-logged {
+    display: flex;
+    align-items: center;
+    max-width: min(200px, 28vw);
+}
+.header-username {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.header-account .caret {
+    flex-shrink: 0;
+}
+@media (max-width: 640px) {
+    .headerbar {
+        padding-left: 44px;
+    }
+    .headerbar .menutoggle {
+        width: 44px;
+    }
+    .headerbar .header-right {
+        padding-right: 8px;
+    }
+    .headerbar .headermenu > .header-branch {
+        padding: 0 4px;
+    }
+    .header-branch-description, .header-menu-full {
+        display: none;
+    }
+    .header-branch-name, .header-menu-short {
+        display: inline;
+    }
+    .headermenu #noticeDropdown {
+        position: fixed;
+        top: 64px;
+        left: 8px;
+        right: 8px;
+        min-width: 0;
+        margin-right: 0;
+    }
+}
 @keyframes qb-shimmer {
     0% { background-position: -400px 0; }
     100% { background-position: 400px 0; }
@@ -194,18 +263,17 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                             <div className="header-right">
                                 <ul className="headermenu">
                                     {config.showDeveloper ? (
-                                        <li>
-                                            <div className="btn-group">
-                                                <button type="button" className="btn btn-logged">
-                                                    <a href="#" className="label label-warning">{i18n.t("DEV_REPO_TXT", { branch: config.branch })}</a>
-                                                </button>
-                                            </div>
+                                        <li className="header-branch">
+                                            <span className="label label-warning" title={i18n.t("DEV_REPO_TXT", { branch: config.branch })}>
+                                                <span className="header-branch-description">{i18n.t("DEV_REPO_TXT", { branch: config.branch })}</span>
+                                                <span className="header-branch-name">{config.branch}</span>
+                                            </span>
                                         </li>
                                     ) : null}
                                     <li>
                                         <div id="noticePanel" className="btn-group">
-                                            <button className="btn" data-toggle="dropdown">
-                                                <i className="fa fa-menu"></i> QuickBox Lite Menu <span className="caret"></span>
+                                            <button className="btn" data-toggle="dropdown" aria-label="QuickBox Lite Menu">
+                                                <i className="fa fa-menu"></i> <span className="header-menu-full">QuickBox Lite Menu</span><span className="header-menu-short">QuickBox</span> <span className="caret"></span>
                                             </button>
                                             <div id="noticeDropdown" className="dropdown-menu dm-notice pull-right">
                                                 <div role="tabpanel">
@@ -265,10 +333,10 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                                             </div>
                                         </div>
                                     </li>
-                                    <li>
+                                    <li className="header-account">
                                         <div className="btn-group">
                                             <button type="button" className="btn btn-logged" data-toggle="dropdown">
-                                                {config.username}
+                                                <span className="header-username" title={config.username}>{config.username}</span>
                                                 <span className="caret"></span>
                                             </button>
                                             <ul className="dropdown-menu pull-right">
