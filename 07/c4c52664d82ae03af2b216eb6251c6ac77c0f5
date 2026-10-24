@@ -1,0 +1,52 @@
+.github/workflows/deployment.yml
+  s_ca0de8519dc96b::t_06fb6fd1af52ec 52
+tests/system/ws-health-proxy-sandbox.py
+  s_ca0de8519dc96b::t_a60935fbee2c20 1-36,41-78,80-103,114-147,156-157,164-179,181-186
+  s_ca0de8519dc96b::t_78a24ffe35a3ba 104-113,148-155,158-163,180
+  s_ca0de8519dc96b::t_658668daad1bea 37-40,79
+packages/system/auxiliary/qbWsHealthCheck
+  s_ca0de8519dc96b::t_a60935fbee2c20 79
+  s_ca0de8519dc96b::t_425cbaa3950424 80-110,112-136,143-161,315
+  s_ca0de8519dc96b::t_815d0c12ffcc8d 111,137-142
+tests/system/run-dashboard-sandboxes.sh
+  s_ca0de8519dc96b::t_39868dc6f10d67 16
+tests/deployment/README.md
+  s_ca0de8519dc96b::t_a60935fbee2c20 28,45-48,57-58,81-88,98-101,140-144,148-154
+  s_ca0de8519dc96b::t_f3977d7e723c60 55-56,89-90,134-136,145-147
+  s_ca0de8519dc96b::t_c57c31ae72d708 155
+tests/deployment/ws-update.cjs
+  s_ca0de8519dc96b::t_06fb6fd1af52ec 6
+tests/deployment/run.py
+  s_ca0de8519dc96b::t_676af61cd94258 172-173
+  s_ca0de8519dc96b::t_f3977d7e723c60 168-171
+tests/deployment/container-entry.sh
+  s_ca0de8519dc96b::t_06fb6fd1af52ec 11-14
+tests/deployment/package.json
+  s_ca0de8519dc96b::t_425cbaa3950424 1-7
+tests/deployment/Dockerfile
+  s_ca0de8519dc96b::t_06fb6fd1af52ec 10-12
+tests/deployment/service.py
+  s_ca0de8519dc96b::t_676af61cd94258 5-6,38,46-50,54-55
+tests/deployment/prepare.sh
+  s_ca0de8519dc96b::t_06fb6fd1af52ec 19
+tests/deployment/package-lock.json
+  s_ca0de8519dc96b::t_c6733d6aa0334a 1-121
+tests/system/theme-selection-sandbox.py
+  s_ca0de8519dc96b::t_f599ed862d7613 1-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "07c4c52664d82ae03af2b216eb6251c6ac77c0f5",
+  "prompts": {},
+  "sessions": {
+    "s_ca0de8519dc96b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16be9-0bf7-7082-944d-5fb9e6c11b2b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
