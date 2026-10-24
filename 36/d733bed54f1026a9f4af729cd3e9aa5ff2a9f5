@@ -1,0 +1,23 @@
+e2e/tests/sidebar.spec.ts
+  s_ca0de8519dc96b::t_3e2e9429c50c99 1-76
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_ca0de8519dc96b::t_8b1de258a1e612 155-159,372
+setup/dashboard/ws/dist/server.js
+  s_ca0de8519dc96b::t_1a2f75681a90ba 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "36d733bed54f1026a9f4af729cd3e9aa5ff2a9f5",
+  "prompts": {},
+  "sessions": {
+    "s_ca0de8519dc96b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16be9-0bf7-7082-944d-5fb9e6c11b2b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
