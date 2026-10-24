@@ -152,6 +152,11 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
 .header-account .caret {
     flex-shrink: 0;
 }
+@media (max-width: 1279px) {
+    .dashboard-layout {
+        overflow-x: clip;
+    }
+}
 @media (max-width: 640px) {
     .headerbar {
         padding-left: 44px;
@@ -364,7 +369,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                         </div>
                     </div>
                 </header>
-                <section>
+                <section className="dashboard-layout">
                     <div className="leftpanel ps">
                         <div className="leftpanelinner">
                             <ul className="nav nav-tabs nav-justified nav-sidebar">
