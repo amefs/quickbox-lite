@@ -116,8 +116,12 @@ class ContainerWrapperTest(unittest.TestCase):
             log = Path(directory) / 'docker.log'
             binary.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >>"$DOCKER_TEST_LOG"\nexit "${DOCKER_TEST_STATUS:-0}"\n')
             binary.chmod(0o755)
+            git = Path(directory) / 'git'
+            git.write_text('#!/bin/sh\necho "Prepared images must not access Git history" >&2\nexit 99\n')
+            git.chmod(0o755)
             env = dict(os.environ, PATH=directory + os.pathsep + os.environ['PATH'],
                        QUICKBOX_DEPLOYMENT_USE_IMAGE='1', QUICKBOX_DEPLOYMENT_SKIP_BUILD='0',
+                       QUICKBOX_TEST_BASELINE='unavailable-in-shallow-checkout',
                        QUICKBOX_DEPLOYMENT_CONTAINER='quickbox-wrapper-test', DOCKER_TEST_LOG=str(log))
             command = ['bash', str(DIRECTORY / 'run-linux.sh'), '--start']
             result = subprocess.run(command, env=env, capture_output=True, text=True)

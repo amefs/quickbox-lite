@@ -88,7 +88,9 @@ This mounts the checkout read-only, checks both locks against the image, copies
 current code and the selected baseline into the container, and rebuilds the
 bundle there. Lock changes fail and require an image rebuild. Set
 `QUICKBOX_DEPLOYMENT_USE_IMAGE=1` instead to run the prepared image as-is, as CI
-does; this deliberately tests the sources already included in that image.
+does; this deliberately tests the sources already included in that image. Reusing
+that image does not export a baseline or require the old commit in the checkout;
+the prepared image already contains it.
 
 To expose separate phases while keeping one container:
 
