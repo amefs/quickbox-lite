@@ -23,6 +23,12 @@ interface TableState {
     visibleRows: string[];
 }
 
+interface PrefetchControl {
+    bodyReady: boolean;
+    releaseBody: () => void;
+    consumed: Promise<void>;
+}
+
 async function isPackageTableReady(page: Page): Promise<boolean> {
     return page.evaluate(() => {
         const win = window as unknown as { jQuery?: JQueryLike };
@@ -369,6 +375,45 @@ test.describe("PMC widget state", () => {
 
 test.describe("prefetch ordering", () => {
     test("a late HTTP prefetch does not overwrite data already delivered by WS", async ({ page }) => {
+        await page.addInitScript(() => {
+            const win = window as unknown as { prefetchControl: PrefetchControl };
+            let releaseBody: () => void = () => {};
+            let finish: () => void = () => {};
+            const bodyGate = new Promise<void>((resolve) => { releaseBody = resolve; });
+            const consumed = new Promise<void>((resolve) => { finish = resolve; });
+            const control = { bodyReady: false, releaseBody, consumed };
+            win.prefetchControl = control;
+
+            const fetch = window.fetch.bind(window);
+            window.fetch = async (...args: Parameters<typeof fetch>) => {
+                const response = await fetch(...args);
+                const input = args[0];
+                const url = input instanceof Request ? input.url : String(input);
+                if (!new URL(url, location.href).pathname.endsWith("/node/load")) {
+                    return response;
+                }
+
+                const readText = response.text.bind(response);
+                response.text = async () => {
+                    const body = await readText();
+                    control.bodyReady = true;
+                    await bodyGate;
+
+                    // This task runs after the released text promise and the
+                    // dashboard's .then(applyPrefetchHtml) microtasks complete.
+                    const checkpoint = new MessageChannel();
+                    checkpoint.port1.onmessage = () => {
+                        checkpoint.port1.close();
+                        checkpoint.port2.close();
+                        finish();
+                    };
+                    checkpoint.port2.postMessage(null);
+                    return body;
+                };
+                return response;
+            };
+        });
+
         let releasePrefetch: () => void = () => {};
         const prefetchGate = new Promise<void>((resolve) => {
             releasePrefetch = resolve;
@@ -395,16 +440,18 @@ test.describe("prefetch ordering", () => {
         expect(wsText).not.toContain("STALE-PREFETCH");
         expect(await page.locator("#cpuload").getAttribute("data-qb-write-source")).toBeNull();
 
-        // Wait for the held prefetch to actually reach the page instead of
-        // sleeping: the stale HTML can only be written after this response.
-        const prefetchResponse = page.waitForResponse((response) => response.url().includes("/node/load"));
         releasePrefetch();
-        await prefetchResponse;
-        // Two frames guarantee the fetch continuation (`applyPrefetchHtml`) has
-        // run before the assertions below read the DOM.
-        await page.evaluate(() => new Promise<void>((resolve) => {
-            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        }));
+        await expect.poll(() => page.evaluate(() => {
+            return (window as unknown as { prefetchControl: PrefetchControl }).prefetchControl.bodyReady;
+        })).toBe(true);
+        expect(await page.locator("#cpuload").innerText()).toBe(wsText);
+        expect(await page.locator("#stale-cpu-marker").count()).toBe(0);
+
+        await page.evaluate(async () => {
+            const control = (window as unknown as { prefetchControl: PrefetchControl }).prefetchControl;
+            control.releaseBody();
+            await control.consumed;
+        });
 
         expect(await page.locator("#cpuload").innerText()).toBe(wsText);
         expect(await page.locator("#stale-cpu-marker").count()).toBe(0);

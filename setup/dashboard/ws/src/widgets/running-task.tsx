@@ -23,23 +23,21 @@ export function readRunningTaskTitle(): string | null {
     }
 }
 
-// The lock records the display title, never the verb, so the verb has to come
-// from the process holding it. These are the root-owned helpers that only a
-// package operation executes — the same paths qbAbortTask uses to find the
-// owner. Reading /proc avoids a second lock file that could go stale when an
-// operation dies between writing it and taking the lock.
+// box launches these scripts as `bash /absolute/script/path`. Inspect that
+// script argument only: an editor, reader or shell command can mention the same
+// path without executing the operation.
 const OPERATION_PATTERNS: readonly (readonly [RegExp, RunningTaskOperation])[] = [
-    [/\/usr\/local\/bin\/quickbox\/package\/install\//, "install"],
-    [/\/usr\/local\/bin\/quickbox\/package\/remove\//, "remove"],
-    [/\/usr\/local\/bin\/quickbox\/package\/update\//, "update"],
-    [/\/usr\/local\/bin\/quickbox\/system\/auxiliary\/install-BBR\.sh/, "install"],
-    [/\/usr\/local\/bin\/quickbox\/system\/qbUpdate(?:$|\0|\s)/, "update"],
+    [/^\/usr\/local\/bin\/quickbox\/package\/install\/installpackage-[a-z0-9-]+$/, "install"],
+    [/^\/usr\/local\/bin\/quickbox\/package\/remove\/removepackage-[a-z0-9-]+$/, "remove"],
+    [/^\/usr\/local\/bin\/quickbox\/package\/update\/updatepackage-[a-z0-9-]+$/, "update"],
+    [/^\/usr\/local\/bin\/quickbox\/system\/auxiliary\/install-BBR\.sh$/, "install"],
+    [/^\/usr\/local\/bin\/quickbox\/system\/qbUpdate$/, "update"],
 ];
 
 /**
  * Verb of the operation that currently holds the install lock, or null when it
- * cannot be identified (non-Linux host, hidden /proc, or a run that finished
- * between reading the lock and scanning). Callers fall back to a generic label.
+ * cannot be identified or candidate scripts disagree. Callers fall back to a
+ * generic label rather than letting process directory order choose the verb.
  */
 export function detectRunningTaskOperation(
     readDir: (dir: string) => string[] = (dir) => readdirSync(dir),
@@ -52,6 +50,7 @@ export function detectRunningTaskOperation(
         return null;
     }
 
+    let detected: RunningTaskOperation | null = null;
     for (const entry of entries) {
         if (!/^[0-9]+$/.test(entry)) {
             continue;
@@ -63,13 +62,20 @@ export function detectRunningTaskOperation(
             // The process exited between the directory scan and this read.
             continue;
         }
-        for (const [pattern, operation] of OPERATION_PATTERNS) {
-            if (pattern.test(cmdline)) {
-                return operation;
-            }
+        const [shell, script] = cmdline.split("\0");
+        if (!/^(?:\/(?:usr\/)?bin\/)?bash$/.test(shell) || !script) {
+            continue;
         }
+        const operation = OPERATION_PATTERNS.find(([pattern]) => pattern.test(script))?.[1];
+        if (!operation) {
+            continue;
+        }
+        if (detected !== null && detected !== operation) {
+            return null;
+        }
+        detected = operation;
     }
-    return null;
+    return detected;
 }
 
 // qbUpdate takes the lock under its own name; "QuickBox is running" would not

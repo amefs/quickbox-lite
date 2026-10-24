@@ -108,7 +108,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install uv and Python 3.14
-        uses: astral-sh/setup-uv@v10
+        uses: astral-sh/setup-uv@v10.3.2
         with:
           # Keep in sync with the uv release that wrote uv.lock.
           version: "0.12.9"

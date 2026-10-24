@@ -80,6 +80,74 @@ describe("widgets/running-task", () => {
             expect(operation).to.equal(null);
         });
 
+        it("should ignore processes that only mention a lifecycle script", () => {
+            const script = "/usr/local/bin/quickbox/package/install/installpackage-jellyfin";
+            const commands = [
+                cmdline("/usr/bin/vim", script),
+                cmdline("/bin/cat", script),
+                cmdline("/bin/grep", "APP_TITLE", script),
+                cmdline("/bin/bash", "-c", `cat ${script}`),
+                cmdline("/bin/bash", "-c", script),
+                cmdline("/bin/bash", "/tmp/inspect.sh", script),
+            ];
+            for (const command of commands) {
+                expect(detectRunningTaskOperation(() => ["100"], () => command), command).to.equal(null);
+            }
+        });
+
+        it("should identify the real updater while an editor opens a removal script", () => {
+            const commands: Record<string, string> = {
+                100: cmdline("/usr/bin/vim", "/usr/local/bin/quickbox/package/remove/removepackage-jellyfin"),
+                200: cmdline("/bin/bash", "/usr/local/bin/quickbox/package/update/updatepackage-jellyfin"),
+            };
+            for (const pids of [["100", "200"], ["200", "100"]]) {
+                expect(detectRunningTaskOperation(() => pids, pid => commands[pid])).to.equal("update");
+            }
+        });
+
+        it("should fall back when running scripts have conflicting operations", () => {
+            const commands: Record<string, string> = {
+                100: cmdline("/bin/bash", "/usr/local/bin/quickbox/package/remove/removepackage-jellyfin"),
+                200: cmdline("/bin/bash", "/usr/local/bin/quickbox/package/update/updatepackage-jellyfin"),
+            };
+            for (const pids of [["100", "200"], ["200", "100"]]) {
+                expect(detectRunningTaskOperation(() => pids, pid => commands[pid])).to.equal(null);
+            }
+        });
+
+        it("should accept repeated candidates for the same operation", () => {
+            expect(detectRunningTaskOperation(
+                () => ["100", "200"],
+                () => cmdline("/bin/bash", "/usr/local/bin/quickbox/package/update/updatepackage-jellyfin"),
+            )).to.equal("update");
+        });
+
+        it("should require the exact installed script path and lifecycle name", () => {
+            const scripts = [
+                "/tmp/usr/local/bin/quickbox/package/install/installpackage-jellyfin",
+                "/usr/local/bin/quickbox/package/install/inspect.sh",
+                "/usr/local/bin/quickbox/package/install/removepackage-jellyfin",
+                "/usr/local/bin/quickbox/package/install/installpackage-jellyfin/child",
+                "/usr/local/bin/quickbox/system/qbUpdate.backup",
+                "/usr/local/bin/quickbox/system/auxiliary/install-BBR.sh.backup",
+            ];
+            for (const script of scripts) {
+                expect(detectRunningTaskOperation(
+                    () => ["100"],
+                    () => cmdline("/bin/bash", script),
+                ), script).to.equal(null);
+            }
+        });
+
+        it("should accept the Bash executable names used by Linux launches", () => {
+            for (const shell of ["bash", "/bin/bash", "/usr/bin/bash"]) {
+                expect(detectRunningTaskOperation(
+                    () => ["100"],
+                    () => cmdline(shell, "/usr/local/bin/quickbox/package/install/installpackage-jellyfin", "--log", "/tmp/log"),
+                ), shell).to.equal("install");
+            }
+        });
+
         it("should return null when /proc is unavailable", () => {
             expect(detectRunningTaskOperation(() => {
                 throw new Error("ENOENT: no such file or directory, scandir '/proc'");
