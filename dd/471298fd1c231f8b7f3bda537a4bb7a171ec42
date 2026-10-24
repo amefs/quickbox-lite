@@ -1,0 +1,31 @@
+.github/workflows/deployment.yml
+  s_ca0de8519dc96b::t_326ccf63677e4c 39-76
+.github/workflows/linter.yml
+  s_ca0de8519dc96b::t_326ccf63677e4c 162
+tests/deployment/README.md
+  s_ca0de8519dc96b::t_326ccf63677e4c 9,28,41-48,199-200
+tests/deployment/prepare.sh
+  s_ca0de8519dc96b::t_326ccf63677e4c 8-12,33
+tests/deployment/report.py
+  s_ca0de8519dc96b::t_326ccf63677e4c 11-14
+e2e/README.md
+  s_ca0de8519dc96b::t_7b178a6c285f5a 16-19
+  s_ca0de8519dc96b::t_326ccf63677e4c 3-15,64
+  s_ca0de8519dc96b::t_49ae044aee9296 23-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dd471298fd1c231f8b7f3bda537a4bb7a171ec42",
+  "prompts": {},
+  "sessions": {
+    "s_ca0de8519dc96b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16be9-0bf7-7082-944d-5fb9e6c11b2b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
