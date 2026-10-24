@@ -1,6 +1,7 @@
 services:
   deployment:
     image: quickbox-deployment-test
+    pull_policy: never
     init: true
     command: [python3, tests/deployment/auth.py]
     environment:
