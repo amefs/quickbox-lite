@@ -1,6 +1,7 @@
 name: Linter
 
 on:
+  workflow_dispatch:
   push:
   pull_request:
     paths-ignore:
@@ -89,7 +90,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     - name: Check all package lifecycle scripts and templates
@@ -107,7 +108,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
       - name: Install pipenv
@@ -115,10 +116,10 @@ jobs:
           python -m pip install --upgrade pipenv wheel
       - id: env-version
         run: |
-          echo "python=$(python -c 'import platform;print(platform.python_version())')" >> $GITHUB_OUTPUT
-          echo "ubuntu=$(lsb_release -cs)" >> $GITHUB_OUTPUT
+          echo "python=$(python -c 'import platform;print(platform.python_version())')" >> "$GITHUB_OUTPUT"
+          echo "ubuntu=$(lsb_release -cs)" >> "$GITHUB_OUTPUT"
       - id: cache-pipenv
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.local/share/virtualenvs
           key: ${{ steps.env-version.outputs.ubuntu }}-${{ steps.env-version.outputs.python }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
@@ -130,3 +131,53 @@ jobs:
         run: |
           # stop the build if there are Python syntax errors or undefined names
           pipenv run flake8
+
+  dashboard-changes:
+    name: Select Dashboard acceptance
+    if: github.event_name != 'push'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    outputs:
+      run: ${{ steps.changes.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check application and acceptance paths
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --name-only "$BASE_SHA" "$GITHUB_SHA" -- \
+            setup.sh setup packages/system \
+            packages/package/install/installpackage-authelia \
+            packages/package/install/installpackage-vouchproxy \
+            packages/package/install/installpackage-flood \
+            tests e2e/scripts/deployment-auth.cjs 'e2e/package*.json' \
+            .github/workflows/deployment.yml .github/workflows/linter.yml \
+            > "$RUNNER_TEMP/dashboard-changes.txt"
+          if [[ -s "$RUNNER_TEMP/dashboard-changes.txt" ]]; then
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+          fi
+
+  dashboard-acceptance:
+    name: Dashboard acceptance
+    needs:
+      - es-linter-for-ts
+      - es-linter-for-js
+      - shell-linter
+      - package-script-linter
+      - python-linter
+      - dashboard-changes
+    if: ${{ success() && needs.dashboard-changes.outputs.run == 'true' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deployment.yml

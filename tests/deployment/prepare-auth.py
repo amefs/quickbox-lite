@@ -9,7 +9,7 @@ root = Path(sys.argv[1])
 for name in ['authelia', 'vouch']:
     (root / name).mkdir(parents=True, exist_ok=True)
     (root / name).chmod(0o755)
-output = subprocess.check_output(['docker', 'run', '--rm', 'authelia/authelia:4.39.28',
+output = subprocess.check_output(['docker', 'run', '--rm', '--pull=never', '--network=none', 'authelia/authelia:4.39.28',
                                   'authelia', 'crypto', 'hash', 'generate', 'argon2',
                                   '--password', 'fixture-password'], text=True)
 digest = re.search(r'Digest: (\S+)', output).group(1)
@@ -26,6 +26,8 @@ server:
   address: tcp://0.0.0.0:9091/authelia
 log:
   level: info
+ntp:
+  disable_startup_check: true
 identity_validation:
   reset_password:
     jwt_secret: disposable-fixture-reset-secret-0123456789

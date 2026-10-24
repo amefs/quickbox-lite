@@ -11,23 +11,29 @@ export TERM=xterm
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "${repo_root}"
 
-scripts=(
-	nodejs-update-sandbox.py
-	dashboard-stage-sandbox.sh
-	qb-ensure-ws-gateway-sandbox.py
-	ws-health-startup-sandbox.py
-	dashboard-update-sandbox.py
-	backup-retention-sandbox.py
-	repo-state-revert-sandbox.sh
-	repo-reinstall-sandbox.py
-	update-config-backup-sandbox.sh
-	update-timing-sandbox.sh
-)
+case "${1:-all}" in
+runtime) scripts=(nodejs-update-sandbox.py) ;;
+dashboard) scripts=(dashboard-stage-sandbox.sh qb-ensure-ws-gateway-sandbox.py ws-health-startup-sandbox.py dashboard-update-sandbox.py) ;;
+backups) scripts=(backup-retention-sandbox.py update-config-backup-sandbox.sh) ;;
+repository) scripts=(repo-state-revert-sandbox.sh repo-reinstall-sandbox.py) ;;
+progress) scripts=(update-timing-sandbox.sh) ;;
+all)
+	result=0
+	for group in runtime dashboard backups repository progress; do
+		bash "${repo_root}/tests/system/run-dashboard-sandboxes.sh" "${group}" || result=1
+	done
+	exit "${result}"
+	;;
+*) printf 'Unknown sandbox group: %s\n' "$1" >&2; exit 2 ;;
+esac
 
+result=0
 for script in "${scripts[@]}"; do
-	printf 'Running sandbox: %s\n' "${script}"
+	printf '::group::%s\n' "${script}"
 	case "${script}" in
-	*.py) python3 "tests/system/${script}" ;;
-	*.sh) bash "tests/system/${script}" ;;
+	*.py) python3 "tests/system/${script}" || result=1 ;;
+	*.sh) bash "tests/system/${script}" || result=1 ;;
 	esac
+	printf '::endgroup::\n'
 done
+exit "${result}"
