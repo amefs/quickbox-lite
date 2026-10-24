@@ -1,6 +1,7 @@
 name: Linter
 
 on:
+  workflow_dispatch:
   push:
   pull_request:
     paths-ignore:
@@ -16,7 +17,7 @@ jobs:
     - name: Install nodejs
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 24
   
     - name: Install dependencies
       run: |
@@ -37,10 +38,16 @@ jobs:
       run: |
           cd setup/dashboard/ws || exit 1
           npm run build
-          git diff --exit-code -- dist/server.js || {
-            echo "dist/server.js is out of date: rebuild it and commit the artifact." >&2
-            exit 1
-          }
+          if git diff --quiet -- dist/server.js; then
+            echo "dist/server.js is up to date."
+            exit 0
+          fi
+          echo "::error file=setup/dashboard/ws/dist/server.js::dist/server.js is out of date: rebuild it and commit the artifact."
+          git diff --numstat -- dist/server.js
+          echo "committed size: $(git show :dist/server.js | wc -c | tr -d ' ') bytes"
+          echo "rebuilt size:   $(wc -c < dist/server.js | tr -d ' ') bytes"
+          echo "Run 'npm run build' in setup/dashboard/ws and commit the result." >&2
+          exit 1
 
   es-linter-for-js:
     runs-on: ubuntu-22.04
@@ -51,7 +58,7 @@ jobs:
     - name: Install nodejs
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 24
   
     - name: Install dependencies
       run: |
@@ -73,42 +80,19 @@ jobs:
       uses: azohra/shell-linter@latest
       with:
         # todo: scripts in packages
-        path: "onekey.sh,setup.sh,bump-version.sh,packages/system/auxiliary/qbEnsureWsGateway,packages/system/auxiliary/qbNginxProxyMigrate,packages/system/auxiliary/qbNormalizeRepo,packages/system/auxiliary/qbWsHealthCheck"
+        path: "onekey.sh,setup.sh,bump-version.sh,packages/system/auxiliary/qbEnsureNodejs,packages/system/auxiliary/qbEnsureWsGateway,packages/system/auxiliary/qbNginxProxyMigrate,packages/system/auxiliary/qbNormalizeRepo,packages/system/auxiliary/qbWsHealthCheck,packages/system/auxiliary/qbBackupPrune,packages/system/update/qbUpdateBackup,packages/system/update/qbUpdateRevert"
 
-    - name: Check dashboard system script syntax
-      shell: bash
-      run: |
-        set -euo pipefail
-        # The dashboard deployment path is shell heavy: at minimum every script
-        # changed by the dashboard review must stay syntactically valid.
-        bash -n setup.sh
-        for script in packages/system/box packages/system/qbUpdate packages/system/update/qbUpdateDashboard \
-          packages/package/install/installpackage-vouchproxy \
-          packages/system/update/qbUpdateRepo packages/system/update/qbUpdateService \
-          packages/system/theme/themeSelect-defaulted packages/system/theme/themeSelect-smoked \
-          packages/system/auxiliary/qbEnsureWsGateway packages/system/auxiliary/qbNginxProxyMigrate \
-          packages/system/auxiliary/qbNormalizeRepo packages/system/auxiliary/qbWsHealthCheck \
-          packages/system/auxiliary/qbNginxAuth; do
-          bash -n "${script}"
-        done
-
-    - name: Exercise dashboard deployment failures in a sandbox
-      shell: bash
-      run: |
-        set -euo pipefail
-        bash tests/system/dashboard-stage-sandbox.sh
-        python3 tests/system/qb-ensure-ws-gateway-sandbox.py
-        python3 tests/system/ws-health-startup-sandbox.py
-        python3 tests/system/dashboard-update-sandbox.py
+    - name: Check system script syntax
+      run: bash scripts/check-system-script-syntax.sh
 
   package-script-linter:
     runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.14'
     - name: Check all package lifecycle scripts and templates
       run: python3 scripts/lint-package-scripts.py
     - name: Test package script lint rules
@@ -123,27 +107,71 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+      - name: Install uv and Python 3.14
+        uses: astral-sh/setup-uv@v10.3.2
         with:
-          python-version: '3.10'
-      - name: Install pipenv
-        run: |
-          python -m pip install --upgrade pipenv wheel
-      - id: env-version
-        run: |
-          echo "python=$(python -c 'import platform;print(platform.python_version())')" >> $GITHUB_OUTPUT
-          echo "ubuntu=$(lsb_release -cs)" >> $GITHUB_OUTPUT
-      - id: cache-pipenv
-        uses: actions/cache@v3
-        with:
-          path: ~/.local/share/virtualenvs
-          key: ${{ steps.env-version.outputs.ubuntu }}-${{ steps.env-version.outputs.python }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
+          # Keep in sync with the uv release that wrote uv.lock.
+          version: "0.12.9"
+          python-version: '3.14'
+          enable-cache: true
+          cache-dependency-glob: uv.lock
       - name: Install dependencies
-        if: steps.cache-pipenv.outputs.cache-hit != 'true'
-        run: |
-          pipenv install --deploy --dev
+        run: uv sync --locked
       - name: Lint with flake8
+        # No path argument: .flake8 owns the scope, and its exclude list keeps
+        # .venv, node_modules and vendor out of the run.
+        run: uv run --locked flake8
+      - name: Type-check with pyright
+        # pyrightconfig.json is shared with Pylance, so CI and the editor agree
+        # on the file set and the checking mode.
+        run: uv run --locked pyright
+
+  dashboard-changes:
+    name: Select Dashboard acceptance
+    if: github.event_name != 'push'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    outputs:
+      run: ${{ steps.changes.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check application and acceptance paths
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          # stop the build if there are Python syntax errors or undefined names
-          pipenv run flake8
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --name-only "$BASE_SHA" "$GITHUB_SHA" -- \
+            setup.sh setup packages/system \
+            packages/package/install/installpackage-authelia \
+            packages/package/install/installpackage-vouchproxy \
+            packages/package/install/installpackage-flood \
+            tests e2e \
+            .github/workflows/deployment.yml .github/workflows/linter.yml \
+            > "$RUNNER_TEMP/dashboard-changes.txt"
+          if [[ -s "$RUNNER_TEMP/dashboard-changes.txt" ]]; then
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+          fi
+
+  dashboard-acceptance:
+    name: Dashboard acceptance
+    needs:
+      - es-linter-for-ts
+      - es-linter-for-js
+      - shell-linter
+      - package-script-linter
+      - python-linter
+      - dashboard-changes
+    if: ${{ success() && needs.dashboard-changes.outputs.run == 'true' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deployment.yml
