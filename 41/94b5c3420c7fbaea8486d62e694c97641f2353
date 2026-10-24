@@ -1,0 +1,18 @@
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+setup/dashboard/ws/src/handlers/exec.ts
+  h_3705811fa4502c 34-50,52,137-141,154-157,159-160,162,167,183,189,198,203,205,240-280,290-292,304,308,316,319-320,420,425-429
+setup/dashboard/ws/tests/handlers/exec.spec.ts
+  h_3705811fa4502c 15,23-26,163-205,335-338,340,343,348-355
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4194b5c3420c7fbaea8486d62e694c97641f2353",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
