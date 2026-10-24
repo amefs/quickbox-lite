@@ -27,7 +27,7 @@ systemd)
 authentication)
   docker load -i "$RUNNER_TEMP/deployment-image.tar.gz"
   npm ci --no-audit --no-fund --prefix e2e
-  (cd e2e && npx --no-install playwright install --with-deps chromium)
+  (cd e2e && npx --no-install playwright install --with-deps chromium webkit)
   bash tests/deployment/run-auth.sh --prepare
   ;;
 *) echo 'Supply an environment: panel, linux, systemd or authentication.' >&2; exit 2 ;;

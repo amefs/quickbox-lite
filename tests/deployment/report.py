@@ -39,6 +39,7 @@ PLANS = {
     'authentication': {
         'prepare': 'Prepare browser, application and identity providers',
         'basic': 'Basic Auth access and transports',
+        'basic-webkit': 'WebKit Basic Auth login, refresh and reconnect',
         'authelia': 'Authelia login, access and session rejection',
         'vouch': 'Vouch login, access and session rejection',
         'cleanup': 'Collect diagnostics and remove authentication environment',

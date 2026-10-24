@@ -7,6 +7,16 @@ import type { NextFunction, Request, Response } from "express";
 
 export const GATEWAY_HEADER = "x-quickbox-gateway";
 
+export function shouldUpgradeDashboardSocket(headers: IncomingHttpHeaders): boolean {
+    const agent = headerValue(headers, "user-agent");
+    const basicAuth = /^Basic\s/i.test(headerValue(headers, "authorization"));
+    const appleWebKit = /AppleWebKit/i.test(agent) &&
+        (/iPhone|iPad|iPod/i.test(agent) || !/Chrome|Chromium|Edg|OPR|Android/i.test(agent));
+    // WebKit can challenge again on each WebSocket upgrade after HTTP Basic login.
+    // Keep its authenticated polling connection; nginx still checks every request.
+    return !(basicAuth && appleWebKit);
+}
+
 /** Root managed secret location, see qbEnsureWsGateway. */
 const DEFAULT_SECRET_FILE = "/etc/quickbox/ws.secret";
 /** Pre-migration location, still readable so upgrades keep working mid-flight. */

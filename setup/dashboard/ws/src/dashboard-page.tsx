@@ -33,6 +33,7 @@ export interface DashboardSsrFragments {
 
 export interface DashboardPageProps {
     basePath?: string;
+    socketUpgrade?: boolean;
     locale: string;
     menuState: DashboardMenuState;
     ssrFragments: DashboardSsrFragments;
@@ -66,11 +67,12 @@ function NetworkInterfaceRows({ interfaces }: { interfaces: string[] }) {
     );
 }
 
-export function DashboardPage({ basePath, locale, menuState, ssrFragments }: DashboardPageProps) {
+export function DashboardPage({ basePath, socketUpgrade = true, locale, menuState, ssrFragments }: DashboardPageProps) {
     const config = dashboardConfig();
     const normalizedBasePath = normalizeBasePath(basePath);
     const runtimeConfig = {
         basePath: normalizedBasePath,
+        socketUpgrade,
         locale,
         locales: VALID_LOCALES,
         serviceKeys: [...serviceMap.keys()],

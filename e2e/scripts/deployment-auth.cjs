@@ -1,4 +1,4 @@
-const { chromium, expect } = require('@playwright/test');
+const { chromium, webkit, devices, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
@@ -6,6 +6,8 @@ const http = require('node:http');
 const net = require('node:net');
 const directory = process.env.QUICKBOX_AUTH_FIXTURES;
 const base = 'https://dashboard.example.com:18443';
+const browserName = process.env.QUICKBOX_AUTH_BROWSER || 'chromium';
+assert(['chromium', 'webkit'].includes(browserName));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until(check, timeout = 60000) {
   const end = Date.now() + timeout;
@@ -43,6 +45,44 @@ async function websocket(page, socketPath, accepted) {
   }), { url: `${base.replace('https:', 'wss:')}${socketPath}/?EIO=4&transport=websocket` });
   assert.equal(opened, accepted, socketPath);
 }
+async function verifySingleBasicLogin(browser, entryPath) {
+  const marker = `QuickBoxBasicLogin-${process.pid}-${Date.now()}`;
+  const context = await browser.newContext({ ...devices['iPhone 13'], ignoreHTTPSErrors: true,
+    userAgent: devices['iPhone 13'].userAgent + ' ' + marker,
+    httpCredentials: { username: 'fixture', password: 'fixture-password' },
+  });
+  const page = await context.newPage();
+  async function connected() {
+    await page.waitForFunction(() => {
+      const socket = window.socket;
+      return socket?.connected && (socket.io.engine.opts.upgrade === false || socket.io.engine.transport.name === 'websocket');
+    }, undefined, { timeout: 20000 });
+  }
+  try {
+    await page.goto(base + entryPath);
+    assert.equal(new URL(page.url()).pathname, '/');
+    assert.equal(new URL(page.url()).search, new URL(base + entryPath).search);
+    await connected();
+    await expect(page.locator('#uptime')).not.toBeEmpty();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await page.evaluate(() => { window.socket.disconnect(); window.socket.connect(); });
+      await connected();
+    }
+    await page.reload();
+    await connected();
+    const results = await Promise.all(['/node/dashboard_config', '/node/system_static', '/node/ram_stats']
+      .map((target) => request(page, target)));
+    assert.deepEqual(results, [200, 200, 200]);
+    const challenges = fs.readFileSync(path.join(directory, 'browser-access.log'), 'utf8').split('\n')
+      .filter((line) => line.includes(marker) && /" 401 /.test(line));
+    assert.equal(challenges.length, 1, `Expected one Basic login for ${entryPath}:\n${challenges.join('\n')}`);
+    assert.equal(await page.evaluate(() => window.socket.io.engine.transport.name), 'polling');
+    console.log(`WebKit Basic Auth ${entryPath}: one login across API calls, refresh and three reconnects`);
+  } catch (error) {
+    await page.screenshot({ path: path.join(directory, `basic-webkit-${entryPath === '/' ? 'root' : 'legacy'}-failure.png`) });
+    throw error;
+  } finally { await context.close(); }
+}
 (async () => {
   // Preserve the real HTTPS origin and cookie domain without editing /etc/hosts.
   // This local CONNECT proxy forwards only the disposable fixture authority.
@@ -62,7 +102,7 @@ async function websocket(page, socketPath, accepted) {
     }
   });
   await new Promise((resolve) => proxy.listen(0, '127.0.0.1', resolve));
-  const browser = await chromium.launch({ proxy: { server: `http://127.0.0.1:${proxy.address().port}` } });
+  const browser = await ({ chromium, webkit })[browserName].launch({ proxy: { server: `http://127.0.0.1:${proxy.address().port}` } });
   try {
     await until(() => fs.existsSync(path.join(directory, 'ready')), 120000);
     for (const provider of (process.env.QUICKBOX_AUTH_PROVIDER ? [process.env.QUICKBOX_AUTH_PROVIDER] : ['basic', 'authelia', 'vouch'])) {
@@ -73,6 +113,11 @@ async function websocket(page, socketPath, accepted) {
         try { return fs.readFileSync(path.join(directory, 'active'), 'utf8') === provider; }
         catch { return false; }
       });
+      if (browserName === 'webkit') {
+        assert.equal(provider, 'basic');
+        for (const entryPath of ['/', '/ws', '/ws/', '/ws/?locale=zh']) await verifySingleBasicLogin(browser, entryPath);
+        continue;
+      }
       const context = await browser.newContext({ ignoreHTTPSErrors: true,
         ...(provider === 'basic' ? { httpCredentials: { username: 'fixture', password: 'fixture-password' } } : {}),
       });
@@ -114,7 +159,7 @@ async function websocket(page, socketPath, accepted) {
         }
         console.log(`${provider}: login, HTTP, polling, WebSocket and unauthenticated checks passed${provider === "basic" ? "" : "; tampered/expired sessions rejected"}`);
       } catch (error) {
-        await page.screenshot({ path: path.join(directory, `${provider}-failure.png`) });
+        await page.screenshot({ path: path.join(directory, `${provider}-${browserName}-failure.png`) });
         console.error(`Provider ${provider}; page URL ${page.url()}; body: ${(await page.locator('body').innerText()).slice(0, 1800)}`);
         throw error;
       } finally { await context.close(); }

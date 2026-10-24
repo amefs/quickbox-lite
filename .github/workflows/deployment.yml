@@ -237,15 +237,20 @@ jobs:
         with:
           name: dashboard-deployment-image
           path: ${{ runner.temp }}
-      - name: Cache Chromium
+      - name: Cache authentication browsers
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
+          key: auth-browsers-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
+          restore-keys: chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
       - name: Prepare browser, application and identity providers
         run: python3 tests/deployment/report.py prepare bash tests/deployment/prepare.sh authentication
       - name: Basic Auth access and transports
         run: python3 tests/deployment/report.py basic bash tests/deployment/run-auth.sh --provider basic
+      - name: WebKit Basic Auth login, refresh and reconnect
+        env:
+          QUICKBOX_AUTH_BROWSER: webkit
+        run: python3 tests/deployment/report.py basic-webkit bash tests/deployment/run-auth.sh --provider basic
       - name: Authelia login, access and session rejection
         run: python3 tests/deployment/report.py authelia bash tests/deployment/run-auth.sh --provider authelia
       - name: Vouch login, access and session rejection

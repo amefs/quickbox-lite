@@ -24,6 +24,7 @@ import { widgetsLoad } from "./widgets/load";
 import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAction } from "./plugins";
 import { systemStaticInfoWithProviders } from "./system-static";
 import { readOutputLog } from "./widgets/output-log";
+import { shouldUpgradeDashboardSocket } from "./auth";
 
 export interface AppRouterOptions {
     /** Absolute path to the dashboard root (setup/dashboard). Used by /debug/assets/* static routes. */
@@ -97,6 +98,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
             return ReactDOMServer.renderToString(
                 <DashboardPage
                     basePath={basePath}
+                    socketUpgrade={shouldUpgradeDashboardSocket(req.headers)}
                     locale={locale}
                     menuState={menuState}
                     ssrFragments={ssrFragments}

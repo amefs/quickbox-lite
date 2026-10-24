@@ -29,7 +29,7 @@ Actions and use **Run workflow**; this runs lint followed by acceptance.
 | Prepare application image and offline dependencies | System tools; current and pinned baseline production dependencies; verified bundle; offline installation proof; reusable artifacts |
 | Linux application deployment | Fresh install/permissions/sudo; HTTP/TLS/Socket.IO; baseline/repeated upgrade; five injected failures and rollback; WS/CLI mutual exclusion |
 | Native systemd lifecycle | Real deployment; unit settings/automatic restart/port recovery; detached update across a WS service restart |
-| Application authentication | Basic Auth; Authelia; Vouch, each with its own step |
+| Application authentication | Basic Auth; WebKit single-login regression; Authelia; Vouch, each with its own step |
 
 Each acceptance job writes a summary with passed, failed and skipped stages and
 per-stage durations. Details such as sandbox scripts and rollback failure types
@@ -198,6 +198,18 @@ and tampered/expired cookies. Valid and corrupted provider cookies are also sent
 to the actual root health checker. The current root-page assertion checks only
 that the body is nonempty; the separate Dashboard browser interactions job runs
 the full `e2e/tests` application interaction suite with its own mock server.
+
+A separate WebKit Basic Auth regression starts fresh iPhone browser contexts at
+`/`, `/ws`, `/ws/` and `/ws/?locale=zh`. It requires exactly one initial 401
+challenge across page loading, API calls, refresh and three reconnects by counting
+nginx responses, so automatic credential replies cannot hide repeated prompts.
+The legacy page entry points redirect to `/` before authentication, preserving
+queries and establishing the root credential scope before parallel API requests.
+Basic-authenticated Apple WebKit clients keep Socket.IO on authenticated polling
+because upgrading to WebSocket can trigger another authentication challenge.
+Other clients and cookie-based providers retain WebSocket upgrades. The server's
+WebSocket authentication remains enforced; credentials are never placed in page
+runtime configuration.
 
 A local CONNECT proxy preserves the fixture HTTPS origin and cookie domains
 without editing `/etc/hosts`. Certificate verification is disabled only in test

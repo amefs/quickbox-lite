@@ -148,7 +148,8 @@ http {
 ''')
     if os.environ.get('QUICKBOX_TEST_EXTERNAL') == '1':
         config = Path('/etc/nginx/nginx.conf')
-        config.write_text(config.read_text().replace('listen 127.0.0.1:18443 ssl;', 'listen 0.0.0.0:18443 ssl;'))
+        config.write_text(config.read_text().replace('listen 127.0.0.1:18443 ssl;', 'listen 0.0.0.0:18443 ssl;').replace(
+            'access_log /var/log/nginx/access.log;', 'access_log /auth-fixtures/browser-access.log;'))
     run(['nginx', '-t'])
     if SYSTEMD:
         # Make the Type=simple readiness race deterministic: the main process
@@ -193,6 +194,11 @@ def permissions():
 
 
 def transports():
+    for entry in ['/ws', '/ws/']:
+        response = run(['curl', '--noproxy', '*', '-s', '-D', '-', '-o', '/dev/null',
+                        f'http://127.0.0.1:18080{entry}?locale=zh'], capture_output=True, text=True)
+        assert ' 308 ' in response.stdout and '\nLocation: /?locale=zh\n' in response.stdout, response.stdout
+        assert 'www-authenticate:' not in response.stdout.lower(), response.stdout
     for scheme, authority in [('http', '127.0.0.1:18080'), ('http', '[::1]:18080'),
                               ('https', '127.0.0.1:18443')]:
         for path in ['/socket.io/', '/ws/socket.io/']:

@@ -55,7 +55,10 @@
 })();
 
 (function () {
-  let socket = io(location.origin, { path: (window.quickboxApiBase || "") + "/socket.io" });
+  let socket = io(location.origin, {
+    path: (window.quickboxApiBase || "") + "/socket.io",
+    upgrade: (window.quickboxRuntime || {}).socketUpgrade !== false
+  });
   window.socket = socket;
   socket.on("connect", function () {
     socket.emit("i18n", window.quickboxLocale || "en");

@@ -25,6 +25,9 @@ cleanup() {
   if [[ -n "${QUICKBOX_AUTH_ARTIFACTS:-}" ]]; then
     mkdir -p "$QUICKBOX_AUTH_ARTIFACTS"
     docker compose -p "$QUICKBOX_AUTH_PROJECT" -f "$compose" logs --no-color >"$QUICKBOX_AUTH_ARTIFACTS/compose.log" 2>&1 || result=1
+    if [[ -f "$QUICKBOX_AUTH_FIXTURES/browser-access.log" ]]; then
+      cp "$QUICKBOX_AUTH_FIXTURES/browser-access.log" "$QUICKBOX_AUTH_ARTIFACTS/" || result=1
+    fi
     find "$QUICKBOX_AUTH_FIXTURES" -maxdepth 1 -name '*-failure.png' -exec cp {} "$QUICKBOX_AUTH_ARTIFACTS/" \;
   else
     docker compose -p "$QUICKBOX_AUTH_PROJECT" -f "$compose" logs --tail=100 || result=1
