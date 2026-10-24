@@ -1,0 +1,24 @@
+tests/system/dashboard-update-sandbox.py
+  s_ca0de8519dc96b::t_4c1c06835e4c70 10,66-76,132,140-141,148,159-160,171-172,178
+packages/system/update/qbUpdateDashboard
+  s_ca0de8519dc96b::t_781f5bffada6f8 317,324,326,334
+  s_ca0de8519dc96b::t_4c1c06835e4c70 322-323,325,327-333
+tests/deployment/README.md
+  s_ca0de8519dc96b::t_4c1c06835e4c70 155-158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ea76706775cd6c0059c3c6a4f53c27ba317d7f2",
+  "prompts": {},
+  "sessions": {
+    "s_ca0de8519dc96b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16be9-0bf7-7082-944d-5fb9e6c11b2b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
