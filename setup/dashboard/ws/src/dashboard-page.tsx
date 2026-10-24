@@ -208,6 +208,86 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
     border-radius: 50%;
     flex-shrink: 0;
 }
+/* Side panels: text and decorative icon share one flex row so the icon can
+   never squeeze or overlap the text when the right column gets narrow. */
+.qb-panel-split {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-left: 0;
+    margin-right: 0;
+}
+.qb-panel-split > [class*="col-sm-"] {
+    float: none;
+    width: auto;
+    padding-left: 0;
+    padding-right: 0;
+}
+.qb-panel-split > .qb-panel-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.qb-panel-split > .qb-panel-icon {
+    flex: 0 0 auto;
+    line-height: 1;
+}
+[data-inner-id="panel-server-load"] .qb-panel-icon i {
+    font-size: 70px;
+}
+[data-inner-id="panel-server-disk"] .qb-panel-icon i {
+    font-size: 90px;
+}
+[data-inner-id="panel-server-load"], [data-inner-id="panel-server-disk"] {
+    container-type: inline-size;
+}
+/* Tie the decorative icon to the panel width instead of the viewport, so a
+   narrow right column keeps the text column readable. */
+@container (max-width: 560px) {
+    [data-inner-id="panel-server-load"] .qb-panel-icon i {
+        font-size: 60px;
+    }
+    [data-inner-id="panel-server-disk"] .qb-panel-icon i {
+        font-size: 72px;
+    }
+}
+@container (max-width: 420px) {
+    [data-inner-id="panel-server-load"] .qb-panel-icon i {
+        font-size: 52px;
+    }
+    [data-inner-id="panel-server-disk"] .qb-panel-icon i {
+        font-size: 64px;
+    }
+}
+@container (max-width: 320px) {
+    [data-inner-id="panel-server-load"] .qb-panel-icon i {
+        font-size: 44px;
+    }
+    [data-inner-id="panel-server-disk"] .qb-panel-icon i {
+        font-size: 52px;
+    }
+}
+.qb-uptime {
+    overflow-wrap: anywhere;
+}
+.qb-mount-point {
+    color: #eb4549;
+    font-weight: normal;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+.qb-disk-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 12px;
+    row-gap: 2px;
+    font-size: 14px;
+}
+.qb-disk-metric {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
 #quickbox-alert-modal .modal-dialog {
     width: 600px;
     max-width: calc(100vw - 30px);
@@ -223,14 +303,14 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
     display: flex;
     flex-direction: column;
     width: 100%;
-    background: #111;
-    border: 1px solid #333;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid rgba(0, 0, 0, 0.2);
     max-height: calc(100vh - 16px);
     max-height: calc(100dvh - 16px);
 }
 #sysResponse .modal-header, #sysResponse .modal-footer {
     flex-shrink: 0;
-    background: #181818;
+    background: rgba(0, 0, 0, 0.4);
     border: 0;
 }
 #sysResponse .modal-title {
@@ -242,6 +322,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
     max-height: none;
     overflow: auto;
     overscroll-behavior: contain;
+    background: rgba(0, 0, 0, 0.4);
 }
 #sysResponse .sysout {
     color: rgb(83, 223, 131);
@@ -512,17 +593,15 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                                     <div className="panel panel-side panel-inverse-full panel-updates" data-inner-id="panel-server-load">
                                         <div className="panel-heading"><h4 className="panel-title text-success">{i18n.t("SERVER_LOAD")}</h4></div>
                                         <div className="panel-body">
-                                            <div className="row">
-                                                <div className="col-sm-9">
+                                            <div className="row qb-panel-split">
+                                                <div className="col-sm-9 qb-panel-main">
                                                     <h4><span id="cpuload" dangerouslySetInnerHTML={ssrFragments.loadHtml ? { __html: ssrFragments.loadHtml } : undefined}>{ssrFragments.loadHtml ? undefined : <SystemLoadPlaceholder />}</span></h4>
                                                     <p>{i18n.t("SL_TXT")}</p>
                                                 </div>
-                                                <div className="col-sm-3 text-right"><i className="fa fa-heartbeat text-danger" style={{ fontSize: "70px" }}></i></div>
-                                                <div className="row">
-                                                    <div className="col-sm-12 mt20 text-center">
-                                                        <strong>{i18n.t("UPTIME")}:</strong> <span id="uptime" dangerouslySetInnerHTML={ssrFragments.uptimeHtml ? { __html: ssrFragments.uptimeHtml } : undefined}>{ssrFragments.uptimeHtml ? undefined : <UptimePlaceholder />}</span>
-                                                    </div>
-                                                </div>
+                                                <div className="col-sm-3 text-right qb-panel-icon"><i className="fa fa-heartbeat text-danger"></i></div>
+                                            </div>
+                                            <div className="mt20 text-center qb-uptime">
+                                                <strong>{i18n.t("UPTIME")}:</strong> <span id="uptime" dangerouslySetInnerHTML={ssrFragments.uptimeHtml ? { __html: ssrFragments.uptimeHtml } : undefined}>{ssrFragments.uptimeHtml ? undefined : <UptimePlaceholder />}</span>
                                             </div>
                                         </div>
                                     </div>
