@@ -16,7 +16,9 @@ import time
 REPO = Path(__file__).resolve().parents[2]
 STATE = Path('/run/quickbox-test')
 ENV = dict(os.environ, TERM='xterm', QUICKBOX_TEST_DISPOSABLE='1',
-           QUICKBOX_NGINX_SCHEME='http', QUICKBOX_WS_HEALTH_PORT='18080')
+           QUICKBOX_NGINX_SCHEME='http', QUICKBOX_WS_HEALTH_PORT='18080',
+           npm_config_cache=os.environ.get('npm_config_cache', '/opt/quickbox-npm-cache'),
+           npm_config_offline='true', npm_config_audit='false', npm_config_fund='false')
 SYSTEMD = False
 
 
@@ -48,7 +50,9 @@ def healthy():
 def driver(fresh=False, failure=''):
     if fresh:
         text = (REPO / 'setup.sh').read_text()
-        text = re.search(r'^function _insdashboard\(\) \{\n.*?^\}', text, re.M | re.S).group()
+        matched = re.search(r'^function _insdashboard\(\) \{\n.*?^\}', text, re.M | re.S)
+        assert matched is not None, '_insdashboard() is missing from setup.sh'
+        text = matched.group()
         # Runtime packages and the console-independent nginx fixture are already
         # installed. Execute the real Dashboard installation body after them.
         text += '\n_insngx() { :; }; _insnodejs() { :; }; _webconsole() { :; }\n'
@@ -87,7 +91,11 @@ systemctl() {
     script = STATE / 'driver.sh'
     script.write_text(text)
     (STATE / 'injected').unlink(missing_ok=True)
-    environment = dict(ENV, FAILURE=failure)
+    environment = dict(
+        ENV,
+        FAILURE=failure,
+        QB_UPDATE_LIB_DIR='/usr/local/bin/quickbox/system/update',
+    )
     with (STATE / f'{"install" if fresh else "update"}-{failure or "success"}.log').open('w') as log:
         result = subprocess.run(['bash', str(script)], env=environment, stdout=log, stderr=subprocess.STDOUT)
     assert (result.returncode != 0) if failure else (result.returncode == 0), script
@@ -113,7 +121,7 @@ def setup():
     Path('/root/.admin.info').write_bytes(b'fixture:' + encoded)
     hashed = subprocess.check_output(['openssl', 'passwd', '-apr1', 'fixture-password']).decode().strip()
     Path('/etc/htpasswd.d/htpasswd.fixture').write_text('fixture:' + hashed + '\n')
-    shutil.copy(REPO / 'setup/templates/nginx/proxy.conf.template', '/etc/nginx/snippets/proxy.conf')
+    shutil.copy(REPO / 'setup/templates/nginx/proxy.conf', '/etc/nginx/snippets/proxy.conf')
     shutil.copy(REPO / 'setup/templates/sudoers.template', '/etc/sudoers.d/quickbox-test')
     Path('/etc/sudoers.d/quickbox-test').chmod(0o440)
     run(['visudo', '-cf', '/etc/sudoers'])
@@ -142,7 +150,9 @@ http {
 ''')
     if os.environ.get('QUICKBOX_TEST_EXTERNAL') == '1':
         config = Path('/etc/nginx/nginx.conf')
-        config.write_text(config.read_text().replace('listen 127.0.0.1:18443 ssl;', 'listen 0.0.0.0:18443 ssl;'))
+        text = config.read_text().replace('listen 127.0.0.1:18443 ssl;', 'listen 0.0.0.0:18443 ssl;')
+        config.write_text(text.replace('access_log /var/log/nginx/access.log;',
+                                       'access_log /auth-fixtures/browser-access.log;'))
     run(['nginx', '-t'])
     if SYSTEMD:
         # Make the Type=simple readiness race deterministic: the main process
@@ -159,6 +169,12 @@ http {
 
 
 def permissions():
+    if SYSTEMD:
+        pid = int(subprocess.check_output(['systemctl', 'show', 'quickbox-ws.service', '-p', 'MainPID', '--value']))
+    else:
+        pid = int((STATE / 'node.pid').read_text())
+    identity = subprocess.check_output(['ps', '-o', 'user=,group=', '-p', str(pid)], text=True).split()
+    assert identity == ['www-data', 'www-data'], ('service identity', identity)
     for filename, mode in [('/etc/quickbox/ws.secret', 0o640),
                            ('/etc/nginx/snippets/quickbox-ws-gateway.conf', 0o600)]:
         info = Path(filename).stat()
@@ -181,6 +197,11 @@ def permissions():
 
 
 def transports():
+    for entry in ['/ws', '/ws/']:
+        response = run(['curl', '--noproxy', '*', '-s', '-D', '-', '-o', '/dev/null',
+                        f'http://127.0.0.1:18080{entry}?locale=zh'], capture_output=True, text=True)
+        assert ' 308 ' in response.stdout and '\nLocation: /?locale=zh\n' in response.stdout, response.stdout
+        assert 'www-authenticate:' not in response.stdout.lower(), response.stdout
     for scheme, authority in [('http', '127.0.0.1:18080'), ('http', '[::1]:18080'),
                               ('https', '127.0.0.1:18443')]:
         for path in ['/socket.io/', '/ws/socket.io/']:
@@ -201,7 +222,8 @@ def legacy():
     shutil.rmtree('/srv/dashboard')
     baseline = Path(os.environ.get('QUICKBOX_TEST_BASELINE_DIR', '/opt/quickbox-baseline'))
     run(['rsync', '-a', str(baseline / 'setup/dashboard') + '/', '/srv/dashboard/'])
-    for filename, content in [('master.txt', 'fixture\n'), ('interface.txt', 'eth0\n'), ('output.log', 'legacy-output\n')]:
+    for filename, content in [('master.txt', 'fixture\n'), ('interface.txt', 'eth0\n'),
+                              ('output.log', 'legacy-output\n')]:
         Path('/srv/dashboard/db', filename).write_text(content)
     shutil.copy(baseline / 'setup/templates/systemd/quickbox-ws.service.template',
                 '/etc/systemd/system/quickbox-ws.service')
@@ -279,6 +301,7 @@ result=$?
 _lockCheck
 _setLock || exit 1
 trap _releaseUpdateInstallLock EXIT
+_initializeUpdateLog || exit 1
 echo entered >>/run/quickbox-test/update-entered.log
 sleep 4
 touch /run/quickbox-test/update-finished
@@ -291,65 +314,110 @@ touch /run/quickbox-test/update-finished
     healthy()
 
 
+def install():
+    setup()
+    driver(fresh=True)
+    healthy()
+    permissions()
+
+
+def upgrade():
+    legacy()
+    secret = digest('/etc/quickbox/ws.secret')
+    driver()
+    assert digest('/etc/quickbox/ws.secret') == secret
+    healthy()
+    print('Repeat upgrade and secret preservation: passed', flush=True)
+
+
+def recovery():
+    secret = digest('/etc/quickbox/ws.secret')
+    candidate = Path('/etc/QuickBox/setup/dashboard/ws/dist/server.js')
+    original_candidate = candidate.read_bytes()
+    try:
+        for failure in ['npm', 'restart', 'nginx-test', 'nginx-reload', 'health']:
+            print(f'::group::Recovery after {failure}', flush=True)
+            try:
+                candidate.write_bytes(f'// candidate for {failure}\n'.encode() + original_candidate)
+                vhost = Path('/etc/nginx/apps/dashboard.conf')
+                vhost.write_text(vhost.read_text() + f'\n# previous release before {failure}\n')
+                old_config = digest(vhost)
+                before = digest('/srv/dashboard/ws/dist/server.js')
+                driver(failure=failure)
+                assert digest('/srv/dashboard/ws/dist/server.js') == before
+                assert digest(vhost) == old_config, 'rollback must restore the previous vhost bytes'
+                assert digest('/etc/quickbox/ws.secret') == secret
+                healthy()
+                print(f'Real deployment recovery after {failure}: passed', flush=True)
+            finally:
+                print('::endgroup::', flush=True)
+    finally:
+        candidate.write_bytes(original_candidate)
+
+
+def cleanup():
+    if not STATE.exists():
+        return
+    if SYSTEMD:
+        subprocess.run(['journalctl', '-u', 'quickbox-ws.service', '--no-pager', '-n', '100'], check=False)
+    for filename in STATE.glob('*.log'):
+        print(f'--- {filename.name} ---\n{filename.read_text()[-6000:]}', flush=True)
+    for filename in ['/srv/dashboard/db/output.log', '/var/log/nginx/error.log']:
+        if Path(filename).exists():
+            print(f'--- {filename} ---\n{Path(filename).read_text()[-10000:]}', flush=True)
+    subprocess.run(['nginx', '-s', 'quit'], check=False)
+    try:
+        control('stop')
+    except subprocess.CalledProcessError:
+        pass
+
+
+LINUX_PHASES = ('install', 'transports', 'upgrade', 'recovery', 'mutex')
+SYSTEMD_PHASES = ('install', 'lifecycle', 'mutex')
+
+
+def execute_phase(phase):
+    prerequisite = 'upgrade' if phase == 'recovery' else 'install'
+    if phase not in ('install', 'cleanup') and not (STATE / f'{prerequisite}.passed').exists():
+        raise RuntimeError(f'Run the {prerequisite} phase successfully before {phase}')
+    actions = dict(install=install, transports=transports, upgrade=upgrade,
+                   recovery=recovery, lifecycle=lifecycle, mutex=update_mutex, cleanup=cleanup)
+    if phase != 'cleanup':
+        (STATE / f'{phase}.passed').unlink(missing_ok=True)
+    actions[phase]()
+    if phase != 'cleanup':
+        (STATE / f'{phase}.passed').touch()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--systemd', action='store_true')
     parser.add_argument('--only-mutex', action='store_true', help='focused real WS/CLI concurrency regression')
+    parser.add_argument('--phase', choices=(*LINUX_PHASES, 'lifecycle', 'cleanup'),
+                        help='run one phase, retaining services for the next CI step; always finish with cleanup')
     arguments = parser.parse_args()
     global SYSTEMD
     SYSTEMD = arguments.systemd
     if sys.platform != 'linux' or os.geteuid() != 0 or os.environ.get('QUICKBOX_TEST_DISPOSABLE') != '1':
         parser.error('Run only as root in a disposable Linux deployment-test host')
+    phases = SYSTEMD_PHASES if SYSTEMD else LINUX_PHASES
+    if arguments.phase and arguments.only_mutex:
+        parser.error('--phase and --only-mutex cannot be combined')
+    if arguments.phase and arguments.phase not in (*phases, 'cleanup'):
+        parser.error('This phase is not part of the selected deployment environment')
+    if arguments.phase:
+        execute_phase(arguments.phase)
+        return
     try:
-        # Run before provisioning production secrets so tests retain isolation.
-        run(['npm', 'test'], cwd=REPO / 'setup/dashboard/ws')
-        setup()
-        driver(fresh=True)
-        healthy()
-        permissions()
-        if arguments.only_mutex:
-            update_mutex()
-            return
-        transports()
-        legacy()
-        secret = digest('/etc/quickbox/ws.secret')
-        driver()
-        assert digest('/etc/quickbox/ws.secret') == secret
-        healthy()
-        print('Repeat upgrade and secret preservation: passed', flush=True)
-        candidate = Path('/etc/QuickBox/setup/dashboard/ws/dist/server.js')
-        original_candidate = candidate.read_bytes()
-        for failure in ['npm', 'restart', 'nginx-test', 'nginx-reload', 'health']:
-            # Make the candidate observably different. A repeat deployment of
-            # identical bytes could otherwise pass even if no rollback happened.
-            candidate.write_bytes(f'// candidate for {failure}\n'.encode() + original_candidate)
-            vhost = Path('/etc/nginx/apps/dashboard.conf')
-            vhost.write_text(vhost.read_text() + f'\n# previous release before {failure}\n')
-            old_config = digest(vhost)
-            before = digest('/srv/dashboard/ws/dist/server.js')
-            driver(failure=failure)
-            assert digest('/srv/dashboard/ws/dist/server.js') == before
-            assert digest(vhost) == old_config, 'rollback must restore the previous vhost bytes'
-            assert digest('/etc/quickbox/ws.secret') == secret
-            healthy()
-            print(f'Real deployment recovery after {failure}: passed', flush=True)
-        candidate.write_bytes(original_candidate)
-        lifecycle()
-        update_mutex()
+        for phase in (('install', 'mutex') if arguments.only_mutex else phases):
+            print(f'::group::{phase}', flush=True)
+            try:
+                execute_phase(phase)
+            finally:
+                print('::endgroup::', flush=True)
         print(json.dumps({'linux-deployment': 'passed', 'systemd': SYSTEMD}), flush=True)
     finally:
-        if STATE.exists():
-            subprocess.run(['journalctl', '-u', 'quickbox-ws.service', '--no-pager', '-n', '100'], check=False) if SYSTEMD else None
-            for filename in STATE.glob('*.log'):
-                print(f'--- {filename.name} ---\n{filename.read_text()[-6000:]}', flush=True)
-            for filename in ['/srv/dashboard/db/output.log', '/var/log/nginx/error.log']:
-                if Path(filename).exists():
-                    print(f'--- {filename} ---\n{Path(filename).read_text()[-10000:]}', flush=True)
-            subprocess.run(['nginx', '-s', 'quit'], check=False)
-            try:
-                control('stop')
-            except subprocess.CalledProcessError:
-                pass
+        cleanup()
 
 
 if __name__ == '__main__':

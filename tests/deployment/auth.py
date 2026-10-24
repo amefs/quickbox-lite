@@ -19,13 +19,22 @@ REPO = deployment.REPO
 CODES = set()
 
 
-def control_file(path, structured=False):
+def control_file(path):
     # A bind mount can briefly invalidate a cached dentry during an atomic
     # host-side replacement. Retry on the next poll, not by restarting services.
     try:
-        content = Path(path).read_text()
-        return json.loads(content) if structured else content.strip()
-    except (FileNotFoundError, json.JSONDecodeError):
+        return Path(path).read_text().strip()
+    except FileNotFoundError:
+        return None
+
+
+def control_json(path):
+    content = control_file(path)
+    if content is None:
+        return None
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
         return None
 
 
@@ -44,11 +53,15 @@ def switch(provider):
         installer = (REPO / f'packages/package/install/installpackage-{package}').read_text()
         name = 'authelia-auth.conf' if provider == 'authelia' else 'vouchproxy-auth.conf'
         pattern = r"cat >\s*/etc/nginx/apps/" + re.escape(name) + r" <<'EOF'\n(.*?)\nEOF"
-        snippet = re.search(pattern, installer, re.S).group(1)
+        matched = re.search(pattern, installer, re.S)
+        assert matched is not None, f'{name} snippet is missing from {package}'
+        snippet = matched.group(1)
         Path('/etc/nginx/apps', name).write_text(snippet + '\n')
         Path('/install', f'.{package}.lock').touch()
-        source, target, identity = ('$auth_resp_remote_user', '$qb_authelia_local_user', 'fixture') if provider == 'authelia' else (
-            '$auth_resp_x_vouch_user', '$qb_vouch_local_user', 'fixture@example.com')
+        if provider == 'authelia':
+            source, target, identity = '$auth_resp_remote_user', '$qb_authelia_local_user', 'fixture'
+        else:
+            source, target, identity = '$auth_resp_x_vouch_user', '$qb_vouch_local_user', 'fixture@example.com'
         Path('/etc/nginx/conf.d/provider-map.conf').write_text(
             f'map {source} {target} {{ default ""; "{identity}" "fixture"; }}\n')
         deployment.run(['bash', '/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate',
@@ -108,11 +121,13 @@ class IdentityFixture(BaseHTTPRequestHandler):
         elif self.path == '/token' and query.get('code', [''])[0] in CODES:
             basic = 'Basic ' + base64.b64encode(b'fixture-client:fixture-client-secret').decode()
             if self.headers.get('Authorization') != basic and not (
-                    query.get('client_id') == ['fixture-client'] and query.get('client_secret') == ['fixture-client-secret']):
+                    query.get('client_id') == ['fixture-client']
+                    and query.get('client_secret') == ['fixture-client-secret']):
                 self.reply(401, '{}')
                 return
             CODES.remove(query['code'][0])
-            self.reply(200, json.dumps({'access_token': 'fixture-access-token', 'token_type': 'Bearer', 'expires_in': 60}))
+            token = {'access_token': 'fixture-access-token', 'token_type': 'Bearer', 'expires_in': 60}
+            self.reply(200, json.dumps(token))
         else:
             self.reply(400, '{}')
 
@@ -139,15 +154,16 @@ def main():
             switch(provider)
             previous = provider
             Path('/auth-fixtures/active').write_text(provider)
-        data = control_file('/auth-fixtures/session.json', structured=True)
+        data = control_json('/auth-fixtures/session.json')
         if data is not None:
             if data['id'] != previous_session:
                 jar = Path('/run/quickbox-test/provider.cookies')
                 lines = ['# Netscape HTTP Cookie File']
                 for cookie in data['cookies']:
+                    expires = str(max(0, int(cookie.get('expires', 0))))
                     lines.append('\t'.join([cookie['domain'], 'TRUE' if cookie['domain'].startswith('.') else 'FALSE',
                                             cookie['path'], 'TRUE' if cookie['secure'] else 'FALSE',
-                                            str(max(0, int(cookie.get('expires', 0)))), cookie['name'], cookie['value']]))
+                                            expires, cookie['name'], cookie['value']]))
                 jar.write_text('\n'.join(lines) + '\n')
                 jar.chmod(0o600)
                 environment = dict(deployment.ENV, QUICKBOX_WS_HEALTH_COOKIE_JAR=str(jar),
