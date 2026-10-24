@@ -1,0 +1,20 @@
+e2e/tests/side-panels.spec.ts
+  h_3705811fa4502c 1-89
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+setup/dashboard/ws/src/dashboard-page.tsx
+  h_3705811fa4502c 211-290,306-307,313,325,596-597,601-604
+setup/dashboard/ws/src/widgets/disk-data.tsx
+  h_3705811fa4502c 61-62,64,66-69,79-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "16941fcee3d59cc1ad54116ff3843e433e44c875",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
