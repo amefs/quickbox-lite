@@ -1,0 +1,40 @@
+e2e/tests/log-panel.spec.ts
+  h_3705811fa4502c 47-65,68,70-72,74-81,84-104,121,155-156
+e2e/tests/running-task.spec.ts
+  h_3705811fa4502c 21-24
+setup/dashboard/lang/lang_da.json
+  h_3705811fa4502c 32,142,144,146
+setup/dashboard/lang/lang_de.json
+  h_3705811fa4502c 32,142,144,146
+setup/dashboard/lang/lang_en.json
+  h_3705811fa4502c 32,142,144,146
+setup/dashboard/lang/lang_es.json
+  h_3705811fa4502c 32,142,144,146
+setup/dashboard/lang/lang_fr.json
+  h_3705811fa4502c 32,142,144,146
+setup/dashboard/lang/lang_zh-Hans-CN.json
+  h_3705811fa4502c 32,142,144,146
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+setup/dashboard/ws/src/dashboard-page.tsx
+  h_3705811fa4502c 362-365,714
+setup/dashboard/ws/src/testing/bootstrap.ts
+  h_3705811fa4502c 111-112,155-164,169-175
+setup/dashboard/ws/src/testing/mock-profiles.ts
+  h_3705811fa4502c 66-67,365
+setup/dashboard/ws/src/widgets/running-task.tsx
+  h_3705811fa4502c 3,11-12,26-74,81-95,101-104,112-113,115-120,122
+setup/dashboard/ws/tests/widgets/running-task.spec.ts
+  h_3705811fa4502c 7,20,25-40,42,47,53,58-98
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "08fb475bf29ffb6fd9be5d133c5606a00201f9c5",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
