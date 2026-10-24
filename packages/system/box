@@ -2,20 +2,20 @@
 #
 # [QuickBox Lite box Command resolver]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # shellcheck disable=SC1090,SC1091,SC2034,SC2129
-#################################################################################
-#################################################################################
+################################################################################
+
+################################################################################
 # HELP FUNCTIONS
-#################################################################################
+################################################################################
 export NEWT_COLORS='
 root=,black
 window=,lightgray
@@ -56,9 +56,28 @@ function _warning() {
 function _error() {
 	printf "${_red}✗ %s${_norm}\n" "$@"
 }
-#################################################################################
+################################################################################
 # SCRIPT FUNCTIONS
-#################################################################################
+################################################################################
+# Every package operation writes the shared Dashboard log, so it starts a new
+# log the way `box update quickbox` does: clean_log publishes a new epoch and
+# then truncates the file in place, which is what tells the Dashboard its byte
+# offset is stale. Without it the dialog shows the previous operation above
+# this one.
+#
+# /install/.install.lock means another install or update already owns the log.
+# Rotating it here would erase the output that run is currently showing, so
+# this call leaves the log alone and lets the package script's own _lockCheck
+# report the conflict.
+function _startOperationLog() {
+	if [[ -f "/install/.install.lock" ]]; then
+		return 0
+	fi
+	if ! bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/auxiliary/clean_log"; then
+		_warning "Failed to start a new installation log"
+	fi
+}
+
 function _batchInstall() {
 	applist=()
 	locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template\|lecert\|denyhosts\|fail2ban" | sort -d)
@@ -88,20 +107,23 @@ function _help() {
 	echo "                                  blank to use batch install"
 	echo "remove <appname>                  remove installed application"
 	echo "update <appname>                  upgrade installed application"
+	echo "update quickbox [--verbose]       upgrade QuickBox (--verbose: full step output)"
+	echo "revert [--list] [--yes] [COMMIT]  restore and reinstall a QuickBox commit"
 	echo "lang <da|de|en|es|fr|zh>          change dashboard language"
 	echo "clean <mem|log>                   clean memory or installation log"
 	echo "fix <dpkg|interface|home>         fix your setting"
 	echo "set <interface|passwd|cdn>        change interface setting/password"
 	echo "iotest                            run IO test"
+	echo "abort                             stop the running installation or update"
 	echo "troubleshoot                      generate log for troubleshoot"
 	echo "unban <IP adress>                 remove a IP/all IP from banned list"
 	echo "enable-dev|disable-dev            enable or disable development mode"
 	echo ""
 	echo "help                              display this help and exit"
 }
-#################################################################################
+################################################################################
 # ARGUMENT SETTING
-#################################################################################
+################################################################################
 resolver=$1
 
 if [[ $resolver == "lang" ]]; then
@@ -134,9 +156,11 @@ if [[ $resolver == "install" ]]; then
 	if [[ -z $extraarg ]]; then
 		_batchInstall
 	elif [[ $appname == "bbr" || $appname == "BBR" ]]; then
+		_startOperationLog
 		bash /usr/local/bin/quickbox/system/auxiliary/install-BBR.sh "${*:3}"
 	else
 		if [[ -f /usr/local/bin/quickbox/package/install/installpackage-"${appname}" ]]; then
+			_startOperationLog
 			bash /usr/local/bin/quickbox/package/install/installpackage-"${appname}" ${*:3}
 		else
 			locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
@@ -158,6 +182,7 @@ if [[ $resolver == "remove" ]]; then
 		_error "Nothing will be removed"
 	else
 		if [[ -f /usr/local/bin/quickbox/package/remove/removepackage-"${appname}" ]]; then
+			_startOperationLog
 			bash /usr/local/bin/quickbox/package/remove/removepackage-"${appname}" ${*:3}
 		else
 			locks=$(find /usr/local/bin/quickbox/package/remove -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
@@ -176,9 +201,14 @@ if [[ $resolver == "update" ]]; then
 	appname=$2
 	extraarg=${*:2}
 	if [[ $appname == "quickbox" ]]; then
-		bash /usr/local/bin/quickbox/system/qbUpdate "${*:3}"
+		bash /usr/local/bin/quickbox/system/qbUpdate "${@:3}"
+		exit $?
+	elif [[ $appname == "revert" ]]; then
+		bash /usr/local/bin/quickbox/system/update/qbUpdateRevert "${@:3}"
+		exit $?
 	elif [[ -n $extraarg ]]; then
 		if [[ -f /usr/local/bin/quickbox/package/update/updatepackage-"${appname}" ]]; then
+			_startOperationLog
 			bash /usr/local/bin/quickbox/package/update/updatepackage-"${appname}" ${*:3}
 		else
 			locks=$(find /usr/local/bin/quickbox/package/update -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
@@ -216,6 +246,11 @@ if [[ $resolver == "clean" ]]; then
 		echo "memory"
 		echo "log"
 	fi
+fi
+
+if [[ $resolver == "abort" ]]; then
+	bash /usr/local/bin/quickbox/system/auxiliary/qbAbortTask
+	exit $?
 fi
 
 if [[ $resolver == "troubleshoot" ]]; then
@@ -304,16 +339,21 @@ if [[ $resolver == "disable-dev" ]]; then
 	fi
 fi
 
+if [[ $resolver == "revert" ]]; then
+	bash /usr/local/bin/quickbox/system/update/qbUpdateRevert "${@:2}"
+	exit $?
+fi
+
 if [[ $resolver == "help" ]]; then
 	_help
 	exit 0
 fi
 
-#################################################################################
+################################################################################
 # ERROR HANDLER
-#################################################################################
+################################################################################
 
-if [[ ! $resolver =~ ("lang"|"install"|"remove"|"update"|"clean"|"troubleshoot"|"set"|"fix"|"iotest"|"disktest"|"unban"|"enable-dev"|"disable-dev"|"help") ]]; then
+if [[ ! $resolver =~ ("lang"|"install"|"remove"|"update"|"revert"|"abort"|"clean"|"troubleshoot"|"set"|"fix"|"iotest"|"disktest"|"unban"|"enable-dev"|"disable-dev"|"help") ]]; then
 	_error "Command not exist!"
 	_help
 	exit 1

@@ -33,6 +33,16 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         return getActiveProfile().memory;
     };
 
+    si.cpu = async () => {
+        const profile = getActiveProfile();
+        return {
+            brand: profile.cpuModel,
+            manufacturer: "Intel",
+            cores: profile.cpuCount,
+            speed: 2.4,
+        };
+    };
+
     si.processes = async () => {
         const p = getActiveProfile();
         return {
@@ -98,6 +108,8 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
 
     const origExistsSync   = fs.existsSync.bind(fs);
     const origReadFileSync = fs.readFileSync.bind(fs);
+    const origReaddirSync  = fs.readdirSync.bind(fs);
+    const MOCK_OPERATION_PID = "4242";
 
     fs.existsSync = (filePath: unknown): boolean => {
         if (typeof filePath !== "string") {
@@ -140,9 +152,40 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         return origExistsSync(filePath);
     };
 
+    // /proc is faked just far enough for the running-task widget: one process
+    // whose cmdline is the lifecycle script of the active profile, which is how
+    // production tells an install from a removal.
+    fs.readdirSync = (dir: unknown, options?: unknown): unknown => {
+        if (dir === "/proc") {
+            return getActiveProfile().installLockOperation ? [MOCK_OPERATION_PID] : [];
+        }
+        return origReaddirSync(dir, options);
+    };
+
     fs.readFileSync = (filePath: unknown, options?: unknown): unknown => {
         if (typeof filePath === "string") {
             const p = getActiveProfile();
+
+            if (filePath === `/proc/${MOCK_OPERATION_PID}/cmdline`) {
+                const operation = p.installLockOperation;
+                if (operation) {
+                    return `/bin/bash\0/usr/local/bin/quickbox/package/${operation}/${operation}package-jellyfin\0`;
+                }
+            }
+
+            if (filePath === "/install/.debug.lock" && p.branch) {
+                return p.branch + "\n";
+            }
+
+            // The install lock carries the running operation's title.
+            if (filePath === "/install/.install.lock") {
+                if (p.lockFiles.includes("/install/.install.lock")) {
+                    return `${p.installLockTitle ?? "QuickBox"}\n`;
+                }
+                const missing: NodeJS.ErrnoException = new Error(`ENOENT: no such file, open '${filePath}'`);
+                missing.code = "ENOENT";
+                throw missing;
+            }
 
             if (filePath === "/srv/dashboard/db/master.txt") {
                 return p.username + "\n";

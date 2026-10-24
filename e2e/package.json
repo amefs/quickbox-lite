@@ -5,18 +5,16 @@
   "description": "E2E tests for QuickBox Lite Dashboard",
   "scripts": {
     "test": "npx playwright test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test:headed": "npx playwright test --headed",
     "test:debug": "npx playwright test --debug",
     "test:report": "npx playwright show-report",
-    "docker:up": "sh ./scripts/docker-up.sh",
-    "docker:down": "sh ./scripts/docker-down.sh",
-    "docker:logs": "docker compose --env-file ./.env.compose logs -f",
-    "docker:test": "docker compose --env-file ./.env.compose run --rm playwright npx playwright test",
-    "e2e": "npm run docker:up && E2E_BASE_URL=http://127.0.0.1:8880 WS_BASE_URL=http://127.0.0.1:8880/ws npx playwright test; npm run docker:down",
-    "e2e:docker": "npm run docker:up && docker compose --env-file ./.env.compose run --rm playwright npx playwright test; npm run docker:down"
+    "e2e": "sh ./scripts/run-e2e.sh",
+    "test:deployment": "bash ../tests/deployment/run-linux.sh",
+    "test:auth": "bash ../tests/deployment/run-auth.sh"
   },
   "devDependencies": {
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.64.1",
     "@types/node": "^22.19.15"
   }
 }

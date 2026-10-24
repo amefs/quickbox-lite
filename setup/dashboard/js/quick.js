@@ -63,18 +63,6 @@ $(document).ready(function () {
     return false;
   });
 
-  // eslint-disable-next-line no-unused-vars
-  function closeVisibleSubMenu () {
-    $(".leftpanel .nav-parent").each(function () {
-      const t = jQuery(this);
-      if (t.hasClass("nav-active")) {
-        t.find("> ul").slideUp(200, function () {
-          t.removeClass("nav-active");
-        });
-      }
-    });
-  }
-
   // Tooltip
   $(".tooltips").tooltip({ container: "body" });
 
@@ -104,8 +92,7 @@ $(document).ready(function () {
     $(this).removeClass("dontClose");
   });
 
-  // Close panel
-  $(".panel-remove").click(function () {
+  $(document).on("click", ".panel-remove", function () {
     $(this)
       .closest(".panel")
       .fadeOut(function () {
@@ -113,8 +100,7 @@ $(document).ready(function () {
       });
   });
 
-  // Minimize panel
-  $(".panel-minimize").click(function () {
+  $(document).on("click", ".panel-minimize", function () {
     const parent = $(this).closest(".panel");
 
     parent.find(".panel-body").slideToggle(function () {
@@ -165,7 +151,7 @@ $(document).ready(function () {
 
     const d = new Date();
     const curr_date = d.getDate();
-    let sup = "";
+    let sup;
 
     if (curr_date === 1 || curr_date === 21 || curr_date === 31) {
       sup = "st";
@@ -181,79 +167,5 @@ $(document).ready(function () {
     const curr_year = d.getFullYear();
 
     return curr_date + sup + " " + m_names[curr_month] + " " + curr_year;
-  }
-
-  /* This function will reposition search form to the left panel when viewed
-   * in screens smaller than 767px and will return to top when viewed higher
-   * than 767px
-   */
-  // eslint-disable-next-line no-unused-vars
-  function reposition_searchform () {
-    if ($(".searchform").css("position") === "relative") {
-      $(".searchform").insertBefore(".leftpanelinner .userlogged");
-    } else {
-      $(".searchform").insertBefore(".header-right");
-    }
-  }
-
-  /* This function allows top navigation menu to move to left navigation menu
-   * when viewed in screens lower than 1024px and will move it back when viewed
-   * higher than 1024px
-   */
-  // eslint-disable-next-line no-unused-vars
-  function reposition_topnav () {
-    if ($(".nav-horizontal").length > 0) {
-      // top navigation move to left nav
-      // .nav-horizontal will set position to relative when viewed in screen below 1024
-      if ($(".nav-horizontal").css("position") === "relative") {
-        if ($(".leftpanel .nav-bracket").length === 2) {
-          $(".nav-horizontal").insertAfter(".nav-bracket:eq(1)");
-        } else {
-          // only add to bottom if .nav-horizontal is not yet in the left panel
-          if ($(".leftpanel .nav-horizontal").length === 0) { $(".nav-horizontal").appendTo(".leftpanelinner"); }
-        }
-
-        $(".nav-horizontal")
-          .css({ display: "block" })
-          .addClass("nav-pills nav-stacked nav-bracket");
-
-        $(".nav-horizontal .children").removeClass("dropdown-menu");
-        $(".nav-horizontal > li").each(function () {
-          $(this).removeClass("open");
-          $(this).find("a").removeAttr("class");
-          $(this).find("a").removeAttr("data-toggle");
-        });
-
-        if ($(".nav-horizontal li:last-child").has("form")) {
-          $(".nav-horizontal li:last-child form")
-            .addClass("searchform")
-            .appendTo(".topnav");
-          $(".nav-horizontal li:last-child").hide();
-        }
-      } else {
-        // move nav only when .nav-horizontal is currently from leftpanel
-        // that is viewed from screen size above 1024
-        if ($(".leftpanel .nav-horizontal").length > 0) {
-          $(".nav-horizontal")
-            .removeClass("nav-pills nav-stacked nav-bracket")
-            .appendTo(".topnav");
-          $(".nav-horizontal .children")
-            .addClass("dropdown-menu")
-            .removeAttr("style");
-          $(".nav-horizontal li:last-child").show();
-          $(".searchform")
-            .removeClass("searchform")
-            .appendTo(".nav-horizontal li:last-child .dropdown-menu");
-          $(".nav-horizontal > li > a").each(function () {
-            $(this).parent().removeClass("nav-active");
-
-            if ($(this).parent().find(".dropdown-menu").length > 0) {
-              $(this).attr("class", "dropdown-toggle");
-              $(this).attr("data-toggle", "dropdown");
-            }
-          });
-        }
-      }
-    }
   }
 });

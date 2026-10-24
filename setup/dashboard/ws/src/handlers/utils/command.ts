@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import Constant from "../../shared/constants";
+import Constant, { isSafeUsername } from "../../shared/constants";
 import { WatchedConfig } from "../../shared/watched-config";
 
 
@@ -66,12 +66,7 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
     }
 
     // apply user info
-    if (template.includes(Constant.TEMPLATE_USERNAME)) {
-        if (typeof username !== "string" || username.trim() === "") {
-            throw new Error("Username not configured: /srv/dashboard/db/master.txt is missing or empty");
-        }
-        template = template.replaceAll(Constant.TEMPLATE_USERNAME, username);
-    }
+    template = applyUsername(template, username);
 
     // check template status, no place holder should exist
     if (template.includes(Constant.TEMPLATE_OPERATION) ||
@@ -80,4 +75,17 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
         throw new Error(`Invalid template '${template}'`);
     }
     return template;
+}
+
+function applyUsername(template: string, username: string | undefined): string {
+    if (!template.includes(Constant.TEMPLATE_USERNAME)) {
+        return template;
+    }
+    if (typeof username !== "string" || username.trim() === "") {
+        throw new Error("Username not configured: /srv/dashboard/db/master.txt is missing or empty");
+    }
+    if (!isSafeUsername(username)) {
+        throw new Error("Username contains invalid characters");
+    }
+    return template.replaceAll(Constant.TEMPLATE_USERNAME, username);
 }

@@ -132,6 +132,8 @@ describe("widgets/memory-stats", () => {
 
         const result = await ramStats();
         expect(result).to.include("8.00 GB");
+        expect(result).to.include("data-click-handler=\"boxHandler\"");
+        expect(result).to.not.include("onclick=");
     });
 
     it("should render all sections when cached and swap both exist", async () => {

@@ -1,6 +1,11 @@
 import { defineConfig } from "@playwright/test";
 
-const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:8880";
+const wsPort = process.env.TEST_WS_PORT || "8575";
+const baseURL = process.env.E2E_BASE_URL || `http://127.0.0.1:${wsPort}`;
+if (!process.env.WS_BASE_URL) {
+    const wsPrefix = process.env.E2E_BASE_URL ? "/ws" : "";
+    process.env.WS_BASE_URL = `${baseURL.replace(/\/+$/, "")}${wsPrefix}`;
+}
 
 export default defineConfig({
     testDir: "./tests",
@@ -13,7 +18,9 @@ export default defineConfig({
     use: {
         baseURL,
         trace: "on-first-retry",
-        screenshot: "on",
+        // Specs already attach named full-page screenshots through snap(); an
+        // unconditional per-test screenshot duplicated every attachment pair.
+        screenshot: "only-on-failure",
         // No auth in test Docker setup
         httpCredentials: undefined,
     },
@@ -26,13 +33,14 @@ export default defineConfig({
             },
         },
     ],
-    // Wait for the Docker services to be ready
+    // Start a local mock Node server unless a caller supplied an external target.
     webServer: process.env.E2E_BASE_URL
         ? undefined
         : {
-              command: "sh -c 'docker compose up -d nginx && trap \"exit 0\" INT TERM; while :; do sleep 3600; done'",
+              command: "node ./scripts/mock-server.js",
               url: baseURL,
-              reuseExistingServer: true,
+              reuseExistingServer: false,
               timeout: 60_000,
+              gracefulShutdown: { signal: "SIGTERM", timeout: 2_000 },
           },
 });

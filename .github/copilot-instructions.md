@@ -9,7 +9,7 @@ description: >-
 
 **Version**: 1.5.12 | **License**: GPL-3.0-or-later
 
-This monorepo combines a PHP backend, React/TypeScript frontend, and E2E tests. Use this guide to navigate modules efficiently and follow unified coding standards.
+This monorepo contains PHP tools, an active Node.js/React dashboard, and E2E tests. Use this guide to navigate modules efficiently and follow unified coding standards.
 
 ## 📦 Project Structure Overview
 
@@ -17,8 +17,8 @@ This monorepo combines a PHP backend, React/TypeScript frontend, and E2E tests. 
 
 | Path | Purpose | Stack | Entry Point |
 |------|---------|-------|------------|
-| **setup/dashboard/ws** | WebSocket real-time data service (primary active area) | Node.js, TypeScript, Express, React | `src/index.ts` |
-| **setup/dashboard** | Production dashboard frontend | PHP, jQuery, WebSocket | `index.php` |
+| **setup/dashboard/ws** | Dashboard and WebSocket service (active dashboard) | Node.js, TypeScript, Express, React | `src/server.tsx` |
+| **setup/dashboard** | Dashboard static assets | CSS, JavaScript, images | `ws/src/server.tsx` |
 | **packages/** | System package installers & management scripts | Bash, Shell | `install/`, `remove/`, `update/` |
 | **e2e/** | End-to-end test suite | Playwright, TypeScript | `tests/*.spec.ts` |
 | **setup/lang** | Multi-language i18n files | JSON | Localazy managed |
@@ -159,8 +159,8 @@ describe('VnstatData', () => {
 ### E2E Tests (Playwright)
 - **Location**: `e2e/tests/`
 - **File suffix**: `.spec.ts`
-- **Run command**: `npm test` (from e2e/ dir)
-- **Docker setup**: `npm run docker:up` → `npm run docker:down`
+- **Run command**: `npm test` (from `e2e/`; runs Playwright against the host mock Node server)
+- **Nginx integration**: `npm run e2e` (starts the host mock Node server and Docker Nginx, then cleans up)
 - **Interactive mode**: `npm run test:headed`
 
 ```typescript
@@ -196,10 +196,10 @@ test('Dashboard should load successfully', async ({ page }) => {
 5. Sync package definitions between `setup/dashboard/inc/info.package.php` (PHP) and `setup/dashboard/ws/src/config/packages.json` (TypeScript)
 
 ### When Running E2E Tests
-1. Start Docker: `cd e2e && npm run docker:up`
-2. Run tests: `npm test` or `npm run test:headed`
-3. Reports generated in `e2e/playwright-report/`
-4. Stop Docker: `npm run docker:down`
+1. Run host-only tests: `cd e2e && npm test`
+2. Run Nginx integration tests: `npm run e2e` (starts and cleans up Docker Nginx automatically)
+3. Use `npm run test:headed` for interactive host-only tests
+4. Reports are generated in `e2e/playwright-report/`
 
 ---
 
@@ -227,10 +227,9 @@ composer run analyse   # PHPStan analysis
 ```bash
 cd e2e
 
-npm run docker:up      # Start Docker environment
-npm test               # Run all tests
-npm run test:headed    # Interactive mode
-npm run docker:down    # Stop Docker environment
+npm test               # Run Playwright with the host mock Node server
+npm run e2e            # Run through Docker Nginx and clean up automatically
+npm run test:headed    # Interactive host-only mode
 ```
 
 ---
@@ -302,10 +301,8 @@ npm run docker:down    # Stop Docker environment
 ### E2E Tests
 
 **Docker Configuration**
-- `e2e/docker-compose.yml` – Brings up test environment
-- `e2e/docker/Dockerfile.php` – Custom PHP image
+- `e2e/docker-compose.yml` – Runs only the Nginx integration proxy; Node and Playwright run on the host
 - `e2e/docker/nginx.conf` – Web server config
-- `e2e/docker/mock/` – Mock data providers
 
 **Test Organization**
 - `e2e/tests/dashboard.spec.ts` – Main dashboard tests

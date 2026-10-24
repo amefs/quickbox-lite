@@ -1,17 +1,18 @@
 #!/bin/bash
+if [ "${QB_ONEKEY_BOOTSTRAP:-0}" != 1 ] && [ "${BASH_SOURCE[0]:-}" = "$0" ] && grep -q $'\r' "$0" 2>/dev/null; then sed 's/\r$//' "$0" >"${0}.$$.tmp" && mv "${0}.$$.tmp" "$0" || exit 1; QB_ONEKEY_BOOTSTRAP=1 exec bash "$0" "$@" ; fi #
 #
-# [QuickBox Lite One Key Installation wrapper ]
+# [QuickBox Lite One Key Installation wrapper]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
-# Current version:  v1.5.6
-# URL:
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
+# Current version:  v1.6.1
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-#################################################################################
+################################################################################
+
 if [[ $1 == "--dev" ]]; then
     if [[ ! -d /install ]]; then
         mkdir /install/
@@ -92,8 +93,17 @@ if [[ -d /etc/QuickBox ]]; then
 fi
 URL="https://github.com/amefs/quickbox-lite.git"
 # shellcheck disable=SC2086
-git clone --recursive ${branch} "${URL}" /etc/QuickBox
-dos2unix /etc/QuickBox/setup.sh
+git clone --recursive ${branch} "${URL}" /etc/QuickBox || exit 1
+# Restore executable bits and LF endings before the installer reads any tracked
+# file. Older branches without this helper still get the setup.sh conversion.
+normalize_helper=/etc/QuickBox/packages/system/auxiliary/qbNormalizeRepo
+if [[ -s "${normalize_helper}" ]]; then
+    normalize_script=$(sed 's/\r$//' "${normalize_helper}") || exit 1
+    QB_NORMALIZE_BOOTSTRAP=1 QB_NORMALIZE_RUN=1 \
+        bash -c "${normalize_script}" _ /etc/QuickBox || exit 1
+else
+    dos2unix /etc/QuickBox/setup.sh
+fi
 cd /etc/QuickBox || exit
 screen -dmS qbox-install -T xterm 
 screen -S qbox-install -X stuff "sleep 3; bash /etc/QuickBox/setup.sh $ExtraArgs;\n"

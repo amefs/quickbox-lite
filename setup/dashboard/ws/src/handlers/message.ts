@@ -15,6 +15,7 @@ import { serviceStatus, serviceStatusAll } from "../widgets/service-status";
 import { readOutputLog } from "../widgets/output-log";
 import { serviceControl } from "../widgets/service-control";
 import { packageManagementCenter } from "../widgets/package-management-center";
+import { runningTask } from "../widgets/running-task";
 
 interface Payload {
     key: string;
@@ -28,22 +29,28 @@ interface LocaleSocketData {
 }
 
 function localeData(client: Socket): LocaleSocketData {
-    return (client as unknown as { data: LocaleSocketData }).data;
+    const withData = client as unknown as { data?: LocaleSocketData };
+    if (withData.data === undefined) {
+        withData.data = {};
+    }
+    return withData.data;
 }
 
-const iface = getIfaceConfig();
-
-const parseUrl = (url: string) => {
-    let u: URL;
-    if (url.toLowerCase().startsWith("http")) {
-        u = new URL(url);
-    } else {
-        u = new URL(url, "http://localhost");
+export const parseUrl = (url: string) => {
+    let parsed: URL;
+    try {
+        if (url.toLowerCase().startsWith("http")) {
+            parsed = new URL(url);
+        } else {
+            parsed = new URL(url, "http://localhost");
+        }
+    } catch {
+        throw new Error("Invalid widget URL");
     }
-    const pathname = u.pathname;
+    const pathname = parsed.pathname;
     const args: Record<string, string> = {};
-    u.searchParams.forEach((v, k) => {
-        args[k] = v;
+    parsed.searchParams.forEach((value, key) => {
+        args[key] = value;
     });
     return {
         pathname,
@@ -51,6 +58,22 @@ const parseUrl = (url: string) => {
     };
 };
 
+
+type BandwidthPage = "h" | "d" | "m" | "t";
+
+const BANDWIDTH_PAGES: BandwidthPage[] = ["h", "d", "m", "t"];
+
+function parseBandwidthPage(raw: string | undefined): BandwidthPage | undefined {
+    return BANDWIDTH_PAGES.find(page => page === raw);
+}
+
+function parseOptionalInt(raw: string | undefined): number | undefined {
+    if (!raw) {
+        return undefined;
+    }
+    const parsed = parseInt(raw, 10);
+    return Number.isNaN(parsed) ? undefined : parsed;
+}
 
 export const resolveWidget = async (url: string): Promise<string|object> => {
     const req = parseUrl(url);
@@ -65,11 +88,8 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
             return await diskData();
         case "/node/ram_stats":
             return await ramStats();
-        case "/node/bw_tables": {
-            const validPages = ["h", "d", "m", "t"];
-            const page = validPages.includes(req.args["page"]) ? req.args["page"] as "h"|"d"|"m"|"t" : undefined;
-            return await bwTables(iface, page);
-        }
+        case "/node/bw_tables":
+            return await bwTables(getIfaceConfig(), parseBandwidthPage(req.args["page"]));
         case "/node/service_status":
         case "/widgets/service_status":
             return await serviceStatus(req.args["service"]);
@@ -81,16 +101,14 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
         case "/node/pmc":
         case "/widgets/pmc":
             return await packageManagementCenter();
-        case "/db/output.log": {
-            const rawOffset = req.args["offset"];
-            const rawLength = req.args["length"];
-            const offset = rawOffset ? parseInt(rawOffset, 10) : undefined;
-            const length = rawLength ? parseInt(rawLength, 10) : undefined;
+        case "/node/task_status":
+            return await runningTask();
+        case "/db/output.log":
             return readOutputLog(
-                Number.isNaN(offset) ? undefined : offset,
-                Number.isNaN(length) ? undefined : length,
+                parseOptionalInt(req.args["offset"]),
+                parseOptionalInt(req.args["length"]),
+                req.args["epoch"],
             );
-        }
         default:
             throw new Error(`Unknown widget route: ${req.pathname}`);
     }
@@ -132,16 +150,18 @@ const messageHandler = async (payload: unknown, client: Socket) => {
         key: payload.key,
         requestId: payload.requestId,
         url: payload.url,
-        pathName: parseUrl(payload.url).pathname,
+        pathName: "",
         success: true,
         message: "",
         response: "",
     };
     try {
+        ret.pathName = parseUrl(payload.url).pathname;
         const locale: string = resolvePayloadLocale(payload, client);
         ret.response = await withLocale(locale, async () => await resolveWidget(payload.url));
     } catch (error) {
-        ret.message = error instanceof Error ? error.toString() : "Unknown error";
+        console.error("[quickbox-ws] widget render failed", payload.url, error);
+        ret.message = "Widget render failed";
         ret.success = false;
     } finally {
         client.send(ret);

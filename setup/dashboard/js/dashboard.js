@@ -4,7 +4,9 @@
 
 (function () {
   let runtime = window.quickboxRuntime || {};
-  let supported = ["da", "de", "en", "es", "fr", "zh"];
+  let supported = Array.isArray(runtime.locales) && runtime.locales.length > 0
+    ? runtime.locales.slice()
+    : ["da", "de", "en", "es", "fr", "zh"];
   let aliases = { "zh-cn": "zh", "zh-hans-cn": "zh" };
 
   function normalizeLocale(value) {
@@ -17,19 +19,30 @@
   }
 
   function persistLocale(locale) {
-    localStorage.setItem("quickbox:locale", locale);
-    document.cookie = "quickbox_locale=" + encodeURIComponent(locale) + "; Path=/; SameSite=Lax";
+    try {
+      localStorage.setItem("quickbox:locale", locale);
+    } catch (error) {
+      console.warn("[ws] failed to persist locale", error);
+    }
+    let cookie = "quickbox_locale=" + encodeURIComponent(locale) + "; Path=/; SameSite=Lax";
+    if (window.location.protocol === "https:") {
+      cookie += "; Secure";
+    }
+    document.cookie = cookie;
   }
 
   let messages = (runtime && typeof runtime.messages === "object" && runtime.messages !== null) ? runtime.messages : {};
   window.quickboxApiBase = (runtime && typeof runtime.basePath === "string") ? runtime.basePath : "";
   window.quickboxLocale = normalizeLocale(runtime ? runtime.locale : undefined);
-  window.quickboxMessages = Object.assign({ enabled: "Enabled", disabled: "Disabled", refresh: "Refresh" }, messages);
+  window.quickboxMessages = Object.assign({ enabled: "Enabled", disabled: "Disabled", refresh: "Refresh", systemResponse: "System Response" }, messages);
   persistLocale(window.quickboxLocale);
 
   window.quickboxSetLocale = function (locale) {
     window.quickboxLocale = normalizeLocale(locale);
     persistLocale(window.quickboxLocale);
+    if (typeof window.quickboxResetWidgetState === "function") {
+      window.quickboxResetWidgetState();
+    }
     if (window.socket && window.socket.connected) {
       window.socket.emit("i18n", window.quickboxLocale);
     }
@@ -42,7 +55,10 @@
 })();
 
 (function () {
-  let socket = io(location.origin, { path: (window.quickboxApiBase || "") + "/socket.io" });
+  let socket = io(location.origin, {
+    path: (window.quickboxApiBase || "") + "/socket.io",
+    upgrade: (window.quickboxRuntime || {}).socketUpgrade !== false
+  });
   window.socket = socket;
   socket.on("connect", function () {
     socket.emit("i18n", window.quickboxLocale || "en");
@@ -65,41 +81,48 @@
     });
   }
 
-  let serviceStatusItems = [
-    { service: "authelia", id: "#appstat_authelia" },
-    { service: "resilio-sync", id: "#appstat_resilio-sync" },
-    { service: "smbd", id: "#appstat_smbd" },
-    { service: "deluged", id: "#appstat_deluged" },
-    { service: "deluge-web", id: "#appstat_deluge-web" },
-    { service: "denyhosts", id: "#appstat_denyhosts" },
-    { service: "emby-server", id: "#appstat_emby-server" },
-    { service: "fail2ban", id: "#appstat_fail2ban" },
-    { service: "filebrowser", id: "#appstat_filebrowser" },
-    { service: "filebrowser-ee", id: "#appstat_filebrowser-ee" },
-    { service: "flexget", id: "#appstat_flexget" },
-    { service: "flood", id: "#appstat_flood" },
-    { service: "jellyfin", id: "#appstat_jellyfin" },
-    { service: "irssi", id: "#appstat_irssi" },
-    { service: "netdata", id: "#appstat_netdata" },
-    { service: "nfs-server", id: "#appstat_nfs-server" },
-    { service: "tightvnc", id: "#appstat_tightvnc" },
-    { service: "openvpn", id: "#appstat_openvpn" },
-    { service: "peerbanhelper", id: "#appstat_peerbanhelper" },
-    { service: "plexmediaserver", id: "#appstat_plexmediaserver" },
-    { service: "rclone-web", id: "#appstat_rclone-web" },
-    { service: "rtorrent", id: "#appstat_rtorrent" },
-    { service: "sabnzbd", id: "#appstat_sabnzbd" },
-    { service: "syncthing", id: "#appstat_syncthing" },
-    { service: "transmission", id: "#appstat_transmission" },
-    { service: "qbittorrent", id: "#appstat_qbittorrent" },
-    { service: "qbittorrent-clientblocker", id: "#appstat_qbittorrent-clientblocker" },
-    { service: "webdav", id: "#appstat_webdav" },
-    { service: "vsftpd", id: "#appstat_vsftpd" },
-    { service: "vouch-proxy", id: "#appstat_vouch-proxy" },
-    { service: "ttyd", id: "#appstat_ttyd" },
-    { service: "x2go", id: "#appstat_x2go" },
-    { service: "znc", id: "#appstat_znc" }
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  var WRITE_SOURCE = { PREFETCH: 1, WS: 2 };
+  var widgetWritePriority = {};
+
+  function markWidgetWritten(selector, source) {
+    if (!selector) { return; }
+    widgetWritePriority[selector] = source;
+  }
+
+  function canWriteWidget(selector, source) {
+    return Boolean(selector) && source >= (widgetWritePriority[selector] || 0);
+  }
+
+  function resetWidgetWriteState() {
+    widgetWritePriority = {};
+  }
+
+  window.quickboxResetWidgetState = resetWidgetWriteState;
+
+  let runtime = window.quickboxRuntime || {};
+  let fallbackServiceKeys = [
+    "authelia", "resilio-sync", "smbd", "deluged", "deluge-web", "denyhosts",
+    "emby-server", "fail2ban", "filebrowser", "filebrowser-ee", "flexget", "flood",
+    "jellyfin", "irssi", "netdata", "nfs-server", "tightvnc", "openvpn",
+    "peerbanhelper", "plexmediaserver", "rclone-web", "rtorrent", "sabnzbd",
+    "syncthing", "transmission", "qbittorrent", "qbittorrent-clientblocker",
+    "webdav", "vsftpd", "vouch-proxy", "ttyd", "x2go", "znc"
   ];
+  let serviceStatusItems = (Array.isArray(runtime.serviceKeys) && runtime.serviceKeys.length > 0
+    ? runtime.serviceKeys
+    : fallbackServiceKeys
+  ).map(function (service) {
+    return { service, id: "#appstat_" + service };
+  });
   let lastServiceStatusResponse = {};
 
   function ensureServiceStatusPlaceholders() {
@@ -161,22 +184,71 @@
     window.jQuery(".tooltips").tooltip();
   }
 
-  function initializePackageTable() {
+  function capturePackageTableState(task) {
     let $ = window.jQuery;
-    let currentPage = 0;
+    if (!$ || !$.fn || !$.fn.DataTable || !$.fn.DataTable.isDataTable("#dataTable1")) {
+      return;
+    }
+    let existing = $("#dataTable1").DataTable();
+    let state = {
+      page: existing.page(),
+      search: existing.search(),
+      order: existing.order(),
+      length: existing.page.len()
+    };
+    existing.destroy();
+    if (task) {
+      task._tableState = state;
+    }
+  }
+
+  function initializePackageTable(task) {
+    let $ = window.jQuery;
+    if (!$ || !$.fn || !$.fn.DataTable) {
+      return;
+    }
+    let state = (task && task._tableState) || null;
     if ($.fn.DataTable.isDataTable("#dataTable1")) {
-      currentPage = $("#dataTable1").DataTable().page();
-      $("#dataTable1").DataTable().destroy();
+      let existing = $("#dataTable1").DataTable();
+      state = state || {
+        page: existing.page(),
+        search: existing.search(),
+        order: existing.order(),
+        length: existing.page.len()
+      };
+      existing.destroy();
+    }
+    if (task) {
+      task._tableState = null;
     }
     let table = $("#dataTable1").DataTable();
     $(table.table().container()).find("input[type='search']").attr({
       id: "dataTable1-search",
       name: "dataTable1-search"
     });
-    if (currentPage > 0) {
-      table.page(currentPage).draw(false);
+    if (!state) {
+      $(".tooltips").tooltip({ container: "body" });
+      return;
     }
-    $(".tooltips").tooltip();
+    if (state.length) {
+      table.page.len(state.length);
+    }
+    if (state.search) {
+      table.search(state.search);
+    }
+    if (state.order && state.order.length > 0) {
+      table.order(state.order);
+    }
+    table.draw(false);
+    let page = state.page || 0;
+    let pageCount = table.page.info().pages;
+    if (pageCount > 0 && page > pageCount - 1) {
+      page = pageCount - 1;
+    }
+    if (page > 0) {
+      table.page(page).draw("page");
+    }
+    $(".tooltips").tooltip({ container: "body" });
   }
 
   function updateNetworkStatus(dataJSON) {
@@ -223,40 +295,62 @@
     }
   }
 
+  function renderSshOutput(el, task, nextChunk, replaced) {
+    let maxBytes = 1024 * 1024;
+    if ((task._rawContent || "").length > maxBytes) {
+      task._rawContent = task._rawContent.slice(-maxBytes);
+      replaced = true;
+    }
+    if (!window.AnsiUp) {
+      el.text(task._rawContent || "");
+      return;
+    }
+    if (replaced || !task._ansi) {
+      task._ansi = new window.AnsiUp();
+      el.html(task._ansi.ansi_to_html(task._rawContent || ""));
+      return;
+    }
+    if (nextChunk) {
+      el.append(task._ansi.ansi_to_html(nextChunk));
+    }
+  }
+
   function updateSshOutput(task, response) {
+    let container = document.getElementById("sysPre");
+    let followOutput = container && container.scrollHeight - container.scrollTop - container.clientHeight <= 24;
     let el = window.jQuery(task.id);
     if (typeof response === "object" && response !== null && "content" in response) {
       let previousEnd = task._endOffset;
-      if (previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
+      let nextChunk = "";
+      let epochChanged = response.epoch !== undefined && task._epoch !== response.epoch;
+      let replaced = epochChanged;
+      if (epochChanged || previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
         task._rawContent = response.content;
         task._endOffset = response.end;
+        replaced = true;
       } else if (response.end > previousEnd && response.content) {
         let overlap = Math.max(0, previousEnd - response.start);
-        let nextContent = overlap > 0 ? response.content.slice(overlap) : response.content;
-        if (nextContent) {
-          task._rawContent = (task._rawContent || "") + nextContent;
+        nextChunk = overlap > 0 ? response.content.slice(overlap) : response.content;
+        if (nextChunk) {
+          task._rawContent = (task._rawContent || "") + nextChunk;
         }
         task._endOffset = response.end;
       }
-      let display = task._rawContent || "";
-      if (window.AnsiUp) {
-        display = new window.AnsiUp().ansi_to_html(display);
+      if (response.epoch !== undefined) {
+        task._epoch = response.epoch;
       }
-      el.html(display);
+      renderSshOutput(el, task, nextChunk, replaced);
     } else {
       task._rawContent = "";
       task._endOffset = -1;
-      let display = response;
+      task._ansi = undefined;
       if (window.AnsiUp) {
-        display = new window.AnsiUp().ansi_to_html(display);
+        el.html(new window.AnsiUp().ansi_to_html(String(response || "")));
+      } else {
+        el.text(String(response || ""));
       }
-      el.html(display);
     }
-    let container = document.getElementById("sysPre");
-    if (window.__psSysPre) {
-      window.__psSysPre.update();
-    }
-    if (container) {
+    if (container && followOutput) {
       container.scrollTop = container.scrollHeight;
     }
   }
@@ -284,9 +378,19 @@
         key: "PMC",
         url: "/node/pmc",
         id: "#pmc_widget",
+        beforeHtml: capturePackageTableState,
         after: initializePackageTable,
         bootstrap: !hasSsrPackageManagement,
         time: 30000
+      },
+      {
+        // Renders nothing while no operation holds the install lock, so the
+        // banner appears and disappears on its own.
+        key: "RUNNING_TASK",
+        url: "/node/task_status",
+        id: "#running_task_widget",
+        bootstrap: true,
+        time: 5000
       },
       {
         key: "NETWORK",
@@ -304,7 +408,7 @@
         id: "#bw_tables",
         before: function (task) {
           let page = localStorage.getItem("bw_tables:page");
-          if (page && page.length === 1 && "shdmt".indexOf(page) >= 0) {
+          if (page && page.length === 1 && "hdmt".indexOf(page) >= 0) {
             task.url = task.urlTemplate.replace("{0}", page);
           }
           return true;
@@ -320,6 +424,7 @@
         id: "#sshoutput",
         time: 2000,
         _endOffset: -1,
+        _epoch: undefined,
         _requestLength: 65536,
         before: function (task) {
           if (!window.jQuery("#sysResponse").is(":visible")) {
@@ -329,6 +434,9 @@
             task.url = "/db/output.log?offset=" + task._endOffset + "&length=" + task._requestLength;
           } else {
             task.url = "/db/output.log?length=" + task._requestLength;
+          }
+          if (task._epoch !== undefined) {
+            task.url += "&epoch=" + encodeURIComponent(task._epoch);
           }
           return true;
         },
@@ -354,7 +462,8 @@
     let pendingRequests = {};
     let pendingRequestByKey = {};
     let firstRequest = true;
-    let errorCount = 0;
+    let errorCountByKey = {};
+    let stoppedKeys = {};
     let bootstrapDispatched = false;
     let requestSeq = 0;
     let pendingRequestTimeoutMs = 15000;
@@ -393,6 +502,12 @@
 
     function queueTask(task, delay) {
       setTimeout(function () {
+        if (stoppedKeys[task.key]) {
+          return;
+        }
+        if (!socket.connected) {
+          return;
+        }
         let request = Object.assign({}, task);
         if (request.before && typeof request.before === "function" && request.before(request) === false) {
           return;
@@ -441,6 +556,9 @@
 
     socket.on("message", function (response) {
       let pending = response.requestId ? pendingRequests[response.requestId] : undefined;
+      if (response.requestId && !pending) {
+        return;
+      }
       let request = pending ? pending.request : undefined;
       let task = pending ? pending.task : taskMapping[response.key];
       if (response.requestId) {
@@ -451,12 +569,26 @@
           console.warn("[ws] task config not found,", response);
           return;
         }
+        if (errorCountByKey[task.key]) {
+          errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
+        }
         if (task.override && typeof task.override === "function") {
           task.override.call(task, response.response, response, request);
           return;
         }
         if (task.id !== undefined) {
+          if (!canWriteWidget(task.id, WRITE_SOURCE.WS)) {
+            return;
+          }
+          if (task._lastHtml === response.response) {
+            return;
+          }
+          task._lastHtml = response.response;
+          if (task.beforeHtml && typeof task.beforeHtml === "function") {
+            task.beforeHtml(task);
+          }
           window.jQuery(task.id).html(response.response);
+          markWidgetWritten(task.id, WRITE_SOURCE.WS);
           if (task.after && typeof task.after === "function") {
             task.after(task);
           }
@@ -464,12 +596,19 @@
           console.warn("[ws] DOM id not found, status won't update,", response);
         }
       } else {
-        errorCount += 1;
+        let failedKey = (task && task.key) || response.key || "unknown";
+        errorCountByKey[failedKey] = (errorCountByKey[failedKey] || 0) + 1;
         console.error("[ws] request failed,", response);
-      }
-      if (errorCount > 256) {
-        console.warn("[ws] too many errors, stop status update");
-        socket.close();
+        if (errorCountByKey[failedKey] > 32 && !stoppedKeys[failedKey]) {
+          stoppedKeys[failedKey] = true;
+          console.warn("[ws] stopping updates for " + failedKey);
+          if (window.jQuery && window.jQuery.gritter) {
+            window.jQuery.gritter.add({
+              title: "QuickBox",
+              text: "Stopped status updates for " + failedKey
+            });
+          }
+        }
       }
     });
 
@@ -515,37 +654,71 @@
   }
 
   function showAlert(message) {
-    if (window.bootbox && typeof window.bootbox.alert === "function") {
-      window.bootbox.alert({
-        message,
-        backdrop: true,
-        size: "large"
-      });
+    let $ = window.jQuery;
+    if (!$ || typeof $.fn.modal !== "function") {
+      window.alert(message);
       return;
     }
-    window.alert(message);
+    let modalId = "quickbox-alert-modal";
+    let $modal = $("#" + modalId);
+    let title = (window.quickboxMessages && window.quickboxMessages.systemResponse) || "System Response";
+    if ($modal.length === 0) {
+      $modal = $(
+        "<div class='modal fade' id='" + modalId + "' tabindex='-1' role='dialog' aria-modal='true' aria-labelledby='quickbox-alert-title'>" +
+          "<div class='modal-dialog'>" +
+            "<div class='modal-content'>" +
+              "<div class='modal-header'>" +
+                "<h4 class='modal-title' id='quickbox-alert-title'>" + escapeHtml(title) + "</h4>" +
+                "<button type='button' class='quickbox-modal-close' data-dismiss='modal' aria-label='Close'>" +
+                  "<span aria-hidden='true'>&times;</span>" +
+                "</button>" +
+              "</div>" +
+              "<div class='modal-body'></div>" +
+              "<div class='modal-footer'>" +
+                "<button type='button' class='btn btn-primary' data-dismiss='modal'>OK</button>" +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+        "</div>"
+      );
+      $("body").append($modal);
+    }
+    $modal.find(".modal-title").text(title);
+    $modal.find(".modal-body").html(message);
+    $modal.modal("show");
+  }
+
+  let inflightExecCount = 0;
+  let reloadAfterExec = false;
+
+  function maybeReloadAfterExec() {
+    if (reloadAfterExec && inflightExecCount <= 0) {
+      location.reload();
+    }
   }
 
   socket.on("exec", function (response) {
+    inflightExecCount = Math.max(0, inflightExecCount - 1);
     if (response && response.success === false) {
-      let message = response.message || "";
+      let message = escapeHtml(response.message || "");
       let output = response.stdout || response.stderr || "";
-      output = output.replace(/\\u001b[()][B0UK]/g, "");
       if (window.AnsiUp) {
         output = new window.AnsiUp().ansi_to_html(output);
+      } else {
+        output = escapeHtml(output);
       }
-      message = message + "<br><code>" + response.cmd + "</code>";
+      message = message + "<br><code>" + escapeHtml(response.cmd || "") + "</code>";
       if (output) {
         message += "<hr><div class='exec-output' style='display: inline-grid'>" + output + "</div>";
       }
       showAlert(message);
+      maybeReloadAfterExec();
       return;
     }
     if (response && response.cmd && (response.cmd.indexOf("systemctl") === 0 || response.cmd.indexOf("box:lang") === 0)) {
-      setTimeout(function () {
-        location.reload();
-      }, 100);
+      reloadAfterExec = true;
     }
+    maybeReloadAfterExec();
   });
 
   function exec(command) {
@@ -553,25 +726,8 @@
       showAlert("Invalid service parameter: '" + command + "'");
       return;
     }
+    inflightExecCount += 1;
     socket.emit("exec", command);
-  }
-
-  function checkParameters(params) {
-    if (!params || typeof params !== "object") {
-      return true;
-    }
-    let missing = "";
-    Object.keys(params).forEach(function (key) {
-      if (!params[key]) {
-        missing += "'" + key + "', ";
-      }
-    });
-    missing = missing.replace(/, $/, "");
-    if (missing) {
-      showAlert("Parameter: " + missing + " required but not found");
-      return false;
-    }
-    return true;
   }
 
   function closestDatasetTarget(initialTarget, datasetKey) {
@@ -584,10 +740,7 @@
 
   function packageHandler(template) {
     return function (event) {
-      if (!checkParameters({ event })) {
-        return;
-      }
-      let target = event.target;
+      let target = closestDatasetTarget(event.target, "package");
       if (!target || !target.dataset) {
         return;
       }
@@ -596,9 +749,6 @@
   }
 
   function serviceUpdateHandler(event) {
-    if (!checkParameters({ event })) {
-      return;
-    }
     let target = closestDatasetTarget(event.target, "service");
     if (!target || !target.dataset) {
       return;
@@ -611,9 +761,6 @@
   }
 
   function boxHandler(event) {
-    if (!checkParameters({ event })) {
-      return;
-    }
     let target = closestDatasetTarget(event.target, "package");
     if (!target || !target.dataset) {
       return;
@@ -780,20 +927,32 @@
       renderNetworkInterfaces([]);
     });
 
-    // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready)
+    // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready).
+    function applyPrefetchHtml(selector, html) {
+      if (!canWriteWidget(selector, WRITE_SOURCE.PREFETCH)) {
+        return;
+      }
+      let $el = window.jQuery(selector);
+      if (!$el.length) {
+        return;
+      }
+      $el.html(html);
+      markWidgetWritten(selector, WRITE_SOURCE.PREFETCH);
+    }
+
     fetch(window.quickboxWidgetUrl("/node/load"), { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { window.jQuery("#cpuload").html(html); })
+      .then(function (html) { applyPrefetchHtml("#cpuload", html); })
       .catch(function () { /* WebSocket will fill in later */ });
 
     fetch(window.quickboxWidgetUrl("/node/disk_data"), { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { window.jQuery("#disk_data").html(html); })
+      .then(function (html) { applyPrefetchHtml("#disk_data", html); })
       .catch(function () { /* WebSocket will fill in later */ });
 
     fetch(window.quickboxWidgetUrl("/node/ram_stats"), { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { window.jQuery("#meterram").html(html); })
+      .then(function (html) { applyPrefetchHtml("#meterram", html); })
       .catch(function () { /* WebSocket will fill in later */ });
   }
 
@@ -803,10 +962,7 @@
       return;
     }
 
-    let defaultHandler = closeButton.dataset.defaultClickHandler || "boxHandler";
     let defaultRefreshAfterClose = closeButton.dataset.defaultRefreshAfterClose || "true";
-    let defaultPackage = closeButton.dataset.defaultPackage || "log";
-    let defaultOperation = closeButton.dataset.defaultOperation || "clean";
     let defaultLabel = closeButton.dataset.labelDefault || closeButton.textContent || "";
     let logViewLabel = closeButton.dataset.labelLogView || defaultLabel;
 
@@ -815,14 +971,15 @@
       closeButton.removeAttribute("data-refresh-after-close");
       closeButton.removeAttribute("data-package");
       closeButton.removeAttribute("data-operation");
+      closeButton.dataset.refreshAfterClose = "false";
       closeButton.textContent = logViewLabel;
       return;
     }
 
-    closeButton.dataset.clickHandler = defaultHandler;
+    closeButton.removeAttribute("data-click-handler");
     closeButton.dataset.refreshAfterClose = defaultRefreshAfterClose;
-    closeButton.dataset.package = defaultPackage;
-    closeButton.dataset.operation = defaultOperation;
+    closeButton.removeAttribute("data-package");
+    closeButton.removeAttribute("data-operation");
     closeButton.textContent = defaultLabel;
   }
 
@@ -830,10 +987,7 @@
     let psElements = document.querySelectorAll(".ps");
     if (typeof window.PerfectScrollbar === "function") {
       psElements.forEach(function (element) {
-        let psInstance = new window.PerfectScrollbar(element);
-        if (element.id === "sysPre") {
-          window.__psSysPre = psInstance;
-        }
+        new window.PerfectScrollbar(element);
       });
     } else {
       // Fallback: keep scrollable containers usable even if Perfect Scrollbar fails to load.
@@ -875,10 +1029,13 @@
       if (boxHandlerButton) {
         window.boxHandler(event);
         if (boxHandlerButton instanceof HTMLElement && boxHandlerButton.dataset.refreshAfterClose === "true") {
-          setTimeout(function () {
-            location.reload();
-          }, 150);
+          reloadAfterExec = true;
         }
+      }
+      let responseCloseButton = target.closest("#sysResponseCloseAction");
+      if (responseCloseButton instanceof HTMLElement && responseCloseButton.dataset.refreshAfterClose === "true") {
+        reloadAfterExec = true;
+        maybeReloadAfterExec();
       }
     });
     loadNodeFragments();

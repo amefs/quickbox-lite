@@ -2,19 +2,19 @@
 #
 # [QuickBox Lite qBittorrent Installer]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-#################################################################################
-#################################################################################
+################################################################################
+
+################################################################################
 # CORE VARIABLE
-#################################################################################
+################################################################################
 CODENAME=$(lsb_release -cs)
 
 ################################################################################
@@ -66,10 +66,9 @@ function _error() {
 	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
 }
 
-function _version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
-#################################################################################
+################################################################################
 # APP VARIABLE
-#################################################################################
+################################################################################
 APP_TITLE="qBittorrent"
 APP_NAME="qbittorrent"
 APP_SERVICE="qbittorrent"
@@ -79,8 +78,8 @@ APP_HOST="127.0.0.1"
 APP_WEB_PORT_LOW="15151"
 APP_WEB_PORT_HIGH="15200"
 
-APP_LOCK=.$APP_NAME.lock
-OUTTO=/srv/dashboard/db/output.log
+APP_LOCK=".${APP_NAME}.lock"
+OUTTO="/srv/dashboard/db/output.log"
 qbitversion_default=4.6.7
 libtversion_default=1.2.19
 cdn=$(cat /install/.cdn.lock)
@@ -88,12 +87,13 @@ cdn=$(cat /install/.cdn.lock)
 BRANCH_LT="https://github.com/arvidn/libtorrent.git"
 BRANCH_QBIT="https://github.com/qbittorrent/qBittorrent.git"
 BRANCH_LIBQBPASS="https://github.com/KozakaiAya/libqbpasswd.git"
+
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite $APP_TITLE Installer"
-	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [-s static] [--lt] [--qb]"
+	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [--lt] [--qb]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
 	echo "--lt <version>            the Libtorrent version you want to install"
@@ -105,6 +105,11 @@ function _usage() {
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
+
+function _version_gt() {
+	test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
+}
+
 ################################################################################
 # INSTALL FUNCTIONS
 ################################################################################
@@ -121,9 +126,11 @@ function _lockCheck() {
 		exit 1
 	fi
 }
+
 function _setLock() {
 	echo "${APP_TITLE}" >/install/.install.lock
 }
+
 function _lockCleanup() {
 	echo "$APP_TITLE Install Complete!
 
@@ -559,20 +566,19 @@ function _installAppStart() {
 	_success "${APP_TITLE} started."
 }
 
-#################################################################################
+################################################################################
 # OPT GENERATOR
-#################################################################################
-if ! ARGS=$(getopt -a -o hsl: -l help,static,with-cf,with-sf,with-osdn,with-github,log:,qb:,lt: -- "$@")
-then
-    _usage
-    exit 1
+################################################################################
+if ! ARGS=$(getopt -a -o hl: -l help,with-cf,with-sf,with-osdn,with-github,log:,qb:,lt: -- "$@"); then
+	_usage
+	exit 1
 fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
 	-h | --help)
 		_usage
-		exit 1
+		exit 0
 		;;
 	-l | --log)
 		OUTTO="$2"
@@ -606,9 +612,9 @@ while true; do
 	shift
 done
 
-#################################################################################
+################################################################################
 # MAIN PROCESS
-#################################################################################
+################################################################################
 _lockCheck
 _setLock
 _installInfo

@@ -16,6 +16,7 @@ import { isTestMode, setActiveProfile } from "./testing";
 import { dashboardMenu, resolveDashboardMenuState } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
 import { packageManagementCenter } from "./widgets/package-management-center";
+import { runningTask } from "./widgets/running-task";
 import { serviceControl } from "./widgets/service-control";
 import { upTime } from "./widgets/up";
 import { diskData } from "./widgets/disk-data";
@@ -24,10 +25,13 @@ import { widgetsLoad } from "./widgets/load";
 import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAction } from "./plugins";
 import { systemStaticInfoWithProviders } from "./system-static";
 import { readOutputLog } from "./widgets/output-log";
+import { shouldUpgradeDashboardSocket } from "./auth";
 
 export interface AppRouterOptions {
     /** Absolute path to the dashboard root (setup/dashboard). Used by /debug/assets/* static routes. */
     dashboardDir: string;
+    /** Optional theme skin directory used by isolated mock servers. */
+    skinsDir?: string;
     /** Allows tests to inject command execution without shelling out. */
     execFile?: typeof childProcess.execFile;
 }
@@ -45,12 +49,27 @@ export interface AppRouterOptions {
 export function createAppRouter(options: AppRouterOptions): Router {
     const router = Router();
     const runExecFile = options.execFile ?? childProcess.execFile;
+    const skinsDir = options.skinsDir ?? path.join(options.dashboardDir, "skins");
     const debugEnabled = process.env.NODE_ENV !== "production";
+    const parseThemeBody = (body: unknown): string | undefined => {
+        if (body === null || typeof body !== "object" || !("theme" in body)) {
+            return undefined;
+        }
+        const theme = (body as { theme?: unknown }).theme;
+        return typeof theme === "string" ? theme : undefined;
+    };
+    const parsePluginBody = (body: unknown): { plugin?: unknown; action?: unknown } => {
+        if (body === null || typeof body !== "object") {
+            return {};
+        }
+        const record = body as { plugin?: unknown; action?: unknown };
+        return { plugin: record.plugin, action: record.action };
+    };
     const renderWithLocale = async <T,>(req: Request, callback: () => T | Promise<T>): Promise<T> => {
         return await withLocale(resolveRequestLocale(req), callback);
     };
 
-    router.use("/skins", express.static(path.join(options.dashboardDir, "skins")));
+    router.use("/skins", express.static(skinsDir));
     router.use("/lib", express.static(path.join(options.dashboardDir, "lib")));
     router.use("/fonts", express.static(path.join(options.dashboardDir, "fonts")));
     router.use("/img", express.static(path.join(options.dashboardDir, "img")));
@@ -62,14 +81,16 @@ export function createAppRouter(options: AppRouterOptions): Router {
     const renderDashboard = async (req: Request, res: Response, basePath = "") => {
         const locale = resolveRequestLocale(req);
         const html = await withLocale(locale, async () => {
-            const [menuState, serviceControlHtml, packageManagementCenterHtml] = await Promise.all([
+            const [menuState, serviceControlHtml, packageManagementCenterHtml, runningTaskHtml] = await Promise.all([
                 resolveDashboardMenuState(),
                 serviceControl(),
                 packageManagementCenter(),
+                runningTask(),
             ]);
             const ssrFragments: DashboardSsrFragments = {
                 serviceControlHtml,
                 packageManagementCenterHtml,
+                runningTaskHtml,
                 uptimeHtml: upTime(),
                 diskDataHtml: "",
                 ramStatsHtml: "",
@@ -80,6 +101,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
             return ReactDOMServer.renderToString(
                 <DashboardPage
                     basePath={basePath}
+                    socketUpgrade={shouldUpgradeDashboardSocket(req.headers)}
                     locale={locale}
                     menuState={menuState}
                     ssrFragments={ssrFragments}
@@ -141,8 +163,8 @@ export function createAppRouter(options: AppRouterOptions): Router {
     });
 
     router.post("/node/theme", express.json(), async (req: Request, res: Response) => {
-        const { theme } = req.body as { theme?: unknown };
-        if (typeof theme !== "string") {
+        const theme = parseThemeBody(req.body);
+        if (theme === undefined) {
             res.status(400).json({ error: "theme field required" });
             return;
         }
@@ -160,7 +182,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
     });
 
     router.post("/node/plugin", express.json(), async (req: Request, res: Response) => {
-        const { plugin, action } = req.body as { plugin?: unknown; action?: unknown };
+        const { plugin, action } = parsePluginBody(req.body);
         if (typeof plugin !== "string" || !isPluginAction(action)) {
             res.status(400).json({ error: "plugin and action fields required" });
             return;
@@ -191,13 +213,14 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.json(readOutputLog(
             parseQueryNumber(req.query.offset),
             parseQueryNumber(req.query.length),
+            typeof req.query.epoch === "string" ? req.query.epoch : undefined,
         ));
     });
 
     // ── Debug endpoints ───────────────────────────────────────────────────────
 
     if (debugEnabled) {
-        router.use("/debug/assets/skins", express.static(path.join(options.dashboardDir, "skins")));
+        router.use("/debug/assets/skins", express.static(skinsDir));
         router.use("/debug/assets/lib", express.static(path.join(options.dashboardDir, "lib")));
         router.use("/debug/assets/fonts", express.static(path.join(options.dashboardDir, "fonts")));
 

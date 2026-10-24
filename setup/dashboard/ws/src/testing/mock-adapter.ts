@@ -160,6 +160,10 @@ export function runBoxCommand(operation: string, target: string) {
         removeMatching(profile.lockFiles, (lockFile) => lockFile === "/install/.install.lock");
         return true;
     }
+    if (operation === "abort") {
+        removeMatching(profile.lockFiles, (lockFile) => lockFile === "/install/.install.lock");
+        return true;
+    }
     if (operation === "clean" && target === "log") {
         return true;
     }
@@ -173,4 +177,23 @@ export function runBoxCommand(operation: string, target: string) {
         return true;
     }
     return false;
+}
+
+export function runMockCommand(payload: string): boolean | undefined {
+    if (!isTestMode()) {
+        return undefined;
+    }
+    const [command = "", operation = "", target = ""] = payload.split(":").map(value => value.trim());
+    switch (command) {
+        case "installpackage":
+            return installPackage(target);
+        case "removepackage":
+            return removePackage(target);
+        case "systemctl":
+            return updateService(target, operation);
+        case "box":
+            return runBoxCommand(operation, target);
+        default:
+            return false;
+    }
 }

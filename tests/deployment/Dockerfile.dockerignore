@@ -1,0 +1,8 @@
+.git
+**/node_modules
+.workbuddy
+**/playwright-report
+**/test-results
+**/__pycache__
+**/.env
+**/.env.*

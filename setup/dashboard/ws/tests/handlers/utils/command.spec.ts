@@ -4,6 +4,7 @@ import "mocha";
 import { expect } from "chai";
 
 import { CommandType, buildCommand } from "../../../src/handlers/utils/command";
+import { isSafeUsername } from "../../../src/shared/constants";
 
 const config = {
     "systemctl": {
@@ -82,6 +83,14 @@ describe("exec", () => {
             expect(() => { buildCommand("no-operation-target::target", config, username); })
                 .to.throw(Error, "Unexpected target 'target' is provided");
         });
+        it("should reject a username that is not a safe shell token", () => {
+            expect(() => { buildCommand("systemctl:start:deluge-web", config, "bad;id"); })
+                .to.throw(Error, /invalid characters/);
+            expect(() => { buildCommand("systemctl:start:deluge-web", config, "bad$(id)"); })
+                .to.throw(Error, /invalid characters/);
+            expect(() => { buildCommand("systemctl:start:deluge-web", config, "bad user"); })
+                .to.throw(Error, /invalid characters/);
+        });
 
         // A7: empty string target is required for operations like enable-dev/disable-dev that don't need a target
         it("should allow empty string target when it is in the whitelist", () => {
@@ -95,6 +104,11 @@ describe("exec", () => {
             expect(buildCommand("box:enable-dev:", configWithEmptyTarget, username))
                 .to.equal("bash quickbox enable-dev ");
         });
+        it("should accept a safe username token", () => {
+            expect(isSafeUsername("quickbox")).to.equal(true);
+            expect(isSafeUsername("user_1.name-2")).to.equal(true);
+            expect(isSafeUsername("bad;id")).to.equal(false);
+        });
         it("should reject empty string target when it is not in the whitelist", () => {
             const configWithoutEmptyTarget = {
                 box: {
@@ -105,6 +119,28 @@ describe("exec", () => {
             } as CommandType;
             expect(() => { buildCommand("box:enable-dev:", configWithoutEmptyTarget, username); })
                 .to.throw(Error, /Target .+ not found/);
+        });
+    });
+
+    describe("production command templates", () => {
+        it("should wrap privileged commands with sudo -n", () => {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const production = require("../../../config/commands.json") as CommandType;
+            expect(production.systemctl?.template.startsWith("sudo -n -- ")).to.equal(true);
+            expect(production.installpackage?.template.startsWith("sudo -n -- ")).to.equal(true);
+            expect(production.removepackage?.template.startsWith("sudo -n -- ")).to.equal(true);
+            expect(production.box?.template.startsWith("sudo -n -- ")).to.equal(true);
+            expect(production.ping?.template.startsWith("sudo")).to.equal(false);
+            expect(production["command-example"]).to.equal(undefined);
+        });
+        it("should dispatch package operations through box", () => {
+            // box starts a new Dashboard log before the package script writes,
+            // so the dialog shows this operation instead of the previous one.
+            // Calling installpackage/removepackage directly skips that step.
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const production = require("../../../config/commands.json") as CommandType;
+            expect(production.installpackage?.template).to.contain("/quickbox/system/box install ");
+            expect(production.removepackage?.template).to.contain("/quickbox/system/box remove ");
         });
     });
 });

@@ -1,18 +1,19 @@
 #!/bin/bash
+# File-level ShellCheck directives must precede the CRLF bootstrap.
+# shellcheck disable=SC2046,SC1090,SC2181,SC2059
+if [ "${QB_SETUP_BOOTSTRAP:-0}" != 1 ] && [ "${BASH_SOURCE[0]:-}" = "$0" ] && grep -q $'\r' "$0" 2>/dev/null; then sed 's/\r$//' "$0" >"${0}.$$.tmp" && mv "${0}.$$.tmp" "$0" || exit 1; QB_SETUP_BOOTSTRAP=1 exec bash "$0" "$@" ; fi #
 #
 # [QuickBox Lite Installation Guide Script]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# shellcheck disable=SC2046,SC1090,SC2181,SC2059
-#################################################################################
+################################################################################
 
 function _defaultcolor() {
 	export NEWT_COLORS='
@@ -97,6 +98,20 @@ function _init() {
 	if (! export | grep -q sbin); then
 		export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
 	fi
+	local normalize_helper="${local_prefix}packages/system/auxiliary/qbNormalizeRepo"
+	if [[ ! -s "${normalize_helper}" ]]; then
+		_error "Repository normalizer is missing or empty: ${normalize_helper}"
+		exit 1
+	fi
+	# Strip CR before bash parses the helper: a CRLF shebang cannot be executed
+	# directly, and bash cannot parse the helper's own self-heal in CRLF form.
+	local normalize_script
+	normalize_script=$(sed 's/\r$//' "${normalize_helper}") || exit 1
+	if ! QB_NORMALIZE_BOOTSTRAP=1 QB_NORMALIZE_RUN=1 \
+		bash -c "${normalize_script}" _ "${local_prefix}"; then
+		_error "Failed to normalize the QuickBox repository (file modes or line endings)."
+		exit 1
+	fi
 	{
 		# prepare scripts
 		echo -e "XXX\n00\nPreparing scripts... \nXXX"
@@ -113,8 +128,6 @@ function _init() {
 			apt-get -y install git curl wget dos2unix python3 apt-transport-https gnupg2 ca-certificates bind9-dnsutils unzip jq >/dev/null 2>&1
 		fi
 		echo -e "XXX\n20\nPreparing scripts... \nXXX"
-		dos2unix $(find ${local_prefix} -type f) >/dev/null 2>&1
-		chmod +x $(find ${local_prefix} -type f) >/dev/null 2>&1
 		if [[ -d /usr/local/bin/quickbox ]]; then
 			rm -rf /usr/local/bin/quickbox
 		fi
@@ -549,12 +562,17 @@ function _genadmin() {
 	echo "D /var/run/${username} 0750 ${username} ${username} -" >>/etc/tmpfiles.d/"${username}".conf
 	systemd-tmpfiles /etc/tmpfiles.d/"${username}".conf --create >>"${OUTTO}" 2>&1
 	# setup sudoers
-	cp ${local_setup_template}sudoers.template /etc/sudoers.d/dashboard
+	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureSudoers \
+		"${local_setup_template}sudoers.template"; then
+		echo ">> Failed to install the dashboard sudoers policy" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
 	if grep "${username}" /etc/sudoers.d/quickbox >/dev/null 2>&1; then
 		echo "No sudoers modification made ... " >>"${OUTTO}" 2>&1
 	else
 		echo "${username} ALL=(ALL:ALL) ALL" >>/etc/sudoers.d/quickbox
 	fi
+	chmod 0440 /etc/sudoers.d/quickbox 2>/dev/null || true
 	# setup bash custom
 	if [ ! -f /root/.bash_qb ]; then
 		cat >>/root/.bashrc <<'EOF'
@@ -809,23 +827,23 @@ function _askSwap() {
 	swap_path=$(whiptail --title "$INFO_TITLE_SWAP" --inputbox "${INFO_TEXT_SWAP_1} \n${INFO_TEXT_SWAP_2}" 10 72 --ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3)
 	if [[ ${swap_path} == "" ]]; then
 		swap_path="/root/.swapfile"
-	elif [[ ! -d $(dirname ${swap_path}) ]]; then
+	elif [[ ! -d $(dirname "${swap_path}") ]]; then
 		swap_path="/root/.swapfile"
 	fi
 	{
 		if [[ ! -f ${swap_path} ]]; then
-			touch ${swap_path} || exit 1
+			touch "${swap_path}" || exit 1
 		fi
 		echo -e "XXX\n10\n$INFO_TEXT_SWAPON_0$INFO_TEXT_DONE\nXXX"
 		sleep 1
 		echo -e "XXX\n10\n$INFO_TEXT_SWAPON_1\nXXX"
-		dd if=/dev/zero of=${swap_path} bs=1M count=2048 >/dev/null 2>&1
+		dd if=/dev/zero of="${swap_path}" bs=1M count=2048 >/dev/null 2>&1
 		echo -e "XXX\n50\n$INFO_TEXT_SWAPON_1$INFO_TEXT_DONE\nXXX"
 		sleep 1
 		echo -e "XXX\n50\n$INFO_TEXT_SWAPON_2\nXXX"
-		chmod 600 ${swap_path} >/dev/null 2>&1
-		mkswap ${swap_path} >/dev/null 2>&1
-		swapon ${swap_path} >/dev/null 2>&1
+		chmod 600 "${swap_path}" >/dev/null 2>&1
+		mkswap "${swap_path}" >/dev/null 2>&1
+		swapon "${swap_path}" >/dev/null 2>&1
 		swapon -s >/dev/null 2>&1
 		echo -e "XXX\n75\n$INFO_TEXT_SWAPON_2$INFO_TEXT_DONE\nXXX"
 		sleep 1
@@ -947,7 +965,18 @@ function _insngx() {
 
 	cp ${local_setup_template}nginx/ssl-params.conf.template /etc/nginx/snippets/ssl-params.conf
 
-	cp ${local_setup_template}nginx/proxy.conf.template /etc/nginx/snippets/proxy.conf
+	if [[ -f /etc/nginx/snippets/proxy.conf ]]; then
+		if ! bash /usr/local/bin/quickbox/system/auxiliary/qbNginxProxyMigrate \
+			--template ${local_setup_template}nginx/proxy.conf >>"${OUTTO}" 2>&1; then
+			echo ">> Failed to migrate the nginx proxy snippet" >>"${OUTTO}" 2>&1
+			exit 1
+		fi
+	else
+		cp ${local_setup_template}nginx/proxy.conf /etc/nginx/snippets/proxy.conf
+	fi
+	mkdir -p /etc/nginx/snippets
+	chown root:root /etc/nginx/snippets/proxy.conf 2>/dev/null
+	chmod 0644 /etc/nginx/snippets/proxy.conf 2>/dev/null
 
 	# Download nginx fancyindex theme
 	wget -t3 -T20 -q -O /tmp/fancyindex.zip https://codeload.github.com/Naereen/Nginx-Fancyindex-Theme/zip/refs/heads/master >>"${OUTTO}" 2>&1
@@ -968,28 +997,12 @@ function _insngx() {
 }
 
 function _insnodejs() {
-	# install Nodejs for background service
-	cd /tmp || exit 1
-	curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh
-	bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-	exitstatus=$?
-	counter=0
-	while [[ ${exitstatus} -eq 1 ]]; do
-		if [[ ${counter} -gt 2 ]]; then
-			_errorcolor
-			echo -e "XXX\n00\n${ERROR_TEXT_NODEJS}\nXXX"
-			_defaultcolor
-			echo ">> ${ERROR_TEXT_NODEJS}" >>"${OUTTO}" 2>&1
-			exit 1
-		else
-			bash nodesource_setup.sh >>"${OUTTO}" 2>&1
-			exitstatus=$?
-			((counter++))
-		fi
-	done
-	apt-get install -y nodejs >>"${OUTTO}" 2>&1
-	if [[ -f /tmp/nodesource_setup.sh ]]; then
-		rm nodesource_setup.sh
+	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs >>"${OUTTO}" 2>&1; then
+		_errorcolor
+		echo -e "XXX\n00\n${ERROR_TEXT_NODEJS}\nXXX"
+		_defaultcolor
+		echo ">> ${ERROR_TEXT_NODEJS}" >>"${OUTTO}" 2>&1
+		exit 1
 	fi
 }
 
@@ -1040,16 +1053,64 @@ function _insdashboard() {
 	echo -e "XXX\n29\n$INFO_TEXT_PROGRESS_7_3\nXXX"
 	_webconsole
 	cd && mkdir -p /srv/dashboard
-	\cp -fR ${local_setup_dashboard}. /srv/dashboard
+	if ! \cp -fR ${local_setup_dashboard}. /srv/dashboard; then
+		_errorcolor
+		echo -e "XXX\n00\nFailed to copy the dashboard files to /srv/dashboard\nXXX"
+		_defaultcolor
+		echo ">> Failed to copy the dashboard files to /srv/dashboard" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
 	touch /srv/dashboard/db/output.log
-	/usr/local/bin/quickbox/system/theme/themeSelect-"${dash_theme}"
+	if ! /usr/local/bin/quickbox/system/theme/themeSelect-"${dash_theme}"; then
+		echo ">> Failed to prepare dashboard theme" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
 	IFACE=$(ip link show | grep -i broadcast | grep -m1 UP | cut -d: -f 2 | cut -d@ -f 1 | sed -e 's/ //g')
 	echo "${IFACE}" >/srv/dashboard/db/interface.txt
 	echo "${username}" >/srv/dashboard/db/master.txt
-	chown -R www-data: /srv/dashboard
-	cp ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
-	sed -i "s/\/etc\/htpasswd/\/etc\/htpasswd.d\/htpasswd.${username}/g" /etc/nginx/apps/dashboard.conf
-	service nginx force-reload >/dev/null 2>&1
+
+	if ! chown -R root:root /srv/dashboard ||
+		! chown -R www-data:www-data /srv/dashboard/db /srv/dashboard/skins; then
+		echo ">> Failed to set dashboard ownership" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	# The updater survives a restart of the WS unit, but PrivateTmp's /tmp does
+	# not. Keep update/health-check temporary files on persistent storage.
+	if ! install -d -m 0700 -o www-data -g www-data /srv/dashboard/db/tmp; then
+		echo ">> Failed to prepare the dashboard temporary directory" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+
+	# Gateway secret and injected header live in root-managed locations; the
+	# dashboard config below includes the generated snippet, so it must exist
+	# first.
+	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureWsGateway; then
+		_errorcolor
+		echo -e "XXX\n00\nFailed to prepare the WS gateway secret\nXXX"
+		_defaultcolor
+		echo ">> Failed to prepare the WS gateway secret" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+
+	if ! \cp -f ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf; then
+		echo ">> Failed to install the dashboard nginx config" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! sed -i "s/\/etc\/htpasswd/\/etc\/htpasswd.d\/htpasswd.${username}/g" /etc/nginx/apps/dashboard.conf; then
+		echo ">> Failed to configure dashboard authentication" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! nginx -t >>"${OUTTO}" 2>&1; then
+		_errorcolor
+		echo -e "XXX\n00\nnginx configuration test failed\nXXX"
+		_defaultcolor
+		echo ">> nginx configuration test failed" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! service nginx force-reload >>"${OUTTO}" 2>&1; then
+		echo ">> Failed to reload dashboard nginx configuration" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
 	case $uilang in
 	"en")
 		bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en >/dev/null 2>&1
@@ -1063,11 +1124,40 @@ function _insdashboard() {
 	esac
 	touch /install/.dashboard.lock
 	cd /srv/dashboard/ws || exit 1
-	npm ci --production >>"${OUTTO}" 2>&1
-	\cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service
-	systemctl daemon-reload >/dev/null 2>&1
-	systemctl enable quickbox-ws.service >/dev/null 2>&1
-	systemctl start quickbox-ws.service >/dev/null 2>&1
+	if ! npm ci --production >>"${OUTTO}" 2>&1; then
+		_errorcolor
+		echo -e "XXX\n00\n${ERROR_TEXT_NODEJS}\nXXX"
+		_defaultcolor
+		echo ">> Failed to install the dashboard dependencies" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! \cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service; then
+		echo ">> Failed to install the quickbox-ws service unit" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! systemctl daemon-reload >>"${OUTTO}" 2>&1; then
+		echo ">> systemctl daemon-reload failed" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! systemctl enable quickbox-ws.service >>"${OUTTO}" 2>&1; then
+		echo ">> Failed to enable quickbox-ws.service" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! systemctl start quickbox-ws.service >>"${OUTTO}" 2>&1; then
+		echo ">> Failed to start quickbox-ws.service" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! systemctl is-active --quiet quickbox-ws.service; then
+		echo ">> quickbox-ws.service is not running" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
+	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck --expect-proxy >>"${OUTTO}" 2>&1; then
+		_errorcolor
+		echo -e "XXX\n00\nDashboard health check failed, see ${OUTTO}\nXXX"
+		_defaultcolor
+		echo ">> Dashboard health check failed" >>"${OUTTO}" 2>&1
+		exit 1
+	fi
 	touch /install/.quickbox-ws.lock
 }
 
@@ -1420,7 +1510,7 @@ function _startinstall() {
 	endtime=$(date +%s)
 	timeused=$((endtime - starttime))
 	timeusedmin=$((timeused / 60))
-	echo -e "\n#################################################################################" >>"${OUTTO}" 2>&1
+	echo -e "\n################################################################################" >>"${OUTTO}" 2>&1
 	echo "Install finished in $timeusedmin Min" >>"${OUTTO}" 2>&1
 	if [[ $autoreboot == 1 ]]; then 
 		reboot; 
@@ -1523,9 +1613,9 @@ $(if [[ $autoreboot == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_17}\n"; fi)\
 	fi
 }
 
-#################################################################################
+################################################################################
 # USAGE
-#################################################################################
+################################################################################
 function _usage() {
 	echo -e "\nQuickBox Lite Setup Script
 \nUsage: bash $(basename "$0") -u username -p password [OPTS]
@@ -1591,9 +1681,9 @@ function _usage() {
   -h, --help                       display this help and exit"
 }
 
-#################################################################################
+################################################################################
 # FLAGS INIT
-#################################################################################
+################################################################################
 uilang="en"
 OUTTO="/root/quickbox.$PPID.log"
 ftp=1
@@ -1644,9 +1734,9 @@ allow_http_config=0
 declare -A _cli_override=()
 _cli_override_packages=""
 
-#################################################################################
+################################################################################
 # HELPER FUNCTIONS FOR KICKSTART CONFIG
-#################################################################################
+################################################################################
 # Shared validation predicates used by both the TUI prompts and the kickstart
 # config validators. They perform the raw checks only and return a status code
 # identifying which rule failed, so each caller can render its own message.
@@ -1984,9 +2074,9 @@ function _generate_config() {
 	fi
 }
 
-#################################################################################
+################################################################################
 # OPT GENERATOR
-#################################################################################
+################################################################################
 if ! ARGS=$(getopt -a -o c:d:hrH:p:P:s:t:u: -l config:,allow-http-config,generate-config,config-output:,skip-summary,domain:,help,ftp-ip:,lang:,reboot,with-log,no-log,with-ftp,no-ftp,with-bbr,no-bbr,with-cf,with-sf,with-osdn,with-github,auth-provider:,auth-mode:,admin-email:,smtp-host:,smtp-port:,smtp-username:,smtp-password:,smtp-sender:,oidc-auth-url:,oidc-token-url:,oidc-userinfo-url:,oidc-client-id:,oidc-client-secret:,oidc-end-session-endpoint:,oidc-user:,oidc-user-map:,oidc-email-domains:,with-rtorrent,with-rutorrent,with-flood,with-transmission,with-qbittorrent,with-deluge,with-mktorrent,with-ffmpeg,with-filebrowser,with-linuxrar,qbittorrent-version:,deluge-version:,qbit-libt-version:,de-libt-version:,rtorrent-version:,transmission-version:,hostname:,port:,username:,password:,source:,theme:,tz:,timezone: -- "$@")
 then
 	_usage
@@ -2163,9 +2253,9 @@ while true; do
 	shift
 done
 
-#################################################################################
+################################################################################
 # MAIN PROCESS
-#################################################################################
+################################################################################
 # Init
 _init
 

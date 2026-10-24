@@ -5,6 +5,15 @@ const { spawn } = require('child_process');
 const express  = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
+const packageRoot = path.resolve(__dirname, '..');
+
+try {
+    require.resolve('tsx');
+} catch {
+    console.error('tsx is not installed. Run `npm ci` in setup/dashboard/ws.');
+    process.exit(1);
+}
+
 const parsePort = (value, fallback) => {
     const parsed = Number.parseInt(value ?? '', 10);
     return Number.isFinite(parsed) ? parsed : fallback;
@@ -72,7 +81,13 @@ function startDashboardServer(config = buildServerConfig()) {
     };
 
     console.log(`Starting Node dashboard server on http://${config.wsHost}:${config.wsPort}`);
-    nodeProcess = spawn('bun', [path.join(__dirname, '..', 'src', 'server.tsx')], {
+    // Run the dashboard on Node, matching the production unit. Bun's Node
+    // compatibility closes upgraded WebSocket transports shortly after the
+    // Socket.IO polling -> websocket probe, which breaks the dev dashboard.
+    // `--import tsx` keeps the server in this process: a tsx CLI child would
+    // survive SIGTERM and leave port 8575 occupied.
+    nodeProcess = spawn(process.execPath, ["--import", "tsx", path.join(packageRoot, "src", "server.tsx")], {
+        cwd: packageRoot,
         env: {
             ...process.env,
             WS_HOST: config.wsHost,

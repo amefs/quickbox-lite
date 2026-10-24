@@ -130,6 +130,11 @@ export function SystemLoadPlaceholder() {
     return <span className="qb-skeleton" style={{ display: "inline-block", width: "75%", height: 20, verticalAlign: "middle" }} />;
 }
 
+/** Uptime — compact inline skeleton next to the uptime label */
+export function UptimePlaceholder() {
+    return <span className="qb-skeleton" style={{ display: "inline-block", width: 120, height: 14, verticalAlign: "middle", marginLeft: 6 }} />;
+}
+
 /** CPU status — multi-line text block */
 export function CpuStatusPlaceholder() {
     return (
