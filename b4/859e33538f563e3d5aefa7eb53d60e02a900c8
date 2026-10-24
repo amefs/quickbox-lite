@@ -1,0 +1,19 @@
+e2e/tests/sidebar.spec.ts
+  s_ca0de8519dc96b::t_688257154ea901 31-33,45-48,63-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b4859e33538f563e3d5aefa7eb53d60e02a900c8",
+  "prompts": {},
+  "sessions": {
+    "s_ca0de8519dc96b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16be9-0bf7-7082-944d-5fb9e6c11b2b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
