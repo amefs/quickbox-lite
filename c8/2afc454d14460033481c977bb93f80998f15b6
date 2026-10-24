@@ -1,0 +1,28 @@
+setup/dashboard/js/dashboard.js
+  s_f226a553f67f7e::t_952d03f891449d 90-91,95,98-99,103,246,570-572,581,922,930
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_f226a553f67f7e::t_07dd99ac3fe0f7 346,393
+setup/dashboard/ws/dist/server.js
+  s_f226a553f67f7e::t_6da406bfca80c8 1
+e2e/tests/dashboard-state.spec.ts
+  s_f226a553f67f7e::t_b83c2d1bb5fc31 424-426
+  s_f226a553f67f7e::t_654bc2ed0d1980 376-378,380-382,405,422
+  s_f226a553f67f7e::t_a396704749ea66 198-223
+  s_f226a553f67f7e::t_ea6e3e795cbd3a 385
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c82afc454d14460033481c977bb93f80998f15b6",
+  "prompts": {},
+  "sessions": {
+    "s_f226a553f67f7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16b9c-dfd6-7fe0-8122-b8b83411cc8a",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
