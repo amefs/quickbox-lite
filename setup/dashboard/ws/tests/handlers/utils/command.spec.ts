@@ -133,5 +133,14 @@ describe("exec", () => {
             expect(production.ping?.template.startsWith("sudo")).to.equal(false);
             expect(production["command-example"]).to.equal(undefined);
         });
+        it("should dispatch package operations through box", () => {
+            // box starts a new Dashboard log before the package script writes,
+            // so the dialog shows this operation instead of the previous one.
+            // Calling installpackage/removepackage directly skips that step.
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const production = require("../../../config/commands.json") as CommandType;
+            expect(production.installpackage?.template).to.contain("/quickbox/system/box install ");
+            expect(production.removepackage?.template).to.contain("/quickbox/system/box remove ");
+        });
     });
 });

@@ -1,24 +1,10 @@
-import { test, expect, type Page, type TestInfo } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
-const WS_BASE_URL = process.env.WS_BASE_URL || process.env.E2E_BASE_URL || `http://127.0.0.1:${process.env.TEST_WS_PORT || "8575"}`;
+import { resetMockProfile, setMockProfile, snap } from "./support/helpers";
 
-/**
- * Helper: switch mock profile via the WS server API.
- */
-async function setMockProfile(page: Page, profile: string) {
-    const response = await page.request.post(`${WS_BASE_URL}/test/profile`, {
-        data: { profile },
-    });
-    expect(response.ok()).toBeTruthy();
-}
-
-/**
- * Helper: attach a named full-page screenshot to the test report.
- */
-async function snap(page: Page, testInfo: TestInfo, name: string) {
-    const screenshot = await page.screenshot({ fullPage: true });
-    await testInfo.attach(name, { body: screenshot, contentType: "image/png" });
-}
+test.beforeEach(async ({ page }) => {
+    await resetMockProfile(page);
+});
 
 // ── Page loading ────────────────────────────────────────────
 
@@ -126,6 +112,43 @@ test.describe("Widget Rendering", () => {
     });
 });
 
+// ── Bandwidth page switch ───────────────────────────────────
+
+test.describe("Bandwidth Page", () => {
+    test("switching the page refreshes the widget without reloading", async ({ page }) => {
+        await page.goto("/");
+        const bwTables = page.locator("#bw_tables");
+        await expect(bwTables.locator("table").first()).toBeVisible({ timeout: 15_000 });
+
+        // The widget renders two tables: a fixed summary, then the one that
+        // belongs to the selected page. The second caption carries the page name.
+        const pageCaption = bwTables.locator("table").nth(1).locator("th").first();
+        const previousCaption = (await pageCaption.innerText()).trim();
+        expect(previousCaption.length).toBeGreaterThan(0);
+        const documentId = await page.evaluate(() => performance.timeOrigin);
+
+        // The options live in the header panel's "configure" tab, which is not
+        // open: click the element itself so the assertion covers the handler and
+        // the polling path instead of the panel's visibility.
+        await page.evaluate(() => {
+            const options = Array.from(document.querySelectorAll("#node-bw-page-options div")) as HTMLElement[];
+            // dashboardBandwidthPages order: t, h, d, m — "d" is the third one.
+            options[2]?.click();
+        });
+
+        // The caption proves the widget itself re-fetched with the new page: the
+        // poll runs every 60 s, so a change within seconds has to come from the
+        // click, not from the timer.
+        await expect
+            .poll(async () => (await pageCaption.innerText()).trim(), { timeout: 5_000 })
+            .not.toBe(previousCaption);
+        expect(await page.evaluate(() => localStorage.getItem("bw_tables:page"))).toBe("d");
+        // "Refresh the data" must stay a data operation: same document, so the
+        // scroll position and every other widget survive the switch.
+        expect(await page.evaluate(() => performance.timeOrigin)).toBe(documentId);
+    });
+});
+
 // ── Service status across profiles ──────────────────────────
 
 test.describe("Service Status", () => {
@@ -151,14 +174,14 @@ test.describe("Service Status", () => {
     test("should show no running services in empty-system profile", async ({ page }, testInfo) => {
         await setMockProfile(page, "empty-system");
         await page.goto("/");
-        const rtorrentStatus = page.locator("#appstat_rtorrent");
-        const qbittorrentStatus = page.locator("#appstat_qbittorrent");
-        if (await rtorrentStatus.count()) {
-            await expect(rtorrentStatus.locator(".badge-service-running-dot")).toHaveCount(0);
-        }
-        if (await qbittorrentStatus.count()) {
-            await expect(qbittorrentStatus.locator(".badge-service-running-dot")).toHaveCount(0);
-        }
+
+        // Anchor on the widget itself: with no installed packages the per-package
+        // `#appstat_*` badges may be absent, so "no running dot" is only
+        // meaningful once the service table is known to have rendered.
+        const serviceControl = page.locator("#service_control_widget");
+        await expect(serviceControl).toBeVisible({ timeout: 15_000 });
+        await expect(serviceControl.locator(".badge-service-running-dot")).toHaveCount(0);
+        await expect(page.locator("[id^='appstat_'] .badge-service-running-dot")).toHaveCount(0);
         await snap(page, testInfo, "empty-system-services");
     });
 });

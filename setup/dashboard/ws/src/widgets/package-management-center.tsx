@@ -79,7 +79,6 @@ export async function packageManagementCenter() {
                             <button
                                 data-toggle="modal"
                                 data-target="#sysResponse"
-                                data-sysresponse-mode="log-view"
                                 className="btn btn-xs btn-info"
                             >
                                 {i18n.t("VIEW_LOG")}

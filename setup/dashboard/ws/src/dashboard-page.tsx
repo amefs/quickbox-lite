@@ -22,6 +22,7 @@ import {
 
 export interface DashboardSsrFragments {
     packageManagementCenterHtml: string;
+    runningTaskHtml: string;
     serviceControlHtml: string;
     uptimeHtml: string;
     diskDataHtml: string;
@@ -33,6 +34,7 @@ export interface DashboardSsrFragments {
 
 export interface DashboardPageProps {
     basePath?: string;
+    socketUpgrade?: boolean;
     locale: string;
     menuState: DashboardMenuState;
     ssrFragments: DashboardSsrFragments;
@@ -66,11 +68,12 @@ function NetworkInterfaceRows({ interfaces }: { interfaces: string[] }) {
     );
 }
 
-export function DashboardPage({ basePath, locale, menuState, ssrFragments }: DashboardPageProps) {
+export function DashboardPage({ basePath, socketUpgrade = true, locale, menuState, ssrFragments }: DashboardPageProps) {
     const config = dashboardConfig();
     const normalizedBasePath = normalizeBasePath(basePath);
     const runtimeConfig = {
         basePath: normalizedBasePath,
+        socketUpgrade,
         locale,
         locales: VALID_LOCALES,
         serviceKeys: [...serviceMap.keys()],
@@ -108,74 +111,10 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                 <link rel="stylesheet" href="/lib/select2/select2.min.css" />
                 <link rel="stylesheet" href="/lib/lobipanel/css/lobipanel.min.css" />
                 <link rel="stylesheet" href="/skins/quick.css" />
-                <style dangerouslySetInnerHTML={{ __html: `
-@keyframes qb-shimmer {
-    0% { background-position: -400px 0; }
-    100% { background-position: 400px 0; }
-}
-.qb-skeleton {
-    background: linear-gradient(90deg, rgba(128,128,128,0.12) 25%, rgba(128,128,128,0.24) 50%, rgba(128,128,128,0.12) 75%);
-    background-size: 800px 100%;
-    animation: qb-shimmer 1.5s ease-in-out infinite;
-    border-radius: 3px;
-}
-.qb-skeleton-progress {
-    height: 18px;
-    border-radius: 9px;
-}
-.qb-skeleton-btn {
-    height: 26px;
-    border-radius: 4px;
-    flex-shrink: 0;
-}
-.qb-skeleton-circle {
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-#quickbox-alert-modal .modal-dialog {
-    width: 600px;
-    max-width: calc(100vw - 30px);
-}
-#quickbox-alert-modal .modal-header {
-    align-items: center;
-    display: flex;
-    min-height: 48px;
-    padding: 8px 12px 8px 20px;
-}
-#quickbox-alert-modal .modal-title {
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 32px;
-}
-#quickbox-alert-modal .quickbox-modal-close {
-    background: transparent;
-    border: 0;
-    border-radius: 4px;
-    color: #69707a;
-    flex: 0 0 32px;
-    font-size: 22px;
-    height: 32px;
-    line-height: 30px;
-    margin-left: auto;
-    opacity: .65;
-    padding: 0;
-    text-align: center;
-    width: 32px;
-}
-#quickbox-alert-modal .quickbox-modal-close:hover,
-#quickbox-alert-modal .quickbox-modal-close:focus {
-    background: rgba(0, 0, 0, .08);
-    color: #111;
-    opacity: 1;
-    outline: 0;
-}
-#quickbox-alert-modal .modal-footer {
-    padding: 12px 20px;
-}
-#quickbox-alert-modal .modal-footer .btn {
-    min-width: 88px;
-}
-` }} />
+                {/* Page-level rules live in setup/dashboard/css/dashboard.css: a
+                    real stylesheet, so the browser caches it, editors lint it as
+                    CSS and the HTML response no longer carries ~8KB of rules. */}
+                <link rel="stylesheet" href="/css/dashboard.css" />
                 <script src="/lib/jquery/jquery.min.js"></script>
                 <script dangerouslySetInnerHTML={{ __html: `window.quickboxRuntime = ${serializeJsonForScript(runtimeConfig)};` }} />
             </head>
@@ -192,18 +131,17 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                             <div className="header-right">
                                 <ul className="headermenu">
                                     {config.showDeveloper ? (
-                                        <li>
-                                            <div className="btn-group">
-                                                <button type="button" className="btn btn-logged">
-                                                    <a href="#" className="label label-warning">{i18n.t("DEV_REPO_TXT", { branch: config.branch })}</a>
-                                                </button>
-                                            </div>
+                                        <li className="header-branch">
+                                            <span className="label label-warning" title={i18n.t("DEV_REPO_TXT", { branch: config.branch })}>
+                                                <span className="header-branch-description">{i18n.t("DEV_REPO_TXT", { branch: config.branch })}</span>
+                                                <span className="header-branch-name">{config.branch}</span>
+                                            </span>
                                         </li>
                                     ) : null}
                                     <li>
                                         <div id="noticePanel" className="btn-group">
-                                            <button className="btn" data-toggle="dropdown">
-                                                <i className="fa fa-menu"></i> QuickBox Lite Menu <span className="caret"></span>
+                                            <button className="btn" data-toggle="dropdown" aria-label="QuickBox Lite Menu">
+                                                <i className="fa fa-menu"></i> <span className="header-menu-full">QuickBox Lite Menu</span><span className="header-menu-short">QuickBox</span> <span className="caret"></span>
                                             </button>
                                             <div id="noticeDropdown" className="dropdown-menu dm-notice pull-right">
                                                 <div role="tabpanel">
@@ -263,10 +201,10 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                                             </div>
                                         </div>
                                     </li>
-                                    <li>
+                                    <li className="header-account">
                                         <div className="btn-group">
                                             <button type="button" className="btn btn-logged" data-toggle="dropdown">
-                                                {config.username}
+                                                <span className="header-username" title={config.username}>{config.username}</span>
                                                 <span className="caret"></span>
                                             </button>
                                             <ul className="dropdown-menu pull-right">
@@ -294,7 +232,7 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                         </div>
                     </div>
                 </header>
-                <section>
+                <section className="dashboard-layout">
                     <div className="leftpanel ps">
                         <div className="leftpanelinner">
                             <ul className="nav nav-tabs nav-justified nav-sidebar">
@@ -342,8 +280,9 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                     </div>
                     <div className="mainpanel">
                         <div className="contentpanel">
+                            <div id="running_task_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.runningTaskHtml }}></div>
                             <div className="row">
-                                <div className="col-md-8" data-inner-id="left-panel-container">
+                                <div className="col-sm-8" data-inner-id="left-panel-container">
                                     <div className="panel panel-main panel-inverse" data-inner-id="panel-server-bandwidth-interface">
                                         <div className="panel-heading">
                                             <h4 className="panel-title">{i18n.t("BANDWIDTH_DATA")}</h4>
@@ -390,21 +329,19 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                                         <div id="pmc_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.packageManagementCenterHtml }}></div>
                                     )}
                                 </div>
-                                <div className="col-md-4 dash-right" data-inner-id="right-panel-container">
+                                <div className="col-sm-4 dash-right" data-inner-id="right-panel-container">
                                     <div className="panel panel-side panel-inverse-full panel-updates" data-inner-id="panel-server-load">
                                         <div className="panel-heading"><h4 className="panel-title text-success">{i18n.t("SERVER_LOAD")}</h4></div>
                                         <div className="panel-body">
-                                            <div className="row">
-                                                <div className="col-sm-9">
+                                            <div className="row qb-panel-split">
+                                                <div className="col-sm-9 qb-panel-main">
                                                     <h4><span id="cpuload" dangerouslySetInnerHTML={ssrFragments.loadHtml ? { __html: ssrFragments.loadHtml } : undefined}>{ssrFragments.loadHtml ? undefined : <SystemLoadPlaceholder />}</span></h4>
                                                     <p>{i18n.t("SL_TXT")}</p>
                                                 </div>
-                                                <div className="col-sm-3 text-right"><i className="fa fa-heartbeat text-danger" style={{ fontSize: "70px" }}></i></div>
-                                                <div className="row">
-                                                    <div className="col-sm-12 mt20 text-center">
-                                                        <strong>{i18n.t("UPTIME")}:</strong> <span id="uptime" dangerouslySetInnerHTML={ssrFragments.uptimeHtml ? { __html: ssrFragments.uptimeHtml } : undefined}>{ssrFragments.uptimeHtml ? undefined : <UptimePlaceholder />}</span>
-                                                    </div>
-                                                </div>
+                                                <div className="col-sm-3 text-right qb-panel-icon"><i className="fa fa-heartbeat text-danger"></i></div>
+                                            </div>
+                                            <div className="mt20 text-center qb-uptime">
+                                                <strong>{i18n.t("UPTIME")}:</strong> <span id="uptime" dangerouslySetInnerHTML={ssrFragments.uptimeHtml ? { __html: ssrFragments.uptimeHtml } : undefined}>{ssrFragments.uptimeHtml ? undefined : <UptimePlaceholder />}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -463,33 +400,27 @@ export function DashboardPage({ basePath, locale, menuState, ssrFragments }: Das
                             </div>
                         </div>
                     </div>
-                    <div className="modal animate__bounceIn animate__animated" id="sysResponse" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sysResponse">
-                        <div className="modal-dialog" style={{ width: "600px" }}>
-                            <div className="modal-content" style={{ background: "rgba(0, 0, 0, 0.6)", border: "2px solid rgba(0, 0, 0, 0.2)" }}>
-                                <div className="modal-header" style={{ background: "rgba(0, 0, 0, 0.4)", border: "0!important" }}>
-                                    <h4 className="modal-title" style={{ color: "#fff" }}>{i18n.t("SYSTEM_RESPONSE_TITLE")}</h4>
+                    <div className="modal animate__bounceIn animate__animated" id="taskAbortConfirm" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="taskAbortConfirmTitle">
+                        <div className="modal-dialog">
+                            <div className="modal-content">
+                                <div className="modal-header"><button type="button" className="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 className="modal-title" id="taskAbortConfirmTitle">{i18n.t("TASK_ABORT_CONFIRM_TITLE")}</h4></div>
+                                <div className="modal-body" dangerouslySetInnerHTML={{ __html: i18n.t("TASK_ABORT_CONFIRM_TXT") }} />
+                                <div className="modal-footer"><button type="button" className="btn btn-default" data-dismiss="modal">{i18n.t("CANCEL")}</button><button type="button" data-click-handler="boxHandler" data-package="" data-operation="abort" data-dismiss="modal" id="taskAbortConfirmGo" className="btn btn-danger">{i18n.t("AGREE")}</button></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="modal" id="sysResponse" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sysResponseTitle" data-backdrop="static" data-keyboard="false">
+                        <div className="modal-dialog">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h4 className="modal-title" id="sysResponseTitle">{i18n.t("SYSTEM_RESPONSE_TITLE")}</h4>
+                                    <button type="button" className="close" id="sysResponseDismiss" aria-label={i18n.t("CLOSE")}><span aria-hidden="true">&times;</span></button>
                                 </div>
-                                <div className="modal-body ps" style={{ background: "rgba(0, 0, 0, 0.4)", maxHeight: "600px" }} id="sysPre">
-                                    <pre style={{ color: "rgb(83, 223, 131)", margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }} className="sysout"><span id="sshoutput"></span></pre>
+                                <div className="modal-body" id="sysPre">
+                                    <pre className="sysout"><span id="sshoutput"></span></pre>
                                 </div>
-                                <div className="modal-footer" style={{ background: "rgba(0, 0, 0, 0.4)", border: "0!important" }}>
-                                    <button
-                                        id="sysResponseCloseAction"
-                                        data-default-click-handler="boxHandler"
-                                        data-default-refresh-after-close="true"
-                                        data-default-package="log"
-                                        data-default-operation="clean"
-                                        data-label-default={i18n.t("CLOSE_REFRESH")}
-                                        data-label-log-view={i18n.t("CANCEL")}
-                                        data-click-handler="boxHandler"
-                                        data-refresh-after-close="true"
-                                        data-package="log"
-                                        data-operation="clean"
-                                        data-dismiss="modal"
-                                        className="btn btn-xs btn-danger"
-                                    >
-                                        {i18n.t("CLOSE_REFRESH")}
-                                    </button>
+                                <div className="modal-footer">
+                                    <button type="button" id="sysResponseCloseAction" className="btn btn-primary">{i18n.t("CLOSE_REFRESH")}</button>
                                 </div>
                             </div>
                         </div>

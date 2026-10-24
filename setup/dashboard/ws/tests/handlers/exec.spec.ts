@@ -11,14 +11,19 @@ import path from "path";
 import execHandler, {
     buildUpdateRunnerScript,
     decodeExecOutput,
-    getUpdateLockPath,
+    getWebLauncherLockPath,
+    interpretLaunchStatus,
     isPidAlive,
     isUpdateInProgress,
-    probeUpdateLock,
+    probeWebLauncherLock,
     readUpdatePid,
     releaseExecSlot,
     resetExecSlotsForTests,
     tryAcquireExecSlot,
+    UPDATE_ACK_BUSY,
+    UPDATE_ACK_FAILED,
+    UPDATE_ACK_OK,
+    UPDATE_ACK_PENDING,
 } from "../../src/handlers/exec";
 import Constant from "../../src/shared/constants";
 
@@ -155,6 +160,49 @@ describe("handlers/exec", () => {
         });
     });
 
+    describe("update launch verdict", () => {
+        it("should start when the runner confirms the lock", () => {
+            expect(interpretLaunchStatus({ observed: UPDATE_ACK_OK, childAlive: true })).to.deep.equal({ state: "started" });
+        });
+
+        it("should report busy when another holder owns the launcher lock", () => {
+            const result = interpretLaunchStatus({ observed: UPDATE_ACK_BUSY, childAlive: false });
+            expect(result.state).to.equal("busy");
+        });
+
+        it("should fail when the runner was refused the update locks", () => {
+            const result = interpretLaunchStatus({ observed: UPDATE_ACK_FAILED, childAlive: false });
+            expect(result.state).to.equal("failed");
+            expect(result.detail).to.contain("refused");
+        });
+
+        it("should fail when the runner died without a verdict", () => {
+            const result = interpretLaunchStatus({ observed: "", childAlive: false });
+            expect(result.state).to.equal("failed");
+            expect(result.detail).to.contain("before acquiring the lock");
+        });
+
+        it("should fail when the runner died while still pending", () => {
+            const result = interpretLaunchStatus({ observed: UPDATE_ACK_PENDING, childAlive: false });
+            expect(result.state).to.equal("failed");
+            expect(result.detail).to.contain("before confirming");
+        });
+
+        // The reported regression: a slow box delays the acknowledgement, the
+        // update still runs, and the dashboard used to call that a launch
+        // failure next to a task that was in fact running.
+        it("should start an unconfirmed but live runner instead of failing it", () => {
+            const result = interpretLaunchStatus({ observed: UPDATE_ACK_PENDING, childAlive: true });
+            expect(result.state).to.equal("started");
+            expect(result.detail).to.contain("alive");
+        });
+
+        it("should start a live runner that never wrote a status at all", () => {
+            const result = interpretLaunchStatus({ observed: "", childAlive: true });
+            expect(result.state).to.equal("started");
+        });
+    });
+
     describe("update mutex (flock)", () => {
         const hasFlock = spawnSync("flock", ["--version"], { stdio: "ignore" }).status === 0;
         let sandbox: string;
@@ -186,15 +234,15 @@ describe("handlers/exec", () => {
 
         it("should use a lock location outside the dashboard sync tree", () => {
             Reflect.deleteProperty(process.env, "QUICKBOX_UPDATE_LOCK");
-            expect(getUpdateLockPath()).to.equal("/run/lock/quickbox-update.lock");
-            expect(getUpdateLockPath().startsWith("/srv/dashboard")).to.equal(false);
+            expect(getWebLauncherLockPath()).to.equal("/run/lock/quickbox-update.lock");
+            expect(getWebLauncherLockPath().startsWith("/srv/dashboard")).to.equal(false);
         });
 
         it("should report a free lock when nothing holds it", function() {
             if (!hasFlock) {
                 this.skip();
             }
-            expect(probeUpdateLock(lockPath)).to.equal("free");
+            expect(probeWebLauncherLock(lockPath)).to.equal("free");
         });
 
         it("should report busy while another holder keeps the lock", async function() {
@@ -206,10 +254,10 @@ describe("handlers/exec", () => {
             });
             try {
                 const deadline = Date.now() + 3000;
-                let state = probeUpdateLock(lockPath);
+                let state = probeWebLauncherLock(lockPath);
                 while (state !== "busy" && Date.now() < deadline) {
                     await new Promise((resolve) => setTimeout(resolve, 50));
-                    state = probeUpdateLock(lockPath);
+                    state = probeWebLauncherLock(lockPath);
                 }
                 expect(state).to.equal("busy");
             } finally {
@@ -248,6 +296,83 @@ describe("handlers/exec", () => {
             expect(lines).to.have.length(1);
             // The runner must not leave the display-only pid file behind.
             expect(fs.existsSync(path.join(dbDir, "update.pid"))).to.equal(false);
+        });
+
+        it("should leave the previous log intact when a runner is refused by the lock", async function() {
+            if (!hasFlock) {
+                this.skip();
+            }
+            const outputPath = path.join(dbDir, "output.log");
+            fs.writeFileSync(outputPath, "previous diagnostic log\n");
+            const holder = spawn("/bin/bash", ["-c", `exec 9>"${lockPath}"; flock -n 9 || exit 1; sleep 5`], {
+                stdio: "ignore",
+            });
+            try {
+                const deadline = Date.now() + 3000;
+                while (probeWebLauncherLock(lockPath) !== "busy" && Date.now() < deadline) {
+                    await new Promise((resolve) => setTimeout(resolve, 50));
+                }
+                const statusPath = path.join(sandbox, "status-busy");
+                const child = spawn("/bin/bash", ["-c", buildUpdateRunnerScript("echo should-not-run", statusPath)], {
+                    stdio: "ignore",
+                });
+                const code = await new Promise<number | null>((resolve) => child.on("exit", resolve));
+                expect(code).to.equal(75);
+                expect(fs.readFileSync(outputPath, "utf8")).to.equal("previous diagnostic log\n");
+            } finally {
+                holder.kill("SIGKILL");
+            }
+        });
+
+        it("should wait for a new epoch before reporting a successful update launch", async () => {
+            const epochPath = path.join(dbDir, "output.log.epoch");
+            fs.writeFileSync(epochPath, "epoch-old\n");
+            const statusPath = path.join(sandbox, "status-epoch");
+            const command = `sleep 0.4; printf 'epoch-new\\n' > ${JSON.stringify(epochPath)}; sleep 0.4`;
+            const script = `flock() { return 0; }\n${buildUpdateRunnerScript(command, statusPath)}`;
+            const child = spawn("/bin/bash", ["-c", script], { stdio: "ignore" });
+            await new Promise((resolve) => setTimeout(resolve, 150));
+            // The old epoch must not be acknowledged as a completed launch, but
+            // the runner must have announced itself by now: its first write is
+            // the liveness marker, not the lock verdict.
+            expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal(UPDATE_ACK_PENDING);
+            const deadline = Date.now() + 3000;
+            while (fs.readFileSync(statusPath, "utf8").trim() !== UPDATE_ACK_OK && Date.now() < deadline) {
+                await new Promise((resolve) => setTimeout(resolve, 20));
+            }
+            expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal(UPDATE_ACK_OK);
+            const code = await new Promise<number | null>((resolve) => child.on("exit", resolve));
+            expect(code).to.equal(0);
+        });
+
+        it("should announce itself before touching the launcher lock", () => {
+            const statusPath = path.join(sandbox, "status-first-write");
+            const script = buildUpdateRunnerScript("echo should-not-run", statusPath);
+            const firstLine = script.split("\n")[0];
+            expect(firstLine.startsWith(`printf '${UPDATE_ACK_PENDING}\\n' >`)).to.equal(true);
+            expect(firstLine).to.contain(statusPath);
+        });
+
+        it("should report busy when the updater is rejected by the inner lock", async () => {
+            const epochPath = path.join(dbDir, "output.log.epoch");
+            fs.writeFileSync(epochPath, "epoch-old\n");
+            const statusPath = path.join(sandbox, "status-inner-busy");
+            const script = `flock() { return 0; }\n${buildUpdateRunnerScript("exit 75", statusPath)}`;
+            const child = spawn("/bin/bash", ["-c", script], { stdio: "ignore" });
+            const code = await new Promise<number | null>((resolve) => child.on("exit", resolve));
+            expect(code).to.equal(75);
+            expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal("busy");
+        });
+
+        it("should report failed when the updater exits before publishing an epoch", async () => {
+            const epochPath = path.join(dbDir, "output.log.epoch");
+            fs.writeFileSync(epochPath, "epoch-old\n");
+            const statusPath = path.join(sandbox, "status-inner-failed");
+            const script = `flock() { return 0; }\n${buildUpdateRunnerScript("exit 1", statusPath)}`;
+            const child = spawn("/bin/bash", ["-c", script], { stdio: "ignore" });
+            const code = await new Promise<number | null>((resolve) => child.on("exit", resolve));
+            expect(code).to.equal(1);
+            expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal("failed");
         });
 
         it("should keep command exit status and clean the pid without platform flock", async () => {

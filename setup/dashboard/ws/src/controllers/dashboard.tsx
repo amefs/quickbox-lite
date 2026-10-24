@@ -8,16 +8,18 @@ import { DashboardPage } from "../dashboard-page";
 import { resolveRequestLocale, withLocale } from "../i18n";
 import { resolveDashboardMenuState } from "../widgets/menu";
 import { packageManagementCenter } from "../widgets/package-management-center";
+import { runningTask } from "../widgets/running-task";
 import { serviceControl } from "../widgets/service-control";
 import { upTime } from "../widgets/up";
 
 export const renderDashboard = async (req: Request, res: Response) => {
     const locale = resolveRequestLocale(req);
     const html = await withLocale(locale, async () => {
-        const [menuState, serviceControlHtml, packageManagementCenterHtml] = await Promise.all([
+        const [menuState, serviceControlHtml, packageManagementCenterHtml, runningTaskHtml] = await Promise.all([
             resolveDashboardMenuState(),
             serviceControl(),
             packageManagementCenter(),
+            runningTask(),
         ]);
         return ReactDOMServer.renderToString(
             <DashboardPage
@@ -25,6 +27,7 @@ export const renderDashboard = async (req: Request, res: Response) => {
                 menuState={menuState}
                 ssrFragments={{
                     packageManagementCenterHtml,
+                    runningTaskHtml,
                     serviceControlHtml,
                     uptimeHtml: upTime(),
                     diskDataHtml: "",

@@ -1,18 +1,16 @@
-import { test, expect, type Page, type TestInfo } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
-const WS_BASE_URL = process.env.WS_BASE_URL || process.env.E2E_BASE_URL || `http://127.0.0.1:${process.env.TEST_WS_PORT || "8575"}`;
+import {
+    WS_BASE_URL,
+    getRenderedWidgetText,
+    resetMockProfile,
+    setMockProfile,
+    snap,
+} from "./support/helpers";
 
-async function getRenderedWidgetText(page: Page) {
-    return page.locator("#result-rendered").evaluate((el) => {
-        const host = el as HTMLElement;
-        return host.shadowRoot?.textContent ?? "";
-    });
-}
-
-async function snap(page: Page, testInfo: TestInfo, name: string) {
-    const screenshot = await page.screenshot({ fullPage: true });
-    await testInfo.attach(name, { body: screenshot, contentType: "image/png" });
-}
+test.beforeEach(async ({ page }) => {
+    await resetMockProfile(page);
+});
 
 test.describe("WS Debug Console", () => {
     test("should load the debug page", async ({ page }, testInfo) => {
@@ -39,11 +37,14 @@ test.describe("WS Debug Console", () => {
     });
 
     test("should fetch load widget via debug console", async ({ page }) => {
+        // The expected value is owned by the all-running profile, so it has to be
+        // selected here instead of relying on whatever ran before.
+        await setMockProfile(page, "all-running");
         await page.goto(`${WS_BASE_URL}/debug`);
         await page.locator("[data-url='/node/load']").click();
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
         // Mock loadavg: "1.52 1.34 1.21"
-        await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).toContain("1.52");
+        await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).toContain("1.52 1.34 1.21");
     });
 
     test("should fetch RAM stats widget via debug console", async ({ page }) => {
@@ -60,10 +61,13 @@ test.describe("WS Debug Console", () => {
     });
 
     test("should handle /debug/node API directly", async ({ page }) => {
+        await setMockProfile(page, "all-running");
         const response = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/up`);
         expect(response.ok()).toBeTruthy();
         const text = await response.text();
-        expect(text).toContain("15"); // 15 days uptime
+        // all-running reports 15 days of uptime.
+        expect(text).toContain("<b>15</b>");
+        expect(text).toContain("days");
     });
 
     test("should return error for unknown widget", async ({ page }) => {

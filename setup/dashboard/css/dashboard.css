@@ -1,0 +1,325 @@
+/*!
+ * Quick Box Dashboard — page-level rules
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * Owned by the dashboard shell only: header bar layout, skeleton placeholders
+ * and the dense dialog chrome. Served from /css/dashboard.css and linked after
+ * /skins/quick.css, so these rules can override the skin's defaults.
+ */
+.headerbar .header-right {
+    float: none;
+    min-width: 0;
+}
+.headerbar .headermenu {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    height: 64px;
+}
+.headerbar .headermenu > li {
+    float: none;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+.headerbar .headermenu > .header-branch {
+    flex: 0 1 auto;
+    padding: 0 12px;
+}
+.header-branch .label {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.5;
+}
+.header-branch-name, .header-menu-short {
+    display: none;
+}
+.headermenu .header-account .btn-logged {
+    display: flex;
+    align-items: center;
+    max-width: min(200px, 28vw);
+}
+.header-username {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.header-account .caret {
+    flex-shrink: 0;
+}
+@media (max-width: 1279px) {
+    .dashboard-layout {
+        overflow-x: clip;
+    }
+}
+@media (max-width: 640px) {
+    .headerbar {
+        padding-left: 44px;
+    }
+    .headerbar .menutoggle {
+        width: 44px;
+    }
+    .headerbar .header-right {
+        padding-right: 8px;
+    }
+    .headerbar .headermenu > .header-branch {
+        padding: 0 4px;
+    }
+    .header-branch-description, .header-menu-full {
+        display: none;
+    }
+    .header-branch-name, .header-menu-short {
+        display: inline;
+    }
+    .headermenu #noticeDropdown {
+        position: fixed;
+        top: 64px;
+        left: 8px;
+        right: 8px;
+        min-width: 0;
+        margin-right: 0;
+    }
+}
+@keyframes qb-shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+.qb-skeleton {
+    background: linear-gradient(90deg, rgba(128,128,128,0.12) 25%, rgba(128,128,128,0.24) 50%, rgba(128,128,128,0.12) 75%);
+    background-size: 800px 100%;
+    animation: qb-shimmer 1.5s ease-in-out infinite;
+    border-radius: 3px;
+}
+.qb-skeleton-progress {
+    height: 18px;
+    border-radius: 9px;
+}
+.qb-skeleton-btn {
+    height: 26px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+.qb-skeleton-circle {
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+/* Side panels: text and decorative icon share one flex row so the icon can
+   never squeeze or overlap the text when the right column gets narrow. */
+.qb-panel-split {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-left: 0;
+    margin-right: 0;
+}
+.qb-panel-split > [class*="col-sm-"] {
+    float: none;
+    width: auto;
+    padding-left: 0;
+    padding-right: 0;
+}
+.qb-panel-split > .qb-panel-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.qb-panel-split > .qb-panel-icon {
+    flex: 0 0 auto;
+    line-height: 1;
+}
+[data-inner-id="panel-server-load"] .qb-panel-icon i {
+    font-size: 70px;
+}
+[data-inner-id="panel-server-disk"] .qb-panel-icon i {
+    font-size: 90px;
+}
+[data-inner-id="panel-server-load"], [data-inner-id="panel-server-disk"] {
+    container-type: inline-size;
+}
+/* Tie the decorative icon to the panel width instead of the viewport, so a
+   narrow right column keeps the text column readable. */
+@container (max-width: 560px) {
+    [data-inner-id="panel-server-load"] .qb-panel-icon i {
+        font-size: 60px;
+    }
+    [data-inner-id="panel-server-disk"] .qb-panel-icon i {
+        font-size: 72px;
+    }
+}
+@container (max-width: 420px) {
+    [data-inner-id="panel-server-load"] .qb-panel-icon i {
+        font-size: 52px;
+    }
+    [data-inner-id="panel-server-disk"] .qb-panel-icon i {
+        font-size: 64px;
+    }
+}
+@container (max-width: 320px) {
+    [data-inner-id="panel-server-load"] .qb-panel-icon i {
+        font-size: 44px;
+    }
+    [data-inner-id="panel-server-disk"] .qb-panel-icon i {
+        font-size: 52px;
+    }
+}
+.qb-uptime {
+    overflow-wrap: anywhere;
+}
+.qb-mount-point {
+    color: #eb4549;
+    font-weight: normal;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+.qb-disk-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 12px;
+    row-gap: 2px;
+    font-size: 14px;
+}
+.qb-disk-metric {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+/* Running-task banner: the text keeps the row, the two actions wrap under it
+   when the content column is too narrow for both. */
+.qb-running-task {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-bottom: 20px;
+}
+.qb-running-task-icon {
+    flex: 0 0 auto;
+    font-size: 16px;
+}
+.qb-running-task-text {
+    flex: 1 1 14em;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.qb-running-task-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+    margin-left: auto;
+}
+.qb-running-task-actions .btn {
+    margin: 0;
+}
+#quickbox-alert-modal .modal-dialog {
+    width: 600px;
+    max-width: calc(100vw - 30px);
+}
+#sysResponse .modal-dialog {
+    display: flex;
+    width: 600px;
+    max-width: calc(100% - 16px);
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+}
+#sysResponse .modal-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+}
+#sysResponse .modal-header, #sysResponse .modal-footer {
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.4);
+    border: 0;
+}
+#sysResponse .modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px 8px 20px;
+}
+#sysResponse .modal-title {
+    flex: 1 1 auto;
+    color: #fff;
+}
+/* Same .close button as the other dialogs, but this header is dark, so the
+   glyph needs its own contrast. */
+#sysResponse .modal-header .close {
+    float: none;
+    margin: 0;
+    padding: 2px 8px;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1;
+    color: #fff;
+    opacity: .65;
+    text-shadow: none;
+    border-radius: 4px;
+}
+#sysResponse .modal-header .close:hover,
+#sysResponse .modal-header .close:focus {
+    opacity: 1;
+    background: rgba(255, 255, 255, .12);
+    outline: none;
+}
+#sysResponse #sysPre {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow: auto;
+    overscroll-behavior: contain;
+    background: rgba(0, 0, 0, 0.4);
+}
+#sysResponse .sysout {
+    color: rgb(83, 223, 131);
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+/* The footer holds the one action that touches the page, so it stays a plain
+   button shaped exactly like the ones in the other dialogs. No min-width or
+   min-height here — either one made this single button look like a slab next
+   to the Cancel/Confirm pairs elsewhere. */
+#sysResponse .modal-footer {
+    padding: 12px 20px;
+}
+#quickbox-alert-modal .modal-header {
+    align-items: center;
+    display: flex;
+    min-height: 48px;
+    padding: 8px 12px 8px 20px;
+}
+#quickbox-alert-modal .modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 32px;
+}
+#quickbox-alert-modal .quickbox-modal-close {
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    color: #69707a;
+    flex: 0 0 32px;
+    font-size: 22px;
+    height: 32px;
+    line-height: 30px;
+    margin-left: auto;
+    opacity: .65;
+    padding: 0;
+    text-align: center;
+    width: 32px;
+}
+#quickbox-alert-modal .quickbox-modal-close:hover,
+#quickbox-alert-modal .quickbox-modal-close:focus {
+    background: rgba(0, 0, 0, .08);
+    color: #111;
+    opacity: 1;
+    outline: 0;
+}
+#quickbox-alert-modal .modal-footer {
+    padding: 12px 20px;
+}
