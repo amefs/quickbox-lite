@@ -10,10 +10,13 @@ async function openLog(page: Page) {
     const response = await page.request.post(`${wsBase}/test/profile`, { data: { profile: "installing" } });
     expect(response.ok()).toBeTruthy();
     await page.goto("/?locale=zh");
-    await expect(page.locator("[data-sysresponse-mode='log-view']")).toBeVisible();
+    // The running-task banner also offers a log view; this one comes from the
+    // install-lock notice in the package panel.
+    const trigger = page.locator("#pmc_widget [data-sysresponse-mode='log-view']");
+    await expect(trigger).toBeVisible();
     await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { socket?: { connected: boolean } }).socket?.connected))).toBe(true);
     await page.evaluate(() => (window as unknown as { socket: { disconnect(): void } }).socket.disconnect());
-    await page.locator("[data-sysresponse-mode='log-view']").click();
+    await trigger.click();
     await expect(page.locator("#sysResponse")).toBeVisible();
     await page.locator("#sysResponse").evaluate(async el => {
         await Promise.all(el.getAnimations({ subtree: true }).map(animation => animation.finished));
@@ -41,6 +44,27 @@ async function expectLogInViewport(page: Page) {
     }
 }
 
+// The close action is the only way out of the dialog, so it keeps a touch-sized
+// target. Its label has to grow with the target instead of sitting inside it at
+// btn-xs size, which is what made the button look like a stray red block.
+async function expectCloseActionProportions(page: Page) {
+    const metrics = await page.locator("#sysResponseCloseAction").evaluate(el => {
+        const style = getComputedStyle(el);
+        const rect = el.getBoundingClientRect();
+        return {
+            fontSize: parseFloat(style.fontSize),
+            paddingY: parseFloat(style.paddingTop),
+            height: rect.height,
+            width: rect.width,
+        };
+    });
+    expect(metrics.fontSize).toBeGreaterThanOrEqual(14);
+    expect(metrics.paddingY).toBeGreaterThanOrEqual(6);
+    expect(metrics.width).toBeGreaterThanOrEqual(80);
+    expect(metrics.height).toBeGreaterThanOrEqual(36);
+    expect(metrics.height).toBeLessThanOrEqual(46);
+}
+
 test.afterEach(async ({ page }) => {
     await page.request.post(`${wsBase}/test/profile`, { data: { profile: "partial-running" } });
 });
@@ -55,6 +79,7 @@ for (const theme of ["smoked", "defaulted"]) {
             }));
             await openLog(page);
             await expectLogInViewport(page);
+            await expectCloseActionProportions(page);
             await deliverLog(page, log);
             await expect(page.locator("#sshoutput")).toContainText("第 160 行");
             await expect(page.locator("#sshoutput script")).toHaveCount(0);
@@ -85,6 +110,17 @@ for (const theme of ["smoked", "defaulted"]) {
         });
     }
 }
+
+test("log dialog ignores clicks outside the panel", async ({ page }) => {
+    await openLog(page);
+    await page.mouse.click(4, 4);
+    await expect(page.locator("#sysResponse")).toBeVisible();
+    await expect(page.locator("body")).toHaveClass(/modal-open/);
+    // Dismissing stays an explicit action: only the footer button closes it.
+    await page.locator("#sysResponseCloseAction").click();
+    await expect(page.locator("#sysResponse")).toBeHidden();
+    await expect(page.locator("body")).not.toHaveClass(/modal-open/);
+});
 
 test("log updates preserve reading position and follow only at the bottom", async ({ page }) => {
     await openLog(page);

@@ -15,6 +15,7 @@ import { serviceStatus, serviceStatusAll } from "../widgets/service-status";
 import { readOutputLog } from "../widgets/output-log";
 import { serviceControl } from "../widgets/service-control";
 import { packageManagementCenter } from "../widgets/package-management-center";
+import { runningTask } from "../widgets/running-task";
 
 interface Payload {
     key: string;
@@ -100,6 +101,8 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
         case "/node/pmc":
         case "/widgets/pmc":
             return await packageManagementCenter();
+        case "/node/task_status":
+            return await runningTask();
         case "/db/output.log":
             return readOutputLog(
                 parseOptionalInt(req.args["offset"]),

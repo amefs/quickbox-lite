@@ -5,18 +5,18 @@
         "targets": ["authelia", "deluge-web@$username$", "deluged@$username$", "denyhosts", "emby-server", "fail2ban", "filebrowser@$username$", "filebrowser-ee@$username$", "flexget@$username$", "flood@$username$", "jellyfin", "irssi@$username$", "netdata", "nfs-server", "openvpn", "plexmediaserver", "peerbanhelper@$username$", "qbittorrent@$username$", "qbittorrent-clientblocker@$username$", "rclone-web@$username$", "resilio-sync@$username$", "rtorrent@$username$", "smbd", "ttyd", "sabnzbd@$username$", "syncthing@$username$", "tightvnc", "transmission@$username$", "novnc@$username$", "vsftpd", "vouch-proxy", "webdav@$username$", "znc"]
     },
     "installpackage": {
-        "template": "sudo -n -- /usr/local/bin/quickbox/package/install/installpackage-$target$",
+        "template": "sudo -n -- /usr/local/bin/quickbox/system/box install $target$",
         "operations": [],
         "targets": ["authelia", "autodlirssi", "btsync", "cifs", "deluge", "emby", "filebrowser", "filebrowser-ee", "flexget", "flood", "jellyfin", "netdata", "nfs", "novnc", "openvpn", "plex", "pbh", "qbittorrent", "qbclientblocker", "rclone", "rtorrent", "rutorrent", "sabnzbd", "speedtest", "syncthing", "transmission", "vouchproxy", "webdav", "x2go"]
     },
     "removepackage": {
-        "template": "sudo -n -- /usr/local/bin/quickbox/package/remove/removepackage-$target$",
+        "template": "sudo -n -- /usr/local/bin/quickbox/system/box remove $target$",
         "operations": [],
         "targets": ["authelia", "autodlirssi", "btsync", "cifs", "deluge", "emby", "filebrowser", "filebrowser-ee", "flexget", "flood", "jellyfin", "netdata", "nfs", "novnc", "openvpn", "plex", "pbh", "qbittorrent", "qbclientblocker", "rclone", "rtorrent", "rutorrent", "sabnzbd", "speedtest", "syncthing", "transmission", "vouchproxy", "webdav", "x2go"]
     },
     "box": {
         "template": "sudo -n -- /usr/local/bin/quickbox/system/box $operation$ $target$",
-        "operations": ["clean", "update", "lang", "fix", "enable-dev", "disable-dev"],
+        "operations": ["clean", "update", "lang", "fix", "enable-dev", "disable-dev", "abort"],
         "targets": ["mem", "log", "dpkg",
             "quickbox --only-core",
             "lang_de", "lang_da", "lang_en", "lang_fr", "lang_es", "lang_zh", ""

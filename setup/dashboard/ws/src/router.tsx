@@ -16,6 +16,7 @@ import { isTestMode, setActiveProfile } from "./testing";
 import { dashboardMenu, resolveDashboardMenuState } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
 import { packageManagementCenter } from "./widgets/package-management-center";
+import { runningTask } from "./widgets/running-task";
 import { serviceControl } from "./widgets/service-control";
 import { upTime } from "./widgets/up";
 import { diskData } from "./widgets/disk-data";
@@ -80,14 +81,16 @@ export function createAppRouter(options: AppRouterOptions): Router {
     const renderDashboard = async (req: Request, res: Response, basePath = "") => {
         const locale = resolveRequestLocale(req);
         const html = await withLocale(locale, async () => {
-            const [menuState, serviceControlHtml, packageManagementCenterHtml] = await Promise.all([
+            const [menuState, serviceControlHtml, packageManagementCenterHtml, runningTaskHtml] = await Promise.all([
                 resolveDashboardMenuState(),
                 serviceControl(),
                 packageManagementCenter(),
+                runningTask(),
             ]);
             const ssrFragments: DashboardSsrFragments = {
                 serviceControlHtml,
                 packageManagementCenterHtml,
+                runningTaskHtml,
                 uptimeHtml: upTime(),
                 diskDataHtml: "",
                 ramStatsHtml: "",

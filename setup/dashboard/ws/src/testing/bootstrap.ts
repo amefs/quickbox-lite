@@ -158,6 +158,16 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
                 return p.branch + "\n";
             }
 
+            // The install lock carries the running operation's title.
+            if (filePath === "/install/.install.lock") {
+                if (p.lockFiles.includes("/install/.install.lock")) {
+                    return `${p.installLockTitle ?? "QuickBox"}\n`;
+                }
+                const missing: NodeJS.ErrnoException = new Error(`ENOENT: no such file, open '${filePath}'`);
+                missing.code = "ENOENT";
+                throw missing;
+            }
+
             if (filePath === "/srv/dashboard/db/master.txt") {
                 return p.username + "\n";
             }

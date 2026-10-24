@@ -59,6 +59,25 @@ function _error() {
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
+# Every package operation writes the shared Dashboard log, so it starts a new
+# log the way `box update quickbox` does: clean_log publishes a new epoch and
+# then truncates the file in place, which is what tells the Dashboard its byte
+# offset is stale. Without it the dialog shows the previous operation above
+# this one.
+#
+# /install/.install.lock means another install or update already owns the log.
+# Rotating it here would erase the output that run is currently showing, so
+# this call leaves the log alone and lets the package script's own _lockCheck
+# report the conflict.
+function _startOperationLog() {
+	if [[ -f "/install/.install.lock" ]]; then
+		return 0
+	fi
+	if ! bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/auxiliary/clean_log"; then
+		_warning "Failed to start a new installation log"
+	fi
+}
+
 function _batchInstall() {
 	applist=()
 	locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template\|lecert\|denyhosts\|fail2ban" | sort -d)
@@ -95,6 +114,7 @@ function _help() {
 	echo "fix <dpkg|interface|home>         fix your setting"
 	echo "set <interface|passwd|cdn>        change interface setting/password"
 	echo "iotest                            run IO test"
+	echo "abort                             stop the running installation or update"
 	echo "troubleshoot                      generate log for troubleshoot"
 	echo "unban <IP adress>                 remove a IP/all IP from banned list"
 	echo "enable-dev|disable-dev            enable or disable development mode"
@@ -136,9 +156,11 @@ if [[ $resolver == "install" ]]; then
 	if [[ -z $extraarg ]]; then
 		_batchInstall
 	elif [[ $appname == "bbr" || $appname == "BBR" ]]; then
+		_startOperationLog
 		bash /usr/local/bin/quickbox/system/auxiliary/install-BBR.sh "${*:3}"
 	else
 		if [[ -f /usr/local/bin/quickbox/package/install/installpackage-"${appname}" ]]; then
+			_startOperationLog
 			bash /usr/local/bin/quickbox/package/install/installpackage-"${appname}" ${*:3}
 		else
 			locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
@@ -160,6 +182,7 @@ if [[ $resolver == "remove" ]]; then
 		_error "Nothing will be removed"
 	else
 		if [[ -f /usr/local/bin/quickbox/package/remove/removepackage-"${appname}" ]]; then
+			_startOperationLog
 			bash /usr/local/bin/quickbox/package/remove/removepackage-"${appname}" ${*:3}
 		else
 			locks=$(find /usr/local/bin/quickbox/package/remove -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
@@ -185,6 +208,7 @@ if [[ $resolver == "update" ]]; then
 		exit $?
 	elif [[ -n $extraarg ]]; then
 		if [[ -f /usr/local/bin/quickbox/package/update/updatepackage-"${appname}" ]]; then
+			_startOperationLog
 			bash /usr/local/bin/quickbox/package/update/updatepackage-"${appname}" ${*:3}
 		else
 			locks=$(find /usr/local/bin/quickbox/package/update -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
@@ -222,6 +246,11 @@ if [[ $resolver == "clean" ]]; then
 		echo "memory"
 		echo "log"
 	fi
+fi
+
+if [[ $resolver == "abort" ]]; then
+	bash /usr/local/bin/quickbox/system/auxiliary/qbAbortTask
+	exit $?
 fi
 
 if [[ $resolver == "troubleshoot" ]]; then
@@ -324,7 +353,7 @@ fi
 # ERROR HANDLER
 ################################################################################
 
-if [[ ! $resolver =~ ("lang"|"install"|"remove"|"update"|"revert"|"clean"|"troubleshoot"|"set"|"fix"|"iotest"|"disktest"|"unban"|"enable-dev"|"disable-dev"|"help") ]]; then
+if [[ ! $resolver =~ ("lang"|"install"|"remove"|"update"|"revert"|"abort"|"clean"|"troubleshoot"|"set"|"fix"|"iotest"|"disktest"|"unban"|"enable-dev"|"disable-dev"|"help") ]]; then
 	_error "Command not exist!"
 	_help
 	exit 1

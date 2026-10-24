@@ -61,6 +61,8 @@ export interface MockProfile {
     cpuCount: number;
     /** Lock files that exist (e.g. "/install/.rtorrent.lock") */
     lockFiles: string[];
+    /** Title recorded in /install/.install.lock while an operation runs */
+    installLockTitle?: string;
     /** Systemd enabled services (e.g. "rtorrent@testuser") */
     enabledServices: string[];
     /** Torrent files per directory: { "/home/user/.sessions/": ["a.torrent", "b.torrent"] } */
@@ -357,6 +359,7 @@ const profiles: Record<string, MockProfile> = {
         ...partialRunning,
         name: "installing",
         lockFiles: [...partialRunning.lockFiles, "/install/.install.lock"],
+        installLockTitle: "Jellyfin Media Server",
     },
     "long-branch": {
         ...allRunning,

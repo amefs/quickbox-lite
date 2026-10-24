@@ -384,6 +384,15 @@
         time: 30000
       },
       {
+        // Renders nothing while no operation holds the install lock, so the
+        // banner appears and disappears on its own.
+        key: "RUNNING_TASK",
+        url: "/node/task_status",
+        id: "#running_task_widget",
+        bootstrap: true,
+        time: 5000
+      },
+      {
         key: "NETWORK",
         url: "/node/net_status",
         override: updateNetworkStatus,

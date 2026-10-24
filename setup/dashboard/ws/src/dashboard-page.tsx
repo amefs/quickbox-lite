@@ -22,6 +22,7 @@ import {
 
 export interface DashboardSsrFragments {
     packageManagementCenterHtml: string;
+    runningTaskHtml: string;
     serviceControlHtml: string;
     uptimeHtml: string;
     diskDataHtml: string;
@@ -288,6 +289,33 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
     flex: 0 0 auto;
     white-space: nowrap;
 }
+/* Running-task banner: the text keeps the row, the two actions wrap under it
+   when the content column is too narrow for both. */
+.qb-running-task {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-bottom: 20px;
+}
+.qb-running-task-icon {
+    flex: 0 0 auto;
+    font-size: 16px;
+}
+.qb-running-task-text {
+    flex: 1 1 14em;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.qb-running-task-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+    margin-left: auto;
+}
+.qb-running-task-actions .btn {
+    margin: 0;
+}
 #quickbox-alert-modal .modal-dialog {
     width: 600px;
     max-width: calc(100vw - 30px);
@@ -331,10 +359,24 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
     word-break: break-word;
     overflow-wrap: anywhere;
 }
+#sysResponse .modal-footer {
+    padding: 12px 20px;
+}
+/* The close action is the only way out of this dialog, so it keeps a full
+   touch target on phones. Its text has to scale with that target: at btn-xs
+   size the label sat in a 44px box like a stray dot. */
 #sysResponseCloseAction {
-    min-width: 80px;
-    min-height: 44px;
+    min-width: 96px;
+    min-height: 38px;
+    padding: 8px 20px;
+    font-size: 14px;
+    line-height: 1.4;
     white-space: normal;
+}
+@media (max-width: 480px) {
+    #sysResponseCloseAction {
+        min-height: 44px;
+    }
 }
 #quickbox-alert-modal .modal-header {
     align-items: center;
@@ -541,6 +583,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                     </div>
                     <div className="mainpanel">
                         <div className="contentpanel">
+                            <div id="running_task_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.runningTaskHtml }}></div>
                             <div className="row">
                                 <div className="col-sm-8" data-inner-id="left-panel-container">
                                     <div className="panel panel-main panel-inverse" data-inner-id="panel-server-bandwidth-interface">
@@ -660,7 +703,16 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                             </div>
                         </div>
                     </div>
-                    <div className="modal" id="sysResponse" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sysResponseTitle">
+                    <div className="modal animate__bounceIn animate__animated" id="taskAbortConfirm" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="taskAbortConfirmTitle">
+                        <div className="modal-dialog">
+                            <div className="modal-content">
+                                <div className="modal-header"><button type="button" className="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 className="modal-title" id="taskAbortConfirmTitle">{i18n.t("TASK_ABORT_CONFIRM_TITLE")}</h4></div>
+                                <div className="modal-body" dangerouslySetInnerHTML={{ __html: i18n.t("TASK_ABORT_CONFIRM_TXT") }} />
+                                <div className="modal-footer"><button type="button" className="btn btn-default" data-dismiss="modal">{i18n.t("CANCEL")}</button><button type="button" data-click-handler="boxHandler" data-package="" data-operation="abort" data-dismiss="modal" id="taskAbortConfirmGo" className="btn btn-danger">{i18n.t("AGREE")}</button></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="modal" id="sysResponse" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sysResponseTitle" data-backdrop="static">
                         <div className="modal-dialog">
                             <div className="modal-content">
                                 <div className="modal-header">
@@ -677,7 +729,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                                         data-label-log-view={i18n.t("CANCEL")}
                                         data-refresh-after-close="true"
                                         data-dismiss="modal"
-                                        className="btn btn-xs btn-danger"
+                                        className="btn btn-danger"
                                     >
                                         {i18n.t("CLOSE_REFRESH")}
                                     </button>
