@@ -76,6 +76,89 @@ _http_code() {
 	curl -q --noproxy '*' -k -s -o /dev/null -m 8 -w '%{http_code}' "$@" 2>/dev/null
 }
 
+# A successful upgrade keeps the connection open; stop after validating its headers.
+_websocket_code() {
+	QB_HEALTH_URL="$1" QB_HEALTH_HOST="${HOST_HEADER}" \
+		QB_HEALTH_USER="${ADMIN_USER:-}" QB_HEALTH_PASSWORD="${ADMIN_PASSWORD:-}" \
+		QB_HEALTH_COOKIE_JAR="${COOKIE_JAR}" python3 - <<'PYEOF'
+import base64
+import hashlib
+import hmac
+import http.client
+import http.cookiejar
+import os
+import signal
+import ssl
+import time
+from urllib.parse import urlsplit
+from urllib.request import Request
+
+
+def deadline(*_):
+    raise TimeoutError('WebSocket handshake deadline exceeded')
+
+
+connection = None
+code = '000'
+signal.signal(signal.SIGALRM, deadline)
+signal.setitimer(signal.ITIMER_REAL, 5)
+try:
+    target = urlsplit(os.environ['QB_HEALTH_URL'])
+    host = os.environ['QB_HEALTH_HOST']
+    path = target.path + ('?' + target.query if target.query else '')
+    headers = {'Host': host, 'Origin': f'{target.scheme}://{host}',
+               'Connection': 'Upgrade', 'Upgrade': 'websocket',
+               'Sec-WebSocket-Version': '13'}
+    cookie_file = os.environ['QB_HEALTH_COOKIE_JAR']
+    if cookie_file:
+        cookies = http.cookiejar.MozillaCookieJar(cookie_file)
+        cookies.load(ignore_discard=True, ignore_expires=True)
+        for cookie in cookies:
+            if cookie.expires == 0:
+                cookie.expires = None
+                cookie.discard = True
+        request = Request(f'{target.scheme}://{host}{path}')
+        cookies.add_cookie_header(request)
+        if request.has_header('Cookie'):
+            headers['Cookie'] = request.get_header('Cookie')
+    else:
+        credentials = os.environ['QB_HEALTH_USER'] + ':' + os.environ['QB_HEALTH_PASSWORD']
+        headers['Authorization'] = 'Basic ' + base64.b64encode(credentials.encode()).decode('ascii')
+    while True:
+        key = base64.b64encode(os.urandom(16)).decode('ascii')
+        headers['Sec-WebSocket-Key'] = key
+        if target.scheme == 'https':
+            connection = http.client.HTTPSConnection(target.hostname, target.port, timeout=5,
+                                                     context=ssl._create_unverified_context())
+        else:
+            connection = http.client.HTTPConnection(target.hostname, target.port, timeout=5)
+        connection.request('GET', path, headers=headers)
+        response = connection.getresponse()
+        code = str(response.status)
+        if response.status != 400:
+            break
+        # nginx reload is asynchronous; an old worker may still use the old proxy protocol.
+        connection.close()
+        time.sleep(0.05)
+    if response.status == 101:
+        expected = base64.b64encode(hashlib.sha1((key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest())
+        accepted = response.getheader('Sec-WebSocket-Accept', '').encode('latin-1')
+        tokens = [token.strip().lower() for token in response.getheader('Connection', '').split(',')]
+        if (response.getheader('Upgrade', '').lower() != 'websocket'
+                or 'upgrade' not in tokens or not hmac.compare_digest(accepted, expected)):
+            code = '000'
+    print(code)
+except TimeoutError:
+    print(code)
+except (OSError, ValueError, http.client.HTTPException):
+    print('000')
+finally:
+    signal.setitimer(signal.ITIMER_REAL, 0)
+    if connection is not None:
+        connection.close()
+PYEOF
+}
+
 if [[ ! -s "${SECRET_FILE}" ]]; then
 	_error "gateway secret is missing: ${SECRET_FILE}"
 	exit 1
@@ -229,7 +312,7 @@ if [[ ${EXPECT_PROXY} -eq 1 ]]; then
 	for SOCKET_PATH in /socket.io /ws/socket.io; do
 		POLL_CODE=$(auth_proxy_code "${SOCKET_PATH}/?EIO=4&transport=polling")
 		if [[ "${POLL_CODE}" == "200" ]]; then _check_pass "authenticated nginx polling ${SOCKET_PATH}: 200"; else _check_fail "authenticated nginx polling ${SOCKET_PATH} failed: ${POLL_CODE}"; fi
-		WS_CODE=$(curl -q "${AUTH_CURL_ARGS[@]}" --noproxy '*' -k -sS -i --http1.1 --max-time 5 -H "Host: ${HOST_HEADER}" -H "Origin: ${CHECK_SCHEME}://${HOST_HEADER}" -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' -o /dev/null -w '%{http_code}' "${PROXY_URL}${SOCKET_PATH}/?EIO=4&transport=websocket" 2>/dev/null || true)
+		WS_CODE=$(_websocket_code "${PROXY_URL}${SOCKET_PATH}/?EIO=4&transport=websocket")
 		if [[ "${WS_CODE}" == "101" ]]; then _check_pass "authenticated nginx WebSocket Upgrade ${SOCKET_PATH}: 101"; else _check_fail "authenticated nginx WebSocket Upgrade ${SOCKET_PATH} failed: ${WS_CODE}"; fi
 	done
 	[[ -z "${CURL_AUTH_CONFIG}" ]] || rm -f "${CURL_AUTH_CONFIG}"

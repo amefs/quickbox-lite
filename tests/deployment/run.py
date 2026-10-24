@@ -165,6 +165,12 @@ http {
 
 
 def permissions():
+    if SYSTEMD:
+        pid = int(subprocess.check_output(['systemctl', 'show', 'quickbox-ws.service', '-p', 'MainPID', '--value']))
+    else:
+        pid = int((STATE / 'node.pid').read_text())
+    identity = subprocess.check_output(['ps', '-o', 'user=,group=', '-p', str(pid)], text=True).split()
+    assert identity == ['www-data', 'www-data'], ('service identity', identity)
     for filename, mode in [('/etc/quickbox/ws.secret', 0o640),
                            ('/etc/nginx/snippets/quickbox-ws-gateway.conf', 0o600)]:
         info = Path(filename).stat()

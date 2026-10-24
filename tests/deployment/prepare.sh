@@ -16,7 +16,7 @@ systemd)
   : "${npm_config_cache:?Set the shared offline cache path}"
   mkdir -p "$(dirname "$npm_config_cache")"
   tar -xzf "$RUNNER_TEMP/systemd-inputs.tar.gz" -C "$(dirname "$npm_config_cache")"
-  npm ci --offline --no-audit --no-fund --prefix setup/dashboard/ws
+  npm ci --offline --no-audit --no-fund --prefix tests/deployment
   cp "$(dirname "$npm_config_cache")/server.js" setup/dashboard/ws/dist/server.js
   ;;
 authentication)

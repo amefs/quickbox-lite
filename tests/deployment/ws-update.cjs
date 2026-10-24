@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { spawn, execFileSync } = require('node:child_process');
-const { io } = require('../../setup/dashboard/ws/node_modules/socket.io-client');
+const { io } = require('socket.io-client');
 const systemd = process.argv.includes('--systemd');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const marker = '/run/quickbox-test/update-entered.log';

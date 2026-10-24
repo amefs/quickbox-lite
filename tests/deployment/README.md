@@ -25,7 +25,7 @@ Actions and use **Run workflow**; this runs lint followed by acceptance.
 | Job | Application checks |
 | --- | --- |
 | Update and recovery sandboxes | Node runtime policy; staging/gateway/health/update; backup/configuration restore; repository revert/reinstall; progress/arguments |
-| Prepare application image and offline dependencies | System tools; current and pinned baseline dependencies; bundle build; offline installation proof; reusable artifacts |
+| Prepare application image and offline dependencies | System tools; current and pinned baseline production dependencies; verified bundle; offline installation proof; reusable artifacts |
 | Linux application deployment | Fresh install/permissions/sudo; HTTP/TLS/Socket.IO; baseline/repeated upgrade; five injected failures and rollback; WS/CLI mutual exclusion |
 | Native systemd lifecycle | Real deployment; unit settings/automatic restart/port recovery; detached update across a WS service restart |
 | Application authentication | Basic Auth; Authelia; Vouch, each with its own step |
@@ -42,16 +42,20 @@ Compose logs and browser screenshots.
 Network access is allowed during preparation: pulling the Node 24 and provider
 images, installing system packages, downloading locked npm dependencies, and
 installing Chromium. Docker build layers and Chromium/npm downloads are cached.
-The shared image includes both the current and fixed baseline npm dependencies.
+The shared image includes current and fixed baseline production dependencies,
+plus a minimal locked Socket.IO test client in `tests/deployment/package.json`.
+It uses the committed bundle already rebuilt and verified by Linter, so it does
+not install the WS development toolchain or repeat the bundle build.
 CI transfers the image as an artifact rather than rebuilding it in each consumer.
 
 Application installation and upgrade still run the real production `npm ci`.
 The test environment sets `npm_config_offline=true`, disables audit/fund requests,
 and uses the cache prepared earlier. A missing package fails the check; there is
 no online fallback. The image build proves that current production dependencies
-can be installed offline. Native systemd preparation also installs the current
-WS dependencies offline from the transferred cache, without repeating the bundle
-build or fetching baseline dependencies it does not use.
+can be installed offline. Native systemd preparation installs only the small
+test-client dependency tree from the transferred cache. The actual application installation then installs its
+production dependencies offline. Neither step repeats the bundle build or fetches
+baseline dependencies that systemd does not use.
 
 Linux acceptance runs with Docker `--network=none`; loopback nginx/Node traffic
 continues to work. Authentication services share a fixture network namespace,
@@ -74,9 +78,16 @@ bash tests/deployment/run-linux.sh
 
 Requires Docker with BuildKit named contexts, Git, and the pinned baseline commit
 `e0b522b8ccced7a07d0ae9cb575c052af6054d7e`. The wrapper exports that commit from
-Git, builds the current production bundle with Node 24, and starts a disposable
-Debian container. No ports are published. Set `QUICKBOX_TEST_BASELINE` to test a
-different available commit.
+Git, uses the current production bundle with Node 24, and starts a disposable
+Debian container. Build source changes before running local acceptance:
+
+```sh
+npm ci --prefix setup/dashboard/ws
+npm run build --prefix setup/dashboard/ws
+```
+
+The CI Linter checks that the committed bundle matches the sources. No ports are
+published. Set `QUICKBOX_TEST_BASELINE` to test a different available commit.
 
 For subsequent runs with unchanged dependency locks:
 
@@ -84,9 +95,10 @@ For subsequent runs with unchanged dependency locks:
 QUICKBOX_DEPLOYMENT_SKIP_BUILD=1 bash tests/deployment/run-linux.sh
 ```
 
-This mounts the checkout read-only, checks both locks against the image, copies
-current code and the selected baseline into the container, and rebuilds the
-bundle there. Lock changes fail and require an image rebuild. Set
+This mounts the checkout read-only, checks the application, baseline and test-client
+locks against the image, and copies current code and the selected baseline into
+the container. It uses the locally built bundle without reinstalling development
+tools. Lock changes fail and require an image rebuild. Set
 `QUICKBOX_DEPLOYMENT_USE_IMAGE=1` instead to run the prepared image as-is, as CI
 does; this deliberately tests the sources already included in that image. Reusing
 that image does not export a baseline or require the old commit in the checkout;
@@ -119,9 +131,27 @@ The phases check:
   launching and `flock`. Only the destructive update body is replaced with a
   sleeping fixture; the real `box update quickbox --only-core` dispatcher remains.
 
-The container adapter starts real Node under the unit's configured user. It does
+The container adapter starts real Node directly under the unit's configured user
+and group, without a `runuser` intermediary. Acceptance verifies the running
+process identity in both the container and native systemd environments. It does
 not emulate systemd or claim systemd lifecycle coverage. `--only-mutex` remains
 available for a focused install-and-concurrency run.
+
+## Probe and theme completion
+
+WebSocket health probes read and validate the Upgrade response, including the
+server's `Sec-WebSocket-Accept`, then close immediately. Successful open sockets
+no longer consume the five-second deadline. The deadline remains enforced for a
+stalled handshake. A transient HTTP 400 during nginx reload is retried within the
+same deadline; authentication rejection and invalid Upgrade headers fail immediately.
+Host/Origin, Basic credentials, provider cookies, TLS and both
+Socket.IO paths remain checked. Session cookies with expiry zero remain usable;
+expired cookies are rejected.
+
+Theme selection returns after the synchronous file copy, marker update and nginx
+reload succeed, without a fixed five-second pause. Deployment callers still run
+the full post-activation health check. Sandbox tests cover both themes, reload
+failure, handshake rejection, delayed/stalled responses and cookie selection.
 
 ## Native systemd acceptance
 

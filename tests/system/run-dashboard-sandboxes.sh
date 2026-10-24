@@ -13,7 +13,7 @@ cd "${repo_root}"
 
 case "${1:-all}" in
 runtime) scripts=(nodejs-update-sandbox.py) ;;
-dashboard) scripts=(dashboard-stage-sandbox.sh qb-ensure-ws-gateway-sandbox.py ws-health-startup-sandbox.py dashboard-update-sandbox.py) ;;
+dashboard) scripts=(dashboard-stage-sandbox.sh qb-ensure-ws-gateway-sandbox.py ws-health-startup-sandbox.py ws-health-proxy-sandbox.py theme-selection-sandbox.py dashboard-update-sandbox.py) ;;
 backups) scripts=(backup-retention-sandbox.py update-config-backup-sandbox.sh) ;;
 repository) scripts=(repo-state-revert-sandbox.sh repo-reinstall-sandbox.py) ;;
 progress) scripts=(update-timing-sandbox.sh) ;;

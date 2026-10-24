@@ -7,7 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -sf /usr/local/bin/node /usr/bin/node
 WORKDIR /opt/quickbox-source
 COPY setup/dashboard/ws/package*.json setup/dashboard/ws/
-RUN cd setup/dashboard/ws && npm ci
+RUN cd setup/dashboard/ws && npm ci --omit=dev
+COPY tests/deployment/package*.json tests/deployment/
+RUN cd tests/deployment && npm ci
 COPY --from=baseline / /opt/quickbox-baseline/
 RUN cd /opt/quickbox-baseline/setup/dashboard/ws && npm ci --omit=dev
 RUN mkdir /tmp/quickbox-offline-check \
@@ -15,7 +17,6 @@ RUN mkdir /tmp/quickbox-offline-check \
     && cd /tmp/quickbox-offline-check && npm ci --offline --omit=dev \
     && rm -rf /tmp/quickbox-offline-check
 COPY . .
-RUN cd setup/dashboard/ws && npm run build
 ENV QUICKBOX_TEST_DISPOSABLE=1
 ENV npm_config_offline=true
 CMD ["python3", "tests/deployment/run.py"]
