@@ -1,0 +1,35 @@
+packages/system/auxiliary/deluge.changeUserpass.py
+  s_f0c47b857b1f30::t_c14a292740dc29 14-19,32-33
+  s_f0c47b857b1f30::t_40d8b57381de6d 20
+e2e/tests/dashboard-state.spec.ts
+  s_f0c47b857b1f30::t_592b0b052301ea 26-31,378,380-416,444,446-450,452-454
+  s_f0c47b857b1f30::t_43567e3344ac8f 379,445,451
+setup/dashboard/ws/dist/server.js
+  s_f0c47b857b1f30::t_7b8be38bd5dfce 1
+setup/dashboard/ws/src/widgets/running-task.tsx
+  s_f0c47b857b1f30::t_ab47e78184b6b4 26-28,30-34,39-40,53,65-74,76,78
+setup/dashboard/ws/tests/widgets/running-task.spec.ts
+  s_f0c47b857b1f30::t_9f369191566cb6 100-101,110-111
+  s_f0c47b857b1f30::t_ee1f8babb345ce 83-99,102-109,112-150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8db569540ed3f587654072c54efcf0802527e9ee",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_f0c47b857b1f30": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16e78-977f-7e21-a3ab-e9a9ae3097e5",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
