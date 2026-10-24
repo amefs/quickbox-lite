@@ -12,6 +12,7 @@ import execHandler, {
     buildUpdateRunnerScript,
     decodeExecOutput,
     getWebLauncherLockPath,
+    interpretLaunchStatus,
     isPidAlive,
     isUpdateInProgress,
     probeWebLauncherLock,
@@ -19,6 +20,10 @@ import execHandler, {
     releaseExecSlot,
     resetExecSlotsForTests,
     tryAcquireExecSlot,
+    UPDATE_ACK_BUSY,
+    UPDATE_ACK_FAILED,
+    UPDATE_ACK_OK,
+    UPDATE_ACK_PENDING,
 } from "../../src/handlers/exec";
 import Constant from "../../src/shared/constants";
 
@@ -155,6 +160,49 @@ describe("handlers/exec", () => {
         });
     });
 
+    describe("update launch verdict", () => {
+        it("should start when the runner confirms the lock", () => {
+            expect(interpretLaunchStatus({ observed: UPDATE_ACK_OK, childAlive: true })).to.deep.equal({ state: "started" });
+        });
+
+        it("should report busy when another holder owns the launcher lock", () => {
+            const result = interpretLaunchStatus({ observed: UPDATE_ACK_BUSY, childAlive: false });
+            expect(result.state).to.equal("busy");
+        });
+
+        it("should fail when the runner was refused the update locks", () => {
+            const result = interpretLaunchStatus({ observed: UPDATE_ACK_FAILED, childAlive: false });
+            expect(result.state).to.equal("failed");
+            expect(result.detail).to.contain("refused");
+        });
+
+        it("should fail when the runner died without a verdict", () => {
+            const result = interpretLaunchStatus({ observed: "", childAlive: false });
+            expect(result.state).to.equal("failed");
+            expect(result.detail).to.contain("before acquiring the lock");
+        });
+
+        it("should fail when the runner died while still pending", () => {
+            const result = interpretLaunchStatus({ observed: UPDATE_ACK_PENDING, childAlive: false });
+            expect(result.state).to.equal("failed");
+            expect(result.detail).to.contain("before confirming");
+        });
+
+        // The reported regression: a slow box delays the acknowledgement, the
+        // update still runs, and the dashboard used to call that a launch
+        // failure next to a task that was in fact running.
+        it("should start an unconfirmed but live runner instead of failing it", () => {
+            const result = interpretLaunchStatus({ observed: UPDATE_ACK_PENDING, childAlive: true });
+            expect(result.state).to.equal("started");
+            expect(result.detail).to.contain("alive");
+        });
+
+        it("should start a live runner that never wrote a status at all", () => {
+            const result = interpretLaunchStatus({ observed: "", childAlive: true });
+            expect(result.state).to.equal("started");
+        });
+    });
+
     describe("update mutex (flock)", () => {
         const hasFlock = spawnSync("flock", ["--version"], { stdio: "ignore" }).status === 0;
         let sandbox: string;
@@ -284,15 +332,25 @@ describe("handlers/exec", () => {
             const script = `flock() { return 0; }\n${buildUpdateRunnerScript(command, statusPath)}`;
             const child = spawn("/bin/bash", ["-c", script], { stdio: "ignore" });
             await new Promise((resolve) => setTimeout(resolve, 150));
-            // The old epoch must not be acknowledged as a completed launch.
-            expect(fs.existsSync(statusPath)).to.equal(false);
+            // The old epoch must not be acknowledged as a completed launch, but
+            // the runner must have announced itself by now: its first write is
+            // the liveness marker, not the lock verdict.
+            expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal(UPDATE_ACK_PENDING);
             const deadline = Date.now() + 3000;
-            while (!fs.existsSync(statusPath) && Date.now() < deadline) {
+            while (fs.readFileSync(statusPath, "utf8").trim() !== UPDATE_ACK_OK && Date.now() < deadline) {
                 await new Promise((resolve) => setTimeout(resolve, 20));
             }
-            expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal("ok");
+            expect(fs.readFileSync(statusPath, "utf8").trim()).to.equal(UPDATE_ACK_OK);
             const code = await new Promise<number | null>((resolve) => child.on("exit", resolve));
             expect(code).to.equal(0);
+        });
+
+        it("should announce itself before touching the launcher lock", () => {
+            const statusPath = path.join(sandbox, "status-first-write");
+            const script = buildUpdateRunnerScript("echo should-not-run", statusPath);
+            const firstLine = script.split("\n")[0];
+            expect(firstLine.startsWith(`printf '${UPDATE_ACK_PENDING}\\n' >`)).to.equal(true);
+            expect(firstLine).to.contain(statusPath);
         });
 
         it("should report busy when the updater is rejected by the inner lock", async () => {

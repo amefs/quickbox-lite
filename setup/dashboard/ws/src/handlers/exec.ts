@@ -31,8 +31,25 @@ if (!configPath) {
 
 const config = new WatchedConfig<CommandType>(configPath);
 
+// The runner is started without a login shell, so nothing fills in PATH from
+// /etc/profile any more. Name a sane default instead of exporting the string
+// "undefined" when the unit environment is bare, and skip the locale variables
+// when they are unset (LC_ALL=undefined only earns a setlocale warning).
+const FALLBACK_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+
+function buildExecEnvironment(): NodeJS.ProcessEnv {
+    const env: NodeJS.ProcessEnv = { TERM: "xterm", PATH: process.env.PATH || FALLBACK_PATH };
+    if (process.env.LANG) {
+        env.LANG = process.env.LANG;
+    }
+    if (process.env.LC_ALL) {
+        env.LC_ALL = process.env.LC_ALL;
+    }
+    return env;
+}
+
 const execOption: ExecOptionsWithBufferEncoding = {
-    env: { TERM: "xterm", PATH: process.env.PATH, LANG: process.env.LANG, LC_ALL: process.env.LC_ALL },
+    env: buildExecEnvironment(),
     encoding: "buffer",
     timeout: 1000 * 60 * 114, // 114 minutes
     maxBuffer: 5 * 1024 * 1024, // 5 MiB
@@ -117,6 +134,11 @@ export function probeWebLauncherLock(lockPath = getWebLauncherLockPath()): "free
     }
 }
 
+export const UPDATE_ACK_PENDING = "pending";
+export const UPDATE_ACK_OK = "ok";
+export const UPDATE_ACK_BUSY = "busy";
+export const UPDATE_ACK_FAILED = "failed";
+
 export function buildUpdateRunnerScript(command: string, statusPath: string) {
     const lockPath = getWebLauncherLockPath();
     // The updater survives a restart of the WS unit (KillMode=process), but the
@@ -129,15 +151,20 @@ export function buildUpdateRunnerScript(command: string, statusPath: string) {
     // a CLI update (which only holds the core lock) cannot be reported as a
     // successful Web launch. Legacy installs without a marker keep the old
     // immediate acknowledgement until the first new update creates one.
+    //
+    // The first write is an acknowledgement of a different kind: it proves the
+    // runner exists, so a caller that finds no status at all knows the shell
+    // never started instead of guessing why nothing was written.
     return [
-        `exec 9>${shellQuote(lockPath)} || { printf 'failed\\n' > ${shellQuote(statusPath)}; exit 78; }`,
+        `printf '${UPDATE_ACK_PENDING}\\n' > ${shellQuote(statusPath)}`,
+        `exec 9>${shellQuote(lockPath)} || { printf '${UPDATE_ACK_FAILED}\\n' > ${shellQuote(statusPath)}; exit 78; }`,
         "if ! flock -n 9; then",
-        `  printf 'busy\\n' > ${shellQuote(statusPath)}`,
+        `  printf '${UPDATE_ACK_BUSY}\\n' > ${shellQuote(statusPath)}`,
         `  echo "[$(date -Is)] quickbox update skipped, another update holds ${lockPath}"`,
         "  exit 75",
         "fi",
         `if ! mkdir -p ${shellQuote(updateTmpDir)}; then`,
-        `  printf 'failed\\n' > ${shellQuote(statusPath)}`,
+        `  printf '${UPDATE_ACK_FAILED}\\n' > ${shellQuote(statusPath)}`,
         `  echo "[$(date -Is)] cannot create updater temporary directory ${updateTmpDir}"`,
         "  exit 78",
         "fi",
@@ -153,13 +180,13 @@ export function buildUpdateRunnerScript(command: string, statusPath: string) {
         `bash -c ${shellQuote(command)} &`,
         "command_pid=$!",
         'if [[ -z "$epoch_before" ]]; then',
-        `  printf 'ok\\n' > ${shellQuote(statusPath)}`,
+        `  printf '${UPDATE_ACK_OK}\\n' > ${shellQuote(statusPath)}`,
         "else",
         "  acked=0",
         "  for ((attempt = 0; attempt < 30; attempt++)); do",
         '    epoch_after=$(cat "$epoch_path" 2>/dev/null || true)',
         '    if [[ -s "$epoch_path" && "$epoch_after" != "$epoch_before" ]]; then',
-        `      printf 'ok\\n' > ${shellQuote(statusPath)}`,
+        `      printf '${UPDATE_ACK_OK}\\n' > ${shellQuote(statusPath)}`,
         "      acked=1",
         "      break",
         "    fi",
@@ -168,14 +195,14 @@ export function buildUpdateRunnerScript(command: string, statusPath: string) {
         "  done",
         '  if [[ "$acked" -eq 0 ]]; then',
         '    if kill -0 "$command_pid" 2>/dev/null; then',
-        `      printf 'ok\\n' > ${shellQuote(statusPath)}`,
+        `      printf '${UPDATE_ACK_OK}\\n' > ${shellQuote(statusPath)}`,
         "    else",
         '      wait "$command_pid"',
         "      command_status=$?",
         '      if [[ "$command_status" -eq 75 ]]; then',
-        `        printf 'busy\\n' > ${shellQuote(statusPath)}`,
+        `        printf '${UPDATE_ACK_BUSY}\\n' > ${shellQuote(statusPath)}`,
         "      else",
-        `        printf 'failed\\n' > ${shellQuote(statusPath)}`,
+        `        printf '${UPDATE_ACK_FAILED}\\n' > ${shellQuote(statusPath)}`,
         "      fi",
         '      exit "$command_status"',
         "    fi",
@@ -210,6 +237,47 @@ export interface UpdateLaunchResult {
     detail?: string;
 }
 
+// The runner acknowledges within a second on a healthy box: it reports the lock
+// outcome as soon as qbUpdate owns both locks, which is a few hundred
+// milliseconds of shell startup away. The window is far wider than that because
+// a slow box (NSS lookup for the service user, a contended /run/lock, a busy
+// disk) can delay the acknowledgement without preventing the update.
+//
+// Past the window the decision rests on whether the runner is still alive, not
+// on the clock. A live runner means the update is starting; treating a missed
+// acknowledgement as a launch failure is what produced "Failed to start
+// detached update" next to an update that was in fact running.
+export const UPDATE_ACK_TIMEOUT_MS = 9000;
+
+export interface LaunchObservation {
+    // The last acknowledgement the runner published, "" when it published none.
+    observed: string;
+    // Whether the runner process still existed when the wait ended.
+    childAlive: boolean;
+}
+
+export function interpretLaunchStatus({ observed, childAlive }: LaunchObservation): UpdateLaunchResult {
+    if (observed === UPDATE_ACK_BUSY) {
+        return { state: "busy", detail: "Update already in progress" };
+    }
+    if (observed === UPDATE_ACK_FAILED) {
+        return { state: "failed", detail: "Update runner was refused before it owned the update locks" };
+    }
+    if (observed === UPDATE_ACK_OK) {
+        return { state: "started" };
+    }
+    if (childAlive) {
+        return {
+            state: "started",
+            detail: `Update runner is alive but did not confirm the update lock within ${UPDATE_ACK_TIMEOUT_MS / 1000}s`,
+        };
+    }
+    return {
+        state: "failed",
+        detail: observed === "" ? "Update runner exited before acquiring the lock" : "Update runner stopped before confirming the update lock",
+    };
+}
+
 export async function launchPersistentUpdate(command: string): Promise<UpdateLaunchResult> {
     if (probeWebLauncherLock() === "busy") {
         return { state: "busy", detail: "Update already in progress" };
@@ -219,7 +287,9 @@ export async function launchPersistentUpdate(command: string): Promise<UpdateLau
     const script = buildUpdateRunnerScript(command, statusPath);
     let childPid: number | undefined;
     try {
-        const child = spawn("/bin/bash", ["-lc", script], {
+        // Not a login shell: the script only needs PATH, and /etc/profile is an
+        // unbounded amount of work that used to run before the acknowledgement.
+        const child = spawn("/bin/bash", ["-c", script], {
             detached: true,
             stdio: "ignore",
             env: execOption.env,
@@ -231,12 +301,11 @@ export async function launchPersistentUpdate(command: string): Promise<UpdateLau
         return { state: "failed", detail: error instanceof Error ? error.message : String(error) };
     }
 
-    // Give the runner a bounded window to report the lock outcome.
-    const deadline = Date.now() + 6000;
+    const deadline = Date.now() + UPDATE_ACK_TIMEOUT_MS;
     let observed = "";
     while (Date.now() < deadline) {
         observed = readTextFile(statusPath);
-        if (observed !== "") {
+        if (observed !== "" && observed !== UPDATE_ACK_PENDING) {
             break;
         }
         if (childPid !== undefined && !isPidAlive(childPid)) {
@@ -244,21 +313,11 @@ export async function launchPersistentUpdate(command: string): Promise<UpdateLau
         }
         await delay(100);
     }
+    const childAlive = childPid !== undefined && isPidAlive(childPid);
     fs.rmSync(statusPath, { force: true });
 
-    if (observed === "busy") {
-        return { state: "busy", detail: "Update already in progress" };
-    }
-    if (observed === "failed") {
-        return { state: "failed", detail: "Update runner was refused before it owned the update locks" };
-    }
-    if (childPid !== undefined && observed === "" && !isPidAlive(childPid)) {
-        return { state: "failed", detail: "Update runner exited before acquiring the lock" };
-    }
-    if (observed !== "ok") {
-        return { state: "failed", detail: "Update runner did not confirm lock acquisition before timeout" };
-    }
-    return { state: "started", pid: childPid };
+    const result = interpretLaunchStatus({ observed, childAlive });
+    return result.state === "started" ? { ...result, pid: childPid } : result;
 }
 
 export function tryAcquireExecSlot(socket: Socket, maxPerSocket = DEFAULT_MAX_PER_SOCKET, maxGlobal = DEFAULT_MAX_GLOBAL): boolean {
@@ -358,12 +417,16 @@ const execHandler = (payload: unknown, client: Socket) => {
                     ret.stderr = result.detail ?? "";
                 } else {
                     ret.message = "Detached Update Started";
-                    ret.stdout = [
+                    const lines = [
                         `Launcher PID: ${result.pid ?? "unknown"}`,
                         `Lock file: ${getWebLauncherLockPath()}`,
                         `PID file: ${updatePidPath()}`,
                         `Log file: ${outputLogPath()}`,
-                    ].join("\n");
+                    ];
+                    if (result.detail) {
+                        lines.push(`Note: ${result.detail}`);
+                    }
+                    ret.stdout = lines.join("\n");
                 }
                 finish();
             })
