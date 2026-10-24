@@ -28,7 +28,6 @@ CHECK_SCHEME=""
 EXPECT_PROXY=0
 VERBOSE=0
 
-_info() { printf '➜ %s\n' "$@" >&2; }
 _success() { printf '✓ %s\n' "$@" >&2; }
 _error() { printf '✗ %s\n' "$@" >&2; }
 

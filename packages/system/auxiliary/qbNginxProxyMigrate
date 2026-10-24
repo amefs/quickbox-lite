@@ -23,7 +23,6 @@ VERIFY=1
 NGINX_BIN="${QUICKBOX_NGINX_BIN:-nginx}"
 CHANGED=0
 
-_info() { printf '➜ %s\n' "$@" >&2; }
 _success() { printf '✓ %s\n' "$@" >&2; }
 _warning() { printf '⚠ %s\n' "$@" >&2; }
 _error() { printf '✗ %s\n' "$@" >&2; }
@@ -100,6 +99,8 @@ fi
 
 TS=$(date +%Y%m%d-%H%M%S)
 TMP=$(mktemp "${TARGET_DIR}/.proxy.conf.XXXXXX") || exit 1
+# Invoked indirectly by the EXIT trap.
+# shellcheck disable=SC2329
 cleanup_tmp() { [[ -f "${TMP}" ]] && rm -f "${TMP}"; }
 trap cleanup_tmp EXIT
 

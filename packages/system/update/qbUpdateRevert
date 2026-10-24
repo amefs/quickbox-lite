@@ -30,6 +30,10 @@ _qb_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck disable=SC1090,SC1091
 source "${_qb_lib_dir}/qbUpdateLib"
 
+# Initialize the lock path for static analysis; _qbAcquireUpdateLock confirms
+# and opens this same path before the inherited value is used below.
+_qb_update_lock="${QUICKBOX_UPDATE_CORE_LOCK:-/run/lock/quickbox-update-core.lock}"
+
 usage() {
 	cat <<'EOF'
 Usage: qbUpdateRevert [--list] [--yes] [<commit>]

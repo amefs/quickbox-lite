@@ -827,23 +827,23 @@ function _askSwap() {
 	swap_path=$(whiptail --title "$INFO_TITLE_SWAP" --inputbox "${INFO_TEXT_SWAP_1} \n${INFO_TEXT_SWAP_2}" 10 72 --ok-button "$BUTTON_OK" --cancel-button "$BUTTON_CANCLE" 3>&1 1>&2 2>&3)
 	if [[ ${swap_path} == "" ]]; then
 		swap_path="/root/.swapfile"
-	elif [[ ! -d $(dirname ${swap_path}) ]]; then
+	elif [[ ! -d $(dirname "${swap_path}") ]]; then
 		swap_path="/root/.swapfile"
 	fi
 	{
 		if [[ ! -f ${swap_path} ]]; then
-			touch ${swap_path} || exit 1
+			touch "${swap_path}" || exit 1
 		fi
 		echo -e "XXX\n10\n$INFO_TEXT_SWAPON_0$INFO_TEXT_DONE\nXXX"
 		sleep 1
 		echo -e "XXX\n10\n$INFO_TEXT_SWAPON_1\nXXX"
-		dd if=/dev/zero of=${swap_path} bs=1M count=2048 >/dev/null 2>&1
+		dd if=/dev/zero of="${swap_path}" bs=1M count=2048 >/dev/null 2>&1
 		echo -e "XXX\n50\n$INFO_TEXT_SWAPON_1$INFO_TEXT_DONE\nXXX"
 		sleep 1
 		echo -e "XXX\n50\n$INFO_TEXT_SWAPON_2\nXXX"
-		chmod 600 ${swap_path} >/dev/null 2>&1
-		mkswap ${swap_path} >/dev/null 2>&1
-		swapon ${swap_path} >/dev/null 2>&1
+		chmod 600 "${swap_path}" >/dev/null 2>&1
+		mkswap "${swap_path}" >/dev/null 2>&1
+		swapon "${swap_path}" >/dev/null 2>&1
 		swapon -s >/dev/null 2>&1
 		echo -e "XXX\n75\n$INFO_TEXT_SWAPON_2$INFO_TEXT_DONE\nXXX"
 		sleep 1
