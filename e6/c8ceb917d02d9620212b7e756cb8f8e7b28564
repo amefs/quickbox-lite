@@ -1,0 +1,53 @@
+setup/dashboard/ws/src/router.tsx
+  s_ca0de8519dc96b::t_0847fc2d765a2f 27,101
+setup/templates/nginx/dashboard.conf.template
+  s_ca0de8519dc96b::t_55d518c71239b0 43-52
+  s_ca0de8519dc96b::t_bfc2fbab0ec783 42
+setup/dashboard/ws/tests/controllers/dashboard.spec.ts
+  s_ca0de8519dc96b::t_bfc2fbab0ec783 23-24
+  s_ca0de8519dc96b::t_0847fc2d765a2f 10-22,25-33
+setup/dashboard/ws/src/auth.ts
+  s_ca0de8519dc96b::t_0847fc2d765a2f 10-19
+.github/workflows/deployment.yml
+  s_ca0de8519dc96b::t_2a08e364a636f0 250-253
+  s_ca0de8519dc96b::t_d3ca423232046a 240,244-245
+e2e/scripts/deployment-auth.cjs
+  s_ca0de8519dc96b::t_77054a544cf989 63-64,118
+  s_ca0de8519dc96b::t_55d518c71239b0 59,81-83
+  s_ca0de8519dc96b::t_f4bc6bacb330ec 48-58,60-62,65-80,84-85,116-117,119-120
+  s_ca0de8519dc96b::t_2a08e364a636f0 1,9-10,105,162
+tests/deployment/run-auth.sh
+  s_ca0de8519dc96b::t_55d518c71239b0 28-30
+tests/deployment/prepare.sh
+  s_ca0de8519dc96b::t_2a08e364a636f0 30
+setup/dashboard/js/dashboard.js
+  s_ca0de8519dc96b::t_0847fc2d765a2f 58-61
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_ca0de8519dc96b::t_0847fc2d765a2f 36,70,75
+tests/deployment/report.py
+  s_ca0de8519dc96b::t_2a08e364a636f0 42
+tests/deployment/README.md
+  s_ca0de8519dc96b::t_77054a544cf989 202-213
+  s_ca0de8519dc96b::t_bfc2fbab0ec783 32
+tests/deployment/run.py
+  s_ca0de8519dc96b::t_2a08e364a636f0 151-152
+  s_ca0de8519dc96b::t_77054a544cf989 197-201
+setup/dashboard/ws/dist/server.js
+  s_ca0de8519dc96b::t_af4a66dcc1f13e 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e6c8ceb917d02d9620212b7e756cb8f8e7b28564",
+  "prompts": {},
+  "sessions": {
+    "s_ca0de8519dc96b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16be9-0bf7-7082-944d-5fb9e6c11b2b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
