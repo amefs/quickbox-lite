@@ -15,6 +15,7 @@ import { serviceStatus, serviceStatusAll } from "../widgets/service-status";
 import { readOutputLog } from "../widgets/output-log";
 import { serviceControl } from "../widgets/service-control";
 import { packageManagementCenter } from "../widgets/package-management-center";
+import { runningTask } from "../widgets/running-task";
 
 interface Payload {
     key: string;
@@ -58,6 +59,22 @@ export const parseUrl = (url: string) => {
 };
 
 
+type BandwidthPage = "h" | "d" | "m" | "t";
+
+const BANDWIDTH_PAGES: BandwidthPage[] = ["h", "d", "m", "t"];
+
+function parseBandwidthPage(raw: string | undefined): BandwidthPage | undefined {
+    return BANDWIDTH_PAGES.find(page => page === raw);
+}
+
+function parseOptionalInt(raw: string | undefined): number | undefined {
+    if (!raw) {
+        return undefined;
+    }
+    const parsed = parseInt(raw, 10);
+    return Number.isNaN(parsed) ? undefined : parsed;
+}
+
 export const resolveWidget = async (url: string): Promise<string|object> => {
     const req = parseUrl(url);
     switch (req.pathname) {
@@ -71,11 +88,8 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
             return await diskData();
         case "/node/ram_stats":
             return await ramStats();
-        case "/node/bw_tables": {
-            const validPages = ["h", "d", "m", "t"];
-            const page = validPages.includes(req.args["page"]) ? req.args["page"] as "h"|"d"|"m"|"t" : undefined;
-            return await bwTables(getIfaceConfig(), page);
-        }
+        case "/node/bw_tables":
+            return await bwTables(getIfaceConfig(), parseBandwidthPage(req.args["page"]));
         case "/node/service_status":
         case "/widgets/service_status":
             return await serviceStatus(req.args["service"]);
@@ -87,16 +101,14 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
         case "/node/pmc":
         case "/widgets/pmc":
             return await packageManagementCenter();
-        case "/db/output.log": {
-            const rawOffset = req.args["offset"];
-            const rawLength = req.args["length"];
-            const offset = rawOffset ? parseInt(rawOffset, 10) : undefined;
-            const length = rawLength ? parseInt(rawLength, 10) : undefined;
+        case "/node/task_status":
+            return await runningTask();
+        case "/db/output.log":
             return readOutputLog(
-                Number.isNaN(offset) ? undefined : offset,
-                Number.isNaN(length) ? undefined : length,
+                parseOptionalInt(req.args["offset"]),
+                parseOptionalInt(req.args["length"]),
+                req.args["epoch"],
             );
-        }
         default:
             throw new Error(`Unknown widget route: ${req.pathname}`);
     }
