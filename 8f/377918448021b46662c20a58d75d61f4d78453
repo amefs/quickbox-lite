@@ -1,0 +1,23 @@
+tests/deployment/run-linux.sh
+  s_ca0de8519dc96b::t_57ed218b7b7955 25-37,39
+tests/deployment/README.md
+  s_ca0de8519dc96b::t_57ed218b7b7955 91-93
+tests/deployment/test_acceptance.py
+  s_ca0de8519dc96b::t_57ed218b7b7955 119-121,124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8f377918448021b46662c20a58d75d61f4d78453",
+  "prompts": {},
+  "sessions": {
+    "s_ca0de8519dc96b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16be9-0bf7-7082-944d-5fb9e6c11b2b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
