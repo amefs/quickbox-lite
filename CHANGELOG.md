@@ -1,3 +1,34 @@
+## CHANGELOG v_____ (unreleased)
+
+*Changelog update Sunday, Oct 25, 2026*
+
+### General additions
+
+- Add `box revert` and `box abort` to roll back an update or stop the running operation
+- Add a running-task widget with a stop action
+- Add deployment, authentication, update and script lint suites, gated in CI
+
+### Important changes
+
+- Require the gateway secret and a same-origin handshake for the dashboard WebSocket, and serve it as `www-data`
+- Rebuild `box update` as ordered stages with a health-checked switch and rollback
+- Unify all package install/remove/update scripts
+- Upgrade the dashboard service to Node.js 24
+
+### Function improved
+
+- Report the launch result and one line per stage, with detail in the shared log
+- Start a fresh dashboard log for every operation
+- Reflow the dashboard for narrow screens
+
+### Function updated
+
+- Update dashboard dependencies
+- Fail the auth provider packages on the first broken step
+- Make the Deluge and benchmark helper scripts Python 3 clean
+
+---
+
 ## CHANGELOG v1.6.1
 
 *Changelog update Sunday, Jul 26, 2026*
