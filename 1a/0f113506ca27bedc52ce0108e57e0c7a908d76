@@ -1,0 +1,32 @@
+e2e/tests/dashboard.spec.ts
+  h_3705811fa4502c 115-151
+e2e/tests/log-panel.spec.ts
+  h_3705811fa4502c 16-18,40,144-146,156-157,161-163,168-195
+e2e/tests/running-task.spec.ts
+  h_3705811fa4502c 25,27-30
+setup/dashboard/css/dashboard.css
+  h_3705811fa4502c 1-325
+setup/dashboard/js/dashboard.js
+  h_3705811fa4502c 358-386,512-538,763-768,770,881-883,886,1011-1019,1021-1023,1026-1033,1051-1073,1100-1107
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+setup/dashboard/ws/src/dashboard-page.tsx
+  h_3705811fa4502c 114-117,412,417,423
+setup/dashboard/ws/src/router.tsx
+  h_3705811fa4502c 73
+setup/dashboard/ws/tests/router.spec.ts
+  h_3705811fa4502c 88-91,168-190
+setup/dashboard/ws/tests/widgets/running-task.spec.ts
+  h_3705811fa4502c 23-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1a0f113506ca27bedc52ce0108e57e0c7a908d76",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
