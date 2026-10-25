@@ -1,0 +1,30 @@
+packages/system/auxiliary/clean_log
+  h_3705811fa4502c 16-30
+packages/system/auxiliary/qbAbortTask
+  h_3705811fa4502c 1-129
+packages/system/auxiliary/qbBackupPrune
+  h_3705811fa4502c 1-199
+packages/system/auxiliary/qbEnsureSudoers
+  h_3705811fa4502c 25-26,77-99,110-111
+packages/system/box
+  h_3705811fa4502c 62-80,110-111,117,159,163,185,204-207,211,251-255,342-346,356
+packages/system/update/qbUpdateBackup
+  h_3705811fa4502c 1-224
+packages/system/update/qbUpdateLib
+  h_3705811fa4502c 1-131
+packages/system/update/qbUpdateRevert
+  h_3705811fa4502c 1-240
+packages/system/update/qbUpdateTimer
+  h_3705811fa4502c 1-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a6584a2b94b1871244fa12312f899d627a1752f7",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
