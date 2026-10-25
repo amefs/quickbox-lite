@@ -1,0 +1,44 @@
+e2e/package.json
+  h_3705811fa4502c 8
+e2e/playwright.config.ts
+  h_3705811fa4502c 21-23
+e2e/tests/dashboard-state.spec.ts
+  h_3705811fa4502c 11-15,26-31,48-52,58-59,126-128,130,139,142-143,215-240,378-416,432-434,436-438,441,444-454,463,471,488,490-492
+e2e/tests/dashboard.spec.ts
+  h_3705811fa4502c 1,3,5-7,140-147
+e2e/tests/debug-console.spec.ts
+  h_3705811fa4502c 1,3-9,11-13,40-42,47,64,68-70
+e2e/tests/header.spec.ts
+  h_3705811fa4502c 1-74
+e2e/tests/interaction.spec.ts
+  h_3705811fa4502c 1-14,122,127-149,160-172
+e2e/tests/log-panel.spec.ts
+  h_3705811fa4502c 1-177
+e2e/tests/running-task.spec.ts
+  h_3705811fa4502c 1-59
+e2e/tests/side-panels.spec.ts
+  h_3705811fa4502c 1-92
+e2e/tests/sidebar.spec.ts
+  h_3705811fa4502c 1-88
+e2e/tests/support/helpers.ts
+  h_3705811fa4502c 1-65
+e2e/tsconfig.json
+  h_3705811fa4502c 4-5
+setup/dashboard/ws/src/testing/bootstrap.ts
+  h_3705811fa4502c 111-112,155-164,169-189
+setup/dashboard/ws/src/testing/mock-adapter.ts
+  h_3705811fa4502c 163-166
+setup/dashboard/ws/src/testing/mock-profiles.ts
+  h_3705811fa4502c 53,64-67,360-372
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "31b40e4443d33bd143e47ddd24c2b5ac7f70d1e3",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
