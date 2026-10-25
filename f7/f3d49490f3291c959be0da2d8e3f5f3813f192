@@ -1,0 +1,16 @@
+.github/workflows/deployment.yml
+  h_3705811fa4502c 3,6-7,9-80,87-128,131-135,140-181,184-191,193-195,197-203,207-212,218,220-221,224-230,235-252,254-265,270
+.github/workflows/linter.yml
+  h_3705811fa4502c 4,20,41-50,61,83,85-86,93,95,110-111,113-117,119,121-145,147-177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7f3d49490f3291c959be0da2d8e3f5f3813f192",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
