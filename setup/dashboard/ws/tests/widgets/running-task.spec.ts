@@ -20,7 +20,9 @@ describe("widgets/running-task", () => {
             const html = await runningTask(() => "Jellyfin Media Server", () => "install");
             expect(html).to.contain("Jellyfin Media Server");
             expect(html).to.contain('data-target="#sysResponse"');
-            expect(html).to.contain('data-sysresponse-mode="log-view"');
+            // Every entry opens the same dialog with the same close semantics;
+            // there is no per-trigger mode to inherit.
+            expect(html).to.not.contain("data-sysresponse-mode");
             expect(html).to.contain('data-target="#taskAbortConfirm"');
             expect(html).to.contain('data-task="install"');
             expect(html).to.contain('data-operation="install"');

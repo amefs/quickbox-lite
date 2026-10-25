@@ -85,6 +85,10 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.include("/lib/datatables/js/jquery.dataTables.min.js");
             expect(res.text).to.include("/lib/perfect-scrollbar/js/perfect-scrollbar.min.js");
             expect(res.text).to.include("/js/quick.js");
+            // Page-level rules are a real stylesheet: linked from /css so the
+            // browser caches it instead of re-parsing it out of every response.
+            expect(res.text).to.include('href="/css/dashboard.css"');
+            expect(res.text).to.not.include(".headerbar .headermenu > li {");
             expect(res.text).to.not.include('fetchJson("/node/menu")');
             expect(res.text).to.not.include('fetchText("/node/removal_modals")');
             expect(res.text).to.not.include("panel.app_status.ws.js");
@@ -158,6 +162,29 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.include("window.quickboxRuntime");
             expect(res.text).to.include("\"basePath\":\"/ws\"");
             expect(res.text).to.include("\"locale\":\"zh\"");
+        });
+    });
+
+    // ── Page stylesheet (/css) ────────────────────────────────────────────────
+
+    describe("GET /css/dashboard.css", () => {
+        it("should serve the page-level rules as a stylesheet", async () => {
+            const res = await request(app).get("/css/dashboard.css");
+
+            expect(res.status).to.equal(200);
+            expect(res.headers["content-type"]).to.include("text/css");
+            // Child combinators and attribute selectors have to arrive intact:
+            // an escaped `&gt;` or `&quot;` would silently kill half the file.
+            expect(res.text).to.include(".headerbar .headermenu > li {");
+            expect(res.text).to.include('.qb-panel-split > [class*="col-sm-"] {');
+            // A validator lets the browser revalidate instead of re-downloading.
+            expect(res.headers.etag).to.be.a("string");
+        });
+
+        it("should not expose files outside the css directory", async () => {
+            const res = await request(app).get("/css/../js/dashboard.js");
+
+            expect(res.status).to.not.equal(200);
         });
     });
 

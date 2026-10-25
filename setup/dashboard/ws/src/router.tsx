@@ -70,6 +70,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
     };
 
     router.use("/skins", express.static(skinsDir));
+    router.use("/css", express.static(path.join(options.dashboardDir, "css")));
     router.use("/lib", express.static(path.join(options.dashboardDir, "lib")));
     router.use("/fonts", express.static(path.join(options.dashboardDir, "fonts")));
     router.use("/img", express.static(path.join(options.dashboardDir, "img")));

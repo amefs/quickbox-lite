@@ -112,6 +112,43 @@ test.describe("Widget Rendering", () => {
     });
 });
 
+// ── Bandwidth page switch ───────────────────────────────────
+
+test.describe("Bandwidth Page", () => {
+    test("switching the page refreshes the widget without reloading", async ({ page }) => {
+        await page.goto("/");
+        const bwTables = page.locator("#bw_tables");
+        await expect(bwTables.locator("table").first()).toBeVisible({ timeout: 15_000 });
+
+        // The widget renders two tables: a fixed summary, then the one that
+        // belongs to the selected page. The second caption carries the page name.
+        const pageCaption = bwTables.locator("table").nth(1).locator("th").first();
+        const previousCaption = (await pageCaption.innerText()).trim();
+        expect(previousCaption.length).toBeGreaterThan(0);
+        const documentId = await page.evaluate(() => performance.timeOrigin);
+
+        // The options live in the header panel's "configure" tab, which is not
+        // open: click the element itself so the assertion covers the handler and
+        // the polling path instead of the panel's visibility.
+        await page.evaluate(() => {
+            const options = Array.from(document.querySelectorAll("#node-bw-page-options div")) as HTMLElement[];
+            // dashboardBandwidthPages order: t, h, d, m — "d" is the third one.
+            options[2]?.click();
+        });
+
+        // The caption proves the widget itself re-fetched with the new page: the
+        // poll runs every 60 s, so a change within seconds has to come from the
+        // click, not from the timer.
+        await expect
+            .poll(async () => (await pageCaption.innerText()).trim(), { timeout: 5_000 })
+            .not.toBe(previousCaption);
+        expect(await page.evaluate(() => localStorage.getItem("bw_tables:page"))).toBe("d");
+        // "Refresh the data" must stay a data operation: same document, so the
+        // scroll position and every other widget survive the switch.
+        expect(await page.evaluate(() => performance.timeOrigin)).toBe(documentId);
+    });
+});
+
 // ── Service status across profiles ──────────────────────────
 
 test.describe("Service Status", () => {

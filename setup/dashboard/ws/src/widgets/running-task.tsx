@@ -132,7 +132,6 @@ export async function runningTask(
                     className="btn btn-xs btn-default"
                     data-toggle="modal"
                     data-target="#sysResponse"
-                    data-sysresponse-mode="log-view"
                 >
                     {i18n.t("VIEW_LOG")}
                 </button>

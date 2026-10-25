@@ -13,9 +13,9 @@ const log = Array.from({ length: 160 }, (_, index) => `第 ${index + 1} 行：\u
 async function openLog(page: Page) {
     await setMockProfile(page, "installing");
     await page.goto("/?locale=zh");
-    // The running-task banner also offers a log view; this one comes from the
-    // install-lock notice in the package panel.
-    const trigger = page.locator("#pmc_widget [data-sysresponse-mode='log-view']");
+    // Any entry opens the same dialog: the install-lock notice in the package
+    // panel, the running-task banner, an install button — they all behave alike.
+    const trigger = page.locator("#pmc_widget button", { hasText: "查看日志" });
     await expect(trigger).toBeVisible();
     await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { socket?: { connected: boolean } }).socket?.connected))).toBe(true);
     await page.evaluate(() => (window as unknown as { socket: { disconnect(): void } }).socket.disconnect());
@@ -37,7 +37,7 @@ async function deliverLog(page: Page, content: string, start = 0) {
 
 async function expectLogInViewport(page: Page) {
     const viewport = page.viewportSize()!;
-    for (const selector of ["#sysResponse .modal-dialog", "#sysResponse .modal-title", "#sysPre", "#sysResponseCloseAction"]) {
+    for (const selector of ["#sysResponse .modal-dialog", "#sysResponse .modal-title", "#sysResponseDismiss", "#sysPre", "#sysResponseCloseAction"]) {
         const box = await page.locator(selector).boundingBox();
         expect(box).not.toBeNull();
         expect(box!.x).toBeGreaterThanOrEqual(0);
@@ -141,7 +141,9 @@ for (const theme of ["smoked", "defaulted"]) {
                 body: await page.screenshot({ path: testInfo.outputPath("log-panel.png") }),
                 contentType: "image/png",
             });
-            await page.locator("#sysResponseCloseAction").click();
+            // The header X is the dismiss-only affordance: it hides the dialog
+            // and leaves the document alone.
+            await page.locator("#sysResponseDismiss").click();
             await expect(page.locator("#sysResponse")).toBeHidden();
             expect(await page.evaluate(() => performance.timeOrigin)).toBe(documentId);
             await expect(page.locator("body")).not.toHaveClass(/modal-open/);
@@ -151,15 +153,44 @@ for (const theme of ["smoked", "defaulted"]) {
 
 test("log dialog ignores clicks outside the panel", async ({ page }) => {
     await openLog(page);
-    // Viewing a log changes nothing, so the action says so instead of "cancel".
-    await expect(page.locator("#sysResponseCloseAction")).toHaveText("关闭");
+    await expect(page.locator("#sysResponseCloseAction")).toHaveText("关闭 & 刷新");
+    await expect(page.locator("#sysResponseDismiss")).toHaveAttribute("aria-label", "关闭");
     await page.mouse.click(4, 4);
     await expect(page.locator("#sysResponse")).toBeVisible();
     await expect(page.locator("body")).toHaveClass(/modal-open/);
-    // Dismissing stays an explicit action: only the footer button closes it.
-    await page.locator("#sysResponseCloseAction").click();
+    // Dismissing stays an explicit action: only the footer button or the header
+    // X closes it, and Escape is bound to the same dismiss path as the X.
+    await page.keyboard.press("Escape");
     await expect(page.locator("#sysResponse")).toBeHidden();
     await expect(page.locator("body")).not.toHaveClass(/modal-open/);
+});
+
+test("closing the log dialog reloads the page from the footer button only", async ({ page }) => {
+    await openLog(page);
+    const before = await page.evaluate(() => performance.timeOrigin);
+    // A command that is still running must not hold the reload back: the
+    // decision is taken while the panel closes, not when an exec reply lands.
+    await Promise.all([
+        page.waitForEvent("load"),
+        page.locator("#sysResponseCloseAction").click(),
+    ]);
+    expect(await page.evaluate(() => performance.timeOrigin)).not.toBe(before);
+});
+
+test("reopening the log dialog starts a fresh session with the same close actions", async ({ page }) => {
+    await openLog(page);
+    await deliverLog(page, log);
+    await expect(page.locator("#sshoutput")).toContainText("第 160 行");
+    await page.locator("#sysResponseDismiss").click();
+    await expect(page.locator("#sysResponse")).toBeHidden();
+
+    await page.locator("#pmc_widget button", { hasText: "查看日志" }).click();
+    await expect(page.locator("#sysResponse")).toBeVisible();
+    // Same two affordances as the first time: the previous close changed nothing.
+    await expect(page.locator("#sysResponseCloseAction")).toHaveText("关闭 & 刷新");
+    await expect(page.locator("#sysResponseDismiss")).toBeVisible();
+    // And the view is not a leftover buffer — it is wiped before the first read.
+    await expect(page.locator("#sshoutput")).toHaveText("");
 });
 
 test("log updates preserve reading position and follow only at the bottom", async ({ page }) => {

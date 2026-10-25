@@ -355,6 +355,35 @@
     }
   }
 
+  // The log panel is a viewer with a session, not a window onto a persistent
+  // buffer: every open starts from zero, so the cursor and the rendered DOM are
+  // wiped first. startStatusUpdates() replaces this with the live implementation
+  // once the SSH_OUTPUT task exists.
+  let resetSshOutputCursor = function () {};
+
+  // Force one polling task to run now, without reloading the document. Widgets
+  // whose content follows a client-side choice (the bandwidth page) use this so
+  // a choice swaps that widget's data and leaves the page exactly where it was.
+  // startStatusUpdates() replaces this once the task registry exists.
+  let requestTaskRefresh = function () {
+    return false;
+  };
+  window.quickboxRefreshTask = function (key) {
+    return requestTaskRefresh(key);
+  };
+
+  function resetSysResponseView() {
+    resetSshOutputCursor();
+    let output = document.getElementById("sshoutput");
+    if (output) {
+      output.textContent = "";
+    }
+    let container = document.getElementById("sysPre");
+    if (container) {
+      container.scrollTop = 0;
+    }
+  }
+
   function createStatusTasks() {
     let hasSsrServiceControl = window.jQuery("#service_control_widget [data-inner-id='panel-server-service-control']").length > 0;
     let hasSsrPackageManagement = window.jQuery("#pmc_widget [data-inner-id='panel-server-package-management']").length > 0;
@@ -479,6 +508,33 @@
         sshOutputTask = task;
       }
     });
+
+    resetSshOutputCursor = function () {
+      if (!sshOutputTask) {
+        return;
+      }
+      sshOutputTask._rawContent = "";
+      sshOutputTask._endOffset = -1;
+      sshOutputTask._epoch = undefined;
+      sshOutputTask._ansi = undefined;
+    };
+
+    requestTaskRefresh = function (key) {
+      let task = taskMapping[key];
+      if (!task) {
+        return false;
+      }
+      // Drop a request already in flight for this key: the answer it brings was
+      // derived from the previous choice, so waiting for it would repaint the
+      // widget with the old data and leave the new one pending a whole interval.
+      let pendingRequestId = pendingRequestByKey[task.key];
+      if (pendingRequestId) {
+        clearPendingRequestById(pendingRequestId);
+      }
+      task._lastHtml = null;
+      queueTask(task, 0);
+      return true;
+    };
 
     function clearPendingRequestById(requestId) {
       let pending = pendingRequests[requestId];
@@ -688,17 +744,7 @@
     $modal.modal("show");
   }
 
-  let inflightExecCount = 0;
-  let reloadAfterExec = false;
-
-  function maybeReloadAfterExec() {
-    if (reloadAfterExec && inflightExecCount <= 0) {
-      location.reload();
-    }
-  }
-
   socket.on("exec", function (response) {
-    inflightExecCount = Math.max(0, inflightExecCount - 1);
     if (response && response.success === false) {
       let message = escapeHtml(response.message || "");
       let output = response.stdout || response.stderr || "";
@@ -712,13 +758,17 @@
         message += "<hr><div class='exec-output' style='display: inline-grid'>" + output + "</div>";
       }
       showAlert(message);
-      maybeReloadAfterExec();
       return;
     }
+    // Exactly three choices rebuild what the page is serving: a systemd unit
+    // change, a language switch (box:lang) and a theme switch (its own request,
+    // further down). None of them shows the log panel; each reloads once, after
+    // it succeeds. Everything else must leave the document alone — that
+    // decision belongs to the log panel's close buttons, and widgets whose
+    // content follows a local choice (the bandwidth page) re-fetch their data.
     if (response && response.cmd && (response.cmd.indexOf("systemctl") === 0 || response.cmd.indexOf("box:lang") === 0)) {
-      reloadAfterExec = true;
+      location.reload();
     }
-    maybeReloadAfterExec();
   });
 
   function exec(command) {
@@ -726,7 +776,6 @@
       showAlert("Invalid service parameter: '" + command + "'");
       return;
     }
-    inflightExecCount += 1;
     socket.emit("exec", command);
   }
 
@@ -829,9 +878,12 @@
       payload.bwPages.forEach(function (page) {
         let option = document.createElement("div");
         option.style.cursor = "pointer";
+        // Picking a bandwidth page changes one widget's data, nothing else:
+        // re-request that widget instead of reloading the document, so the page
+        // keeps its scroll position and the rest of the dashboard stays live.
         option.onclick = function () {
           localStorage.setItem("bw_tables:page", page.key);
-          location.reload();
+          window.quickboxRefreshTask("BANDWIDTH");
         };
         option.textContent = page.title;
         appendSmallOption(bwContainer, option);
@@ -956,31 +1008,29 @@
       .catch(function () { /* WebSocket will fill in later */ });
   }
 
-  function configureSysResponseCloseAction(mode) {
-    let closeButton = document.getElementById("sysResponseCloseAction");
-    if (!(closeButton instanceof HTMLElement)) {
+  // Two close affordances, one decision each, both taken on the spot: the footer
+  // button hides the panel and reloads the page; the header X (and Escape) only
+  // hides it. Nothing is remembered for later — there is no mode and no pending
+  // reload, so a command finishing in the background can never move the page.
+  let sysResponseClosing = false;
+
+  function isSysResponseVisible() {
+    return !!window.jQuery && window.jQuery("#sysResponse").is(":visible");
+  }
+
+  function closeSysResponsePanel(options) {
+    let reload = !!(options && options.reload);
+    if (sysResponseClosing) {
       return;
     }
-
-    let defaultRefreshAfterClose = closeButton.dataset.defaultRefreshAfterClose || "true";
-    let defaultLabel = closeButton.dataset.labelDefault || closeButton.textContent || "";
-    let logViewLabel = closeButton.dataset.labelLogView || defaultLabel;
-
-    if (mode === "log-view") {
-      closeButton.removeAttribute("data-click-handler");
-      closeButton.removeAttribute("data-refresh-after-close");
-      closeButton.removeAttribute("data-package");
-      closeButton.removeAttribute("data-operation");
-      closeButton.dataset.refreshAfterClose = "false";
-      closeButton.textContent = logViewLabel;
-      return;
+    sysResponseClosing = true;
+    if (window.jQuery) {
+      window.jQuery("#sysResponse").modal("hide");
     }
-
-    closeButton.removeAttribute("data-click-handler");
-    closeButton.dataset.refreshAfterClose = defaultRefreshAfterClose;
-    closeButton.removeAttribute("data-package");
-    closeButton.removeAttribute("data-operation");
-    closeButton.textContent = defaultLabel;
+    resetSysResponseView();
+    if (reload) {
+      location.reload();
+    }
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -998,14 +1048,32 @@
 
     let reset = document.getElementById("node-panel-reset");
     if (reset) { reset.addEventListener("click", resetPanel); }
+
+    // Every trigger opens the dialog through Bootstrap's data-toggle, so the
+    // session reset hangs off the dialog's own event instead of each entry.
+    if (window.jQuery) {
+      let $sysResponse = window.jQuery("#sysResponse");
+      if ($sysResponse.length) {
+        $sysResponse.on("show.bs.modal", function () {
+          sysResponseClosing = false;
+          resetSysResponseView();
+        });
+        $sysResponse.on("hidden.bs.modal", function () {
+          resetSysResponseView();
+        });
+      }
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape" && event.key !== "Esc") { return; }
+      if (!isSysResponseVisible()) { return; }
+      event.preventDefault();
+      closeSysResponsePanel({ reload: false });
+    });
+
     document.addEventListener("click", function (event) {
       let target = event.target;
       if (!(target instanceof Element)) { return; }
-      let sysResponseTrigger = target.closest("[data-target='#sysResponse']");
-      if (sysResponseTrigger instanceof HTMLElement) {
-        let mode = sysResponseTrigger.dataset.sysresponseMode === "log-view" ? "log-view" : "default";
-        configureSysResponseCloseAction(mode);
-      }
       let themeButton = target.closest("[data-click-handler='themeSelect']");
       if (themeButton && themeButton instanceof HTMLElement && themeButton.dataset.theme) {
         applyDashboardTheme(themeButton.dataset.theme);
@@ -1028,14 +1096,15 @@
       let boxHandlerButton = target.closest("[data-click-handler='boxHandler']");
       if (boxHandlerButton) {
         window.boxHandler(event);
-        if (boxHandlerButton instanceof HTMLElement && boxHandlerButton.dataset.refreshAfterClose === "true") {
-          reloadAfterExec = true;
-        }
       }
-      let responseCloseButton = target.closest("#sysResponseCloseAction");
-      if (responseCloseButton instanceof HTMLElement && responseCloseButton.dataset.refreshAfterClose === "true") {
-        reloadAfterExec = true;
-        maybeReloadAfterExec();
+      // The two closing affordances differ in exactly one bit: reload or not.
+      if (target.closest("#sysResponseCloseAction")) {
+        closeSysResponsePanel({ reload: true });
+        return;
+      }
+      if (target.closest("#sysResponseDismiss")) {
+        closeSysResponsePanel({ reload: false });
+        return;
       }
     });
     loadNodeFragments();

@@ -22,9 +22,12 @@ test("names the running operation and opens its log", async ({ page }) => {
     await expect(banner).toHaveAttribute("data-task", "install");
     await expect(banner).toHaveAttribute("data-operation", "install");
 
-    await banner.locator("[data-sysresponse-mode='log-view']").click();
+    await banner.locator("[data-target='#sysResponse']").click();
     await expect(page.locator("#sysResponse")).toBeVisible();
-    await page.locator("#sysResponseCloseAction").click();
+    // The banner opens the same dialog as every other entry: refresh is the
+    // footer action, the header X only dismisses.
+    await expect(page.locator("#sysResponseCloseAction")).toHaveText("关闭 & 刷新");
+    await page.locator("#sysResponseDismiss").click();
     await expect(page.locator("#sysResponse")).toBeHidden();
 });
 
