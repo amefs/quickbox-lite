@@ -1,0 +1,19 @@
+CHANGELOG.md
+  h_3705811fa4502c 1-30
+  h_3705811fa4502c 31
+packages/system/update/qbUpdateService
+  h_3705811fa4502c 60-90,110
+tests/system/nodejs-update-sandbox.py
+  h_3705811fa4502c 164-205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f81fd3925c99b571d22a3d63079ef815237f0698",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
