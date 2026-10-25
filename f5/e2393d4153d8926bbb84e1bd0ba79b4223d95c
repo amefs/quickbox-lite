@@ -1,0 +1,26 @@
+packages/package/install/installpackage-authelia
+  h_3705811fa4502c 516,518-520,539-540
+packages/package/install/installpackage-flood
+  h_3705811fa4502c 182-184
+packages/package/install/installpackage-vouchproxy
+  h_3705811fa4502c 395,397-401
+packages/package/remove/removepackage-authelia
+  h_3705811fa4502c 124-126,128,134,136-137
+packages/package/remove/removepackage-vouchproxy
+  h_3705811fa4502c 124-126,128,134,136-137
+packages/package/update/updatepackage-authelia
+  h_3705811fa4502c 206-207,209-212
+packages/package/update/updatepackage-vouchproxy
+  h_3705811fa4502c 117,183,209-211
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f5e2393d4153d8926bbb84e1bd0ba79b4223d95c",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
