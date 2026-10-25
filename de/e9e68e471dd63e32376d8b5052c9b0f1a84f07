@@ -1,0 +1,46 @@
+tests/system/backup-retention-sandbox.py
+  h_3705811fa4502c 1-270
+tests/system/dashboard-stage-sandbox.sh
+  h_3705811fa4502c 40-41,72-76,87-116
+tests/system/dashboard-update-sandbox.py
+  h_3705811fa4502c 10,29-30,42,66-76,132,134-141,145,148,151,154-160,171-172,178,187-188,191
+tests/system/nginx-production-sandbox.py
+  h_3705811fa4502c 42,82,88,92
+tests/system/nodejs-update-sandbox.py
+  h_3705811fa4502c 1-237
+tests/system/package-scripts-lint-test.py
+  h_3705811fa4502c 15
+tests/system/repo-normalize-sandbox.py
+  h_3705811fa4502c 7,10-11,14,37-195
+tests/system/repo-reinstall-sandbox.py
+  h_3705811fa4502c 1-234
+tests/system/repo-state-revert-sandbox.sh
+  h_3705811fa4502c 1-107
+tests/system/run-dashboard-sandboxes.sh
+  h_3705811fa4502c 1-27
+tests/system/sandbox_support.py
+  h_3705811fa4502c 1-48
+tests/system/test_sandboxes.py
+  h_3705811fa4502c 1-105
+tests/system/theme-selection-sandbox.py
+  h_3705811fa4502c 1-46
+tests/system/update-config-backup-sandbox.sh
+  h_3705811fa4502c 1-92
+tests/system/update-timing-sandbox.sh
+  h_3705811fa4502c 1-234
+tests/system/ws-health-proxy-sandbox.py
+  h_3705811fa4502c 1-200
+tests/system/ws-health-startup-sandbox.py
+  h_3705811fa4502c 18-23,25-26,55,66,85-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dee9e68e471dd63e32376d8b5052c9b0f1a84f07",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
