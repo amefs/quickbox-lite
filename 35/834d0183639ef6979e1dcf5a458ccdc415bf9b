@@ -1,0 +1,16 @@
+setup/dashboard/ws/src/auth.ts
+  h_3705811fa4502c 10-19,27-29,31,65-66,75,79,84,94,170-172,178,222-240,243-248,250-268
+setup/dashboard/ws/src/router.tsx
+  h_3705811fa4502c 19,28,84,88,93,104,216
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "35834d0183639ef6979e1dcf5a458ccdc415bf9b",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
