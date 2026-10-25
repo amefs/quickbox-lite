@@ -1,0 +1,24 @@
+setup/dashboard/ws/config/commands.json
+  h_3705811fa4502c 8,13,19
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 1
+setup/dashboard/ws/src/controllers/dashboard.tsx
+  h_3705811fa4502c 11,18,22,30
+setup/dashboard/ws/src/controllers/output-log.ts
+  h_3705811fa4502c 12
+setup/dashboard/ws/src/handlers/exec.ts
+  h_3705811fa4502c 34-50,52,75-78,119,137-141,143,148-157,159-160,162,167,172,177-179,182-211,240-280,282,290-292,304,308,316,319-320,420,422,425-429
+setup/dashboard/ws/src/handlers/message.ts
+  h_3705811fa4502c 18,62-77,91-92,104-106,108-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "def0f825592eee6a8ff7c6322892ea75a5183f9e",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
