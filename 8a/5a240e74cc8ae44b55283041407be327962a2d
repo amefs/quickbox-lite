@@ -1,0 +1,28 @@
+CHANGELOG.md
+  h_3705811fa4502c 1-16,18-30
+  h_3705811fa4502c 17,31
+e2e/tests/dashboard.spec.ts
+  h_3705811fa4502c 125,128-129,133
+  h_3705811fa4502c 93-97,126-127
+tests/system/nodejs-update-sandbox.py
+  h_3705811fa4502c 164-205
+packages/system/update/qbUpdateService
+  h_3705811fa4502c 60-90,110
+setup/dashboard/ws/src/testing/bootstrap.ts
+  h_3705811fa4502c 28-30,142-144,202-204
+setup/dashboard/ws/src/testing/mock-vnstat.ts
+  h_3705811fa4502c 1-18
+setup/dashboard/ws/tests/testing/mock-vnstat.spec.ts
+  h_3705811fa4502c 1-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8a5a240e74cc8ae44b55283041407be327962a2d",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
