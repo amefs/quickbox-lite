@@ -1,0 +1,26 @@
+.flake8
+  h_3705811fa4502c 6-20
+.gitignore
+  h_3705811fa4502c 57-59
+.python-version
+  h_3705811fa4502c 1
+pyproject.toml
+  h_3705811fa4502c 1-18
+pyrightconfig.json
+  h_3705811fa4502c 1-9
+typings/deluge/config.pyi
+  h_3705811fa4502c 1,4-5,7,9-11
+uv.lock
+  h_3705811fa4502c 1-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8ed97542ee55565a458093fef3593ebb7ad2f408",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
