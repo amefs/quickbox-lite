@@ -1,0 +1,20 @@
+packages/system/auxiliary/deluge.changeUserpass.py
+  h_3705811fa4502c 11-19,32-33
+packages/system/auxiliary/fio-bench.py
+  h_3705811fa4502c 34-37,76-78,93,147,152,155-159
+scripts/check-system-script-syntax.sh
+  h_3705811fa4502c 1-39
+scripts/lint-package-scripts.py
+  h_3705811fa4502c 178-180,223,235-237,253-255,264,285-288,297-299,310-312,323-325,342-400
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "246f22b0ddfd4e24381a22ddd3b7ef9cd37b5762",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
