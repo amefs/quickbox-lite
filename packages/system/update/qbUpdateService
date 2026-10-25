@@ -57,10 +57,40 @@ function _fix_nginx_app_include() {
 	fi
 }
 
+# The system runtime the dashboard runs on.
+#
+# The dashboard is checked after the switch, not here, so `QB_SKIP_NODE=1` only
+# decides whether this stage may change the host: the operator keeps whatever
+# Node.js is already installed, and an unsupported one surfaces as a failed
+# dashboard health check with the previous tree restored.
+function _updateNodeRuntime() {
+	if [[ ${QB_SKIP_NODE:-0} -eq 1 ]]; then
+		local installed="missing"
+		if [[ -x /usr/bin/node ]]; then
+			installed=$(/usr/bin/node --version 2>/dev/null || printf 'unknown')
+		fi
+		_warning "Skipping the Node.js 24 stage (QB_SKIP_NODE=1); keeping ${installed}"
+		_qbDetail "Node.js 24 is required by the dashboard; unset QB_SKIP_NODE to install it"
+		return 0
+	fi
+	local -a node_args=()
+	# `--only-core` is the recovery path after a partial or failed update, and
+	# it may run on a slow link: it only asks whether the installed runtime
+	# still satisfies the policy instead of fetching patches again.
+	if [[ ${QB_UPDATE_ONLY_CORE:-0} -eq 1 ]]; then
+		_info "Checking Node.js 24..."
+		node_args=(--reuse)
+	else
+		_info "Installing or updating Node.js 24..."
+	fi
+	_qbRunHelper "Failed to install or update Node.js 24" \
+		bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs \
+		${node_args[@]+"${node_args[@]}"}
+}
+
 function _updateservice() {
 	_info "Updating QuickBox service..."
 	local lap ttyd_status
-	local -a node_args=()
 	# Older installs may not grant www-data the managed command set, or may
 	# leave the sudoers files with modes that sudo reports as invalid. Repair
 	# the managed policy before the downgraded WS service depends on it.
@@ -76,22 +106,8 @@ function _updateservice() {
 	# Refresh the system runtime even when Node.js 24 is already installed.
 	# The dashboard updater stages dependencies and restarts the service only
 	# after the new runtime is ready.
-	#
-	# `--only-core` is the recovery path after a partial or failed update, and
-	# it may run on a slow link: it only asks whether the installed runtime
-	# still satisfies the policy instead of fetching patches again.
-	if [[ ${QB_UPDATE_ONLY_CORE:-0} -eq 1 ]]; then
-		_info "Checking Node.js 24..."
-		node_args=(--reuse)
-	else
-		_info "Installing or updating Node.js 24..."
-	fi
 	lap=$(_qbNowMs)
-	if ! _qbRunHelper "Failed to install or update Node.js 24" \
-		bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs \
-		${node_args[@]+"${node_args[@]}"}; then
-		return 1
-	fi
+	_updateNodeRuntime || return 1
 	_qbReportLap "Node.js 24" "${lap}"
 	lap=$(_qbNowMs)
 	_qbDetail "Dashboard dependency activation is deferred to the staged dashboard update"

@@ -90,7 +90,11 @@ test.describe("Widget Rendering", () => {
         await page.goto("/");
         const bwTables = page.locator("#bw_tables");
         await expect(bwTables).not.toBeEmpty({ timeout: 15_000 });
-        expect(await bwTables.locator("table").count()).toBeGreaterThan(0);
+        // The widget is server-rendered with skeleton tables first, so waiting
+        // for the table itself would accept the placeholder as loaded content.
+        await expect(bwTables.locator(".qb-skeleton")).toHaveCount(0, { timeout: 15_000 });
+        await expect(bwTables.locator("table").nth(1).locator("tbody tr").first()).toBeVisible();
+        expect(await bwTables.locator("table").nth(1).locator("tbody tr td").first().innerText()).not.toBe("");
     });
 
     test("should render network speed display", async ({ page }) => {
@@ -118,11 +122,15 @@ test.describe("Bandwidth Page", () => {
     test("switching the page refreshes the widget without reloading", async ({ page }) => {
         await page.goto("/");
         const bwTables = page.locator("#bw_tables");
-        await expect(bwTables.locator("table").first()).toBeVisible({ timeout: 15_000 });
+        const pageTable = bwTables.locator("table").nth(1);
+        // The initial ready-made HTML contains two skeleton tables, so waiting
+        // for a visible table would read the placeholder caption (empty) and
+        // race against the first WebSocket update.
+        await expect(bwTables.locator(".qb-skeleton")).toHaveCount(0, { timeout: 15_000 });
 
         // The widget renders two tables: a fixed summary, then the one that
         // belongs to the selected page. The second caption carries the page name.
-        const pageCaption = bwTables.locator("table").nth(1).locator("th").first();
+        const pageCaption = pageTable.locator("th").first();
         const previousCaption = (await pageCaption.innerText()).trim();
         expect(previousCaption.length).toBeGreaterThan(0);
         const documentId = await page.evaluate(() => performance.timeOrigin);

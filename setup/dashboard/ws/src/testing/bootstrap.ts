@@ -25,6 +25,9 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
     const { getActiveProfile } = require("./mock-adapter") as {
         getActiveProfile: () => import("./mock-profiles").MockProfile;
     };
+    const { mockVnstatInterface } = require("./mock-vnstat") as {
+        mockVnstatInterface: (filePath: string) => string | undefined;
+    };
     const getPrimaryInterface = () => getActiveProfile().networkInterfaces[0]?.iface ?? "eth0";
 
     // ── systeminformation ──────────────────────────────────
@@ -136,9 +139,9 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         }
 
         // Vnstat dump files
-        if (filePath.startsWith("./dumps/vnstat_dump_")) {
-            const iface = filePath.replace("./dumps/vnstat_dump_", "");
-            return p.vnstatData?.[iface] !== undefined;
+        const vnstatIface = mockVnstatInterface(filePath);
+        if (vnstatIface !== undefined) {
+            return p.vnstatData?.[vnstatIface] !== undefined;
         }
 
         // Config files that the mock provides in-memory
@@ -196,9 +199,9 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
             }
 
             // Vnstat dump files
-            if (filePath.startsWith("./dumps/vnstat_dump_")) {
-                const iface = filePath.replace("./dumps/vnstat_dump_", "");
-                const data = p.vnstatData?.[iface];
+            const vnstatIface = mockVnstatInterface(filePath);
+            if (vnstatIface !== undefined) {
+                const data = p.vnstatData?.[vnstatIface];
                 if (data) {
                     return data;
                 }

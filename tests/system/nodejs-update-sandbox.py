@@ -161,6 +161,48 @@ sys.exit(0 if result else 1)
         result, _ = self.run_helper('v24.22.1', arguments=['--nope'])
         self.assertEqual(result.returncode, 2)
 
+    def node_stage(self):
+        """Source only the service stage's Node policy, with its caller stubbed out."""
+        source = (REPO / 'packages/system/update/qbUpdateService').read_text()
+        matched = re.search(r'^function _updateNodeRuntime\(\) \{\n.*?^\}',
+                            source, re.M | re.S)
+        assert matched is not None, '_updateNodeRuntime() is missing from qbUpdateService'
+        helper = self.root / 'node-helper.sh'
+        helper.write_text('#!/bin/sh\nprintf "helper-ran\\n"\nexit 1\n')
+        helper.chmod(0o755)
+        body = (matched.group()
+                .replace('/usr/bin/node', str(self.runtime))
+                .replace('/usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs', str(helper)))
+        return body + '''
+_warning() { printf 'warning: %s\\n' "$*"; }
+_info() { printf 'info: %s\\n' "$*"; }
+_qbDetail() { :; }
+_qbRunHelper() { local message="$1"; shift; "$@"; }
+_updateNodeRuntime
+'''
+
+    def run_node_stage(self, **overrides):
+        self.runtime.write_text('#!/bin/sh\nprintf "v22.23.2\\n"\n')
+        self.runtime.chmod(0o755)
+        return subprocess.run(['bash', '-c', self.node_stage()], text=True,
+                              capture_output=True, env=dict(self.env, **overrides),
+                              timeout=10)
+
+    def test_skip_node_keeps_the_installed_runtime(self):
+        result = self.run_node_stage(QB_SKIP_NODE='1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Skipping the Node.js 24 stage', result.stdout)
+        self.assertIn('v22.23.2', result.stdout)
+        self.assertNotIn('helper-ran', result.stdout)
+
+    def test_skip_node_is_off_by_default(self):
+        # An unset switch must still run the helper, so the unsupported runtime
+        # keeps failing the service stage instead of passing silently.
+        result = self.run_node_stage()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('helper-ran', result.stdout)
+        self.assertNotIn('Skipping the Node.js 24 stage', result.stdout)
+
     def test_network_repository_and_package_failures_stop(self):
         for failure in ['curl', 'setup', 'apt']:
             with self.subTest(failure=failure):
