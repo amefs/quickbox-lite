@@ -1,0 +1,20 @@
+packages/system/auxiliary/qbNginxProxyMigrate
+  h_3705811fa4502c 15,41,102-103,212-232
+packages/system/auxiliary/qbWsHealthCheck
+  h_3705811fa4502c 15-19,29,34-52,59-62,64,79-161,185,187,193,195,202,204,210,213,295,298,303,307,309,314-316,321-329,333-335
+setup.sh
+  h_3705811fa4502c 830,835,840,844-846,970,975,1000-1005
+setup/templates/nginx/dashboard.conf.template
+  h_3705811fa4502c 42-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3000ef0d680b610de5814224d5093b393132bb72",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
