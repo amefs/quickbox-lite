@@ -1,0 +1,81 @@
+setup/dashboard/ws/tsconfig.json
+  s_e03eb965cac545::t_e183a2f354fb35 4-5
+setup/dashboard/ws/package.json
+  s_e03eb965cac545::t_ee8665ae102888 63
+  s_2df05b56a88f9a::t_fe31c1a2b4b412 61
+  s_e03eb965cac545::t_55e87f12a8d69a 7
+  s_e03eb965cac545::t_e2f4861a742679 25,30,39,41-45,47,54
+setup/dashboard/ws/dist/server.js
+  s_e03eb965cac545::t_5e077eca188957 1-819
+  s_e0c73b894792d1::t_d179e1e3220440 820
+setup/dashboard/ws/tests/plugins.spec.ts
+  s_e03eb965cac545::t_b83ad20a873ec0 14
+e2e/package.json
+  h_3705811fa4502c 19
+  s_2df05b56a88f9a::t_84314e995d74ab 18
+setup/dashboard/package.json
+  s_e03eb965cac545::t_dee39d4660b115 20
+setup/dashboard/ws/build/vite.config.mjs
+  s_e03eb965cac545::t_36af8322e28a46 4,10
+  s_e03eb965cac545::t_92740400f1c854 21
+  s_e03eb965cac545::t_b513f3f78eb6dc 3,5-7,9,11-12,14-20,22-31,33
+setup/dashboard/ws/tests/controllers/test-utils.ts
+  s_e03eb965cac545::t_b83ad20a873ec0 23
+setup/dashboard/ws/tests/router.spec.ts
+  s_e03eb965cac545::t_b83ad20a873ec0 56
+setup/dashboard/lib/jquery-ui/jquery-ui.min.css
+  s_e03eb965cac545::t_a7646ae5052201 1
+setup/dashboard/lib/jquery-ui/jquery-ui.min.js
+  s_e03eb965cac545::t_3ede4c45f5a401 1,6
+setup/dashboard/ws/package-lock.json
+  s_e03eb965cac545::t_b5a2efd7f6fe45 16,21,30,32-36,38,45,52,54,882-891,902-1181,1408-1410,1413,1472-1474,1478,1803-1806,1809-1813,1944-1946,1950,1953,1955,2320-2329,3370-3372,3622-3625,3627,3629,3632,3635-3658,3660-3664,3666-3670,3673-3679,3681-3685,3687-3691,3694-3706,3708,3712,3715-3727,3729,3732-3733,3736-3742,3744-3748,3750-3754,3757-3763,3765-3772,3774-3778,3781-3787,3789-3796,3798,3801-3802,3805-4016,4201-4219,4436-4439,4441-4454,4457-4459,4462,4610-4613,4617,4620-4623,4627-4628,4631,4634,4636-4651,4672-4674,4676-4679,4722-4724,5265-5267,5303-5305,5357-5360,5364-5368,5371,5374,5377,5379-5380,5383-5394,5397,5400,5403,5406,5409,5411-5427,5430,5436-5438,5447
+e2e/package-lock.json
+  s_4338aebcc35f84::t_359cb1f656e9b1 12-13,33-35,39,71-84,86-88
+setup/dashboard/package-lock.json
+  h_3705811fa4502c 20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fc39faad8f837187025c081ff9e0e483560ac26a",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_2df05b56a88f9a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16348-fa4d-7a10-a9e5-2fd1e04aabad",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_4338aebcc35f84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17307-49ff-75d2-a9e7-1ec735893ad4",
+        "model": "unknown"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_e03eb965cac545": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a175a2-e413-7ae2-999f-eb9a19956e39",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_e0c73b894792d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a175d3-5388-72a2-8bc6-7bfbe5efc349",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
