@@ -1,0 +1,25 @@
+setup/dashboard/js/dashboard.js
+  s_e0c73b894792d1::t_c1850608b0328e 233-236
+  s_e0c73b894792d1::t_5224d275a01fc5 206,212,231-232,722-724,905
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e2b19897d6db64a9d9480557a7b47b376f34e13c",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_e0c73b894792d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a175d3-5388-72a2-8bc6-7bfbe5efc349",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
