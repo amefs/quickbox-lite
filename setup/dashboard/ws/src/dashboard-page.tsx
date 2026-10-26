@@ -108,7 +108,6 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                 <link rel="stylesheet" href="/lib/perfect-scrollbar/css/perfect-scrollbar.min.css" />
                 <link rel="stylesheet" href="/lib/animate.css/animate.min.css" />
                 <link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css" />
-                <link rel="stylesheet" href="/lib/select2/select2.min.css" />
                 <link rel="stylesheet" href="/lib/lobipanel/css/lobipanel.min.css" />
                 <link rel="stylesheet" href="/skins/quick.css" />
                 {/* Page-level rules live in setup/dashboard/css/dashboard.css: a
