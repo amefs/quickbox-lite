@@ -65,7 +65,7 @@
   "INSTALLING": "Instalando",
   "ISSUE_REPORT_TXT": "Informa de un problema",
   "In": "Bajada",
-    "SSO_LOGOUT_TXT": "Cerrar sesión SSO",
+  "SSO_LOGOUT_TXT": "Cerrar sesión SSO",
   "In_AVG": "Average In",
   "JELLYFIN": "Jellyfin is a suite of multimedia applications designed to organize, manage, and share digital media files to networked devices.",
   "LANG_SELECT": "Elige un idioma",
@@ -203,5 +203,8 @@
   "WEBDAV": "WebDAV es un grupo de trabajo del Internet Engineering Task Force. El término significa \"Autoría y versionado distribuidos por Web\" (Web Distributed Authoring and Versioning), y se refiere al protocolo (más precisamente, a la extensión del protocolo) que el grupo definió.",
   "X2GO": "X2Go es un software de código abierto para acceso remoto al escritorio que utiliza el protocolo NX.",
   "YOUR_DISK_STATUS": "Disco Duro",
-  "ZNC": "ZNC es un bouncer o BNC para IRC. Permite separar al cliente del servidor IRC, e incluso de canales concretos."
+  "ZNC": "ZNC es un bouncer o BNC para IRC. Permite separar al cliente del servidor IRC, e incluso de canales concretos.",
+  "SERVICE_STATUS_UNCONFIRMED": "Estado no confirmado",
+  "SERVICE_STATUS_LAST_CONFIRMED": "Última confirmación {{time}}",
+  "SERVICE_STATUS_STALE": "El estado puede estar desactualizado"
 }

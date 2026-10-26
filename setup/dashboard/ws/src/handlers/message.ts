@@ -97,7 +97,7 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
             return await serviceStatusAll();
         case "/node/service_control":
         case "/widgets/service_control":
-            return await serviceControl();
+            return await serviceControl(true);
         case "/node/pmc":
         case "/widgets/pmc":
             return await packageManagementCenter();

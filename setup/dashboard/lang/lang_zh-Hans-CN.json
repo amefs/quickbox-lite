@@ -205,5 +205,8 @@
   "WEBDAV": "基于Web的分布式编写和版本控制 (WebDAV) 是超文本传输协议 (HTTP)的扩展, 有利于用户间协同编辑和管理存储在万维网服务器文档.",
   "X2GO": "X2Go 是一款使用 NX 技术协议的 Linux 开源远程桌面软件.",
   "YOUR_DISK_STATUS": "磁盘状态",
-  "ZNC": "ZNC 是一个 IRC 网络辅助软件. 它可以将客户端从实际的 IRC 服务器以及选定的频道中分离出来."
+  "ZNC": "ZNC 是一个 IRC 网络辅助软件. 它可以将客户端从实际的 IRC 服务器以及选定的频道中分离出来.",
+  "SERVICE_STATUS_UNCONFIRMED": "状态未确认",
+  "SERVICE_STATUS_LAST_CONFIRMED": "最后确认时间：{{time}}",
+  "SERVICE_STATUS_STALE": "状态可能已过期"
 }

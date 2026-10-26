@@ -3,8 +3,9 @@
 import "mocha";
 import { expect } from "chai";
 
-import { getActiveProfile, runMockCommand, setActiveProfile } from "../../src/testing/mock-adapter";
+import { getActiveProfile, getMockSystemdServiceActive, runMockCommand, setActiveProfile } from "../../src/testing/mock-adapter";
 import { buildCommand } from "../../src/handlers/utils/command";
+import { serviceMap } from "../../src/info";
 
 describe("testing mock command adapter", () => {
     const previousNodeEnv = process.env.NODE_ENV;
@@ -31,6 +32,30 @@ describe("testing mock command adapter", () => {
         expect(runMockCommand(" installpackage :: autodlirssi ")).to.equal(true);
         expect(getActiveProfile().lockFiles).to.include("/install/.autodlirssi.lock");
         expect(getActiveProfile().processes.find((proc) => proc.name === "irssi")).to.not.equal(undefined);
+    });
+
+    it("derives mock systemd runtime state from processes and independent unit state", () => {
+        process.env.NODE_ENV = "test";
+        process.env.MOCK_ENABLED = "1";
+        setActiveProfile("all-running");
+        const profile = getActiveProfile();
+        const deluged = serviceMap.get("deluged");
+        const delugedProcess = profile.processes.find(proc => proc.name === "deluged");
+        if (deluged && delugedProcess) {delugedProcess.user = deluged.username;}
+
+        expect(getMockSystemdServiceActive("deluged")).to.equal(true);
+        expect(profile.enabledServices).to.include("deluged@testuser");
+        expect(runMockCommand("systemctl:stop:deluged")).to.equal(true);
+        expect(profile.enabledServices).to.include("deluged@testuser");
+        expect(getMockSystemdServiceActive("deluged")).to.equal(false);
+        expect(runMockCommand("systemctl:restart:deluged")).to.equal(true);
+        expect(getMockSystemdServiceActive("deluged")).to.equal(true);
+
+        expect(getMockSystemdServiceActive("authelia")).to.equal(true);
+        expect(runMockCommand("systemctl:stop:authelia")).to.equal(true);
+        expect(getMockSystemdServiceActive("authelia")).to.equal(false);
+        expect(runMockCommand("systemctl:start:authelia")).to.equal(true);
+        expect(getMockSystemdServiceActive("authelia")).to.equal(true);
     });
 
     it("refuses unsupported commands while test mode is enabled", () => {

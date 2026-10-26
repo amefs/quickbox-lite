@@ -202,5 +202,8 @@
   "WEB_CONSOLE": "Webkonsol",
   "WEBDAV": "WebDAV er en engelsk forkortelse for \"Web-based Distributed Authoring and Versioning\". Det er en udvidelse af http-protokollen og giver web-redaktører mulighed for at samarbejde om det at forfatte, redigere og udgive et web-sted på et fjernt beliggende it-system med anvendelse af versionskontrol.",
   "YOUR_DISK_STATUS": "Disk Status",
-  "ZNC": "ZNC er en IRC bouncer eller BNC. Den kan frigøre ircklienten fra serveren eller kanalen og holde din klient ajour når der igen sker en tilkobling."
+  "ZNC": "ZNC er en IRC bouncer eller BNC. Den kan frigøre ircklienten fra serveren eller kanalen og holde din klient ajour når der igen sker en tilkobling.",
+  "SERVICE_STATUS_UNCONFIRMED": "Status ikke bekræftet",
+  "SERVICE_STATUS_LAST_CONFIRMED": "Sidst bekræftet {{time}}",
+  "SERVICE_STATUS_STALE": "Status kan være forældet"
 }

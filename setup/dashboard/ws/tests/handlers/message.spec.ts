@@ -218,7 +218,9 @@ describe("handlers/message", () => {
         it("should return a batch service status object for /node/service_status_all", async () => {
             const result = await resolveWidget("/node/service_status_all");
             expect(result).to.be.an("object");
-            expect(result).to.have.property("irssi");
+            const batch = result as { badges: Record<string, string>; health: string; retryAfterMs: number };
+            expect(batch).to.have.keys("badges", "health", "retryAfterMs");
+            expect(batch.badges).to.have.property("irssi");
         });
 
         it("should resolve /widgets/service_control same as /node/service_control", async () => {

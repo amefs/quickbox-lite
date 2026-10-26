@@ -205,5 +205,8 @@
   "WEBDAV": "WebDAV stands for \"Web-based Distributed Authoring and Versioning\". It is a set of extensions to the HTTP protocol which allows users to collaboratively edit and manage files on remote web servers.",
   "X2GO": "X2Go is an open source remote desktop software for Linux that uses the NX technology protocol.",
   "YOUR_DISK_STATUS": "Your Disk Status",
-  "ZNC": "ZNC is an IRC network bouncer or BNC. It can detach the client from the actual IRC server, and also from selected channels."
+  "ZNC": "ZNC is an IRC network bouncer or BNC. It can detach the client from the actual IRC server, and also from selected channels.",
+  "SERVICE_STATUS_UNCONFIRMED": "Status not confirmed",
+  "SERVICE_STATUS_LAST_CONFIRMED": "Last confirmed {{time}}",
+  "SERVICE_STATUS_STALE": "Status may be out of date"
 }

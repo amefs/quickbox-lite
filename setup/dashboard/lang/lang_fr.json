@@ -203,5 +203,8 @@
   "WEBDAV": "WebDAV (Web-based Distributed Authoring and Versioning) est une extension du protocole HTTP défini par le groupe de travail Internet Engineering Task Force du même nom.",
   "X2GO": "X2Go est un logiciel de bureau à distance open source pour Linux qui utilise le protocole de technologie NX.",
   "YOUR_DISK_STATUS": "Statut Du Disque",
-  "ZNC": "ZNC est un bouncer IRC sous licence GPL. Celui-ci sera connecté en permanence à vos salons de discussions et fera office de passerelle entre votre client et vos serveurs IRC."
+  "ZNC": "ZNC est un bouncer IRC sous licence GPL. Celui-ci sera connecté en permanence à vos salons de discussions et fera office de passerelle entre votre client et vos serveurs IRC.",
+  "SERVICE_STATUS_UNCONFIRMED": "État non confirmé",
+  "SERVICE_STATUS_LAST_CONFIRMED": "Dernière confirmation {{time}}",
+  "SERVICE_STATUS_STALE": "L’état peut être obsolète"
 }

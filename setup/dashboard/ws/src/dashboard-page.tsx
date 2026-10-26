@@ -82,6 +82,9 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
             disabled: i18n.t("DISABLED"),
             refresh: i18n.t("REFRESH"),
             systemResponse: i18n.t("SYSTEM_RESPONSE_TITLE"),
+            serviceStatusUnconfirmed: i18n.t("SERVICE_STATUS_UNCONFIRMED"),
+            serviceStatusStale: i18n.t("SERVICE_STATUS_STALE"),
+            serviceStatusLastConfirmedTemplate: i18n.t("SERVICE_STATUS_LAST_CONFIRMED", { time: "__SERVICE_STATUS_TIME__" }),
         },
     };
 

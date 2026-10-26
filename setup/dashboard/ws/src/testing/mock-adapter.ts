@@ -27,6 +27,7 @@ function cloneProfile(profile: MockProfile): MockProfile {
         loadavg: [...profile.loadavg] as MockProfile["loadavg"],
         lockFiles: [...profile.lockFiles],
         enabledServices: [...profile.enabledServices],
+        activeServices: [...(profile.activeServices ?? [])],
         torrentDirs: Object.fromEntries(
             Object.entries(profile.torrentDirs).map(([dir, files]) => [dir, [...files]]),
         ),
@@ -81,6 +82,7 @@ function ensureProcessRunning(service: string) {
             pid: nextMockPid++,
             cpu: 0.1,
             mem: 0.2,
+            params: detail.params?.join(" "),
         };
         profile.processes.push(mockProcess);
     }
@@ -128,11 +130,13 @@ export function removePackage(packageName: string) {
 }
 
 export function updateService(service: string, operation: string) {
-    if (!serviceMap.has(service)) {
+    const entry = [...serviceMap].find(([key, detail]) => key === service || serviceUnitName(key) === service || detail.systemdUnit === service);
+    if (!entry) {
         return false;
     }
+    const [serviceKey, detail] = entry;
     const profile = getActiveProfile();
-    const unitName = serviceUnitName(service);
+    const unitName = serviceUnitName(serviceKey);
     switch (operation) {
         case "enable":
             addUnique(profile.enabledServices, unitName);
@@ -142,16 +146,35 @@ export function updateService(service: string, operation: string) {
             return true;
         case "start":
         case "restart":
-            ensureProcessRunning(service);
+            if (detail.process) {
+                ensureProcessRunning(serviceKey);
+            } else {
+                addUnique(profile.activeServices ?? (profile.activeServices = []), serviceKey);
+            }
             return true;
         case "stop":
-            stopProcess(service);
+            if (detail.process) {
+                stopProcess(serviceKey);
+            } else {
+                removeMatching(profile.activeServices ?? [], active => active === serviceKey);
+            }
             return true;
         case "status":
             return true;
         default:
             return false;
     }
+}
+
+export function getMockSystemdServiceActive(service: string): boolean {
+    const detail = serviceMap.get(service);
+    if (!detail?.systemdUnit) {return false;}
+    const profile = getActiveProfile();
+    if (detail.process) {
+        return profile.processes.some(proc => proc.name.toLowerCase() === detail.process?.toLowerCase() && proc.user === detail.username &&
+            (detail.params ?? []).every(param => (proc.params ?? "").toLowerCase().includes(param.toLowerCase())));
+    }
+    return (profile.activeServices ?? []).includes(service);
 }
 
 export function runBoxCommand(operation: string, target: string) {
