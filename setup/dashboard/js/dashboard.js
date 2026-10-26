@@ -37,6 +37,7 @@
   window.quickboxMessages = Object.assign({
     enabled: "Enabled",
     disabled: "Disabled",
+    serviceActionPending: "Working…",
     refresh: "Refresh",
     systemResponse: "System Response",
     serviceStatusUnconfirmed: "Status not confirmed",
@@ -852,14 +853,23 @@
   }
 
   function updateServiceToggle(service, enabled) {
-    if (typeof enabled !== "boolean") return;
     let $toggle = serviceActionRow(service).find(".toggle-en, .toggle-dis").first();
     if ($toggle.length === 0) return;
+    if (typeof enabled !== "boolean") enabled = $toggle.hasClass("toggle-en");
     $toggle.removeClass("toggle-en toggle-dis").addClass(enabled ? "toggle-en" : "toggle-dis");
     $toggle.attr("data-service-action", enabled ? "disable" : "enable");
     if ($toggle.data("toggles")) {
       $toggle.toggles(enabled);
     }
+    $toggle.find(".toggle-on").text(window.quickboxMessages.enabled);
+    $toggle.find(".toggle-off").text(window.quickboxMessages.disabled);
+  }
+
+  function setServiceTogglePending(service) {
+    let $toggle = serviceActionRow(service).find(".toggle-en, .toggle-dis").first();
+    if ($toggle.length === 0) return;
+    let pendingText = window.quickboxMessages.serviceActionPending || "Working…";
+    $toggle.find(".toggle-on, .toggle-off").text(pendingText);
   }
 
   socket.on("service-action-result", function (response) {
@@ -913,6 +923,7 @@
       delete pendingServiceActionByService[service];
       if (requestId) delete serviceActionRequests[requestId];
       setServiceActionPending(service, false);
+      updateServiceToggle(service);
     });
   });
 
@@ -981,6 +992,7 @@
     serviceActionRequests[requestId] = { service, action };
     pendingServiceActionByService[service] = requestId;
     setServiceActionPending(service, true);
+    setServiceTogglePending(service);
     markServiceStatusesStale(service);
     socket.emit("service-action", {
       requestId,

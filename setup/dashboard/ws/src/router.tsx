@@ -43,14 +43,14 @@ export interface AppRouterOptions {
  *   /            — Node-rendered dashboard shell
  *   /set         — legacy locale normalizer for older clients
  *   /node/*      — React SSR widget endpoints consumed by the dashboard shell
- *   /debug*      — debug/introspection endpoints (gated by NODE_ENV)
+ *   /debug*      — debug/introspection endpoints (disabled in production unless QUICKBOX_WS_DEBUG=1)
  *   /test/*      — test-only endpoints (gated by isTestMode())
  */
 export function createAppRouter(options: AppRouterOptions): Router {
     const router = Router();
     const runExecFile = options.execFile ?? childProcess.execFile;
     const skinsDir = options.skinsDir ?? path.join(options.dashboardDir, "skins");
-    const debugEnabled = process.env.NODE_ENV !== "production";
+    const debugEnabled = process.env.NODE_ENV !== "production" || process.env.QUICKBOX_WS_DEBUG === "1";
     const parseThemeBody = (body: unknown): string | undefined => {
         if (body === null || typeof body !== "object" || !("theme" in body)) {
             return undefined;

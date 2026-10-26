@@ -442,7 +442,7 @@ describe("router — HTTP routes", () => {
     });
 
     // ── Debug endpoints (/debug*) ─────────────────────────────────────────────
-    // NODE_ENV=test → debug endpoints enabled; NODE_ENV=production → disabled
+    // NODE_ENV=test → debug endpoints enabled; production requires QUICKBOX_WS_DEBUG=1
 
     describe("GET /debug", () => {
         it("should return 200 with an HTML page", async () => {

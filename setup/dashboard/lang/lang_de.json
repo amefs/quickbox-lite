@@ -118,6 +118,7 @@
   "SECONDS_L": "sek",
   "SEEDBOX_COMMANDS": "Seedbox Befehle",
   "SERVER_LOAD": "Server-Last",
+  "SERVICE_ACTION_PENDING": "Wird bearbeitet…",
   "SERVICE_CONTROL_CENTER": "Dienst Kontrollcenter",
   "SERVICE_STATUS": "Status der Dienste",
   "SET_LANG_TXT": "Führe diesen Befehl via SSH aus, um die Spreche der Dashboard einzurichten.",

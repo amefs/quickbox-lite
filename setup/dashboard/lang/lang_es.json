@@ -118,6 +118,7 @@
   "SECONDS_L": "seg",
   "SEEDBOX_COMMANDS": "Comandos de Seedbox",
   "SERVER_LOAD": "Carga del Servidor",
+  "SERVICE_ACTION_PENDING": "Procesando…",
   "SERVICE_CONTROL_CENTER": "Control de Servicios",
   "SERVICE_STATUS": "Estado",
   "SET_LANG_TXT": "Type this command to setup dashboard Language.",

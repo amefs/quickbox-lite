@@ -118,6 +118,7 @@
   "SECONDS_L": "秒",
   "SEEDBOX_COMMANDS": "Seedbox 命令",
   "SERVER_LOAD": "服务器负载",
+  "SERVICE_ACTION_PENDING": "处理中…",
   "SERVICE_CONTROL_CENTER": "服务控制中心",
   "SERVICE_STATUS": "系统状态",
   "SET_LANG_TXT": "使用此命令设置仪表盘语言.",

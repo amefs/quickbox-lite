@@ -118,6 +118,7 @@
   "SECONDS_L": "sek",
   "SEEDBOX_COMMANDS": "Seedbox Kommandoer",
   "SERVER_LOAD": "Serverbelastning",
+  "SERVICE_ACTION_PENDING": "Arbejder…",
   "SERVICE_CONTROL_CENTER": "Servicekontrol",
   "SERVICE_STATUS": "Service Status",
   "SET_LANG_TXT": "Type this command to setup dashboard Language.",

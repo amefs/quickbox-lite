@@ -80,6 +80,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
         messages: {
             enabled: i18n.t("ENABLED"),
             disabled: i18n.t("DISABLED"),
+            serviceActionPending: i18n.t("SERVICE_ACTION_PENDING"),
             refresh: i18n.t("REFRESH"),
             systemResponse: i18n.t("SYSTEM_RESPONSE_TITLE"),
             serviceStatusUnconfirmed: i18n.t("SERVICE_STATUS_UNCONFIRMED"),
