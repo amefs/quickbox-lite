@@ -1,0 +1,34 @@
+setup/dashboard/ws/src/widgets/service-control.tsx
+  s_e0c73b894792d1::t_dd9d6d90826f55 6,25,46
+setup/dashboard/ws/dist/server.js
+  s_f0de6f8fd807a8::t_e459adbef9ae3d 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3c3c9a63598e7a59e0263864064cbfc980860e41",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_e0c73b894792d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a175d3-5388-72a2-8bc6-7bfbe5efc349",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_f0de6f8fd807a8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1737b-f9e0-7a13-9a99-68c6e8f04f5c",
+        "model": "unknown"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
