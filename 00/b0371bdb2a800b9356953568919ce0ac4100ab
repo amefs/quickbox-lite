@@ -1,0 +1,52 @@
+setup/dashboard/ws/dist/server.js
+  s_e0c73b894792d1::t_371b22f3970704 1
+  s_e0c73b894792d1::t_496fd25922efb0 8
+  s_e0c73b894792d1::t_ce203735e4f29d 2,5,7,9,491,819-820
+setup/dashboard/ws/src/widgets/service-status.tsx
+  s_e0c73b894792d1::t_0f10c6c4e9d6dc 10,14
+setup/dashboard/ws/src/shared/constants.ts
+  s_e0c73b894792d1::t_94b58b4640861c 11-12
+setup/dashboard/ws/src/handlers/message.ts
+  s_e0c73b894792d1::t_184acdcc2167f0 100
+setup/dashboard/js/dashboard.js
+  s_e0c73b894792d1::t_55e4cbfb512a3b 859-860,862-874,882,891-893
+  s_e0c73b894792d1::t_7168816fd10a5f 973
+  s_e0c73b894792d1::t_fa8c535430a408 141,895-911
+  s_e0c73b894792d1::t_b636ede59c84ba 143,145,861
+  s_e0c73b894792d1::t_1dc6db037ce244 138-140,829-858,875-881,883-890,894,912-913,930,967-972,974-978
+setup/dashboard/ws/src/widgets/service-state.ts
+  s_e0c73b894792d1::t_307fd224adc7c4 166-180,183-186,256-266,269-271
+  s_e0c73b894792d1::t_5168f566436296 267-268
+  s_e0c73b894792d1::t_7502334d69294c 272
+setup/dashboard/ws/src/handlers/exec.ts
+  s_e0c73b894792d1::t_1326d9542bdd17 431-432
+  s_e0c73b894792d1::t_d828875fc14819 485-501
+  s_e0c73b894792d1::t_04f2cd094affc6 14,16-19,62-63,65-67,383-430,433-449,451-453,455-484,502-507
+  s_e0c73b894792d1::t_beee4c854d8419 602
+  s_e0c73b894792d1::t_e4543862887e58 64,68-72,450,454
+  s_e0c73b894792d1::t_6688f8d440f09d 508
+setup/dashboard/ws/src/widgets/service-control.tsx
+  s_e0c73b894792d1::t_b64f728dd51e69 17,66,69
+  s_e0c73b894792d1::t_648f440d5fbc58 7,23,26,47-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "00b0371bdb2a800b9356953568919ce0ac4100ab",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_e0c73b894792d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a175d3-5388-72a2-8bc6-7bfbe5efc349",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
