@@ -1,0 +1,268 @@
+setup/dashboard/ws/src/widgets/up.tsx
+  s_2df05b56a88f9a::t_674f2f5d66e0d0 5-6,8,10-15,17,19-23
+setup/dashboard/ws/src/widgets/bandwidth-tables-view.tsx
+  s_2df05b56a88f9a::t_2501d2353d0e81 1-61
+setup/dashboard/ws/src/client/dashboard-chrome-client.tsx
+  s_2df05b56a88f9a::t_b2727f153b4fd9 1-6,8-9,11-20
+  s_2df05b56a88f9a::t_62ba19e36c13f5 7
+  s_2df05b56a88f9a::t_6ca0a20de7d70b 10
+setup/dashboard/ws/src/widgets/service-control-island.tsx
+  s_2df05b56a88f9a::t_5a98cb66cfcc5d 1-19,22-24,26-51,53-54,56-78,86-130,133
+  s_2df05b56a88f9a::t_6e10f2bccc99dd 84-85
+  s_2df05b56a88f9a::t_61738c632a3deb 131-132
+  s_2df05b56a88f9a::t_6fd2b203aeccd5 79-83
+  s_2df05b56a88f9a::t_fe97a0def31aaa 20-21,25,52,55
+setup/dashboard/ws/tests/utils/client-assets.spec.ts
+  s_2df05b56a88f9a::t_3463743ed75f5d 1-39
+setup/dashboard/ws/src/widgets/service-status.tsx
+  s_2df05b56a88f9a::t_26c0f4e19e91d6 38,40,49,54-57
+  s_2df05b56a88f9a::t_3a18c94c2a8a1a 58
+docs/migration/reports/wave4-wave5-acceptance-2026-10-26.md
+  s_2df05b56a88f9a::t_b1b1cb8c24c746 1-2,5-38
+  s_2df05b56a88f9a::t_633e6a1f3ee1f5 3-4
+setup/dashboard/ws/src/client/disk-data-client.tsx
+  s_2df05b56a88f9a::t_6598fc183d91d1 1-11,13-17,19-27,29-36,38-41
+  s_2df05b56a88f9a::t_5081162dc98158 12,18,28,37
+setup/dashboard/css/react-dashboard-chrome.css
+  s_2df05b56a88f9a::t_af5da4eddab35a 37,41,46,52,58,63
+  s_2df05b56a88f9a::t_5d8c3e02602ab8 1-36,38-40,42-45,47-51,53-57,59-62,64-102
+setup/dashboard/package.json
+  s_2df05b56a88f9a::t_94b8158d869fea 5
+setup/dashboard/ws/src/widgets/disk-data.tsx
+  s_2df05b56a88f9a::t_187b9aceaeed47 5-6,9,12-13,15,25,35,37,39-40,45,47,49,54,89-92,94-99,101-125,129
+setup/dashboard/ws/src/client/system-response-client.tsx
+  s_2df05b56a88f9a::t_6ca0a20de7d70b 64,122,133
+  s_2df05b56a88f9a::t_88cca78bdfbafd 28-34,43-54,89-90
+  s_2df05b56a88f9a::t_8cc46365df2065 1-27,35-42,55-63,65-88,91-121,123-132,134-143,145-154,158-167
+  s_2df05b56a88f9a::t_a64f268019a519 144,155-157
+setup/dashboard/ws/src/widgets/network-status-island.tsx
+  s_2df05b56a88f9a::t_acc8150a5aaff1 1-41
+setup/dashboard/ws/src/shared/bandwidth-contract.ts
+  s_2df05b56a88f9a::t_b2314d773089bd 41
+  s_2df05b56a88f9a::t_2501d2353d0e81 1-40,42-49
+setup/dashboard/ws/src/widgets/service-control.tsx
+  s_2df05b56a88f9a::t_f4bac06a3a1ad6 5,8-18
+  s_2df05b56a88f9a::t_ebfe4517db673d 19
+setup/dashboard/ws/src/shared/package-management-contract.ts
+  s_2df05b56a88f9a::t_27e22fb37c0a9c 1-39,44-63
+  s_2df05b56a88f9a::t_861c707bf4e78d 40-43
+setup/dashboard/ws/src/widgets/system-response-modal.tsx
+  s_2df05b56a88f9a::t_ec75fe69947fd3 103
+  s_2df05b56a88f9a::t_562d1f2f295ca1 105-108,147-148,152
+  s_2df05b56a88f9a::t_0dbec1c76bb61f 8-9,61-62,64-65,154
+  s_2df05b56a88f9a::t_62ba19e36c13f5 17-19,23-27
+  s_2df05b56a88f9a::t_1aad7ff46312ef 10-16,20-22,28-60,63
+  s_2df05b56a88f9a::t_09212a407d9407 1-7,66-102,104,109-146,149-151,153,155-158
+setup/dashboard/ws/src/client/network-status-client.tsx
+  s_2df05b56a88f9a::t_acc8150a5aaff1 1-27,29-45,47-48,50-54,56-74,76-87,89-91,94-128,130-138,140-144
+  s_2df05b56a88f9a::t_6ca0a20de7d70b 28,49,75,88,92-93
+  s_2df05b56a88f9a::t_5081162dc98158 46,55,129,139
+setup/dashboard/ws/src/client/package-management-client.tsx
+  s_2df05b56a88f9a::t_6ca0a20de7d70b 30
+  s_2df05b56a88f9a::t_5081162dc98158 36,46,57
+  s_2df05b56a88f9a::t_b3dc6086786439 51-52,62
+  s_2df05b56a88f9a::t_8b492aeb3fd473 1-12,14-29,31-35,37-45,47-50,53-56,58-61,63-71
+  s_2df05b56a88f9a::t_b8afd5eee16fe7 13
+e2e/migration/candidate-server.cjs
+  s_2df05b56a88f9a::t_9130200f17839b 1-118
+setup/dashboard/css/react-package-management.css
+  s_2df05b56a88f9a::t_29412e3572eadf 1-129
+e2e/migration/candidate-playwright.config.ts
+  s_2df05b56a88f9a::t_9130200f17839b 1-17
+setup/dashboard/ws/src/system-static.ts
+  s_2df05b56a88f9a::t_908dc618b37189 144-146,148-149
+  s_2df05b56a88f9a::t_a298aa59e79b8c 7,17,85
+  s_2df05b56a88f9a::t_6ca0a20de7d70b 9,147
+setup/dashboard/ws/src/widgets/memory-stats.tsx
+  s_2df05b56a88f9a::t_f6a1cddbde6d81 1-2,6,8,10,12,22,39-77,79-81
+setup/dashboard/ws/src/widgets/memory-stats-island.tsx
+  s_2df05b56a88f9a::t_23be795978d689 1-77
+setup/dashboard/ws/src/router.tsx
+  s_2df05b56a88f9a::t_908dc618b37189 33,192-195
+  s_2df05b56a88f9a::t_60b38283f14a00 10,134,136-144,146
+  s_2df05b56a88f9a::t_fe97a0def31aaa 6,27,110-112,114,121
+  s_2df05b56a88f9a::t_89db527a9098c8 20-25,93-99,123-125,147-150,262-263
+  s_2df05b56a88f9a::t_ad17fe434498f7 28,31,116,126-127,203-206,213,221,264
+  s_2df05b56a88f9a::t_61738c632a3deb 115,135,151
+  s_2df05b56a88f9a::t_13b4212637b72c 29,211-212
+  s_2df05b56a88f9a::t_68c64ced636665 13,26,35,61,85,100-109,113,118-120,287
+  s_2df05b56a88f9a::t_438a6b77187020 30,219-220
+  s_2df05b56a88f9a::t_bf238d496feeec 214
+  s_2df05b56a88f9a::t_60b278f9a59b37 222
+  s_2df05b56a88f9a::t_5322fbb44d0328 265
+setup/dashboard/ws/src/utils/client-assets.ts
+  s_2df05b56a88f9a::t_54ca4d35b50bc5 1-22,24-28
+  s_2df05b56a88f9a::t_3463743ed75f5d 23
+setup/dashboard/ws/src/widgets/package-management-center-view.tsx
+  s_2df05b56a88f9a::t_557cd875be910e 172,176
+  s_2df05b56a88f9a::t_531741e060d4e7 32-33
+  s_2df05b56a88f9a::t_ea6555faa03107 1-3,5-31,34-82,84-114,116-130,132-157,159-171,173-175,177-181,183,185-187,189-190,192-198
+  s_2df05b56a88f9a::t_6ca0a20de7d70b 83,115,131,182,184,188,191
+  s_2df05b56a88f9a::t_851759772bc272 158
+  s_2df05b56a88f9a::t_88cca78bdfbafd 4
+e2e/migration/candidate-chrome.spec.ts
+  s_2df05b56a88f9a::t_1b5d63b712d2b9 123,148,161
+  s_2df05b56a88f9a::t_056a6136eac98d 38-40,92-93,128-129,131-132,167-168
+  s_2df05b56a88f9a::t_9130200f17839b 1-37,41-59,61-91,94-122,124-127,130,133-147,149-160,162-166
+  s_2df05b56a88f9a::t_b8feb8045a04ab 60
+setup/dashboard/ws/src/shared/disk-data-contract.ts
+  s_2df05b56a88f9a::t_6598fc183d91d1 1-66
+setup/dashboard/css/react-service-control.css
+  s_2df05b56a88f9a::t_fe97a0def31aaa 4-17,56,62,66,73
+  s_2df05b56a88f9a::t_b91f32f3201341 1-3,18-55,57-61,63-65,67-72,74-97
+  s_2df05b56a88f9a::t_6fd2b203aeccd5 98-113
+setup/dashboard/ws/src/shared/system-response-contract.ts
+  s_2df05b56a88f9a::t_6f2193486aa72b 1-23
+setup/dashboard/ws/src/client/system-summary-client.tsx
+  s_2df05b56a88f9a::t_5081162dc98158 21-22,24,31,63,76,85
+  s_2df05b56a88f9a::t_2f50d158feabcd 37-39,48-51
+  s_2df05b56a88f9a::t_1d73a7b884d525 67-70,86
+  s_2df05b56a88f9a::t_ec6a6aeff9ad60 1-20,23,25-30,32-36,40-47,52-62,64-66,71-75,77-84,87-90
+setup/dashboard/ws/tests/controllers/dashboard.spec.ts
+  s_2df05b56a88f9a::t_1939ce3baa1bcd 21-23
+setup/dashboard/ws/src/client/memory-stats-client.tsx
+  s_2df05b56a88f9a::t_5081162dc98158 12,18,28,37
+  s_2df05b56a88f9a::t_23be795978d689 1-11,13-17,19-27,29-36,38-41
+setup/dashboard/ws/src/client/cpu-status-client.tsx
+  s_2df05b56a88f9a::t_e6f40d29ac7a29 1-11,13-17,19-27,29-36,38-41
+  s_2df05b56a88f9a::t_5081162dc98158 12,18,37
+  s_2df05b56a88f9a::t_84602d726ab68c 28
+setup/dashboard/js/quick.js
+  s_2df05b56a88f9a::t_b51ebec8d70ba4 6,9-12,14-20,44-65,67-69,72-74,77-79,92-96,98-104
+setup/dashboard/ws/src/client/service-control-client.tsx
+  s_2df05b56a88f9a::t_cda723a3648a6f 102-123,142,151,199-200,203,250-251,253-254,267
+  s_2df05b56a88f9a::t_438a6b77187020 20,29,77
+  s_2df05b56a88f9a::t_f20c330595f4cb 23,33,45-46,82-83
+  s_2df05b56a88f9a::t_4b9367b9044868 38,124,140,201
+  s_2df05b56a88f9a::t_691254670621ac 17,26,42-43,74
+  s_2df05b56a88f9a::t_4f694b14a44f6e 22,31,44
+  s_2df05b56a88f9a::t_2d91034dda53ce 1-15,24,34-36,39,47-72,79-81,84-101,127-139,141,143,145-150,152-198,202,204-218,220,224-249,252,255-266,268-285,287-303,306-316,318-320,323-337
+  s_2df05b56a88f9a::t_8a533396b05d34 32,40
+  s_2df05b56a88f9a::t_5081162dc98158 125-126,144,286,317
+  s_2df05b56a88f9a::t_bc3de7f284997c 222,304-305,321
+  s_2df05b56a88f9a::t_cc7fb8bdc3104c 18,27,75
+  s_2df05b56a88f9a::t_a298aa59e79b8c 19,28,76
+  s_2df05b56a88f9a::t_fe97a0def31aaa 37,322
+  s_2df05b56a88f9a::t_a27a2619beec28 219,221,223
+  s_2df05b56a88f9a::t_ad17fe434498f7 16,25,41,73
+  s_2df05b56a88f9a::t_13b4212637b72c 21,30,78
+setup/dashboard/ws/tsconfig.json
+  s_2df05b56a88f9a::t_af5da4eddab35a 12
+setup/dashboard/ws/src/widgets/load.ts
+  s_2df05b56a88f9a::t_674f2f5d66e0d0 3,5,9,12,14-15
+setup/dashboard/ws/src/client/bandwidth-tables-client.tsx
+  s_2df05b56a88f9a::t_5081162dc98158 16,22,32,41
+  s_2df05b56a88f9a::t_2501d2353d0e81 1-15,17-21,23-31,33-40,42-45
+setup/dashboard/ws/src/widgets/disk-data-island.tsx
+  s_2df05b56a88f9a::t_6598fc183d91d1 1-58
+setup/dashboard/ws/src/widgets/dashboard-chrome.tsx
+  s_2df05b56a88f9a::t_a176e0a57b96f3 175,181,184,190,204,250,258-259
+  s_2df05b56a88f9a::t_6ca0a20de7d70b 80,82,88,95,97,100,118-119,130,139-140,144-145,172,187,203,222-223,253
+  s_2df05b56a88f9a::t_6abf2b64a3b7ca 132-136,147
+  s_2df05b56a88f9a::t_af5da4eddab35a 245-247
+  s_2df05b56a88f9a::t_2272767ee50443 1-18,20-79,81,83-87,89-94,96,98-99,101-117,120-129,131,137-138,141-143,146,148-168,170-171,173-174,176-180,182-183,185-186,188-189,191-202,205-221,224-244,248-249,251-252,254-257,260-267
+  s_2df05b56a88f9a::t_0674684ae83704 19,169
+setup/dashboard/ws/src/controllers/node.ts
+  s_2df05b56a88f9a::t_908dc618b37189 8,23
+setup/dashboard/ws/src/widgets/package-management-center.tsx
+  s_2df05b56a88f9a::t_5ac172a8d673fc 7
+  s_2df05b56a88f9a::t_666a58f70c313e 2,8-62
+setup/dashboard/ws/src/widgets/cpu-status-island.tsx
+  s_2df05b56a88f9a::t_e6f40d29ac7a29 1-22
+setup/dashboard/ws/package.json
+  s_2df05b56a88f9a::t_76ba95c8151df0 7-9,23-24
+setup/dashboard/css/react-system-response.css
+  s_2df05b56a88f9a::t_484776f58b6db3 1-80
+setup/dashboard/ws/src/shared/cpu-status-contract.ts
+  s_2df05b56a88f9a::t_e6f40d29ac7a29 1-28
+setup/dashboard/ws/src/shared/service-control-contract.ts
+  s_2df05b56a88f9a::t_6632c55049de2a 64-66,73-78,86-87,98-99,128-130
+  s_2df05b56a88f9a::t_67ab9b9af2c00d 106-122,132-135,137
+  s_2df05b56a88f9a::t_b1a2161e337dc6 1-63,67-72,79-85,88-97,100-105,123-127,131,136,138
+setup/dashboard/ws/tests/router.spec.ts
+  s_2df05b56a88f9a::t_1939ce3baa1bcd 8,43-46,50,87-93
+  s_2df05b56a88f9a::t_f19267bd63d955 7,113,117
+  s_2df05b56a88f9a::t_6c3e1f8a323480 122-138
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_2df05b56a88f9a::t_15d2db76aa84f9 179
+  s_2df05b56a88f9a::t_0d17517217180c 172
+  s_2df05b56a88f9a::t_4825bcad6f21da 9,31-32,50,62,65-73,141,144,178,427
+  s_2df05b56a88f9a::t_13b4212637b72c 18,337
+  s_2df05b56a88f9a::t_691254670621ac 14,41,148,277-278,280-281
+  s_2df05b56a88f9a::t_6ca0a20de7d70b 60-61,385-412
+  s_2df05b56a88f9a::t_438a6b77187020 17,341
+  s_2df05b56a88f9a::t_fe97a0def31aaa 12,33,143
+  s_2df05b56a88f9a::t_c84f31e1376475 384,416
+  s_2df05b56a88f9a::t_b6cfc587a6f4c5 11,13,34,74-78,145-147,317,323
+  s_2df05b56a88f9a::t_896761b6836e08 139-140,180
+  s_2df05b56a88f9a::t_a298aa59e79b8c 16,332
+  s_2df05b56a88f9a::t_af5da4eddab35a 19
+  s_2df05b56a88f9a::t_49696b254870f2 79,149,279
+  s_2df05b56a88f9a::t_d3154ab7ed4a7b 21,80-131,150-151
+  s_2df05b56a88f9a::t_24277baf92727d 175-176,181,254,256,366,374-375,383,418-419,429-431
+  s_2df05b56a88f9a::t_cc7fb8bdc3104c 15,295
+  s_2df05b56a88f9a::t_b4be9848d0e458 10,42,152
+  s_2df05b56a88f9a::t_4ae496b8755bb0 365
+setup/dashboard/js/dashboard.js
+  s_2df05b56a88f9a::t_13b4212637b72c 514-520,703-714,1131-1145
+  s_2df05b56a88f9a::t_2f50d158feabcd 661-665,668,671
+  s_2df05b56a88f9a::t_b3341ad6236dd3 473-489,1291-1293
+  s_2df05b56a88f9a::t_4bc8d3c8b6b900 672-679,715-717,999-1002
+  s_2df05b56a88f9a::t_a298aa59e79b8c 1061-1065
+  s_2df05b56a88f9a::t_e911ef47c7c493 499-506,680-690
+  s_2df05b56a88f9a::t_f5b83ac76d037a 42-44
+  s_2df05b56a88f9a::t_cacab626d64f1c 450-454,465-469,763-765,809-812,1197-1202,1207-1220,1253-1257
+  s_2df05b56a88f9a::t_9b5c6059917814 63-75,391,521-526,631,633-635,640-645,771-773,777-779
+  s_2df05b56a88f9a::t_093fe738925cc7 490-498,660,666-667,669-670,1115-1129
+  s_2df05b56a88f9a::t_e5c8b2c4f4f286 507-513,691-702,1147-1161
+  s_2df05b56a88f9a::t_e45f9e88c85322 1086-1090,1225-1240,1243-1246,1250,1287
+  s_2df05b56a88f9a::t_908dc618b37189 1091-1094
+  s_2df05b56a88f9a::t_e1c55db3472576 1193-1196,1203-1206,1221-1223
+setup/dashboard/ws/src/widgets/bandwidth-tables.tsx
+  s_2df05b56a88f9a::t_b2314d773089bd 8-9,11,56,59-70,72-86,88-97,99,101-103
+setup/dashboard/ws/build/webpack.client.config.js
+  s_2df05b56a88f9a::t_bb3470e46cdf07 1-6,8-73
+  s_2df05b56a88f9a::t_0e33d210ef0ac7 7
+setup/dashboard/ws/src/handlers/message.ts
+  s_2df05b56a88f9a::t_438a6b77187020 11
+  s_2df05b56a88f9a::t_62ba19e36c13f5 77
+  s_2df05b56a88f9a::t_ad17fe434498f7 7,9,19
+  s_2df05b56a88f9a::t_13b4212637b72c 10
+  s_2df05b56a88f9a::t_465b26f5b19579 17
+  s_2df05b56a88f9a::t_469ac693fa4749 14,16,18,115-154,169-175
+  s_2df05b56a88f9a::t_aabed8e939c9ec 13
+  s_2df05b56a88f9a::t_ce20edb07c71c8 62-76,78-98,102-104,106
+setup/dashboard/ws/src/shared/system-summary-contract.ts
+  s_2df05b56a88f9a::t_ec6a6aeff9ad60 1-47
+setup/dashboard/ws/src/shared/network-status-contract.ts
+  s_2df05b56a88f9a::t_acc8150a5aaff1 1-42
+setup/dashboard/ws/src/widgets/system-summary-island.tsx
+  s_2df05b56a88f9a::t_ec6a6aeff9ad60 1-23
+setup/dashboard/ws/src/shared/memory-stats-contract.ts
+  s_2df05b56a88f9a::t_23be795978d689 1-44,62,72
+  s_2df05b56a88f9a::t_373df03f23bda3 45-61,63-71
+setup/dashboard/js/migration/dashboard-client-manifest.json
+  s_2df05b56a88f9a::t_4ad1b0ddcaaa74 1-4
+setup/dashboard/js/migration/dashboard-client.c5e6a8a3.js
+  s_2df05b56a88f9a::t_8dd50b5b131bb3 1-95
+setup/dashboard/ws/dist/server.js
+  s_2df05b56a88f9a::t_e06049f7a04c0e 1
+setup/dashboard/ws/package-lock.json
+  s_2df05b56a88f9a::t_6a83cf8b77aba1 12-13,72-173,232-243,1060-1786,2758-2821,3182-3190,3240-3245,3398-3403,4780-4785,4925-4933,5817-5822,6011-6019,6420-6425,6439-6444,6630-6638
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6d56597152863808cfc8b08a8baccbafaf5a214b",
+  "prompts": {},
+  "sessions": {
+    "s_2df05b56a88f9a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16348-fa4d-7a10-a9e5-2fd1e04aabad",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
