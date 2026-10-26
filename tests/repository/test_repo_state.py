@@ -26,11 +26,14 @@ git -C "$QUICKBOX_REPO_ROOT" rev-parse HEAD >"$QUICKBOX_BACKUP_DIR/reinstalled"
     git(repo, "add", ".")
     git(repo, "commit", "-qm", "base")
     base = git(repo, "rev-parse", "HEAD")
+    install = tmp_path / "install"
+    install.mkdir()
     backup = tmp_path / "backups"
     env = {
         "QB_UPDATE_LIB_DIR": str(REPO / "packages/system/update"),
         "OUTTO": str(tmp_path / "out.log"),
         "QUICKBOX_BACKUP_DIR": str(backup),
+        "QUICKBOX_INSTALL_DIR": str(install),
         "QUICKBOX_REPO_ROOT": str(repo),
         "QUICKBOX_UPDATE_CORE_LOCK": str(tmp_path / "update.lock"),
         "QUICKBOX_ALLOW_NON_ROOT": "1",
@@ -65,6 +68,7 @@ git -C "$QUICKBOX_REPO_ROOT" rev-parse HEAD >"$QUICKBOX_BACKUP_DIR/reinstalled"
     assert result.returncode == 0, result.stderr
     assert git(repo, "rev-parse", "HEAD") == base
     assert (backup / "reinstalled").read_text().strip() == base
+    assert (install / ".quickbox-branch").read_text().splitlines()[1] == base
     result = run("--list")
     assert result.returncode == 0
     assert base in result.stdout and "TIMESTAMP" in result.stdout

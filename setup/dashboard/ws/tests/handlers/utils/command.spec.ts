@@ -41,6 +41,15 @@ describe("exec", () => {
             expect(buildCommand("installpackage::btsync", config, username))
                 .to.equal("bash /usr/local/bin/quickbox/package/install/installpackage-btsync");
         });
+        it("accepts branch names without allowing shell injection", () => {
+            expect(buildCommand("box:switch-branch:feature/test-1", config, username))
+                .to.equal("sudo -n -- /usr/local/bin/quickbox/system/box switch-branch 'feature/test-1'");
+            expect(buildCommand("box:switch-branch:main;id", config, username)).to.equal("sudo -n -- /usr/local/bin/quickbox/system/box switch-branch 'main;id'");
+            expect(buildCommand("box:switch-branch:main$(id)", config, username)).to.equal("sudo -n -- /usr/local/bin/quickbox/system/box switch-branch 'main$(id)'");
+            for (const branch of ["-bad", "main other", "main:other"]) {
+                expect(() => buildCommand(`box:switch-branch:${branch}`, config, username)).to.throw(/Invalid branch/);
+            }
+        });
         it("should build with username", () => {
             expect(buildCommand("systemctl:start:deluge-web", config, username))
                 .to.equal("systemctl start deluge-web@quickbox");

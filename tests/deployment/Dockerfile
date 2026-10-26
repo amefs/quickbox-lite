@@ -2,7 +2,7 @@ FROM node:24-slim
 ENV DEBIAN_FRONTEND=noninteractive
 ENV npm_config_cache=/opt/quickbox-npm-cache npm_config_audit=false npm_config_fund=false
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    nginx sudo openssl rsync curl python3 procps util-linux iproute2 ca-certificates \
+    nginx sudo openssl rsync curl python3 procps util-linux iproute2 ca-certificates git \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf /usr/local/bin/node /usr/bin/node
 WORKDIR /opt/quickbox-source

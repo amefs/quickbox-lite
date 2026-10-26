@@ -54,13 +54,13 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
             blocked:  0,
             sleeping: 0,
             unknown:  0,
-            list: p.processes.map((proc: { pid: number; name: string; cpu: number; mem: number; user: string }) => ({
+            list: p.processes.map((proc: { pid: number; name: string; cpu: number; mem: number; user: string; params?: string }) => ({
                 pid: proc.pid, parentPid: 1,
                 name: proc.name, cpu: proc.cpu, cpuu: proc.cpu, cpus: 0,
                 mem: proc.mem, priority: 20, memVsz: 0, memRss: 0,
                 nice: 0, started: "2026-01-01 00:00:00", state: "running",
                 tty: "", user: proc.user, command: proc.name,
-                params: "", path: `/usr/bin/${proc.name}`,
+                params: proc.params ?? "", path: `/usr/bin/${proc.name}`,
             })),
         };
     };

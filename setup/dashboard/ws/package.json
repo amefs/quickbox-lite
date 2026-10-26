@@ -9,7 +9,7 @@
     "check-type": "tsc --noemit",
     "eslint": "eslint .",
     "lint": "npm run check-type && npm run eslint",
-    "dev:server": "tsx watch src/server.tsx",
+    "dev:server": "QUICKBOX_DEV_SERVER=1 QUICKBOX_REPO_ROOT=${QUICKBOX_REPO_ROOT:-../../..} tsx watch src/server.tsx",
     "dev:client": "tsx scripts/dev-client.js",
     "dev:dashboard": "node scripts/dev-server.js",
     "audit": "npm audit --registry=https://registry.npmjs.org",

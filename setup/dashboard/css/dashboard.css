@@ -323,3 +323,104 @@
 #quickbox-alert-modal .modal-footer {
     padding: 12px 20px;
 }
+
+/* Branch selection shares the active theme while keeping the form compact. */
+#branchSwitch.in {
+    display: flex !important;
+    align-items: center;
+    padding: 20px 0;
+}
+#branchSwitch .modal-dialog {
+    width: calc(100% - 30px);
+    max-width: 420px;
+    margin: auto;
+}
+#branchSwitch .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+}
+#branchSwitch .modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+#branchSwitch .modal-header .close {
+    float: none;
+    margin: 0;
+    flex: none;
+}
+#branchSwitch .modal-body {
+    padding: 16px 20px;
+}
+#branchSwitch .branch-current {
+    margin-bottom: 14px;
+}
+#branchSwitch .branch-label {
+    display: block;
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    opacity: .75;
+}
+#branchSwitch .branch-value {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+#branchSwitch .branch-commit {
+    margin-left: 8px;
+    font-size: 12px;
+    opacity: .7;
+}
+#branchSwitch .branch-select {
+    position: relative;
+}
+#branchSwitch .branch-select::after {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    width: 7px;
+    height: 7px;
+    border-right: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+    content: "";
+}
+#branchSwitch .form-control {
+    width: 100%;
+    height: 32px;
+    padding: 4px 32px 4px 10px;
+    line-height: 1.4;
+    appearance: none;
+}
+#branchSwitch .branch-warning {
+    margin: 12px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: .8;
+}
+#branchSwitch #branchError {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+}
+#branchSwitch #branchRetry {
+    padding: 0 0 0 6px;
+    font-size: inherit;
+    vertical-align: baseline;
+}
+#branchSwitch .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+}
+#branchSwitch .modal-footer .btn + .btn {
+    margin-left: 0;
+}

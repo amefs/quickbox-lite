@@ -136,7 +136,8 @@ function _help() {
 	echo "                                  blank to use batch install"
 	echo "remove <appname>                  remove installed application"
 	echo "update <appname>                  upgrade installed application"
-	echo "update quickbox [--verbose]       upgrade QuickBox (--verbose: full step output)"
+	echo "update quickbox [--only-core] [--branch <branch>] [--verbose]"
+	echo "                                  upgrade QuickBox from the specified branch on origin"
 	echo "revert [--list] [--yes] [COMMIT]  restore and reinstall a QuickBox commit"
 	echo "lang <da|de|en|es|fr|zh>          change dashboard language"
 	echo "clean <mem|log>                   clean memory or installation log"
@@ -146,7 +147,8 @@ function _help() {
 	echo "abort                             stop the running installation or update"
 	echo "troubleshoot                      generate log for troubleshoot"
 	echo "unban <IP adress>                 remove a IP/all IP from banned list"
-	echo "enable-dev|disable-dev            enable or disable development mode"
+	echo "switch-branch <branch>            switch branch and update QuickBox"
+	echo "enable-dev|disable-dev            switch to development or master"
 	echo ""
 	echo "help                              display this help and exit"
 }
@@ -357,24 +359,18 @@ if [[ $resolver == "unban" ]]; then
 	fi
 fi
 
-if [[ $resolver == "enable-dev" ]]; then
-	if [[ -f /install/.developer.lock ]]; then
-		_warning "Already in development mode!"
-	else
-		_success "Switching to development mode"
-		touch /install/.developer.lock
-		/usr/local/bin/quickbox/system/box update quickbox
+if [[ $resolver == "enable-dev" || $resolver == "disable-dev" || $resolver == "switch-branch" ]]; then
+	case "$resolver" in
+		enable-dev) branch=development ;;
+		disable-dev) branch=master ;;
+		*) branch=${2:-} ;;
+	esac
+	if [[ -z ${branch} || ${branch} == -* ]] || ! git check-ref-format --branch "${branch}" >/dev/null 2>&1; then
+		_error "Invalid branch name"
+		exit 2
 	fi
-fi
-
-if [[ $resolver == "disable-dev" ]]; then
-	if [[ -f /install/.developer.lock ]]; then
-		_success "Switching to master branch"
-		rm -f /install/.developer.lock
-		/usr/local/bin/quickbox/system/box update quickbox
-	else
-		_warning "Development mode is not activated"
-	fi
+	/usr/local/bin/quickbox/system/box update quickbox --only-core --branch "${branch}"
+	exit $?
 fi
 
 if [[ $resolver == "revert" ]]; then
@@ -391,7 +387,7 @@ fi
 # ERROR HANDLER
 ################################################################################
 
-if [[ ! $resolver =~ ("lang"|"install"|"remove"|"update"|"revert"|"abort"|"clean"|"troubleshoot"|"set"|"fix"|"iotest"|"disktest"|"unban"|"enable-dev"|"disable-dev"|"help") ]]; then
+if [[ ! $resolver =~ ("lang"|"install"|"remove"|"update"|"revert"|"abort"|"clean"|"troubleshoot"|"set"|"fix"|"iotest"|"disktest"|"unban"|"enable-dev"|"disable-dev"|"switch-branch"|"help") ]]; then
 	_error "Command not exist!"
 	_help
 	exit 1

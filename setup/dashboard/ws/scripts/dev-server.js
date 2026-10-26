@@ -90,6 +90,8 @@ function startDashboardServer(config = buildServerConfig()) {
         cwd: packageRoot,
         env: {
             ...process.env,
+            QUICKBOX_REPO_ROOT: process.env.QUICKBOX_REPO_ROOT || path.resolve(packageRoot, "../../.."),
+            QUICKBOX_DEV_SERVER: "1",
             WS_HOST: config.wsHost,
             WS_PORT: String(config.wsPort),
         },

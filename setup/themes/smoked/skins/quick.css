@@ -8948,6 +8948,37 @@ blockquote {
   z-index: 1;
 }
 
+.badge.badge-service-unknown-dot {
+  background-color: #9aa0a6;
+  border: 2px solid #9aa0a6;
+  border-radius: 50%;
+  display: inline-block;
+  height: 10px;
+  opacity: 0.8;
+  padding: 1px;
+  position: relative;
+  width: 10px;
+}
+
+.badge.badge-service-unknown-pulse {
+  background: transparent;
+  border: 2px solid #9aa0a6;
+  border-radius: 50%;
+  display: inline-block;
+  height: 20px;
+  margin-left: -15px;
+  opacity: 0;
+  position: relative;
+  width: 20px;
+}
+
+.badge-service-stale {
+  -webkit-animation: none !important;
+  -moz-animation: none !important;
+  animation: none !important;
+  opacity: 0.55;
+}
+
 @keyframes pulse {
  0% {
     transform: scale(0);

@@ -27,43 +27,55 @@ function _error() {
 
 function _updateRepo() {
 	_info "Updating QuickBox local repository..."
-	BRANCH="https://github.com/amefs/quickbox-lite.git"
+	local repo="${QUICKBOX_REPO_ROOT:-/etc/QuickBox}" branch state_branch changes
 	if [[ -f /install/.legacy.lock ]]; then
-		if grep -qv "branch \"legacy\"" /etc/QuickBox/.git/config; then
-			rm -rf "/etc/QuickBox"
-			_execute "git clone --recursive ${BRANCH} --branch legacy /etc/QuickBox" || return 1
-		else
-			cd /etc/QuickBox || exit 1
-			_execute "git checkout legacy" || return 1
-			_execute "git fetch origin" || return 1
-			_execute "git reset --hard origin/legacy" || return 1
+		if [[ -n ${update_target_branch:-} && ${update_target_branch} != legacy ]]; then
+			_error "This system requires the legacy branch"
+			return 1
 		fi
-	elif [[ ! -f /install/.developer.lock ]]; then
-		# update to dev branch
-		if [[ -d /etc/QuickBox ]]; then
-			cd /etc/QuickBox || exit 1
-			_execute "git checkout master" || return 1
-			_execute "git fetch origin" || return 1
-			_execute "git reset --hard origin/master" || return 1
-		else
-			_execute "git clone --recursive ${BRANCH} /etc/QuickBox" || return 1
+		branch=legacy
+	elif [[ -n ${update_target_branch:-} ]]; then
+		branch=${update_target_branch}
+	elif [[ -s /install/.quickbox-branch ]]; then
+		IFS= read -r state_branch </install/.quickbox-branch
+		branch=${state_branch}
+	elif [[ -f /install/.developer.lock ]]; then
+		branch=development
+		if [[ -f /install/.debug.lock && -d ${repo}/.git ]]; then
+			branch=$(git -C "${repo}" symbolic-ref --short -q HEAD) || return 1
 		fi
 	else
-		if [[ -d /etc/QuickBox ]]; then
-			cd /etc/QuickBox || exit 1
-			if [[ ! -f /install/.debug.lock ]]; then
-				_execute "git checkout development" || return 1
-				_execute "git fetch origin" || return 1
-				_execute "git reset --hard origin/development" || return 1
-			else
-				_execute "git fetch origin" || return 1
-				_execute "git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)" || return 1
-				echo "$(git rev-parse --abbrev-ref --symbolic-full-name @)($(git rev-parse --short HEAD))" > /install/.debug.lock
-			fi
-		else
-			_execute "git clone --recursive --branch development ${BRANCH} /etc/QuickBox" || return 1
+		branch=master
+	fi
+	if [[ ${branch} == detached && -z ${update_target_branch:-} ]]; then
+		_error "The installed checkout is detached. Select a branch with box switch-branch. Essential updates cannot select a branch automatically."
+		return 1
+	fi
+	if [[ ${branch} == -* ]] || ! git check-ref-format --branch "${branch}" >/dev/null 2>&1; then
+		_error "Invalid branch: ${branch}"
+		return 1
+	fi
+	if [[ ! -e ${repo} ]]; then
+		_info "Cloning QuickBox repository"
+		git clone --recursive --branch "${branch}" https://github.com/amefs/quickbox-lite.git "${repo}" >>"${OUTTO}" 2>&1 || return 1
+	fi
+	if [[ ! -d ${repo}/.git ]]; then
+		_error "QuickBox repository is not a git checkout: ${repo}"
+		return 1
+	fi
+	if [[ -n ${update_target_branch:-} ]]; then
+		changes=$(git -C "${repo}" status --porcelain --untracked-files=no) || return 1
+		if [[ -n ${changes} ]]; then
+			_error "Tracked repository files have local changes. Restore or save them before switching branches."
+			return 1
 		fi
 	fi
+	_info "Fetching origin/${branch}"
+	git -C "${repo}" fetch origin "+refs/heads/${branch}:refs/remotes/origin/${branch}" >>"${OUTTO}" 2>&1 || return 1
+	git -C "${repo}" checkout -B "${branch}" "refs/remotes/origin/${branch}" >>"${OUTTO}" 2>&1 || return 1
+	git -C "${repo}" reset --hard "refs/remotes/origin/${branch}" >>"${OUTTO}" 2>&1 || return 1
+	git -C "${repo}" submodule update --init --recursive >>"${OUTTO}" 2>&1 || return 1
+
 	# File modes and line endings are repaired by _setPerm, which runs next.
 	if [[ ! -f /install/.cdn.lock ]]; then
 		echo "github" > /install/.cdn.lock

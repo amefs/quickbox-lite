@@ -39,7 +39,7 @@ for (const theme of ["smoked", "defaulted"]) {
                 for (const locale of ["zh", "en"]) {
                     await page.goto(`/?locale=${locale}`);
                     await expect(page.locator(".headermenu .label-warning")).toContainText("fix/dashboard-review-findings");
-                    await expect(page.locator(".headermenu .label-warning")).toHaveAttribute("title", /fix\/dashboard-review-findings-with-an-extremely-long-branch-name\(dd47129\)/);
+                    await expect(page.locator(".headermenu .label-warning")).toHaveAttribute("title", /fix\/dashboard-review-findings-with-an-extremely-long-branch-name/);
                     await expectHeaderContained(page);
                     await page.locator("#noticePanel > button").click();
                     await expect(page.locator("#noticeDropdown")).toBeVisible();

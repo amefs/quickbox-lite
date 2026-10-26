@@ -10,7 +10,12 @@ import { Socket } from "socket.io";
 import Constant, { username } from "../shared/constants";
 import { WatchedConfig } from "../shared/watched-config";
 import { CommandType, buildCommand } from "./utils/command";
+import { invalidateServiceState, refreshServiceState } from "../widgets/service-state";
 import { runMockCommand } from "../testing/mock-adapter";
+import { serviceMap } from "../info";
+import { isServiceEnabled } from "../widgets/panels";
+import { serviceStatusAll } from "../widgets/service-status";
+import { VALID_LOCALES, withLocale } from "../i18n";
 
 let baseDir = __dirname;
 let configPath = "";
@@ -52,6 +57,17 @@ const execOption: ExecOptionsWithBufferEncoding = {
     timeout: 1000 * 60 * 114, // 114 minutes
     maxBuffer: 5 * 1024 * 1024, // 5 MiB
 };
+const serviceActionExecOption: ExecOptionsWithBufferEncoding = { ...execOption, timeout: 15_000 };
+const serviceActionsInFlight = new Set<string>();
+const serviceActionOperations = {
+    enable: ["enable", "start"],
+    disable: ["stop", "disable"],
+    restart: ["restart"],
+} as const;
+
+function isServiceAction(value: string): value is keyof typeof serviceActionOperations {
+    return Object.prototype.hasOwnProperty.call(serviceActionOperations, value);
+}
 
 const DEFAULT_MAX_PER_SOCKET = 2;
 const DEFAULT_MAX_GLOBAL = 8;
@@ -83,7 +99,7 @@ function shellQuote(value: string) {
 
 function isPersistentUpdate(payload: string) {
     const [command, operation] = payload.trim().split(":");
-    return command === "box" && operation === "update";
+    return command === "box" && (operation === "update" || operation === "switch-branch" || operation === "enable-dev" || operation === "disable-dev");
 }
 
 export function isPidAlive(pid: number): boolean {
@@ -362,6 +378,132 @@ export function decodeExecOutput(raw: Buffer | string) {
     return utf8;
 }
 
+function executeServiceCommand(payload: string): Promise<{ success: boolean; message: string; stdout: string; stderr: string }> {
+    let template: string;
+    try {
+        template = buildCommand(payload, config, username);
+    } catch (error) {
+        return Promise.resolve({
+            success: false,
+            message: error instanceof Error ? error.message : "Invalid command",
+            stdout: "",
+            stderr: "",
+        });
+    }
+    const mockResult = runMockCommand(payload);
+    if (mockResult !== undefined) {
+        return Promise.resolve({
+            success: mockResult,
+            message: mockResult ? "Mock command completed" : "Mock command rejected",
+            stdout: "",
+            stderr: "",
+        });
+    }
+    return new Promise((resolve) => {
+        exec(template, serviceActionExecOption, (error, stdout, stderr) => {
+            resolve({
+                success: !error,
+                message: error ? (error.killed ? "Service command timed out" : "Service command failed") : "",
+                stdout: decodeExecOutput(stdout),
+                stderr: decodeExecOutput(stderr),
+            });
+        });
+    });
+}
+
+interface ServiceActionPayload {
+    requestId?: unknown;
+    service?: unknown;
+    action?: unknown;
+    locale?: unknown;
+}
+
+async function serviceActionHandler(payload: unknown, client: Socket) {
+    const request = payload !== null && typeof payload === "object" ? payload as ServiceActionPayload : {};
+    const response: {
+        requestId?: string;
+        service: string;
+        action: string;
+        success: boolean;
+        message: string;
+        phase?: "action-complete" | "status-confirmed";
+        statusError?: string;
+        failedOperation?: string;
+        completedOperations: string[];
+        stdout: string;
+        stderr: string;
+        enabled?: boolean;
+        status?: Awaited<ReturnType<typeof serviceStatusAll>>;
+    } = {
+        requestId: typeof request.requestId === "string" ? request.requestId : undefined,
+        service: typeof request.service === "string" ? request.service : "",
+        action: typeof request.action === "string" ? request.action : "",
+        success: false,
+        message: "Invalid service action",
+        completedOperations: [],
+        stdout: "",
+        stderr: "",
+    };
+
+    if (!serviceMap.has(response.service) || !isServiceAction(response.action)) {
+        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
+        return;
+    }
+    const operations = serviceActionOperations[response.action];
+    if (serviceActionsInFlight.has(response.service)) {
+        response.message = "A service action is already in progress";
+        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
+        return;
+    }
+    if (!tryAcquireExecSlot(client)) {
+        response.message = "Too many commands in progress";
+        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
+        return;
+    }
+
+    serviceActionsInFlight.add(response.service);
+    try {
+        response.success = true;
+        response.message = "Service action completed";
+        for (const operation of operations) {
+            const result = await executeServiceCommand(`systemctl:${operation}:${response.service}`);
+            response.stdout += result.stdout;
+            response.stderr += result.stderr;
+            if (!result.success) {
+                response.success = false;
+                response.failedOperation = operation;
+                response.message = result.message || `systemctl ${operation} failed`;
+                break;
+            }
+            response.completedOperations.push(operation);
+        }
+    } catch (error) {
+        response.success = false;
+        response.message = error instanceof Error ? error.message : "Service action failed";
+    }
+
+    response.phase = "action-complete";
+    client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
+
+    response.phase = "status-confirmed";
+    try {
+        await refreshServiceState();
+        const detail = serviceMap.get(response.service);
+        if (detail) {
+            response.enabled = isServiceEnabled(response.service, detail.username);
+        }
+        const locale = typeof request.locale === "string" && VALID_LOCALES.includes(request.locale) ? request.locale : "en";
+        response.status = await withLocale(locale, async () => await serviceStatusAll());
+    } catch (error) {
+        response.statusError = error instanceof Error ? error.message : "Service status refresh failed";
+        console.error(`[quickbox-ws] failed to refresh service state after ${response.action}:${response.service}`, error);
+    } finally {
+        serviceActionsInFlight.delete(response.service);
+        releaseExecSlot(client);
+    }
+    client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
+}
+
 const execHandler = (payload: unknown, client: Socket) => {
     if (typeof payload !== "string") {
         client.emit(Constant.EVENT_EXEC, { cmd: "", success: false, message: "Invalid payload", stdout: "", stderr: "" });
@@ -394,6 +536,7 @@ const execHandler = (payload: unknown, client: Socket) => {
     }
     const finish = () => {
         releaseExecSlot(client);
+        if (ret.success && payload.startsWith("systemctl:")) {invalidateServiceState();}
         client.emit(Constant.EVENT_EXEC, ret);
     };
     const mockResult = runMockCommand(payload);
@@ -454,6 +597,7 @@ const execHandler = (payload: unknown, client: Socket) => {
 
 export default (client: Socket, next?: (err?: Error) => void) => {
     client.on(Constant.EVENT_EXEC, payload => { execHandler(payload, client); });
+    client.on(Constant.EVENT_SERVICE_ACTION, payload => { void serviceActionHandler(payload, client); });
     if (next) {
         next();
     }

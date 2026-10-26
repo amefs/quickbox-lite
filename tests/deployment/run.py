@@ -253,6 +253,40 @@ def permissions():
     )
     assert result.returncode != 0 and not (STATE / "sudo-forbidden").exists()
 
+    page = run([
+        "curl", "--noproxy", "*", "-fsS", "-u", "fixture:fixture-password", "http://127.0.0.1:18080/",
+    ], capture_output=True, text=True).stdout
+    stylesheet = re.search(r'href="(/css/dashboard\.css\?v=[0-9a-f]{12})"', page)
+    assert stylesheet is not None, "Dashboard stylesheet URL is not versioned"
+    stylesheet_response = run([
+        "curl", "--noproxy", "*", "-fsS", "-u", "fixture:fixture-password",
+        "http://127.0.0.1:18080" + stylesheet.group(1),
+    ], capture_output=True).stdout
+    assert hashlib.sha256(stylesheet_response).hexdigest()[:12] == stylesheet.group(1).split("=")[-1]
+    assert b"#branchSwitch .branch-commit" in stylesheet_response
+
+    # The service runs as www-data while the checkout is owned by root.
+    # Verify the actual HTTP endpoint can query its origin.
+    repo = Path("/etc/QuickBox")
+    origin = STATE / "branch-origin.git"
+    run(["git", "init", "--bare", str(origin)], stdout=subprocess.DEVNULL)
+    run(["git", "-C", str(repo), "init", "-b", "master"], stdout=subprocess.DEVNULL)
+    run(["git", "-C", str(repo), "config", "user.name", "QuickBox test"])
+    run(["git", "-C", str(repo), "config", "user.email", "test@example.invalid"])
+    run(["git", "-C", str(repo), "commit", "--allow-empty", "-m", "fixture"], stdout=subprocess.DEVNULL)
+    run(["git", "-C", str(repo), "remote", "add", "origin", str(origin)])
+    run(["git", "-C", str(repo), "push", "origin", "master"], stdout=subprocess.DEVNULL)
+    run(["chown", "-R", "www-data:www-data", str(origin)])
+    try:
+        response = run([
+            "curl", "--noproxy", "*", "-fsS", "-u", "fixture:fixture-password",
+            "http://127.0.0.1:18080/node/branches",
+        ], capture_output=True, text=True)
+        assert "master" in json.loads(response.stdout)["branches"], response.stdout
+    finally:
+        shutil.rmtree(repo / ".git")
+        shutil.rmtree(origin)
+
 
 def transports():
     for entry in ["/ws", "/ws/"]:

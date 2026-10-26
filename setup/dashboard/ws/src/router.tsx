@@ -3,6 +3,8 @@
 
 import express, { Router, type Request, type Response } from "express";
 import * as childProcess from "child_process";
+import { createHash } from "crypto";
+import { readFileSync } from "fs";
 import path from "path";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
@@ -43,14 +45,14 @@ export interface AppRouterOptions {
  *   /            — Node-rendered dashboard shell
  *   /set         — legacy locale normalizer for older clients
  *   /node/*      — React SSR widget endpoints consumed by the dashboard shell
- *   /debug*      — debug/introspection endpoints (gated by NODE_ENV)
+ *   /debug*      — debug/introspection endpoints (disabled in production unless QUICKBOX_WS_DEBUG=1)
  *   /test/*      — test-only endpoints (gated by isTestMode())
  */
 export function createAppRouter(options: AppRouterOptions): Router {
     const router = Router();
     const runExecFile = options.execFile ?? childProcess.execFile;
     const skinsDir = options.skinsDir ?? path.join(options.dashboardDir, "skins");
-    const debugEnabled = process.env.NODE_ENV !== "production";
+    const debugEnabled = process.env.NODE_ENV !== "production" || process.env.QUICKBOX_WS_DEBUG === "1";
     const parseThemeBody = (body: unknown): string | undefined => {
         if (body === null || typeof body !== "object" || !("theme" in body)) {
             return undefined;
@@ -76,6 +78,14 @@ export function createAppRouter(options: AppRouterOptions): Router {
     router.use("/img", express.static(path.join(options.dashboardDir, "img")));
     router.use("/js", express.static(path.join(options.dashboardDir, "js")));
     router.use("/lang", express.static(path.join(options.dashboardDir, "lang")));
+
+    const assetVersion = (relativePath: string): string => {
+        try {
+            return createHash("sha256").update(readFileSync(path.join(options.dashboardDir, relativePath))).digest("hex").slice(0, 12);
+        } catch {
+            return "";
+        }
+    };
 
     // ── Root ─────────────────────────────────────────────────────────────────
 
@@ -106,6 +116,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
                     locale={locale}
                     menuState={menuState}
                     ssrFragments={ssrFragments}
+                    assetVersions={{ css: assetVersion("css/dashboard.css"), js: assetVersion("js/dashboard.js") }}
                 />,
             );
         });
@@ -145,6 +156,23 @@ export function createAppRouter(options: AppRouterOptions): Router {
 
     router.get("/node/dashboard_config", async (req: Request, res: Response) => {
         res.json(await renderWithLocale(req, () => dashboardConfig()));
+    });
+
+    router.get("/node/branches", (_req: Request, res: Response) => {
+        if (isTestMode()) {
+            res.json({ branches: ["master", "development"] });
+            return;
+        }
+        const repo = path.resolve(process.env.QUICKBOX_REPO_ROOT || "/etc/QuickBox");
+        runExecFile("git", ["-c", `safe.directory=${repo}`, "-C", repo, "ls-remote", "--heads", "origin"], { timeout: 15000 }, (error, stdout) => {
+            if (error) {
+                console.warn("[branch-list] Git failed", { code: error.code, signal: error.signal, killed: error.killed });
+                res.status(503).json({ error: "Unable to list remote branches" });
+                return;
+            }
+            const branches = stdout.split("\n").map((line) => line.split("\trefs/heads/")[1]).filter((branch): branch is string => Boolean(branch));
+            res.json({ branches });
+        });
     });
 
     router.get("/node/system_static", async (req: Request, res: Response) => {

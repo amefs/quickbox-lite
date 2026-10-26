@@ -8,6 +8,8 @@ export default class Constant {
     public static EVENT_DISCONNECT = "disconnect";
     public static EVENT_MESSAGE = "message";
     public static EVENT_EXEC = "exec";
+    public static EVENT_SERVICE_ACTION = "service-action";
+    public static EVENT_SERVICE_ACTION_RESULT = "service-action-result";
     public static EVENT_I18N = "i18n";
     public static TEMPLATE_OPERATION = "$operation$";
     public static TEMPLATE_TARGET = "$target$";

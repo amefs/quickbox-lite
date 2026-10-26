@@ -21,6 +21,8 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
     if (!config) {
         throw new Error(`Invalid config with type '${Object.prototype.toString.call(config)}'`);
     }
+    const branchCommand = buildBranchCommand(payload);
+    if (branchCommand !== undefined) { return branchCommand; }
     let [command, operation, target] = payload.split(":");
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (command === undefined || operation === undefined || target === undefined) {
@@ -75,6 +77,25 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
         throw new Error(`Invalid template '${template}'`);
     }
     return template;
+}
+
+function buildBranchCommand(payload: string): string | undefined {
+    const parts = payload.split(":");
+    if (parts[0] !== "box" || parts[1] !== "switch-branch") { return undefined; }
+    const branch = parts[2];
+    if (parts.length !== 3 || !branch || branch.startsWith("-") || hasInvalidBranchCharacters(branch)) {
+        throw new Error("Invalid branch name");
+    }
+    const quoted = `'${branch.replaceAll("'", "'\\''")}'`;
+    return `sudo -n -- /usr/local/bin/quickbox/system/box switch-branch ${quoted}`;
+}
+
+function hasInvalidBranchCharacters(branch: string): boolean {
+    for (const char of branch) {
+        const code = char.charCodeAt(0);
+        if (code <= 32 || code === 127 || char === ":") { return true; }
+    }
+    return false;
 }
 
 function applyUsername(template: string, username: string | undefined): string {

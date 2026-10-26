@@ -36,6 +36,7 @@ update_config_committed=0
 update_service_started=0
 core=0
 from_checkout=0
+update_target_branch=""
 # Timing state for the end-of-run report. Indexed arrays keep the shared
 # helpers usable on the bash shipped by every supported release.
 update_started_ms=0
@@ -59,6 +60,9 @@ function _parseUpdateArgs() {
 		case "$1" in
 		--only-core) core=1 ;;
 		--from-checkout) from_checkout=1; core=1 ;;
+		--branch)
+			[[ $# -ge 2 ]] || { printf "Missing branch name\n" >&2; return 2; }
+			update_target_branch=$2; shift ;;
 		--verbose | -v)
 			# The service and dashboard stages are sourced into this shell, so
 			# one exported switch reaches every sub-step and helper.
@@ -67,7 +71,7 @@ function _parseUpdateArgs() {
 			;;
 		*)
 			printf 'Unknown update option: %s\n' "$1" >&2
-			printf 'Available options: --only-core, --from-checkout, --verbose\n' >&2
+			printf 'Available options: --only-core, --from-checkout, --branch BRANCH, --verbose\n' >&2
 			return 2
 			;;
 		esac
@@ -133,6 +137,7 @@ function _updateAbort() {
 	else
 		_warning "Configuration rollback skipped: the dashboard release was already committed"
 	fi
+	_error "Update did not complete. The repository may have changed; inspect the log and use box revert if needed."
 	_printUpdateTiming
 	_releaseUpdateInstallLock
 	exit 1
@@ -579,6 +584,23 @@ function _reloadScript() {
 	source "${local_prefix}packages/system/update/qbUpdateDashboard" || return 1
 }
 
+function _commitInstalledBranch() {
+	local branch sha tmp
+	branch=$(git -C "${local_prefix}" symbolic-ref --short -q HEAD) || branch=detached
+	sha=$(git -C "${local_prefix}" rev-parse --verify HEAD) || return 1
+	tmp=$(mktemp /install/.quickbox-branch.XXXXXX) || return 1
+	if ! printf '%s\n%s\n' "${branch}" "${sha}" >"${tmp}" || ! chmod 0644 "${tmp}" || ! mv -f "${tmp}" /install/.quickbox-branch; then
+		rm -f "${tmp}"
+		return 1
+	fi
+	if [[ ${branch} == master || ${branch} == legacy || ${branch} == detached ]]; then
+		rm -f /install/.developer.lock /install/.debug.lock
+	else
+		touch /install/.developer.lock || return 1
+		rm -f /install/.debug.lock
+	fi
+}
+
 function _fin() {
 	source ~/.profile
 	source ~/.bashrc
@@ -645,4 +667,5 @@ _updateStep "dashboard" _updatedashboard
 # The dashboard release is committed.
 update_config_committed=1
 _updateStep "language" _updatelanguage
+_updateStep "installed branch state" _commitInstalledBranch
 _fin

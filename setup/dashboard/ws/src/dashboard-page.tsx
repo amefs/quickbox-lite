@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import { dashboardConfig } from "./dashboard-config";
+import { dashboardAccountLabel, dashboardConfig } from "./dashboard-config";
 import i18n, { VALID_LOCALES } from "./i18n";
 import { serviceMap } from "./info";
 import { serializeJsonForScript } from "./utils/html";
@@ -38,6 +38,7 @@ export interface DashboardPageProps {
     locale: string;
     menuState: DashboardMenuState;
     ssrFragments: DashboardSsrFragments;
+    assetVersions?: { css: string; js: string };
 }
 
 function normalizeBasePath(basePath: string | undefined) {
@@ -68,8 +69,13 @@ function NetworkInterfaceRows({ interfaces }: { interfaces: string[] }) {
     );
 }
 
-export function DashboardPage({ basePath, socketUpgrade = true, locale, menuState, ssrFragments }: DashboardPageProps) {
+function dashboardAssetUrl(asset: string, version: string): string {
+    return version ? `${asset}?v=${version}` : asset;
+}
+
+export function DashboardPage({ basePath, socketUpgrade = true, locale, menuState, ssrFragments, assetVersions = { css: "", js: "" } }: DashboardPageProps) {
     const config = dashboardConfig();
+    const accountLabel = dashboardAccountLabel(config.username, process.env.QUICKBOX_DEV_SERVER === "1", i18n.t("DEV_ACCOUNT_LABEL"));
     const normalizedBasePath = normalizeBasePath(basePath);
     const runtimeConfig = {
         basePath: normalizedBasePath,
@@ -80,8 +86,12 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
         messages: {
             enabled: i18n.t("ENABLED"),
             disabled: i18n.t("DISABLED"),
+            serviceActionPending: i18n.t("SERVICE_ACTION_PENDING"),
             refresh: i18n.t("REFRESH"),
             systemResponse: i18n.t("SYSTEM_RESPONSE_TITLE"),
+            serviceStatusUnconfirmed: i18n.t("SERVICE_STATUS_UNCONFIRMED"),
+            serviceStatusStale: i18n.t("SERVICE_STATUS_STALE"),
+            serviceStatusLastConfirmedTemplate: i18n.t("SERVICE_STATUS_LAST_CONFIRMED", { time: "__SERVICE_STATUS_TIME__" }),
         },
     };
 
@@ -113,7 +123,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                 {/* Page-level rules live in setup/dashboard/css/dashboard.css: a
                     real stylesheet, so the browser caches it, editors lint it as
                     CSS and the HTML response no longer carries ~8KB of rules. */}
-                <link rel="stylesheet" href="/css/dashboard.css" />
+                <link rel="stylesheet" href={dashboardAssetUrl("/css/dashboard.css", assetVersions.css)} />
                 <script src="/lib/jquery/jquery.min.js"></script>
                 <script dangerouslySetInnerHTML={{ __html: `window.quickboxRuntime = ${serializeJsonForScript(runtimeConfig)};` }} />
             </head>
@@ -203,16 +213,11 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                                     <li className="header-account">
                                         <div className="btn-group">
                                             <button type="button" className="btn btn-logged" data-toggle="dropdown">
-                                                <span className="header-username" title={config.username}>{config.username}</span>
+                                                <span className="header-username" title={accountLabel}>{accountLabel}</span>
                                                 <span className="caret"></span>
                                             </button>
                                             <ul className="dropdown-menu pull-right">
-                                                {config.branch === "master" ? (
-                                                    <li><a data-click-handler="boxHandler" data-package="" data-operation="enable-dev" data-toggle="modal" data-target="#sysResponse" style={{ cursor: "pointer" }} dangerouslySetInnerHTML={{ __html: i18n.t("SWITCH_DEV") }}></a></li>
-                                                ) : null}
-                                                {config.branch === "development" ? (
-                                                    <li><a data-click-handler="boxHandler" data-package="" data-operation="disable-dev" data-toggle="modal" data-target="#sysResponse" style={{ cursor: "pointer" }} dangerouslySetInnerHTML={{ __html: i18n.t("SWITCH_MASTER") }}></a></li>
-                                                ) : null}
+                                                <li><a href="#branchSwitch" data-toggle="modal">{i18n.t("BRANCH_SWITCH")}</a></li>
                                                 {config.hasExternalAuth ? (
                                                     <li>
                                                         <a href={`/logout?url=${encodeURIComponent(config.ssoLogoutUrl || "/")}`}>
@@ -408,6 +413,19 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                             </div>
                         </div>
                     </div>
+                    <div className="modal" id="branchSwitch" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="branchSwitchTitle">
+                        <div className="modal-dialog"><div className="modal-content">
+                            <div className="modal-header"><h4 className="modal-title" id="branchSwitchTitle">{i18n.t("BRANCH_SWITCH")}</h4><button type="button" className="close" data-dismiss="modal" aria-label={i18n.t("CLOSE")}>×</button></div>
+                            <div className="modal-body">
+                                <div className="branch-current"><div className="branch-label">{i18n.t("BRANCH_CURRENT")}</div><div className="branch-value">{config.branch}{config.branchCommit ? <span className="branch-commit">{" "}{config.branchCommit.slice(0, 12)}</span> : null}</div></div>
+                                <label className="branch-label" htmlFor="branchTarget">{i18n.t("BRANCH_TARGET")}</label>
+                                <div className="branch-select"><select id="branchTarget" data-current={config.branch} data-loading={i18n.t("BRANCH_LOADING")} data-failed={i18n.t("BRANCH_LOAD_FAILED")} data-select={i18n.t("BRANCH_SELECT")} className="form-control input-sm" disabled><option>{i18n.t("BRANCH_LOADING")}</option></select></div>
+                                <p id="branchError" className="text-danger" role="alert" hidden>{i18n.t("BRANCH_LIST_ERROR")} <button type="button" id="branchRetry" className="btn btn-link">{i18n.t("BRANCH_RETRY")}</button></p>
+                                <p className="branch-warning">{i18n.t("BRANCH_WARNING")}</p>
+                            </div>
+                            <div className="modal-footer"><button type="button" className="btn btn-default" data-dismiss="modal">{i18n.t("CANCEL")}</button><button type="button" id="branchSwitchGo" data-update={i18n.t("BRANCH_UPDATE")} data-switch={i18n.t("BRANCH_SWITCH_ACTION")} className="btn btn-primary" disabled>{i18n.t("BRANCH_SWITCH_ACTION")}</button></div>
+                        </div></div>
+                    </div>
                     <div className="modal" id="sysResponse" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sysResponseTitle" data-backdrop="static" data-keyboard="false">
                         <div className="modal-dialog">
                             <div className="modal-content">
@@ -436,7 +454,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                 <script src="/lib/ansi_up/ansi_up.min.js"></script>
                 <script src="/lib/lazysizes/lazysizes.min.js" async></script>
                 <script src="/js/quick.js"></script>
-                <script src="/js/dashboard.js"></script>
+                <script src={dashboardAssetUrl("/js/dashboard.js", assetVersions.js)}></script>
                 <script src="/lib/lobipanel/js/lobipanel.min.js"></script>
                 <script src="/lib/jquery-toggles/toggles.min.js"></script>
                 <script src="/lib/datatables/js/jquery.dataTables.min.js"></script>

@@ -34,7 +34,16 @@
   let messages = (runtime && typeof runtime.messages === "object" && runtime.messages !== null) ? runtime.messages : {};
   window.quickboxApiBase = (runtime && typeof runtime.basePath === "string") ? runtime.basePath : "";
   window.quickboxLocale = normalizeLocale(runtime ? runtime.locale : undefined);
-  window.quickboxMessages = Object.assign({ enabled: "Enabled", disabled: "Disabled", refresh: "Refresh", systemResponse: "System Response" }, messages);
+  window.quickboxMessages = Object.assign({
+    enabled: "Enabled",
+    disabled: "Disabled",
+    serviceActionPending: "Working…",
+    refresh: "Refresh",
+    systemResponse: "System Response",
+    serviceStatusUnconfirmed: "Status not confirmed",
+    serviceStatusStale: "Status may be out of date",
+    serviceStatusLastConfirmedTemplate: "Last confirmed __SERVICE_STATUS_TIME__"
+  }, messages);
   persistLocale(window.quickboxLocale);
 
   window.quickboxSetLocale = function (locale) {
@@ -124,12 +133,51 @@
     return { service, id: "#appstat_" + service };
   });
   let lastServiceStatusResponse = {};
+  let serviceStatusNextAllowedAt = 0;
+  let serviceStatusFailureCount = 0;
+  let serviceStatusRetryTimer = null;
+  let serviceActionRequestSeq = 0;
+  let serviceActionRequests = {};
+  let pendingServiceActionByService = {};
+  let reconcileServiceControlOnReconnect = false;
 
-  function ensureServiceStatusPlaceholders() {
+  function markServiceStatusesStale(service) {
+    serviceStatusItems.forEach(function (item) {
+      if (service && item.service !== service) return;
+      let $status = window.jQuery(item.id);
+      if ($status.length === 0) return;
+      let messages = window.quickboxMessages || {};
+      let unconfirmed = messages.serviceStatusUnconfirmed || "Status not confirmed";
+      let staleLabel = messages.serviceStatusStale || "Status may be out of date";
+      if ($status.find(".badge").length === 0) {
+        let $unknown = window.jQuery("<span>").attr({ title: unconfirmed, "aria-label": unconfirmed });
+        $unknown.append(window.jQuery("<span>").addClass("badge badge-service-unknown-dot badge-service-stale"));
+        $unknown.append(window.jQuery("<span>").addClass("badge badge-service-unknown-pulse badge-service-stale"));
+        $status.empty().append($unknown);
+      } else {
+        $status.find(".badge").addClass("badge-service-stale");
+        let $badge = $status.find("span[data-observed-at]").first();
+        if ($badge.length === 0) $badge = $status.children("span").first();
+        let observedAt = Number($badge.attr("data-observed-at"));
+        let title = unconfirmed;
+        if (observedAt) {
+          let time = new Date(observedAt).toLocaleString(window.quickboxLocale || undefined);
+          let template = messages.serviceStatusLastConfirmedTemplate || "Last confirmed __SERVICE_STATUS_TIME__";
+          let lastConfirmed = template.split("__SERVICE_STATUS_TIME__").join(time);
+          title = staleLabel + "; " + lastConfirmed;
+        }
+        $badge.attr("title", title).attr("aria-label", title);
+      }
+      lastServiceStatusResponse[item.service] = $status.html() || "";
+    });
+  }
+
+
+  function ensureServiceStatusPlaceholders(restoreCached) {
     serviceStatusItems.forEach(function (item) {
       let $status = window.jQuery(item.id);
       let cached = lastServiceStatusResponse[item.service];
-      if ($status.length > 0 && $status.html() === "" && cached) {
+      if ($status.length > 0 && cached && (restoreCached || $status.html() === "")) {
         $status.html(cached);
       }
     });
@@ -154,21 +202,24 @@
       ensureServiceStatusPlaceholders();
       return;
     }
-    Object.keys(response).forEach(function (service) {
-      if (response[service] !== undefined && response[service] !== "") {
-        lastServiceStatusResponse[service] = response[service];
+    let badges = response.badges && typeof response.badges === "object" ? response.badges : response;
+    Object.keys(badges).forEach(function (service) {
+      if (pendingServiceActionByService[service]) return;
+      if (badges[service] !== undefined && badges[service] !== "") {
+        lastServiceStatusResponse[service] = badges[service];
       }
     });
     serviceStatusItems.forEach(function (item) {
-      if (response[item.service] !== undefined) {
-        window.jQuery(item.id).html(response[item.service] || lastServiceStatusResponse[item.service] || "");
+      if (pendingServiceActionByService[item.service]) return;
+      if (badges[item.service] !== undefined) {
+        window.jQuery(item.id).html(badges[item.service] || lastServiceStatusResponse[item.service] || "");
       }
     });
     ensureServiceStatusPlaceholders();
   }
 
   function initializeServiceToggles() {
-    ensureServiceStatusPlaceholders();
+    ensureServiceStatusPlaceholders(true);
     window.jQuery(".toggle-en, .toggle-dis").each(function () {
       let $toggle = window.jQuery(this);
       if ($toggle.parent(".toggle-slide").length > 0 || $toggle.parent(".toggle-modern").length > 0) {
@@ -178,7 +229,12 @@
         on: $toggle.hasClass("toggle-en"),
         height: 26,
         width: 100,
-        text: $toggle.hasClass("toggle-en") ? { on: window.quickboxMessages.enabled } : { off: window.quickboxMessages.disabled }
+        click: false,
+        drag: false,
+        text: {
+          on: window.quickboxMessages.enabled,
+          off: window.quickboxMessages.disabled
+        }
       });
     });
     window.jQuery(".tooltips").tooltip();
@@ -491,6 +547,15 @@
     let pendingRequests = {};
     let pendingRequestByKey = {};
     let firstRequest = true;
+    function scheduleServiceStatusRetry(baseDelay) {
+      serviceStatusFailureCount += 1;
+      let exponentialDelay = Math.min(30000, 5000 * Math.pow(2, serviceStatusFailureCount - 1));
+      let delay = Math.max(exponentialDelay, Number(baseDelay) || 0);
+      serviceStatusNextAllowedAt = Date.now() + delay + Math.floor(Math.random() * 750);
+      if (serviceStatusRetryTimer) clearTimeout(serviceStatusRetryTimer);
+      let statusTask = taskMapping.SERVICE_STATUS_ALL;
+      if (statusTask) serviceStatusRetryTimer = setTimeout(function () { queueTask(statusTask, 0); }, Math.max(0, serviceStatusNextAllowedAt - Date.now()));
+    }
     let errorCountByKey = {};
     let stoppedKeys = {};
     let bootstrapDispatched = false;
@@ -524,6 +589,7 @@
       if (!task) {
         return false;
       }
+      if (key === "SERVICE_STATUS_ALL" && Date.now() < serviceStatusNextAllowedAt) return false;
       // Drop a request already in flight for this key: the answer it brings was
       // derived from the previous choice, so waiting for it would repaint the
       // widget with the old data and leave the new one pending a whole interval.
@@ -564,6 +630,9 @@
         if (!socket.connected) {
           return;
         }
+        if (task.key === "SERVICE_STATUS_ALL" && Date.now() < serviceStatusNextAllowedAt) {
+          return;
+        }
         let request = Object.assign({}, task);
         if (request.before && typeof request.before === "function" && request.before(request) === false) {
           return;
@@ -581,7 +650,10 @@
             console.warn("[ws] request timed out: " + request.requestId);
             clearPendingRequestById(request.requestId);
             if (socket.connected) {
-              queueTask(task, 0);
+              if (task.key === "SERVICE_STATUS_ALL") {
+                markServiceStatusesStale();
+                scheduleServiceStatusRetry();
+              } else queueTask(task, 0);
             }
           }
         }, pendingRequestTimeoutMs);
@@ -630,10 +702,25 @@
         }
         if (task.override && typeof task.override === "function") {
           task.override.call(task, response.response, response, request);
+          if (task.key === "SERVICE_STATUS_ALL") {
+            let health = response.response && response.response.health;
+            if (health === "unavailable") {
+              markServiceStatusesStale();
+              scheduleServiceStatusRetry(Math.max(5000, Number(response.response.retryAfterMs) || 0));
+            } else {
+              serviceStatusFailureCount = 0;
+              serviceStatusNextAllowedAt = Date.now() + 5000;
+              if (serviceStatusRetryTimer) clearTimeout(serviceStatusRetryTimer);
+              serviceStatusRetryTimer = setTimeout(function () { queueTask(task, 0); }, 5000);
+            }
+          }
           return;
         }
         if (task.id !== undefined) {
           if (!canWriteWidget(task.id, WRITE_SOURCE.WS)) {
+            return;
+          }
+          if (task.key === "SERVICE_CONTROL" && Object.keys(pendingServiceActionByService).length > 0) {
             return;
           }
           if (task._lastHtml === response.response) {
@@ -655,7 +742,10 @@
         let failedKey = (task && task.key) || response.key || "unknown";
         errorCountByKey[failedKey] = (errorCountByKey[failedKey] || 0) + 1;
         console.error("[ws] request failed,", response);
-        if (errorCountByKey[failedKey] > 32 && !stoppedKeys[failedKey]) {
+        if (failedKey === "SERVICE_STATUS_ALL") {
+          markServiceStatusesStale();
+          scheduleServiceStatusRetry();
+        } else if (errorCountByKey[failedKey] > 32 && !stoppedKeys[failedKey]) {
           stoppedKeys[failedKey] = true;
           console.warn("[ws] stopping updates for " + failedKey);
           if (window.jQuery && window.jQuery.gritter) {
@@ -671,6 +761,9 @@
     socket.on("connect", function () {
       clearAllPendingRequests("socket reconnected");
       bootstrapDispatched = false;
+      serviceStatusNextAllowedAt = 0;
+      serviceStatusFailureCount = 0;
+      if (serviceStatusRetryTimer) clearTimeout(serviceStatusRetryTimer);
       dispatchBootstrapTasks();
       if (sshOutputTask && window.jQuery("#sysResponse").is(":visible")) {
         queueTask(sshOutputTask, 0);
@@ -744,6 +837,102 @@
     $modal.modal("show");
   }
 
+  function serviceActionRow(service) {
+    return window.jQuery("#service_control_widget [data-service]")
+      .filter(function () { return this.dataset.service === service; })
+      .first()
+      .closest("tr");
+  }
+
+  function setServiceActionPending(service, pending) {
+    let $row = serviceActionRow(service);
+    if ($row.length === 0) return;
+    $row.toggleClass("service-action-pending", pending).attr("aria-busy", pending ? "true" : "false");
+    $row.find("button[data-click-handler='serviceUpdate']").prop("disabled", pending);
+    $row.find(".toggle-en, .toggle-dis").toggleClass("disabled", pending);
+  }
+
+  function updateServiceToggle(service, enabled) {
+    let $toggle = serviceActionRow(service).find(".toggle-en, .toggle-dis").first();
+    if ($toggle.length === 0) return;
+    if (typeof enabled !== "boolean") enabled = $toggle.hasClass("toggle-en");
+    $toggle.removeClass("toggle-en toggle-dis").addClass(enabled ? "toggle-en" : "toggle-dis");
+    $toggle.attr("data-service-action", enabled ? "disable" : "enable");
+    if ($toggle.data("toggles")) {
+      $toggle.toggles(enabled);
+    }
+    $toggle.find(".toggle-on").text(window.quickboxMessages.enabled);
+    $toggle.find(".toggle-off").text(window.quickboxMessages.disabled);
+  }
+
+  function setServiceTogglePending(service) {
+    let $toggle = serviceActionRow(service).find(".toggle-en, .toggle-dis").first();
+    if ($toggle.length === 0) return;
+    let pendingText = window.quickboxMessages.serviceActionPending || "Working…";
+    $toggle.find(".toggle-on, .toggle-off").text(pendingText);
+  }
+
+  socket.on("service-action-result", function (response) {
+    if (!response || typeof response.requestId !== "string") return;
+    let request = serviceActionRequests[response.requestId];
+    if (!request || request.service !== response.service) return;
+    if (response.phase === "action-complete") {
+      request.actionComplete = true;
+      markServiceStatusesStale(request.service);
+      if (response.success === false) {
+        request.failureShown = true;
+        let message = escapeHtml(response.message || "Service action failed");
+        if (response.failedOperation) message += "<br><code>systemctl " + escapeHtml(response.failedOperation) + "</code>";
+        let output = response.stderr || response.stdout || "";
+        if (output) {
+          output = window.AnsiUp ? new window.AnsiUp().ansi_to_html(output) : escapeHtml(output);
+          message += "<hr><div class='exec-output' style='display: inline-grid'>" + output + "</div>";
+        }
+        showAlert(message);
+      }
+      return;
+    }
+    delete serviceActionRequests[response.requestId];
+    if (pendingServiceActionByService[request.service] === response.requestId) {
+      delete pendingServiceActionByService[request.service];
+      setServiceActionPending(request.service, false);
+    }
+    if (response.status) updateServiceStatus(response.status);
+    updateServiceToggle(request.service, response.enabled);
+    if (response.success === false && !request.failureShown) {
+      let message = escapeHtml(response.message || "Service action failed");
+      if (response.failedOperation) message += "<br><code>systemctl " + escapeHtml(response.failedOperation) + "</code>";
+      let output = response.stderr || response.stdout || "";
+      if (output) {
+        output = window.AnsiUp ? new window.AnsiUp().ansi_to_html(output) : escapeHtml(output);
+        message += "<hr><div class='exec-output' style='display: inline-grid'>" + output + "</div>";
+      }
+      showAlert(message);
+    }
+    if (response.statusError) {
+      showAlert("The service action finished, but its current status could not be confirmed.");
+    }
+    requestTaskRefresh("SERVICE_CONTROL");
+  });
+
+  socket.on("disconnect", function () {
+    let pendingServices = Object.keys(pendingServiceActionByService);
+    if (pendingServices.length > 0) reconcileServiceControlOnReconnect = true;
+    pendingServices.forEach(function (service) {
+      let requestId = pendingServiceActionByService[service];
+      delete pendingServiceActionByService[service];
+      if (requestId) delete serviceActionRequests[requestId];
+      setServiceActionPending(service, false);
+      updateServiceToggle(service);
+    });
+  });
+
+  socket.on("connect", function () {
+    if (!reconcileServiceControlOnReconnect) return;
+    reconcileServiceControlOnReconnect = false;
+    requestTaskRefresh("SERVICE_CONTROL");
+  });
+
   socket.on("exec", function (response) {
     if (response && response.success === false) {
       let message = escapeHtml(response.message || "");
@@ -760,13 +949,7 @@
       showAlert(message);
       return;
     }
-    // Exactly three choices rebuild what the page is serving: a systemd unit
-    // change, a language switch (box:lang) and a theme switch (its own request,
-    // further down). None of them shows the log panel; each reloads once, after
-    // it succeeds. Everything else must leave the document alone — that
-    // decision belongs to the log panel's close buttons, and widgets whose
-    // content follows a local choice (the bandwidth page) re-fetch their data.
-    if (response && response.cmd && (response.cmd.indexOf("systemctl") === 0 || response.cmd.indexOf("box:lang") === 0)) {
+    if (response && response.cmd && response.cmd.indexOf("box:lang") === 0) {
       location.reload();
     }
   });
@@ -803,9 +986,19 @@
       return;
     }
     let service = target.dataset.service;
-    let operations = target.dataset.operation || "";
-    operations.split(",").forEach(function (operation) {
-      exec("systemctl:" + operation + ":" + service);
+    let action = target.dataset.serviceAction;
+    if (!service || !action || pendingServiceActionByService[service]) return;
+    let requestId = "SERVICE_ACTION:" + (++serviceActionRequestSeq);
+    serviceActionRequests[requestId] = { service, action };
+    pendingServiceActionByService[service] = requestId;
+    setServiceActionPending(service, true);
+    setServiceTogglePending(service);
+    markServiceStatusesStale(service);
+    socket.emit("service-action", {
+      requestId,
+      service,
+      action,
+      locale: window.quickboxLocale || "en"
     });
   }
 
@@ -1052,6 +1245,54 @@
     // Every trigger opens the dialog through Bootstrap's data-toggle, so the
     // session reset hangs off the dialog's own event instead of each entry.
     if (window.jQuery) {
+      let $branchSwitch = window.jQuery("#branchSwitch");
+      let select = document.getElementById("branchTarget");
+      let switchButton = document.getElementById("branchSwitchGo");
+      let branchError = document.getElementById("branchError");
+      let branchRetry = document.getElementById("branchRetry");
+      let branchRequest = 0;
+      function setBranchOption(text) {
+        select.replaceChildren(new Option(text, ""));
+      }
+      function updateBranchButton() {
+        switchButton.disabled = !select.value;
+        switchButton.textContent = select.value === select.dataset.current ? switchButton.dataset.update : switchButton.dataset.switch;
+      }
+      function loadBranches() {
+        let request = ++branchRequest;
+        select.disabled = true;
+        switchButton.disabled = true;
+        branchError.hidden = true;
+        setBranchOption(select.dataset.loading);
+        fetchJson("/node/branches").then(function (data) {
+          if (request !== branchRequest) { return; }
+          if (!Array.isArray(data.branches) || data.branches.length === 0) { throw new Error("No branches"); }
+          setBranchOption(select.dataset.select);
+          data.branches.forEach(function (branch) {
+            select.add(new Option(branch, branch));
+          });
+          select.value = data.branches.includes(select.dataset.current) ? select.dataset.current : "";
+          select.disabled = false;
+          updateBranchButton();
+        }).catch(function () {
+          if (request !== branchRequest) { return; }
+          setBranchOption(select.dataset.failed);
+          branchError.hidden = false;
+        });
+      }
+      if (select && switchButton && branchError && branchRetry) {
+        $branchSwitch.on("show.bs.modal", loadBranches);
+        $branchSwitch.on("hidden.bs.modal", function () { branchRequest += 1; });
+        branchRetry.addEventListener("click", loadBranches);
+        select.addEventListener("change", updateBranchButton);
+        switchButton.addEventListener("click", function () {
+          let branch = select.value;
+          if (!branch) { return; }
+          $branchSwitch.modal("hide");
+          window.jQuery("#sysResponse").modal("show");
+          exec("box:switch-branch:" + branch);
+        });
+      }
       let $sysResponse = window.jQuery("#sysResponse");
       if ($sysResponse.length) {
         $sysResponse.on("show.bs.modal", function () {

@@ -13,6 +13,7 @@ export interface MockProcess {
     pid: number;
     cpu: number;
     mem: number;
+    params?: string;
 }
 
 export interface MockMemory {
@@ -67,6 +68,8 @@ export interface MockProfile {
     installLockOperation?: "install" | "remove" | "update";
     /** Systemd enabled services (e.g. "rtorrent@testuser") */
     enabledServices: string[];
+    /** Active systemd units without a process entry, keyed by service id. */
+    activeServices?: string[];
     /** Torrent files per directory: { "/home/user/.sessions/": ["a.torrent", "b.torrent"] } */
     torrentDirs: Record<string, string[]>;
     /** vnstat dump data (JSON string), keyed by interface name */
@@ -157,6 +160,7 @@ export const allRunning: MockProfile = {
         "smbd",
         "vsftpd",
     ],
+    activeServices: ["authelia", "peerbanhelper", "vouch-proxy"],
     torrentDirs: {
         [`/home/${DEFAULT_USERNAME}/.sessions/`]: [
             "ubuntu-24.04.torrent",
@@ -218,6 +222,7 @@ export const allRunning: MockProfile = {
 export const partialRunning: MockProfile = {
     ...allRunning,
     name: "partial-running",
+    activeServices: [],
     processes: [
         { name: "transmission-daemon", user: DEFAULT_USERNAME, pid: 1101, cpu: 0.6, mem: 1.2 },
         { name: "qbittorrent-nox", user: DEFAULT_USERNAME, pid: 1102, cpu: 1.4, mem: 2.8 },
@@ -331,6 +336,7 @@ export const partialRunning: MockProfile = {
 export const emptySystem: MockProfile = {
     ...allRunning,
     name: "empty-system",
+    activeServices: [],
     processes: [],
     memory: {
         total: 4 * GB,

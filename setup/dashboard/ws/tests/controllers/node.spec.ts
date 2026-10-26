@@ -3,8 +3,10 @@
 import "mocha";
 import { expect } from "chai";
 import request from "supertest";
+import childProcess from "child_process";
 
 import { app } from "../../src/server";
+import { dashboardAccountLabel } from "../../src/dashboard-config";
 import { createControllerTestApp, createExecFileRecorder } from "./test-utils";
 
 interface SystemStaticResponse {
@@ -32,6 +34,27 @@ interface DashboardConfigResponse {
 }
 
 describe("controllers/node", () => {
+    it("labels an unconfigured account only in development", () => {
+        expect(dashboardAccountLabel("", true, "Development")).to.equal("Development");
+        expect(dashboardAccountLabel("alice", true, "Development")).to.equal("alice");
+        expect(dashboardAccountLabel("", false, "Development")).to.equal("");
+    });
+
+    it("lists branches from the installed repository", async () => {
+        const calls: unknown[][] = [];
+        const execFile = ((...args: unknown[]) => {
+            calls.push(args);
+            const callback = args.at(-1) as (error: Error | null, stdout: string, stderr: string) => void;
+            callback(null, "abc\trefs/heads/master\ndef\trefs/heads/feature/test\n", "");
+            return {} as childProcess.ChildProcess;
+        }) as typeof childProcess.execFile;
+        const res = await request(createControllerTestApp(execFile)).get("/node/branches");
+        expect(res.status).to.equal(200);
+        expect(res.body).to.deep.equal({ branches: ["master", "feature/test"] });
+        expect(calls[0]?.[0]).to.equal("git");
+        expect(calls[0]?.[1]).to.deep.equal(["-c", "safe.directory=/etc/QuickBox", "-C", "/etc/QuickBox", "ls-remote", "--heads", "origin"]);
+    });
+
     it("should return menu HTML and plugin-tab visibility", async () => {
         const res = await request(app).get("/node/menu");
 

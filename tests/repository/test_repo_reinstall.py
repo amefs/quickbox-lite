@@ -143,6 +143,7 @@ except BlockingIOError:
             PATH=str(bin_dir) + os.pathsep + os.environ["PATH"],
             QUICKBOX_ALLOW_NON_ROOT="1",
             QUICKBOX_BACKUP_DIR=str(backup),
+            QUICKBOX_INSTALL_DIR=str(root / "install"),
             QUICKBOX_REPO_ROOT=str(work),
             QUICKBOX_UPDATE_CORE_LOCK=str(root / "update.lock"),
             QUICKBOX_OPERATION_LOCK=str(root / "operation.lock"),

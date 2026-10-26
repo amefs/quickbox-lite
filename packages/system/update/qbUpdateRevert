@@ -237,5 +237,20 @@ else
 	exit 1
 fi
 
+# Older target updaters may predate the installed-branch marker.
+state_tmp=$(mktemp "${QUICKBOX_INSTALL_DIR:-/install}/.quickbox-branch.XXXXXX") || exit 1
+if ! printf '%s\n%s\n' "${branch}" "${resolved}" >"${state_tmp}" ||
+	! chmod 0644 "${state_tmp}" || ! mv -f "${state_tmp}" "${QUICKBOX_INSTALL_DIR:-/install}/.quickbox-branch"; then
+	rm -f "${state_tmp}"
+	_error "Reinstallation succeeded, but the installed branch state could not be saved"
+	exit 1
+fi
+if [[ ${branch} == master || ${branch} == legacy || ${branch} == detached ]]; then
+	rm -f "${QUICKBOX_INSTALL_DIR:-/install}/.developer.lock" "${QUICKBOX_INSTALL_DIR:-/install}/.debug.lock"
+else
+	touch "${QUICKBOX_INSTALL_DIR:-/install}/.developer.lock" || exit 1
+	rm -f "${QUICKBOX_INSTALL_DIR:-/install}/.debug.lock"
+fi
+
 _success "QuickBox restored and reinstalled from ${resolved}"
 exit 0

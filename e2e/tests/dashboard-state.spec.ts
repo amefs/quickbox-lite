@@ -153,6 +153,108 @@ async function openDashboard(page: Page): Promise<void> {
     await expect.poll(async () => isPackageTableReady(page), { timeout: 60000 }).toBe(true);
 }
 
+test.describe("service status recovery", () => {
+    test.setTimeout(45000);
+
+    test("backs off across periodic polls and lets reconnect trigger an immediate request", async ({ page }) => {
+        await openDashboard(page);
+        await expect(page.locator("#appstat_rtorrent .badge").first()).toBeVisible({ timeout: 15000 });
+        await page.evaluate(() => {
+            const win = window as unknown as { socket?: { send: (payload: unknown) => unknown }; __serviceStatusRequests?: unknown[] };
+            const socket = win.socket;
+            if (!socket) throw new Error("socket is not available");
+            const send = socket.send.bind(socket);
+            win.__serviceStatusRequests = [];
+            socket.send = (payload: unknown) => {
+                const request = payload as { key?: string };
+                if (request.key === "SERVICE_STATUS_ALL") {
+                    win.__serviceStatusRequests?.push(payload);
+                    return socket;
+                }
+                return send(payload);
+            };
+            Math.random = () => 0;
+        });
+
+        await deliverSocketMessage(page, { key: "SERVICE_STATUS_ALL", success: false, message: "fixture failure" });
+        await page.waitForTimeout(4500);
+        expect(await page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length)).toBe(0);
+        await page.waitForTimeout(1000);
+        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length)).toBe(1);
+
+        const firstRequest = await page.evaluate(() => (window as unknown as { __serviceStatusRequests: { requestId: string }[] }).__serviceStatusRequests[0]);
+        await deliverSocketMessage(page, { key: "SERVICE_STATUS_ALL", requestId: firstRequest.requestId, success: false, message: "fixture failure" });
+        await page.waitForTimeout(9000);
+        expect(await page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length)).toBe(1);
+        await page.waitForTimeout(1500);
+        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length)).toBe(2);
+
+        await deliverSocketMessage(page, {
+            key: "SERVICE_STATUS_ALL",
+            requestId: firstRequest.requestId,
+            success: true,
+            response: { badges: { rtorrent: '<span><span class="badge badge-service-running-dot"></span></span>' }, health: "ok", retryAfterMs: 0 },
+        });
+        await expect(page.locator("#appstat_rtorrent .badge-service-stale").first()).toBeVisible();
+
+        await page.evaluate(() => {
+            const socket = (window as unknown as { socket: { listeners: (event: string) => unknown[] } }).socket;
+            for (const listener of socket.listeners("connect")) {
+                if (typeof listener === "function") (listener as () => void)();
+            }
+        });
+        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length)).toBe(3);
+    });
+
+    test("marks badges stale on transport failure, rejects late replies and accepts recovery", async ({ page }) => {
+        await openDashboard(page);
+        await expect(page.locator("#appstat_rtorrent .badge").first()).toBeVisible({ timeout: 15000 });
+
+        await deliverSocketMessage(page, {
+            key: "SERVICE_STATUS_ALL",
+            success: false,
+            message: "fixture failure",
+        });
+        await expect(page.locator("#appstat_rtorrent .badge-service-stale").first()).toBeVisible();
+        await expect(page.locator("#appstat_rtorrent span[title]")).toHaveAttribute("title", /last confirmed/i);
+
+        await deliverSocketMessage(page, {
+            key: "SERVICE_STATUS_ALL",
+            requestId: "SERVICE_STATUS_ALL:late-response",
+            success: true,
+            response: {
+                badges: { rtorrent: '<span data-observed-at="1"><span class="badge badge-service-disabled-dot"></span></span>' },
+                health: "ok",
+                retryAfterMs: 0,
+            },
+        });
+        await expect(page.locator("#appstat_rtorrent .badge-service-stale").first()).toBeVisible();
+
+        await deliverSocketMessage(page, {
+            key: "SERVICE_STATUS_ALL",
+            success: true,
+            response: {
+                badges: { rtorrent: '<span title="Last confirmed" data-observed-at="2"><span class="badge badge-service-running-dot badge-service-stale"></span><span class="badge badge-service-running-pulse badge-service-stale"></span></span>' },
+                health: "degraded",
+                retryAfterMs: 10000,
+            },
+        });
+        await expect(page.locator("#appstat_rtorrent .badge-service-running-dot")).toHaveClass(/badge-service-stale/);
+
+        await deliverSocketMessage(page, {
+            key: "SERVICE_STATUS_ALL",
+            success: true,
+            response: {
+                badges: { rtorrent: '<span title="" data-observed-at="3"><span class="badge badge-service-disabled-dot"></span><span class="badge badge-service-disabled-pulse"></span></span>' },
+                health: "ok",
+                retryAfterMs: 0,
+            },
+        });
+        await expect(page.locator("#appstat_rtorrent .badge-service-disabled-dot")).toBeVisible();
+        await expect(page.locator("#appstat_rtorrent .badge-service-stale")).toHaveCount(0);
+    });
+});
+
 test.describe("PMC widget state", () => {
     test.setTimeout(120000);
 

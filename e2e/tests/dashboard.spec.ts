@@ -39,6 +39,41 @@ test.describe("Dashboard Loading", () => {
     });
 });
 
+test("shows available branches and starts a branch update", async ({ page }) => {
+    await page.goto("/?locale=en");
+    await page.locator(".header-account button").click();
+    await page.locator('a[href="#branchSwitch"]').click();
+    await expect(page.locator("#branchTarget option")).toHaveCount(3);
+    await page.locator("#branchTarget").selectOption("development");
+    await page.locator("#branchSwitchGo").click();
+    await expect(page.locator("#sysResponse")).toBeVisible();
+    await expect.poll(async () => (await page.request.get("/node/dashboard_config")).json()).toMatchObject({ branch: "development" });
+});
+
+test("branch list failure can be retried", async ({ page }) => {
+    let retryAllowed = false;
+    await page.route("**/node/branches?*", async route => {
+        if (!retryAllowed) {
+            await route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
+        } else {
+            await route.fulfill({ json: { branches: ["master", "development"] } });
+        }
+    });
+    await page.goto("/?locale=en");
+    await page.locator(".header-account button").click();
+    await page.locator('a[href="#branchSwitch"]').click();
+    await expect(page.locator("#branchError")).toBeVisible();
+    await expect(page.locator("#branchTarget option")).toHaveText("Unable to load branches");
+    await expect(page.locator("#branchSwitchGo")).toBeDisabled();
+    retryAllowed = true;
+    await page.locator("#branchRetry").click();
+    await expect(page.locator("#branchError")).toBeHidden();
+    await expect(page.locator("#branchTarget")).toHaveValue("master");
+    await expect(page.locator("#branchSwitchGo")).toHaveText("Update");
+    await page.locator("#branchTarget").selectOption("development");
+    await expect(page.locator("#branchSwitchGo")).toHaveText("Switch and update");
+});
+
 // ── WebSocket connection ────────────────────────────────────
 
 test.describe("WebSocket Connection", () => {
