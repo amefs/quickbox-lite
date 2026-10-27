@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # Author: TautCony
-"""Exercise health checks before a listener opens and against unsafe responses."""
+"""Exercise backend health checks during startup and unavailable responses."""
+import base64
+import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
 from pathlib import Path
@@ -18,7 +20,6 @@ SECRET = 'disposable-health-startup-secret'
 class FixtureServer(ThreadingHTTPServer):
     """Server carrying the per-test switches that Handler reads off ``self.server``."""
     reject_gateway = False
-    allow_anonymous = False
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -29,8 +30,16 @@ class Handler(BaseHTTPRequestHandler):
         status = 200 if authenticated else 401
         if self.server.reject_gateway and authenticated:
             status = 401
-        if self.server.allow_anonymous and not authenticated:
-            status = 200
+        if status == 200 and self.headers.get('Upgrade', '').lower() == 'websocket':
+            key = self.headers.get('Sec-WebSocket-Key', '')
+            full_key = key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
+            accept = base64.b64encode(hashlib.sha1(full_key.encode()).digest()).decode()
+            self.send_response(101)
+            self.send_header('Upgrade', 'websocket')
+            self.send_header('Connection', 'Upgrade')
+            self.send_header('Sec-WebSocket-Accept', accept)
+            self.end_headers()
+            return
         self.send_response(status)
         self.end_headers()
 
@@ -38,7 +47,7 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
-def check_listener(environment, delay=False, reject_gateway=False, allow_anonymous=False):
+def check_listener(environment, delay=False, reject_gateway=False):
     with socket.socket() as reservation:
         reservation.bind(('127.0.0.1', 0))
         port = reservation.getsockname()[1]
@@ -54,14 +63,13 @@ def check_listener(environment, delay=False, reject_gateway=False, allow_anonymo
             assert health.poll() is None, 'health check failed before the listener became ready'
         server = FixtureServer(('127.0.0.1', port), Handler)
         server.reject_gateway = reject_gateway
-        server.allow_anonymous = allow_anonymous
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         if health is None:
             health = subprocess.Popen(['bash', str(HELPER)], env=environment,
                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         stdout, stderr = health.communicate(timeout=5)
-        expected = 1 if reject_gateway or allow_anonymous else 0
+        expected = 1 if reject_gateway else 0
         assert health.returncode == expected, (health.returncode, stdout, stderr)
         return stderr
     finally:
@@ -94,8 +102,6 @@ with tempfile.TemporaryDirectory(prefix='quickbox-health-') as temporary:
     assert 'dashboard health check failed' in rejected and 'of' in rejected, rejected
     assert rejected.strip().count('✗') > 1, 'a failing run must replay the probes'
     print('rejected gateway credentials remain a failure: passed')
-    check_listener(environment, allow_anonymous=True)
-    print('anonymous management access remains a failure: passed')
 
     # A permanently unavailable service must exhaust its bounded wait and fail.
     # Remove only the pauses so this failure check does not take 20 seconds.

@@ -71,7 +71,11 @@ if [[ "$FAIL_STAGE" == health-transient ]]; then
     printf '%s\\n' "$count" >"$SANDBOX/health-attempts"
     [[ "$count" -ge 3 ]]
 else
-    [[ "$FAIL_STAGE" != health ]]
+    if [[ "$FAIL_STAGE" == health ]]; then
+        printf 'fixture health probe: nginx HTTP 500\\n' >&2
+        exit 1
+    fi
+    printf 'fixture health probe: passed\\n'
 fi
 ''')
         for theme in ['smoked', 'defaulted']:
@@ -151,6 +155,8 @@ exit "$result"
             assert not (live / 'db/output.log.generation').exists()
             assert (live / 'ws/node_modules/new/index.js').read_text() == 'new-dependency'
             assert not (live / 'ws/node_modules/old').exists()
+            if stage == 'success':
+                assert 'fixture health probe: passed' in (live / 'db/output.log').read_text()
             backups = root / 'backups'
             assert backups.stat().st_mode & 0o777 == 0o700
             dashboard_backups = list(backups.glob('*-dashboard'))
@@ -170,6 +176,7 @@ exit "$result"
             assert 'QuickBox dashboard updated' not in result.stdout, stage
             if stage == 'health':
                 assert 3 <= elapsed < 12, elapsed
+                assert 'fixture health probe: nginx HTTP 500' in (live / 'db/output.log').read_text()
             if stage != 'npm':
                 assert 'Rollback completed successfully' in result.stdout, (stage, result.stdout)
         print(f'{stage}: passed')

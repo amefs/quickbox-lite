@@ -339,13 +339,15 @@ function _restoreUpdateConfig() {
 	local rc=0
 	_warning "Restoring managed configuration from ${update_backup_dir}"
 	_qbBackupRestoreAll "${update_backup_dir}" || rc=1
-	if [[ ${update_service_started:-0} -eq 1 ]]; then
+	if [[ ${rc} -ne 0 ]]; then
+		_warning "Skipping service activation because managed files were not fully restored"
+	elif [[ ${update_service_started:-0} -eq 1 ]]; then
 		if command -v systemctl >/dev/null 2>&1; then
-			systemctl daemon-reload >>"${OUTTO}" 2>&1 || rc=1
+			_qbRunHelper "Managed rollback: systemctl daemon-reload failed" systemctl daemon-reload || rc=1
 		fi
 		if command -v nginx >/dev/null 2>&1; then
-			if nginx -t >>"${OUTTO}" 2>&1; then
-				nginx -s reload >>"${OUTTO}" 2>&1 || rc=1
+			if _qbRunHelper "Managed rollback: nginx configuration test failed" nginx -t; then
+				_qbRunHelper "Managed rollback: nginx reload failed" nginx -s reload || rc=1
 			else
 				rc=1
 			fi

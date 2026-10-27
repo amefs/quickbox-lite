@@ -194,8 +194,10 @@ a local identity-provider fixture. Production auth migration and provider nginx
 location snippets are used. No external accounts or secrets are required.
 
 Playwright checks login, HTTP access, polling, WebSockets, anonymous rejection,
-and tampered/expired cookies. Valid and corrupted provider cookies are also sent
-to the actual root health checker. The current root-page assertion checks only
+and tampered/expired cookies. The root health checker verifies backend HTTP,
+polling and WebSockets plus nginx readiness, independently of login or cookie
+state. It must also pass before login and after a session is tampered with.
+The current root-page assertion checks only
 that the body is nonempty; the separate Dashboard browser interactions job runs
 the full `e2e/tests` application interaction suite with its own mock server.
 

@@ -27,6 +27,58 @@ _qbBackupError() {
 _qbBackupWarning() {
 	if declare -F _warning >/dev/null 2>&1; then _warning "$*"; else _qbBackupSay "⚠ $*"; fi
 }
+
+_qbBackupCommand() {
+	local message="$1" output status
+	shift
+	if output=$("$@" 2>&1); then
+		return 0
+	else
+		status=$?
+	fi
+	_qbBackupError "${message} (exit ${status})${output:+: ${output}}"
+	return "${status}"
+}
+
+# Replace the inode only after the complete file and its metadata are ready.
+# Truncating a running executable with cp fails with ETXTBSY. Follow an existing
+# destination symlink so enabled nginx sites keep their sites-available link.
+_qbBackupInstallFile() {
+	local source="$1" original="$2" mode="${3:--}" uid="${4:--}" gid="${5:--}"
+	local destination="${original}" temporary directory failed=0
+	if [[ -L "${original}" ]]; then
+		destination=$(readlink -f "${original}" 2>/dev/null) ||
+			destination=$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "${original}" 2>/dev/null) || {
+				_qbBackupError "Cannot resolve rollback destination ${original}"
+				return 1
+			}
+	fi
+	if [[ -d "${destination}" ]]; then
+		_qbBackupError "Rollback destination is a directory: ${original}"
+		return 1
+	fi
+	directory=$(dirname "${destination}")
+	_qbBackupCommand "Cannot create rollback directory for ${original}" mkdir -p "${directory}" || return 1
+	if ! temporary=$(mktemp "${directory}/.qb-restore.XXXXXX" 2>&1); then
+		_qbBackupError "Cannot stage rollback for ${original}: ${temporary}"
+		return 1
+	fi
+	_qbBackupCommand "Cannot stage backup for ${original}" command cp -p "${source}" "${temporary}" || failed=1
+	if [[ ${failed} -eq 0 && "$(id -u)" -eq 0 && "${uid}" != "-" && "${gid}" != "-" ]]; then
+		_qbBackupCommand "Cannot restore owner for ${original}" chown "${uid}:${gid}" "${temporary}" || failed=1
+	fi
+	if [[ ${failed} -eq 0 && "${mode}" != "-" && -n "${mode}" ]]; then
+		_qbBackupCommand "Cannot restore mode for ${original}" chmod "${mode}" "${temporary}" || failed=1
+	fi
+	if [[ ${failed} -eq 0 ]]; then
+		_qbBackupCommand "Cannot replace rollback destination ${original}" mv -f "${temporary}" "${destination}" || failed=1
+	fi
+	if [[ ${failed} -ne 0 ]]; then
+		rm -f "${temporary}"
+		return 1
+	fi
+	return 0
+}
 # One hash implementation for the supported Debian/Ubuntu targets and for the
 # macOS development sandbox.
 _qbBackupHash() {
@@ -117,9 +169,9 @@ _qbBackupCreate() {
 		fi
 		command cp -p "${path}" "${target}" || return 1
 		hash=$(_qbBackupHash "${target}") || hash="-"
-		mode=$(stat -c %a "${path}" 2>/dev/null || stat -f %Lp "${path}" 2>/dev/null) || mode="-"
-		uid=$(stat -c %u "${path}" 2>/dev/null || stat -f %u "${path}" 2>/dev/null) || uid="-"
-		gid=$(stat -c %g "${path}" 2>/dev/null || stat -f %g "${path}" 2>/dev/null) || gid="-"
+		mode=$(stat -L -c %a "${path}" 2>/dev/null || stat -L -f %Lp "${path}" 2>/dev/null) || mode="-"
+		uid=$(stat -L -c %u "${path}" 2>/dev/null || stat -L -f %u "${path}" 2>/dev/null) || uid="-"
+		gid=$(stat -L -c %g "${path}" 2>/dev/null || stat -L -f %g "${path}" 2>/dev/null) || gid="-"
 		printf 'file\t%s\t%s\t%s\t%s\t%s\n' \
 			"${path}" "${mode}" "${uid}" "${gid}" "${hash}" >>"${manifest_tmp}" || return 1
 	done
@@ -152,11 +204,10 @@ _qbBackupRestorePath() {
 		if [[ -n "${line}" ]]; then
 			IFS=$'\t' read -r kind path mode uid gid expected <<<"${line}"
 			if [[ "${kind}" == "absent" ]]; then
-				rm -f "${original}" && {
+				_qbBackupCommand "Cannot remove newly created ${original}" rm -f "${original}" && {
 					_qbBackupWarning "Removed newly created ${original}"
 					return 0
 				}
-				_qbBackupError "Cannot remove newly created ${original}"
 				return 1
 			fi
 			source="${backup_dir}/$(printf '%s' "${original}" | sed -e 's#/#_#g')"
@@ -174,13 +225,12 @@ _qbBackupRestorePath() {
 					return 1
 				fi
 			fi
-			mkdir -p "$(dirname "${original}")" || return 1
-			command cp -p "${source}" "${original}" || return 1
-			if [[ "${mode}" != "-" && -n "${mode}" ]]; then
-				chmod "${mode}" "${original}" || return 1
-			fi
-			if [[ "$(id -u)" -eq 0 && "${uid}" != "-" && "${gid}" != "-" ]]; then
-				chown "${uid}:${gid}" "${original}" || return 1
+			if [[ -L "${original}" ]]; then
+				# Older manifests recorded the link's mode/owner, while cp -p
+				# correctly preserved the target's metadata in the backup copy.
+				_qbBackupInstallFile "${source}" "${original}" || return 1
+			else
+				_qbBackupInstallFile "${source}" "${original}" "${mode}" "${uid}" "${gid}" || return 1
 			fi
 			_qbBackupWarning "Restored ${original}"
 			return 0
@@ -190,13 +240,12 @@ _qbBackupRestorePath() {
 	# Compatibility with backup sets created before manifest.tsv existed.
 	source="${backup_dir}/$(printf '%s' "${original}" | sed -e 's#/#_#g')"
 	if [[ -f "${source}" ]]; then
-		mkdir -p "$(dirname "${original}")" || return 1
-		command cp -p "${source}" "${original}" || return 1
+		_qbBackupInstallFile "${source}" "${original}" || return 1
 		_qbBackupWarning "Restored ${original}"
 		return 0
 	fi
 	if [[ -f "${backup_dir}/.absent" ]] && grep -Fxq "${original}" "${backup_dir}/.absent"; then
-		rm -f "${original}" && {
+		_qbBackupCommand "Cannot remove newly created ${original}" rm -f "${original}" && {
 			_qbBackupWarning "Removed newly created ${original}"
 			return 0
 		}

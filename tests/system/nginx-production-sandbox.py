@@ -121,18 +121,9 @@ def run_case(nginx_binary, deny_health=False):
                     ('health', '/qb-healthz', False, None, '403' if deny_health else '200')]:
                 results[name] = http_code(path, auth, origin)
                 assert results[name] == expected, results
-            (runtime / 'passphrase').write_text('fixture-passphrase\n')
-            encrypted = subprocess.check_output(
-                ['openssl', 'enc', '-aes-128-ecb', '-pbkdf2', '-a', '-e', '-pass',
-                 'file:' + str(runtime / 'passphrase'), '-nosalt'],
-                input='fixture-password\n', text=True)
-            (runtime / 'admin.info').write_text('fixture:' + encrypted)
             health_environment = dict(os.environ, QUICKBOX_WS_SECRET_FILE=str(runtime / 'secret'),
                                       QUICKBOX_WS_PORT=str(node_port), QUICKBOX_NGINX_SCHEME='http',
-                                      QUICKBOX_WS_HEALTH_PORT=str(nginx_port), QUICKBOX_WS_HEALTH_HOST='127.0.0.1',
-                                      QUICKBOX_ADMIN_INFO_FILE=str(runtime / 'admin.info'),
-                                      QUICKBOX_ADMIN_PASSPHRASE_FILE=str(runtime / 'passphrase'))
-            health_environment.pop('QUICKBOX_WS_HEALTH_COOKIE_JAR', None)
+                                      QUICKBOX_WS_HEALTH_PORT=str(nginx_port), QUICKBOX_WS_HEALTH_HOST='127.0.0.1')
             health = subprocess.run(['bash', str(REPO / 'packages/system/auxiliary/qbWsHealthCheck'),
                                      '--expect-proxy'], env=health_environment, capture_output=True, text=True)
             assert health.returncode == (1 if deny_health else 0), health.stderr

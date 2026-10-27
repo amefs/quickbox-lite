@@ -110,7 +110,8 @@ function _updatedashboard() {
 	_restoreDashboardRelease() {
 		local failed=0
 		if [[ ${activated} -eq 1 ]]; then
-			if mv /srv/dashboard "${stage_dir}" && mv "${previous_dir}" /srv/dashboard; then
+			if _qbRunHelper "Dashboard rollback: cannot move the failed release to ${stage_dir}" mv /srv/dashboard "${stage_dir}" &&
+				_qbRunHelper "Dashboard rollback: cannot restore ${previous_dir}" mv "${previous_dir}" /srv/dashboard; then
 				activated=0
 			else
 				_error "Cannot restore dashboard tree; retain ${previous_dir} and ${stage_dir} for recovery"
@@ -126,10 +127,11 @@ function _updatedashboard() {
 		_dashboardRestore "${backup_dir}" /srv/dashboard/db/nginx-ws-gateway.conf || failed=1
 		if [[ ${failed} -eq 0 ]]; then
 			# Never activate a mixture when restoring one of the paired files failed.
-			if systemctl daemon-reload >>"${OUTTO}" 2>&1 && nginx -t >>"${OUTTO}" 2>&1; then
-				systemctl restart quickbox-ws.service >>"${OUTTO}" 2>&1 &&
-					systemctl is-active --quiet quickbox-ws.service >>"${OUTTO}" 2>&1 &&
-					nginx -s reload >>"${OUTTO}" 2>&1 || failed=1
+			if _qbRunHelper "Dashboard rollback: systemctl daemon-reload failed" systemctl daemon-reload &&
+				_qbRunHelper "Dashboard rollback: nginx configuration test failed" nginx -t; then
+				_qbRunHelper "Dashboard rollback: quickbox-ws restart failed" systemctl restart quickbox-ws.service &&
+					_qbRunHelper "Dashboard rollback: quickbox-ws is not active" systemctl is-active --quiet quickbox-ws.service &&
+					_qbRunHelper "Dashboard rollback: nginx reload failed" nginx -s reload || failed=1
 			else
 				failed=1
 			fi
@@ -309,8 +311,8 @@ PYEOF
 	fi
 	_qbReportLap "nginx reload and theme" "${lap}"
 
-	# 9. Verify through the real paths, not just process liveness. The health
-	#    check retries, so its duration is the best signal for a slow start.
+	# 9. Verify backend HTTP and Socket.IO availability independently of the
+	#    user's authentication provider, plus nginx's static readiness endpoint.
 	#    It keeps its own verdict line: the individual probes only surface when
 	#    one of them fails or the update runs with --verbose.
 	lap=$(_qbNowMs)
@@ -319,10 +321,10 @@ PYEOF
 	if _qbIsVerbose; then
 		health_args+=(--verbose)
 	fi
-	# Reload returns before old nginx workers stop accepting connections. Require
-	# the complete health verdict to pass, allowing a short activation retry window.
+	# Allow a short activation retry window for the service and nginx readiness.
 	while ! health_output=$(bash /usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck "${health_args[@]}" 2>&1); do
 		if (( SECONDS >= health_deadline )); then
+			printf '%s\n' "${health_output}" >>"${OUTTO}"
 			printf '%s\n' "${health_output}" >&2
 			_error "Dashboard health check failed"
 			_restoreDashboardRelease
@@ -331,6 +333,7 @@ PYEOF
 		fi
 		sleep 0.1
 	done
+	printf '%s\n' "${health_output}" >>"${OUTTO}"
 	printf '%s\n' "${health_output}" >&2
 	_qbReportLap "health check" "${lap}"
 	rm -rf "${previous_dir}" "${stage_dir}"

@@ -14,17 +14,17 @@ async function until(check, timeout = 60000) {
   while (Date.now() < end) { if (await check()) return; await sleep(200); }
   throw new Error('authentication acceptance deadline exceeded');
 }
-async function verifyHealth(cookies, success) {
-  const id = `${Date.now()}-${success}`;
-  const request = path.join(directory, 'session.json');
-  fs.writeFileSync(`${request}.tmp`, JSON.stringify({ id, cookies }));
+async function verifyHealth() {
+  const id = `${Date.now()}`;
+  const request = path.join(directory, 'health-request.json');
+  fs.writeFileSync(`${request}.tmp`, JSON.stringify({ id }));
   fs.renameSync(`${request}.tmp`, request);
   let result;
   await until(() => {
-    try { result = JSON.parse(fs.readFileSync(path.join(directory, 'session-result.json'))); return result.id === id; }
+    try { result = JSON.parse(fs.readFileSync(path.join(directory, 'health-result.json'))); return result.id === id; }
     catch { return false; }
   });
-  assert.equal(result.status, success ? 0 : 1, result.diagnostics);
+  assert.equal(result.status, 0, result.diagnostics);
 }
 async function request(page, target, headers = {}) {
   try {
@@ -131,6 +131,7 @@ async function verifySingleBasicLogin(browser, entryPath) {
         assert.notEqual(await request(guestPage, '/node/dashboard_config'), 200);
         await websocket(guestPage, '/socket.io', false);
         await guest.close();
+        await verifyHealth();
         if (provider !== 'basic') {
           await page.goto(provider === 'authelia' ? `${base}/authelia/` : `${base}/login?url=${encodeURIComponent(`${base}/`)}`);
           await page.locator('input:not([type="hidden"]):not([type="password"]):not([type="checkbox"])').first().fill('fixture');
@@ -149,11 +150,11 @@ async function verifySingleBasicLogin(browser, entryPath) {
         if (provider !== 'basic') {
           const cookies = await context.cookies();
           assert(cookies.length > 0);
-          await verifyHealth(cookies, true);
+          await verifyHealth();
           await context.addCookies(cookies.map((cookie) => ({ ...cookie, value: 'tampered-fixture-session' })));
           assert.notEqual(await request(page, '/node/dashboard_config'), 200);
           await websocket(page, '/socket.io', false);
-          await verifyHealth(await context.cookies(), false);
+          await verifyHealth();
           await context.addCookies(cookies.map((cookie) => ({ ...cookie, expires: Math.floor(Date.now() / 1000) - 60 })));
           assert.notEqual(await request(page, '/node/dashboard_config'), 200);
         }

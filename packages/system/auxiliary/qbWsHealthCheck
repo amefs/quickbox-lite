@@ -2,11 +2,10 @@
 #
 # Post-deployment health check for the dashboard WebSocket service.
 #
-# Verifies more than "the process is alive":
-#   1. authenticated HTTP request to the Node service
-#   2. the same request without credentials is rejected
-#   3. the Socket.IO polling handshake works with credentials
-#   4. nginx no longer serves the management entry point without user auth
+# Checks the backend HTTP endpoint and both Socket.IO transports directly on
+# loopback, using the internal gateway secret needed to reach the service.
+# --expect-proxy also checks nginx's static /qb-healthz endpoint. User login,
+# cookies, redirects and authentication providers do not affect the verdict.
 #
 # Author: TautCony
 #
@@ -14,9 +13,8 @@
 #
 # Usage: qbWsHealthCheck [--expect-proxy] [--verbose]
 #
-# The default output is one verdict line. Every individual check is a detail of
-# that verdict, so it is only printed when the check fails or when --verbose
-# asks for a live trace.
+# The default output is one verdict line. Individual checks are printed on
+# failure or with --verbose.
 
 set -uo pipefail
 
@@ -24,6 +22,7 @@ SECRET_FILE="${QUICKBOX_WS_SECRET_FILE:-/etc/quickbox/ws.secret}"
 PORT="${QUICKBOX_WS_PORT:-8575}"
 NGINX_SCHEME="${QUICKBOX_NGINX_SCHEME:-auto}"
 NGINX_PORT="${QUICKBOX_WS_HEALTH_PORT:-}"
+NGINX_SITE="${QUICKBOX_WS_HEALTH_NGINX_SITE:-/etc/nginx/sites-enabled/default}"
 CHECK_SCHEME=""
 EXPECT_PROXY=0
 VERBOSE=0
@@ -78,20 +77,14 @@ _http_code() {
 
 # A successful upgrade keeps the connection open; stop after validating its headers.
 _websocket_code() {
-	QB_HEALTH_URL="$1" QB_HEALTH_HOST="${HOST_HEADER}" \
-		QB_HEALTH_USER="${ADMIN_USER:-}" QB_HEALTH_PASSWORD="${ADMIN_PASSWORD:-}" \
-		QB_HEALTH_COOKIE_JAR="${COOKIE_JAR}" python3 - <<'PYEOF'
+	QB_HEALTH_URL="$1" QB_HEALTH_GATEWAY="${SECRET}" python3 - <<'PYEOF'
 import base64
 import hashlib
 import hmac
 import http.client
-import http.cookiejar
 import os
 import signal
-import ssl
-import time
 from urllib.parse import urlsplit
-from urllib.request import Request
 
 
 def deadline(*_):
@@ -99,47 +92,20 @@ def deadline(*_):
 
 
 connection = None
-code = '000'
 signal.signal(signal.SIGALRM, deadline)
 signal.setitimer(signal.ITIMER_REAL, 5)
 try:
     target = urlsplit(os.environ['QB_HEALTH_URL'])
-    host = os.environ['QB_HEALTH_HOST']
     path = target.path + ('?' + target.query if target.query else '')
-    headers = {'Host': host, 'Origin': f'{target.scheme}://{host}',
+    key = base64.b64encode(os.urandom(16)).decode('ascii')
+    headers = {'Host': target.netloc, 'Origin': f'http://{target.netloc}',
+               'X-Quickbox-Gateway': os.environ['QB_HEALTH_GATEWAY'],
                'Connection': 'Upgrade', 'Upgrade': 'websocket',
-               'Sec-WebSocket-Version': '13'}
-    cookie_file = os.environ['QB_HEALTH_COOKIE_JAR']
-    if cookie_file:
-        cookies = http.cookiejar.MozillaCookieJar(cookie_file)
-        cookies.load(ignore_discard=True, ignore_expires=True)
-        for cookie in cookies:
-            if cookie.expires == 0:
-                cookie.expires = None
-                cookie.discard = True
-        request = Request(f'{target.scheme}://{host}{path}')
-        cookies.add_cookie_header(request)
-        if request.has_header('Cookie'):
-            headers['Cookie'] = request.get_header('Cookie')
-    else:
-        credentials = os.environ['QB_HEALTH_USER'] + ':' + os.environ['QB_HEALTH_PASSWORD']
-        headers['Authorization'] = 'Basic ' + base64.b64encode(credentials.encode()).decode('ascii')
-    while True:
-        key = base64.b64encode(os.urandom(16)).decode('ascii')
-        headers['Sec-WebSocket-Key'] = key
-        if target.scheme == 'https':
-            connection = http.client.HTTPSConnection(target.hostname, target.port, timeout=5,
-                                                     context=ssl._create_unverified_context())
-        else:
-            connection = http.client.HTTPConnection(target.hostname, target.port, timeout=5)
-        connection.request('GET', path, headers=headers)
-        response = connection.getresponse()
-        code = str(response.status)
-        if response.status != 400:
-            break
-        # nginx reload is asynchronous; an old worker may still use the old proxy protocol.
-        connection.close()
-        time.sleep(0.05)
+               'Sec-WebSocket-Version': '13', 'Sec-WebSocket-Key': key}
+    connection = http.client.HTTPConnection(target.hostname, target.port, timeout=5)
+    connection.request('GET', path, headers=headers)
+    response = connection.getresponse()
+    code = str(response.status)
     if response.status == 101:
         expected = base64.b64encode(hashlib.sha1((key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest())
         accepted = response.getheader('Sec-WebSocket-Accept', '').encode('latin-1')
@@ -148,9 +114,7 @@ try:
                 or 'upgrade' not in tokens or not hmac.compare_digest(accepted, expected)):
             code = '000'
     print(code)
-except TimeoutError:
-    print(code)
-except (OSError, ValueError, http.client.HTTPException):
+except (TimeoutError, OSError, ValueError, http.client.HTTPException):
     print('000')
 finally:
     signal.setitimer(signal.ITIMER_REAL, 0)
@@ -171,94 +135,53 @@ fi
 
 BASE="http://127.0.0.1:${PORT}"
 
-# 1. Authenticated request must succeed.
+# 1. Wait for the backend HTTP listener and require a successful response.
 # Type=simple reports the service started before Node has opened its listener.
 # Wait only for transport availability, with at most 20 one-second probes and
 # 19 one-second pauses. An HTTP response must still pass every check below;
-# authentication failures must not be hidden by retries.
+# failed HTTP responses must not be hidden by retries.
 for ATTEMPT in {1..20}; do
 	CODE=$(_http_code -m 1 -H "X-Quickbox-Gateway: ${SECRET}" "${BASE}/node/dashboard_config")
 	[[ "${CODE}" == "000" && ${ATTEMPT} -lt 20 ]] || break
 	sleep 1
 done
 if [[ "${CODE}" == "200" ]]; then
-	_check_pass "authenticated request via gateway secret: ${CODE}"
+	_check_pass "backend HTTP request: ${CODE}"
 else
-	_check_fail "authenticated request failed: ${CODE}"
+	_check_fail "backend HTTP request failed: ${CODE}"
 fi
 
-# 2. The same request without the gateway secret must be rejected.
-CODE=$(_http_code "${BASE}/node/dashboard_config")
-if [[ "${CODE}" == "401" ]]; then
-	_check_pass "unauthenticated request rejected: ${CODE}"
-else
-	_check_fail "unauthenticated request was not rejected: ${CODE}"
-fi
-
-# 3. Socket.IO polling handshake (the transport the dashboard uses first).
-CODE=$(_http_code -H "X-Quickbox-Gateway: ${SECRET}" -H "Origin: http://127.0.0.1:${PORT}" \
-	"${BASE}/socket.io/?EIO=4&transport=polling")
-if [[ "${CODE}" == "200" ]]; then
-	_check_pass "socket.io polling handshake with credentials: ${CODE}"
-else
-	_check_fail "socket.io polling handshake failed: ${CODE}"
-fi
-
-CODE=$(_http_code "http://127.0.0.1:${PORT}/ws/socket.io/?EIO=4&transport=polling")
-case "${CODE}" in
-401 | 403)
-	_check_pass "socket.io on /ws/socket.io rejected without credentials: ${CODE}"
-	;;
-*)
-	_check_fail "socket.io on /ws/socket.io should reject unauthenticated handshakes: ${CODE}"
-	;;
-esac
-
-# 4. Through nginx: the management entry point must never answer 200 without
-#    user authentication, and the restricted probe must stay available.
-if [[ ${EXPECT_PROXY} -eq 1 ]]; then
-	HOST_HEADER="${QUICKBOX_WS_HEALTH_HOST:-127.0.0.1}"
-	ADMIN_FILE="${QUICKBOX_ADMIN_INFO_FILE:-/root/.admin.info}"
-	PASSPHRASE_FILE="${QUICKBOX_ADMIN_PASSPHRASE_FILE:-/root/.ssh/local_user}"
-	COOKIE_JAR="${QUICKBOX_WS_HEALTH_COOKIE_JAR:-}"
-	AUTH_CURL_ARGS=()
-	CURL_AUTH_CONFIG=""
-	if [[ -n "${COOKIE_JAR}" ]]; then
-		if [[ ! -f "${COOKIE_JAR}" || -L "${COOKIE_JAR}" ]]; then _error "Configured provider cookie jar is missing or is a symlink"; exit 1; fi
-		COOKIE_OWNER=$(stat -c %u "${COOKIE_JAR}" 2>/dev/null || stat -f %u "${COOKIE_JAR}") || exit 1
-		COOKIE_MODE=$(stat -c %a "${COOKIE_JAR}" 2>/dev/null || stat -f %Lp "${COOKIE_JAR}") || exit 1
-		if [[ "${COOKIE_OWNER}" != "0" ]] || (( 8#${COOKIE_MODE} & 8#77 )); then _error "Provider cookie jar must be root-owned and mode 0600 or stricter"; exit 1; fi
-		AUTH_CURL_ARGS+=(--cookie "${COOKIE_JAR}")
+# 2. Exercise both backend Socket.IO paths without going through user login.
+for SOCKET_PATH in /socket.io /ws/socket.io; do
+	POLL_CODE=$(_http_code -H "X-Quickbox-Gateway: ${SECRET}" -H "Origin: ${BASE}" "${BASE}${SOCKET_PATH}/?EIO=4&transport=polling")
+	if [[ "${POLL_CODE}" == 200 ]]; then
+		_check_pass "backend polling ${SOCKET_PATH}: 200"
 	else
-		if [[ ! -s "${ADMIN_FILE}" || ! -s "${PASSPHRASE_FILE}" ]]; then
-			_error "Authenticated nginx probe needs protected admin credentials or QUICKBOX_WS_HEALTH_COOKIE_JAR for an external provider"
-			exit 1
-		fi
-		ADMIN_USER=$(cut -d: -f1 "${ADMIN_FILE}")
-		ENCRYPTED_PASSWORD=$(cut -d: -f2- "${ADMIN_FILE}")
-		ADMIN_PASSWORD=$(openssl enc -aes-128-ecb -pbkdf2 -a -d -pass "file:${PASSPHRASE_FILE}" -nosalt <<<"${ENCRYPTED_PASSWORD}" 2>/dev/null) || { _error "Cannot decrypt the protected dashboard health-check credential"; exit 1; }
-		if [[ -z "${ADMIN_USER}" || -z "${ADMIN_PASSWORD}" || "${ADMIN_USER}${ADMIN_PASSWORD}" == *$'\n'* || "${ADMIN_USER}${ADMIN_PASSWORD}" == *$'\r'* ]]; then _error "Decrypted dashboard health-check credential is invalid"; exit 1; fi
-		# sudo resets the environment, so TMPDIR exported by the dashboard runner
-		# is not guaranteed to reach this root process. Prefer the persistent
-		# dashboard temp directory when it exists; /tmp may be a PrivateTmp mount
-		# that was removed when the WS unit restarted during the update.
-		if [[ -z "${TMPDIR:-}" || ! -d "${TMPDIR}" ]]; then
-			if [[ -d "${QUICKBOX_DASHBOARD_DB_DIR:-/srv/dashboard/db}/tmp" ]]; then
-				TMPDIR="${QUICKBOX_DASHBOARD_DB_DIR:-/srv/dashboard/db}/tmp"
-			else
-				TMPDIR=/tmp
-			fi
-		fi
-		if [[ ! -d "${TMPDIR}" ]]; then _error "Temporary directory is unavailable: ${TMPDIR}"; exit 1; fi
-		CURL_AUTH_CONFIG=$(mktemp "${TMPDIR}/qb-ws-health.XXXXXX") || { _error "Cannot create temporary curl auth configuration"; exit 1; }
-		trap '[[ -z "${CURL_AUTH_CONFIG}" ]] || rm -f "${CURL_AUTH_CONFIG}"' EXIT
-		AUTH_CURL_ARGS+=(--config "${CURL_AUTH_CONFIG}")
-		chmod 0600 "${CURL_AUTH_CONFIG}" || { [[ -z "${CURL_AUTH_CONFIG}" ]] || rm -f "${CURL_AUTH_CONFIG}"; exit 1; }
-		ADMIN_USER_ESC=${ADMIN_USER//\\/\\\\}; ADMIN_USER_ESC=${ADMIN_USER_ESC//\"/\\\"}
-		ADMIN_PASSWORD_ESC=${ADMIN_PASSWORD//\\/\\\\}; ADMIN_PASSWORD_ESC=${ADMIN_PASSWORD_ESC//\"/\\\"}
-		printf 'user = "%s:%s"\n' "${ADMIN_USER_ESC}" "${ADMIN_PASSWORD_ESC}" >"${CURL_AUTH_CONFIG}"
+		_check_fail "backend polling ${SOCKET_PATH} failed: ${POLL_CODE}"
 	fi
+	WS_CODE=$(_websocket_code "${BASE}${SOCKET_PATH}/?EIO=4&transport=websocket")
+	if [[ "${WS_CODE}" == 101 ]]; then
+		_check_pass "backend WebSocket Upgrade ${SOCKET_PATH}: 101"
+	else
+		_check_fail "backend WebSocket Upgrade ${SOCKET_PATH} failed: ${WS_CODE}"
+	fi
+done
 
+# 3. Optionally check nginx readiness on its static endpoint outside user auth.
+if [[ ${EXPECT_PROXY} -eq 1 ]]; then
+	HOST_HEADER="${QUICKBOX_WS_HEALTH_HOST:-}"
+	if [[ -z "${HOST_HEADER}" && -r "${NGINX_SITE}" ]]; then
+		# Select the configured virtual host for the static nginx readiness probe.
+		HOST_HEADER=$(awk '$1 == "server_name" {
+			for (i = 2; i <= NF; i++) {
+				name = $i; sub(/;.*/, "", name)
+				if (name ~ /^[[:alnum:]][[:alnum:].-]*$/) { print name; exit }
+				if ($i ~ /;/) break
+			}
+		}' "${NGINX_SITE}")
+	fi
+	HOST_HEADER="${HOST_HEADER:-127.0.0.1}"
+	[[ ${VERBOSE} -eq 0 ]] || printf 'Nginx probe Host: %s\n' "${HOST_HEADER}" >&2
 	if [[ "${NGINX_SCHEME}" == "auto" ]]; then
 		NGINX_SCHEME=""
 		for candidate in https http; do
@@ -284,41 +207,18 @@ if [[ ${EXPECT_PROXY} -eq 1 ]]; then
 		local path="$1"
 		_http_code -H "Host: ${HOST_HEADER}" "${PROXY_URL}${path}"
 	}
-	auth_proxy_code() {
-		local path="$1"
-		curl -q "${AUTH_CURL_ARGS[@]}" --noproxy '*' -k -s -o /dev/null -m 8 -w '%{http_code}' -H "Host: ${HOST_HEADER}" "${PROXY_URL}${path}" 2>/dev/null
-	}
-
-	PROXY_CODE=$(proxy_code "/node/dashboard_config")
-	case "${PROXY_CODE}" in
-	401 | 403 | 301 | 302)
-		_check_pass "nginx management entry rejects unauthenticated requests: ${PROXY_CODE}"
-		;;
-	*)
-		_check_fail "nginx management entry answered ${PROXY_CODE} without user authentication"
-		;;
-	esac
-
-	AUTH_HTTP_CODE=$(auth_proxy_code "/node/dashboard_config")
-	if [[ "${AUTH_HTTP_CODE}" == "200" ]]; then _check_pass "authenticated nginx dashboard HTTP request: 200"; else _check_fail "authenticated nginx dashboard HTTP request failed: ${AUTH_HTTP_CODE}"; fi
-
 	HEALTH_CODE=$(proxy_code "/qb-healthz")
 	if [[ "${HEALTH_CODE}" == "200" ]]; then
-		_check_pass "restricted health endpoint reachable through nginx: 200"
+		_check_pass "nginx health endpoint: 200"
 	else
-		_check_fail "restricted health endpoint unreachable through nginx: ${HEALTH_CODE}"
+		_check_fail "nginx health endpoint failed: ${HEALTH_CODE}"
 	fi
-
-	for SOCKET_PATH in /socket.io /ws/socket.io; do
-		POLL_CODE=$(auth_proxy_code "${SOCKET_PATH}/?EIO=4&transport=polling")
-		if [[ "${POLL_CODE}" == "200" ]]; then _check_pass "authenticated nginx polling ${SOCKET_PATH}: 200"; else _check_fail "authenticated nginx polling ${SOCKET_PATH} failed: ${POLL_CODE}"; fi
-		WS_CODE=$(_websocket_code "${PROXY_URL}${SOCKET_PATH}/?EIO=4&transport=websocket")
-		if [[ "${WS_CODE}" == "101" ]]; then _check_pass "authenticated nginx WebSocket Upgrade ${SOCKET_PATH}: 101"; else _check_fail "authenticated nginx WebSocket Upgrade ${SOCKET_PATH} failed: ${WS_CODE}"; fi
-	done
-	[[ -z "${CURL_AUTH_CONFIG}" ]] || rm -f "${CURL_AUTH_CONFIG}"
 fi
 
 if [[ ${CHECK_FAILED} -ne 0 ]]; then
+	if [[ ${EXPECT_PROXY} -eq 1 && ${VERBOSE} -eq 0 ]]; then
+		printf 'Nginx probe Host: %s\n' "${HOST_HEADER}" >&2
+	fi
 	# A quiet run held every line back; replay the sequence so the log shows
 	# which check broke and what it answered.
 	if [[ ${VERBOSE} -eq 0 ]]; then

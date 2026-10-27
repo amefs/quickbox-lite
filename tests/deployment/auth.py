@@ -135,7 +135,7 @@ class IdentityFixture(BaseHTTPRequestHandler):
 def main():
     if os.environ.get('QUICKBOX_TEST_DISPOSABLE') != '1':
         raise RuntimeError('Disposable integration fixture only')
-    for filename in ['ready', 'active', 'session-result.json']:
+    for filename in ['ready', 'active', 'health-result.json']:
         Path('/auth-fixtures', filename).unlink(missing_ok=True)
     deployment.setup()
     deployment.driver(fresh=True)
@@ -145,7 +145,7 @@ def main():
     # The host runner requests provider changes via a file in the disposable
     # fixture volume. This control channel is never exposed through nginx.
     previous = ''
-    previous_session = ''
+    previous_health = ''
     while not Path('/auth-fixtures/stop').exists():
         provider = control_file('/auth-fixtures/provider')
         if provider is not None and provider != previous:
@@ -154,26 +154,16 @@ def main():
             switch(provider)
             previous = provider
             Path('/auth-fixtures/active').write_text(provider)
-        data = control_json('/auth-fixtures/session.json')
+        data = control_json('/auth-fixtures/health-request.json')
         if data is not None:
-            if data['id'] != previous_session:
-                jar = Path('/run/quickbox-test/provider.cookies')
-                lines = ['# Netscape HTTP Cookie File']
-                for cookie in data['cookies']:
-                    expires = str(max(0, int(cookie.get('expires', 0))))
-                    lines.append('\t'.join([cookie['domain'], 'TRUE' if cookie['domain'].startswith('.') else 'FALSE',
-                                            cookie['path'], 'TRUE' if cookie['secure'] else 'FALSE',
-                                            expires, cookie['name'], cookie['value']]))
-                jar.write_text('\n'.join(lines) + '\n')
-                jar.chmod(0o600)
-                environment = dict(deployment.ENV, QUICKBOX_WS_HEALTH_COOKIE_JAR=str(jar),
-                                   QUICKBOX_WS_HEALTH_HOST='dashboard.example.com',
+            if data['id'] != previous_health:
+                environment = dict(deployment.ENV, QUICKBOX_WS_HEALTH_HOST='dashboard.example.com',
                                    QUICKBOX_WS_HEALTH_PORT='18443', QUICKBOX_NGINX_SCHEME='https')
                 result = subprocess.run(['bash', '/usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck',
                                          '--expect-proxy'], env=environment, capture_output=True, text=True)
-                Path('/auth-fixtures/session-result.json').write_text(json.dumps(
+                Path('/auth-fixtures/health-result.json').write_text(json.dumps(
                     {'id': data['id'], 'status': result.returncode, 'diagnostics': result.stderr}))
-                previous_session = data['id']
+                previous_health = data['id']
         time.sleep(0.1)
     server.shutdown()
 
