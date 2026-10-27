@@ -12,19 +12,18 @@ They never mount the host's deployment directories or Docker socket.
 
 ## CI stages and reports
 
-The `Linter` workflow is the entry point. Its TypeScript/unit, JavaScript, shell,
-package-script and Python checks must all pass before it calls this reusable
-acceptance workflow. Both workflows use the same triggering commit, including
-the same merge commit for a pull request. Acceptance is selected for pull requests
-that change application/deployment/test paths or the CI definitions. Push events
-run lint without also repeating acceptance. To run manually, select `Linter` in
+The `Linter` workflow runs system tests on pushes and pull requests alongside
+TypeScript/unit, JavaScript, shell, package-script and Python checks. All checks
+must pass before it calls the reusable deployment acceptance workflow. Both
+workflows use the same triggering commit, including the merge commit for a pull
+request. Deployment acceptance runs for relevant pull requests; push events run
+system tests and lint without repeating deployment acceptance. To run manually, select `Linter` in
 Actions and use **Run workflow**; this runs lint followed by acceptance.
 
 `.github/workflows/deployment.yml` exposes these groups as individual steps:
 
 | Job | Application checks |
 | --- | --- |
-| Update and recovery sandboxes | Node runtime policy; staging/gateway/health/update; backup/configuration restore; repository revert/reinstall; progress/arguments |
 | Dashboard browser interactions | Page rendering; widgets and WS data; PMC state and mock actions; locale; debug console; error dialogs |
 | Prepare application image and offline dependencies | System tools; current and pinned baseline production dependencies; verified bundle; offline installation proof; reusable artifacts |
 | Linux application deployment | Fresh install/permissions/sudo; HTTP/TLS/Socket.IO; baseline/repeated upgrade; five injected failures and rollback; WS/CLI mutual exclusion |
@@ -32,14 +31,13 @@ Actions and use **Run workflow**; this runs lint followed by acceptance.
 | Application authentication | Basic Auth; WebKit single-login regression; Authelia; Vouch, each with its own step |
 
 Each acceptance job writes a summary with passed, failed and skipped stages and
-per-stage durations. Details such as sandbox scripts and rollback failure types
-are grouped in the logs. Independent sandbox groups continue after a failure;
-stateful deployment and authentication steps stop after a failure. Cleanup and
-summary steps always run. Failures retain Linux/service logs or authentication
+per-stage durations. System test groups continue after a failure; stateful
+deployment and authentication steps stop after a failure. Cleanup and summary
+steps always run. Failures retain Linux/service logs or authentication
 Compose logs and browser screenshots.
 
-The browser interaction job starts alongside the sandboxes and image preparation
-after lint passes. It runs the full `e2e/tests` Playwright suite against the local
+The browser interaction job starts alongside image preparation after the system
+tests and lint pass. It runs the full `e2e/tests` Playwright suite against the local
 Node dashboard in mock mode, without Docker, nginx or application installation.
 Package actions update mock state rather than installing software or changing
 host services. npm dependencies and Chromium are cached. HTML reports and browser
@@ -194,8 +192,10 @@ a local identity-provider fixture. Production auth migration and provider nginx
 location snippets are used. No external accounts or secrets are required.
 
 Playwright checks login, HTTP access, polling, WebSockets, anonymous rejection,
-and tampered/expired cookies. Valid and corrupted provider cookies are also sent
-to the actual root health checker. The current root-page assertion checks only
+and tampered/expired cookies. The root health checker verifies backend HTTP,
+polling and WebSockets plus nginx readiness, independently of login or cookie
+state. It must also pass before login and after a session is tampered with.
+The current root-page assertion checks only
 that the body is nonempty; the separate Dashboard browser interactions job runs
 the full `e2e/tests` application interaction suite with its own mock server.
 
@@ -230,7 +230,7 @@ starting the services does not pull images.
 
 ```sh
 python3 -m unittest discover -s tests/deployment -p 'test_*.py' -v
-bash tests/system/run-dashboard-sandboxes.sh
+python3 tests/run.py
 ```
 
 Python tooling (`flake8`, `pyright`, `prettytable` for the benchmark helpers) is
@@ -260,20 +260,28 @@ fixed at the source instead of being suppressed. `pyrightconfig.json` does the
 same for type checking — Pylance reads that file too, so the editor and CI
 cannot drift apart.
 
-The sandbox wrapper also accepts `runtime`, `dashboard`, `backups`, `repository`
-or `progress` to run one group. All sandbox mutations stay in temporary paths.
-Every sandbox is also a unittest case, so a single script or a single case can be
-run without going through the whole group:
+System tests use pytest and are grouped by responsibility under `tests`.
+Python tests follow the repository-wide `.flake8` configuration, including the
+120-character line limit.
+The entry point runs tests directly on Linux and uses a disposable container on
+other platforms. Direct pytest invocations also switch to Docker for system tests
+on non-Linux hosts; selections entirely under `tests/lint` run on the host. The
+runner builds `quickbox-system-tests:py3.14-pytest9.2` only when the image is
+missing, then reuses it. The checkout is mounted read-only and each test run
+removes its container. Set `QUICKBOX_SYSTEM_TEST_IMAGE` to use an existing
+compatible image. Delete the cached image to rebuild it after changing the Dockerfile.
 
 ```sh
-python3 -m unittest tests.system.test_sandboxes -k backup_retention -v
-python3 tests/system/backup-retention-sandbox.py --list
-python3 tests/system/backup-retention-sandbox.py --case test_dry_run_removes_nothing
+python3 tests/run.py
+python3 tests/run.py tests/backups
+python3 tests/run.py tests/backups/test_backup_retention.py::test_dry_run_removes_nothing
 ```
 
-Group membership lives in `tests/system/test_sandboxes.py`. Cases inside a
-sandbox are discovered from its module namespace, so adding a `test_*` function
-is enough — there is no second list to update.
+The Linux-specific tests in `tests/linux` cover GNU `getopt` and the
+authentication lifecycle, which changes system paths. On Linux the latter runs
+in a separate disposable container; on other platforms both run inside the test
+container. The remaining tests use temporary paths and run directly on Linux.
+Python tests invoke the production Bash scripts with temporary paths and controlled command stubs.
 
 The deployment harness rejects later phases if their required install/upgrade
 phase has not passed. The CI summary runner is `tests/deployment/report.py`.

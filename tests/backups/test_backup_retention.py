@@ -4,14 +4,12 @@
 Each case builds its own temporary backup root, so no real /var/backups path is
 read or written. Age is expressed through directory modification times.
 """
+
 import os
 from pathlib import Path
 import subprocess
-import sys
 import tempfile
 import time
-
-from sandbox_support import run_cases
 
 REPO = Path(__file__).resolve().parents[2]
 HELPER = REPO / "packages/system/auxiliary/qbBackupPrune"
@@ -29,9 +27,7 @@ def run(root, *args, keep=None, days=None):
         env["QUICKBOX_BACKUP_KEEP"] = str(keep)
     if days is not None:
         env["QUICKBOX_BACKUP_DAYS"] = str(days)
-    return subprocess.run(
-        ["bash", str(HELPER), *args], env=env, capture_output=True, text=True
-    )
+    return subprocess.run(["bash", str(HELPER), *args], env=env, capture_output=True, text=True)
 
 
 def make_backup(root, name, mtime, target=None):
@@ -193,9 +189,7 @@ def test_update_family_prunes_and_state_files_survive():
         history_file.write_text("20240101-000000\tmaster\tdeadbeef\t/etc/QuickBox\n")
         result = run(root, keep=2, days=0)
         assert result.returncode == 0, result.stderr
-        assert names(root) == {
-            f"{name}-update" for name in updates[2:]
-        } | {state_file.name, history_file.name}
+        assert names(root) == {f"{name}-update" for name in updates[2:]} | {state_file.name, history_file.name}
 
 
 def test_numeric_suffix_ordering():
@@ -263,8 +257,3 @@ def test_proxy_migration_backup_is_private_and_idempotent():
         second = subprocess.run(command, env=env, capture_output=True, text=True)
         assert second.returncode == 0, (second.stdout, second.stderr)
         assert len([entry for entry in backup_root.iterdir() if entry.is_dir()]) == 1
-
-
-if __name__ == "__main__":
-    # Cases are discovered from this module, so a new test_* function is enough.
-    sys.exit(run_cases(globals(), "backup retention sandbox"))

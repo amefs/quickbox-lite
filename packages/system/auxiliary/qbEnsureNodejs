@@ -53,9 +53,6 @@ function _release_major() {
 	printf '%s\n' "${BASH_REMATCH[1]}"
 }
 
-# A newer major line is acceptable. The dashboard needs a modern runtime, and a
-# host that already runs one must not be downgraded to the managed 24.x line by
-# a routine update.
 function _is_supported() {
 	local version="$1" major
 	major=$(_release_major "${version}") || return 1
@@ -116,24 +113,37 @@ function _is_newer() {
 current_version=$(_installed_version || true)
 current_major=0
 sourcelist=""
+supported=0
 if [[ -n ${current_version} ]] && _is_supported "${current_version}"; then
+	supported=1
 	current_major=$(_release_major "${current_version}" || printf '0\n')
-	sourcelist=$(_detect_sourcelist || true)
 fi
 
 if [[ ${current_major} -gt 24 ]]; then
 	printf 'Keeping the installed Node.js %s (newer than the managed 24.x line).\n' \
 		"${current_version}"
-elif [[ -n ${sourcelist} && ${reuse_satisfied} -eq 1 ]]; then
-	printf 'Keeping the installed Node.js %s (only-core update).\n' "${current_version}"
-elif [[ -n ${sourcelist} ]]; then
+	exit 0
+fi
+
+# --reuse is decided before the package source is inspected.
+if [[ ${supported} -eq 1 && ${reuse_satisfied} -eq 1 ]]; then
+	printf 'Keeping the installed Node.js %s (--reuse).\n' "${current_version}"
+	exit 0
+fi
+
+if [[ ${supported} -eq 1 ]]; then
+	sourcelist=$(_detect_sourcelist || true)
+fi
+
+if [[ -n ${sourcelist} ]]; then
 	# Fast path: the runtime is already what this host is supposed to run, so
 	# only published patches are of interest.
 	printf 'Refreshing the NodeSource package index (%s)...\n' "${sourcelist}"
 	if _refresh_nodesource "${sourcelist}"; then
 		candidate=$(_candidate_version || true)
 		if [[ -n ${candidate} ]] && _is_newer "${candidate}" "${current_version}"; then
-			printf 'Installing Node.js %s (replacing %s)...\n' "${candidate}" "${current_version}"
+			printf 'Installing Node.js %s (replacing %s) from the NodeSource repository.\n' \
+				"${candidate}" "${current_version}"
 			apt-get install -y --only-upgrade nodejs
 		else
 			printf 'System Node.js is already up to date (%s).\n' "${current_version}"
@@ -145,7 +155,8 @@ elif [[ -n ${sourcelist} ]]; then
 			"${current_version}" >&2
 	fi
 else
-	printf 'Updating the NodeSource repository for Node.js 24...\n'
+	printf 'Installing Node.js 24 from the NodeSource repository (%s -> 24.x); quickbox-ws restarts on it.\n' \
+		"${current_version:-missing}"
 	curl -fsSL --retry 3 --retry-max-time 60 \
 		https://deb.nodesource.com/setup_24.x -o "${setup_dir}/setup.sh"
 	bash "${setup_dir}/setup.sh"

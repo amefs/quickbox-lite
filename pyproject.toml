@@ -10,9 +10,13 @@ dependencies = ["prettytable"]
 dev = [
     "flake8",
     "pyright>=1.1.414",
+    "pytest>=8,<10",
 ]
 
 [tool.uv]
 # This repository ships shell and JavaScript artifacts, not a Python package:
 # uv must not try to build or install the project itself.
 package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

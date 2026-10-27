@@ -30,7 +30,6 @@ scripts=(
 	packages/system/auxiliary/qbNginxAuth
 	packages/system/auxiliary/qbAbortTask
 	scripts/check-system-script-syntax.sh
-	tests/system/run-dashboard-sandboxes.sh
 )
 
 for script in "${scripts[@]}"; do

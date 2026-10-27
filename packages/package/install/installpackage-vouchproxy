@@ -109,7 +109,10 @@ function _usage() {
 function _lockCheck() {
   # install docker stack runtime through the dedicated package installer
   if [[ ! -f /install/.docker.lock ]]; then
-    bash /usr/local/bin/quickbox/package/install/installpackage-docker -l "$OUTTO"
+    if ! bash /usr/local/bin/quickbox/package/install/installpackage-docker -l "$OUTTO"; then
+      _error "Docker is required for ${APP_TITLE} and could not be installed."
+      exit 1
+    fi
   fi
 
   if [[ -f "/install/.install.lock" ]]; then
@@ -129,7 +132,12 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	echo "${APP_TITLE}" >/install/.install.lock
+	if ! echo "${APP_TITLE}" >/install/.install.lock; then
+		_error "Cannot take the installation lock."
+		exit 1
+	fi
+	# The installation marker is cleared on exit.
+	trap '_clearInstallLock' EXIT
 }
 
 function _clearInstallLock() {
@@ -144,6 +152,12 @@ function _lockCleanup() {
 }
 
 function _validationExit() {
+  _clearInstallLock
+  exit 1
+}
+
+function _abort() {
+  _error "$1"
   _clearInstallLock
   exit 1
 }
@@ -228,15 +242,16 @@ function _validateRequired() {
 function _installDepends() {
   _info "Installing ${APP_TITLE} dependencies..."
   for depend in $APP_BASEDEPS; do
-    _execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}."; exit 1; }
+    _execute "apt-get -y --allow-unauthenticated -f install ${depend}" || _abort "Could not install ${depend}."
   done
   _success "${APP_TITLE} dependencies installed."
 }
 
 function _installApp() {
   _info "Preparing ${APP_TITLE} runtime..."
-  mkdir -p /opt/vouch-proxy
-  chmod 700 /opt/vouch-proxy
+  if ! mkdir -p /opt/vouch-proxy || ! chmod 700 /opt/vouch-proxy; then
+    _abort "Failed to prepare /opt/vouch-proxy."
+  fi
 
   # Build domains list from comma-separated EMAIL_DOMAINS
   local domains_yaml=""
@@ -258,7 +273,7 @@ function _installApp() {
     post_logout_redirects_yaml+="    - ${OIDC_END_SESSION_ENDPOINT}"$'\n'
   fi
 
-  cat >/opt/vouch-proxy/config.yml <<EOF
+  if ! cat >/opt/vouch-proxy/config.yml <<EOF
 vouch:
   logLevel: info
   listen: 0.0.0.0
@@ -275,14 +290,20 @@ oauth:
   token_url: ${OIDC_TOKEN_URL}
   user_info_url: ${OIDC_USERINFO_URL}
 EOF
-
-  if [[ -n "$OIDC_END_SESSION_ENDPOINT" ]]; then
-    cat >>/opt/vouch-proxy/config.yml <<EOF
-  end_session_endpoint: '${OIDC_END_SESSION_ENDPOINT}'
-EOF
+  then
+    _abort "Failed to write the ${APP_TITLE} configuration."
   fi
 
-  cat >>/opt/vouch-proxy/config.yml <<EOF
+  if [[ -n "$OIDC_END_SESSION_ENDPOINT" ]]; then
+    if ! cat >>/opt/vouch-proxy/config.yml <<EOF
+  end_session_endpoint: '${OIDC_END_SESSION_ENDPOINT}'
+EOF
+    then
+      _abort "Failed to write the ${APP_TITLE} end-session endpoint."
+    fi
+  fi
+
+  if ! cat >>/opt/vouch-proxy/config.yml <<EOF
   callback_url: 'https://${LOGIN_DOMAIN}/auth'
   client_id: ${OIDC_CLIENT_ID}
   client_secret: ${OIDC_CLIENT_SECRET}
@@ -291,12 +312,19 @@ EOF
     - profile
     - email
 EOF
-  chown -R www-data:www-data /opt/vouch-proxy
-  chmod 644 /opt/vouch-proxy/config.yml
+  then
+    _abort "Failed to write the ${APP_TITLE} OIDC client settings."
+  fi
+  if ! chmod 0644 /opt/vouch-proxy/config.yml; then
+    _abort "Cannot set permissions on the ${APP_TITLE} configuration."
+  fi
+  if ! chown -R www-data:www-data /opt/vouch-proxy; then
+    _abort "Failed to set ownership on /opt/vouch-proxy."
+  fi
 
-  vouch_uid=$(id -u www-data)
-  vouch_gid=$(id -g www-data)
-  cat >/opt/vouch-proxy/docker-compose.yml <<EOF
+  vouch_uid=$(id -u www-data) || _abort "The www-data user is missing."
+  vouch_gid=$(id -g www-data) || _abort "The www-data group is missing."
+  if ! cat >/opt/vouch-proxy/docker-compose.yml <<EOF
 services:
   vouch-proxy:
     image: quay.io/vouch/vouch-proxy:latest
@@ -308,8 +336,11 @@ services:
     volumes:
       - /opt/vouch-proxy/config.yml:/config/config.yml:ro
 EOF
+  then
+    _abort "Failed to write the ${APP_TITLE} compose file."
+  fi
 
-  cat >/etc/systemd/system/${APP_SERVICE}.service <<'EOF'
+  if ! cat >/etc/systemd/system/${APP_SERVICE}.service <<'EOF'
 [Unit]
 Description=Vouch Proxy container
 After=docker.service network-online.target
@@ -325,8 +356,11 @@ ExecStop=/usr/bin/docker compose down
 [Install]
 WantedBy=multi-user.target
 EOF
+  then
+    _abort "Failed to install the ${APP_SERVICE} service unit."
+  fi
 
-  cat >/etc/nginx/apps/vouchproxy-auth.conf <<'EOF'
+  if ! cat >/etc/nginx/apps/vouchproxy-auth.conf <<'EOF'
 location = /validate {
   internal;
   proxy_pass http://127.0.0.1:9090/validate;
@@ -374,37 +408,47 @@ location /auth {
   proxy_set_header X-Forwarded-Host $host;
 }
 EOF
+  then
+    _abort "Failed to install the ${APP_TITLE} nginx auth snippet."
+  fi
 
   local_admin_user=$(cut -d: -f1 /root/.admin.info)
-  cat >/etc/nginx/conf.d/vouch-user-map.conf <<EOF
-# Map authenticated OIDC user to the local QuickBox admin user.
+  # The user map is written in one buffer.
+  local user_map
+  user_map="# Map authenticated OIDC user to the local QuickBox admin user.
 map \$auth_resp_x_vouch_user \$qb_vouch_local_user {
-  default "";
-EOF
-
+  default \"\";
+"
   IFS=',' read -r -a oidc_users <<<"$OIDC_USER_MAP"
   for oidc_user in "${oidc_users[@]}"; do
     oidc_user="$(echo "$oidc_user" | xargs)"
     if [[ -n "$oidc_user" ]]; then
-      printf '  "%s" "%s";\n' "$oidc_user" "$local_admin_user" >>/etc/nginx/conf.d/vouch-user-map.conf
+      user_map+="  \"${oidc_user}\" \"${local_admin_user}\";
+"
     fi
   done
-  echo "}" >>/etc/nginx/conf.d/vouch-user-map.conf
+  user_map+="}
+"
+  if ! printf '%s' "${user_map}" > /etc/nginx/conf.d/vouch-user-map.conf; then
+    _abort "Failed to install the ${APP_TITLE} user map."
+  fi
 
-  chmod +x /usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate || true
-  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --migrate" || { _error "Failed to migrate existing authentication configuration."; _validationExit; }
+  chmod +x /usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate || _abort "Cannot make qbAuthMigrate executable."
+  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --migrate" || _abort "Failed to migrate existing authentication configuration."
 
-  _execute "systemctl daemon-reload" || { _error "Failed to reload systemd units."; _validationExit; }
-  _execute "systemctl enable ${APP_SERVICE}" || { _error "Failed to enable ${APP_SERVICE}."; _validationExit; }
-  _execute "systemctl restart ${APP_SERVICE}" || { _error "Failed to start ${APP_SERVICE}."; _validationExit; }
-  _execute "nginx -t" || { _error "nginx configuration test failed."; _validationExit; }
-  _execute "nginx -s reload" || { _error "Failed to reload nginx."; _validationExit; }
+  _execute "systemctl daemon-reload" || _abort "Failed to reload systemd units."
+  _execute "systemctl enable ${APP_SERVICE}" || _abort "Failed to enable ${APP_SERVICE}."
+  _execute "systemctl restart ${APP_SERVICE}" || _abort "Failed to start ${APP_SERVICE}."
+  _execute "nginx -t" || _abort "nginx configuration test failed."
+  _execute "nginx -s reload" || _abort "Failed to reload nginx."
   _success "${APP_TITLE} configured."
 }
 
 function _installAppLock() {
   _info "Configuring ${APP_TITLE} lock..."
-  touch /install/${APP_LOCK}
+  if ! touch /install/${APP_LOCK}; then
+    _abort "Failed to create the ${APP_TITLE} install marker."
+  fi
   _success "${APP_TITLE} lock configured."
 }
 

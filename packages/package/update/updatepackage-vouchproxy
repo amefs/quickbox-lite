@@ -69,6 +69,12 @@ APP_NAME="vouchproxy"
 APP_SERVICE="vouch-proxy"
 APP_LOCK=".${APP_NAME}.lock"
 OUTTO="/srv/dashboard/db/output.log"
+UPDATE_BACKUP_DIR=""
+UPDATE_RUNTIME_PATHS=(
+	/opt/vouch-proxy/config.yml
+	/opt/vouch-proxy/docker-compose.yml
+	/etc/nginx/apps/vouchproxy-auth.conf
+)
 
 ################################################################################
 # SCRIPT FUNCTIONS
@@ -96,11 +102,23 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	echo "${APP_TITLE}" >/install/.install.lock
+	if ! echo "${APP_TITLE}" >/install/.install.lock; then
+		_error "Cannot take the installation lock."
+		exit 1
+	fi
+	# The installation marker is cleared on exit.
+	trap '_clearInstallLock' EXIT
+}
+
+# Removes the installation marker when it names this package.
+function _clearInstallLock() {
+	if [[ -f /install/.install.lock ]] && [[ "$(cat /install/.install.lock 2>/dev/null)" == "${APP_TITLE}" ]]; then
+		rm -f /install/.install.lock
+	fi
 }
 
 function _lockCleanup() {
-	rm -f /install/.install.lock
+	_clearInstallLock
 }
 
 function _updateInfo() {
@@ -112,13 +130,65 @@ Please wait until the process is completed
 "
 }
 
+# Saves the package configuration and nginx auth snippet.
+function _backupRuntime() {
+	local dir="$1" path
+	for path in "${UPDATE_RUNTIME_PATHS[@]}"; do
+		if [[ -f "${path}" ]]; then
+			cp -p "${path}" "${dir}/$(basename "${path}")" || return 1
+		fi
+	done
+	return 0
+}
+
+function _restoreRuntime() {
+	local dir="$1" path rc=0
+	if [[ -z "${dir}" || ! -d "${dir}" ]]; then
+		return 1
+	fi
+	for path in "${UPDATE_RUNTIME_PATHS[@]}"; do
+		if [[ -f "${dir}/$(basename "${path}")" ]]; then
+			if ! cp -p "${dir}/$(basename "${path}")" "${path}"; then
+				_error "Cannot restore ${path}"
+				rc=1
+			fi
+		fi
+	done
+	if ((rc != 0)); then
+		return 1
+	fi
+	_execute "systemctl restart ${APP_SERVICE}" || rc=1
+	_execute "nginx -t" || rc=1
+	_execute "nginx -s reload" || rc=1
+	return "${rc}"
+}
+
+function _updateFail() {
+	_error "$1"
+	if [[ -z "${UPDATE_BACKUP_DIR}" ]]; then
+		_error "No configuration was changed; the previous ${APP_TITLE} setup is still in place."
+	elif _restoreRuntime "${UPDATE_BACKUP_DIR}"; then
+		_error "Restored the saved ${APP_TITLE} configuration files."
+	else
+		_error "Automatic restore failed; inspect ${UPDATE_BACKUP_DIR} and the update log."
+	fi
+	_clearInstallLock
+	exit 1
+}
+
 function _updateApp() {
 	_info "Updating ${APP_TITLE} image and restarting service..."
-	_execute "docker compose -f /opt/vouch-proxy/docker-compose.yml pull" || { _error "Failed to pull the ${APP_TITLE} image."; _lockCleanup; exit 1; }
+	UPDATE_BACKUP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/vouch-update.XXXXXX") || _updateFail "Cannot create a temporary rollback directory."
+	if ! _backupRuntime "${UPDATE_BACKUP_DIR}"; then
+		rm -rf "${UPDATE_BACKUP_DIR}"
+		UPDATE_BACKUP_DIR=""
+		_updateFail "Cannot back up the current ${APP_TITLE} configuration."
+	fi
+	_execute "docker compose -f /opt/vouch-proxy/docker-compose.yml pull" || _updateFail "Failed to pull the ${APP_TITLE} image."
 
 	if [[ -f "/opt/vouch-proxy/config.yml" ]] && ! grep -q "post_logout_redirect_uris:" /opt/vouch-proxy/config.yml; then
 	  _info "Patching Vouch config with post-logout redirect allowlist..."
-	  python3 - <<'PYEOF'
+	  python3 - <<'PYEOF' || _updateFail "Failed to patch the ${APP_TITLE} logout allowlist."
 from pathlib import Path
 import re
 
@@ -142,7 +212,7 @@ PYEOF
 
 	if [[ -f "/opt/vouch-proxy/config.yml" ]]; then
 	  _info "Ensuring end_session_endpoint is allowed in post-logout redirects..."
-	  python3 - <<'PYEOF'
+	  python3 - <<'PYEOF' || _updateFail "Failed to patch the ${APP_TITLE} end-session redirects."
 from pathlib import Path
 import re
 
@@ -180,11 +250,11 @@ if end_session and 'post_logout_redirect_uris:' in text and end_session not in t
 PYEOF
 	fi
 
-	_execute "systemctl restart ${APP_SERVICE}" || { _error "Failed to restart ${APP_SERVICE}."; _lockCleanup; exit 1; }
+	_execute "systemctl restart ${APP_SERVICE}" || _updateFail "Failed to restart ${APP_SERVICE}."
 
 	if [[ -f "/etc/nginx/apps/vouchproxy-auth.conf" ]] && ! grep -q "location = /logout" /etc/nginx/apps/vouchproxy-auth.conf; then
 	  _info "Patching nginx vouch auth route for logout..."
-	  python3 - <<'PYEOF'
+	  python3 - <<'PYEOF' || _updateFail "Failed to patch the ${APP_TITLE} nginx snippet."
 from pathlib import Path
 
 path = Path('/etc/nginx/apps/vouchproxy-auth.conf')
@@ -206,10 +276,12 @@ if marker in content and 'location = /logout' not in content:
 PYEOF
 	fi
 
-	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider vouch --migrate" || { _error "Failed to migrate existing authentication configuration."; _lockCleanup; exit 1; }
-	_execute "nginx -t" || { _error "nginx configuration test failed."; _lockCleanup; exit 1; }
-	_execute "nginx -s reload" || { _error "Failed to reload nginx."; _lockCleanup; exit 1; }
+	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider vouch --migrate" || _updateFail "Failed to migrate existing authentication configuration."
+	_execute "nginx -t" || _updateFail "nginx configuration test failed."
+	_execute "nginx -s reload" || _updateFail "Failed to reload nginx."
 
+	rm -rf "${UPDATE_BACKUP_DIR}"
+	UPDATE_BACKUP_DIR=""
 	_success "${APP_TITLE} updated."
 }
 

@@ -99,11 +99,29 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	echo "${APP_TITLE}" >/install/.install.lock
+	if ! echo "${APP_TITLE}" >/install/.install.lock; then
+		_error "Cannot take the installation lock."
+		exit 1
+	fi
+	# The installation marker is cleared on exit.
+	trap '_clearInstallLock' EXIT
+}
+
+# Removes the installation marker when it names this package.
+function _clearInstallLock() {
+	if [[ -f /install/.install.lock ]] && [[ "$(cat /install/.install.lock 2>/dev/null)" == "${APP_TITLE}" ]]; then
+		rm -f /install/.install.lock
+	fi
 }
 
 function _lockCleanup() {
-	rm -f /install/.install.lock
+	_clearInstallLock
+}
+
+function _abort() {
+	_error "$1"
+	_clearInstallLock
+	exit 1
 }
 
 function _removeInfo() {
@@ -116,7 +134,9 @@ Please wait until the process is completed
 }
 
 function _removeAppLock() {
-	rm -f "/install/${APP_LOCK}"
+	if ! rm -f "/install/${APP_LOCK}"; then
+		_abort "Failed to remove the ${APP_TITLE} install marker."
+	fi
 }
 
 function _removeApp() {
@@ -124,7 +144,9 @@ function _removeApp() {
 	_execute "systemctl disable ${APP_SERVICE}" || true
 	_execute "systemctl stop ${APP_SERVICE}" || true
 	_execute "docker compose -f /opt/authelia/docker-compose.yml down" || true
-	rm -f /etc/systemd/system/${APP_SERVICE}.service
+	if ! rm -f /etc/systemd/system/${APP_SERVICE}.service; then
+		_abort "Failed to remove the ${APP_SERVICE} service unit."
+	fi
 	_execute "systemctl daemon-reload" || true
 
 	_info "Cleaning nginx integration..."
@@ -133,10 +155,12 @@ function _removeApp() {
 	if [[ "$RESTORE_AUTH" == "1" ]]; then
 	  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --restore" || { _error "Failed to restore the previous authentication configuration."; _lockCleanup; exit 1; }
 	fi
-	_execute "nginx -t" || { _error "nginx configuration test failed."; _lockCleanup; exit 1; }
-	_execute "nginx -s reload" || { _error "Failed to reload nginx."; _lockCleanup; exit 1; }
+	_execute "nginx -t" || _abort "nginx configuration test failed."
+	_execute "nginx -s reload" || _abort "Failed to reload nginx."
 
-	rm -rf /opt/authelia
+	if ! rm -rf /opt/authelia; then
+		_abort "Failed to remove /opt/authelia."
+	fi
 
 	_success "${APP_TITLE} removed."
 }

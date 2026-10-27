@@ -7,12 +7,10 @@ import os from "os";
 import path from "path";
 import { Socket } from "socket.io";
 
-
 import Constant, { username } from "../shared/constants";
 import { WatchedConfig } from "../shared/watched-config";
 import { CommandType, buildCommand } from "./utils/command";
 import { runMockCommand } from "../testing/mock-adapter";
-
 
 let baseDir = __dirname;
 let configPath = "";
