@@ -1,0 +1,55 @@
+onekey.sh
+  s_56b683a6e128b2::t_62a808eab4248a 17-24,26-27,31,33-36
+  s_56b683a6e128b2::t_c2ef2a5c446f8e 16,25,28-30,32,37-43
+setup/lang/en.lang
+  s_56b683a6e128b2::t_8b9e969424ee64 22-24,113,188
+tests/system/setup-config-sandbox.py
+  s_56b683a6e128b2::t_31c5ed1e92f812 1-39,42-161,167-243,247-253,260-265,267-271,273-281,283-286,288-299,302,305-310,316-325,327-332,335-343,346-348,373-376
+  s_56b683a6e128b2::t_806772d5f5ded7 162-166,244-246,254-259,266,272,282,287,300-301,303-304,311-315,353-355
+  s_56b683a6e128b2::t_9fadaf03f024ae 40-41,326,358-372
+  s_56b683a6e128b2::t_3e065d0b8e32f5 333-334,344-345,349-352,356-357
+README_zh.md
+  s_56b683a6e128b2::t_3e065d0b8e32f5 81-88
+docs/analysis/setup-script-follow-up.md
+  s_56b683a6e128b2::t_4ec2968005f45b 1-238
+setup/lang/zh-cn.lang
+  s_56b683a6e128b2::t_8b9e969424ee64 22-24,111,186
+.github/workflows/deployment.yml
+  s_56b683a6e128b2::t_b5b7ae2c466cc0 23-25
+setup.sh
+  s_56b683a6e128b2::t_2b657248920782 89,225-226,695,698,1971-1980,2001-2019,2021-2032,2034,2106-2108,2155-2156,2195,2199-2216,2275,2281
+  s_56b683a6e128b2::t_830ede0ffec0ee 73,76,81-88,90-114,117-124,244-251,355,357-358,637,677-684,688-694,894-903,928-929,1465-1477,1615,1629,1786,1795
+  s_56b683a6e128b2::t_217aff2f3b4398 1829,1934-1937,2392-2393,2401,2404-2406,2408-2409,2427
+  s_56b683a6e128b2::t_b5b7ae2c466cc0 891-893,912,916-918,923,1767-1769
+  s_56b683a6e128b2::t_d8c230fe552724 1616-1621,1635,1661
+  s_56b683a6e128b2::t_5bb6a5559204a6 75,77-80,115-116,2391,2400,2407
+  s_56b683a6e128b2::t_9fadaf03f024ae 696-697
+  s_56b683a6e128b2::t_bd279b12aea6ee 699
+scripts/check-system-script-syntax.sh
+  s_56b683a6e128b2::t_b5b7ae2c466cc0 10
+README.md
+  s_56b683a6e128b2::t_3e065d0b8e32f5 84-95
+tests/system/test_sandboxes.py
+  s_56b683a6e128b2::t_b5b7ae2c466cc0 26
+tests/deployment/report.py
+  s_56b683a6e128b2::t_3c57cc4cb63428 19
+docs/analysis/issue-245-config-generation-plan.md
+  s_56b683a6e128b2::t_63df480739d50b 6,143
+  s_56b683a6e128b2::t_4ec2968005f45b 1-5,7-142,144-147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8dfb32f0802fd1a668c8f3e049d5db0934646726",
+  "prompts": {},
+  "sessions": {
+    "s_56b683a6e128b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17716-d3f4-7dc1-8e74-203fd48e74c4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
