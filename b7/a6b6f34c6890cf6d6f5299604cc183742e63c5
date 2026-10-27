@@ -1,0 +1,61 @@
+tests/system/ws-health-startup-sandbox.py
+  h_3705811fa4502c 35-36
+  s_b1f651dd269aa8::t_789d0941e526b4 3-5,33-34,37-42,50,72
+tests/system/dashboard-update-sandbox.py
+  s_b1f651dd269aa8::t_7f69c6f8edca18 74-78,158-159,179
+packages/system/update/qbUpdateDashboard
+  s_b1f651dd269aa8::t_db5d9c4ef70a21 113-114
+  s_b1f651dd269aa8::t_789d0941e526b4 314-315,324
+  s_b1f651dd269aa8::t_b74e158439c471 130-134,327,336
+tests/system/nginx-production-sandbox.py
+  s_b1f651dd269aa8::t_6663969d216ce5 126
+tests/system/ws-health-proxy-sandbox.py
+  s_b1f651dd269aa8::t_ce8f3b9288328a 2,16,23-24,35-39,42-51,55,71,73,80,92-93,95,97-98,101,104,106-114,116-133,135-143,145-146,151-152,154,156-157,160,164,167,171-173,175-177,179
+  h_3705811fa4502c 54
+  s_b1f651dd269aa8::t_99767bc1fe3fb4 144
+  s_b1f651dd269aa8::t_7f69c6f8edca18 88-89,115,134
+e2e/scripts/deployment-auth.cjs
+  s_b1f651dd269aa8::t_6663969d216ce5 17-20,24,27,134,153,157
+packages/system/auxiliary/qbWsHealthCheck
+  s_b1f651dd269aa8::t_732f8ba2870f20 171
+  s_b1f651dd269aa8::t_0eba6da80a256a 5-8,16-17,80,100-102,104-108,117,138,142,149,151,154-158,160,162-168,170,174,212,214
+  s_b1f651dd269aa8::t_b74e158439c471 25,172-173,175-184
+  s_b1f651dd269aa8::t_6642794f78fbde 219-221
+packages/system/update/qbUpdateBackup
+  s_b1f651dd269aa8::t_e15ae8bed8a9ba 69-71
+  s_b1f651dd269aa8::t_6642794f78fbde 48,66-68,72-76
+  s_b1f651dd269aa8::t_70a1abdec3bc07 30-47,49-65,77-81,207,243,248
+  s_b1f651dd269aa8::t_3140324218af31 172-174,228-233
+tests/system/update-config-backup-sandbox.sh
+  s_b1f651dd269aa8::t_3140324218af31 114,118,122
+  s_b1f651dd269aa8::t_dd7e48a4002eba 95-108
+  s_b1f651dd269aa8::t_76ce8b6e31619a 150
+  s_b1f651dd269aa8::t_6642794f78fbde 8-9,93-94,109-113,115-117,119-121,123-149
+tests/deployment/auth.py
+  s_b1f651dd269aa8::t_6663969d216ce5 138,148,157,159-160,164,166
+packages/system/qbUpdate
+  s_b1f651dd269aa8::t_b74e158439c471 342-344,346,349-350
+tests/deployment/README.md
+  s_b1f651dd269aa8::t_6663969d216ce5 197-200
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b7a6b6f34c6890cf6d6f5299604cc183742e63c5",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_b1f651dd269aa8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17cf4-6aa3-7370-9f05-0c7818f531c7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
