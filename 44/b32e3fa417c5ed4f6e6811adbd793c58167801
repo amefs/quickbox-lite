@@ -1,0 +1,70 @@
+tests/system/update-config-backup-sandbox.sh
+  s_b1f651dd269aa8::t_6642794f78fbde 8-9,93-94,109-113,115-117,119-121,123-149
+  s_b1f651dd269aa8::t_dd7e48a4002eba 95-108
+  s_b1f651dd269aa8::t_76ce8b6e31619a 150
+  s_b1f651dd269aa8::t_3140324218af31 114,118,122
+packages/system/update/qbUpdateBackup
+  s_b1f651dd269aa8::t_70a1abdec3bc07 30-47,49-65,77-81,207,243,248
+  s_b1f651dd269aa8::t_3140324218af31 172-174,228-233
+  s_b1f651dd269aa8::t_6642794f78fbde 48,66-68,72-76
+  s_b1f651dd269aa8::t_e15ae8bed8a9ba 69-71
+tests/deployment/README.md
+  s_b1f651dd269aa8::t_6663969d216ce5 197-200
+tests/system/ws-health-proxy-sandbox.py
+  h_3705811fa4502c 55
+  s_50af68bd49d41b::t_7ee4c8bd705e41 20
+  s_b1f651dd269aa8::t_ce8f3b9288328a 2,16,24-25,36-40,43-52,56,72,74,81,93-94,96,98-99,102,105,107-115,117-134,136-144,146-147,152-153,155,157-158,161,165,168,172-174,176-178,180
+  s_b1f651dd269aa8::t_7f69c6f8edca18 89-90,116,135
+  s_b1f651dd269aa8::t_99767bc1fe3fb4 145
+tests/system/dashboard-update-sandbox.py
+  s_b1f651dd269aa8::t_7f69c6f8edca18 74-78,158-159,179
+e2e/scripts/deployment-auth.cjs
+  s_b1f651dd269aa8::t_6663969d216ce5 17-20,24,27,134,153,157
+packages/system/qbUpdate
+  s_b1f651dd269aa8::t_b74e158439c471 342-344,346,349-350
+tests/deployment/auth.py
+  s_b1f651dd269aa8::t_6663969d216ce5 138,148,157,159-160,164,166
+tests/system/ws-health-startup-sandbox.py
+  h_3705811fa4502c 35-36
+  s_b1f651dd269aa8::t_789d0941e526b4 3-5,33-34,37-42,50,72
+packages/system/update/qbUpdateDashboard
+  s_b1f651dd269aa8::t_db5d9c4ef70a21 113-114
+  s_b1f651dd269aa8::t_789d0941e526b4 314-315,324
+  s_b1f651dd269aa8::t_b74e158439c471 130-134,327,336
+tests/system/nginx-production-sandbox.py
+  s_b1f651dd269aa8::t_6663969d216ce5 126
+packages/system/auxiliary/qbWsHealthCheck
+  s_b1f651dd269aa8::t_732f8ba2870f20 171
+  s_b1f651dd269aa8::t_0eba6da80a256a 5-8,16-17,80,100-102,104-108,117,138,142,149,151,154-158,160,162-168,170,174,212,214
+  s_b1f651dd269aa8::t_b74e158439c471 25,172-173,175-184
+  s_b1f651dd269aa8::t_6642794f78fbde 219-221
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "44b32e3fa417c5ed4f6e6811adbd793c58167801",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_50af68bd49d41b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17d1e-0635-7552-9b27-a016cce192d2",
+        "model": "gpt-6-luna"
+      },
+      "human_author": null
+    },
+    "s_b1f651dd269aa8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17cf4-6aa3-7370-9f05-0c7818f531c7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
