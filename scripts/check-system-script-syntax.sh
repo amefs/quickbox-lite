@@ -7,6 +7,7 @@ cd "${repo_root}"
 
 scripts=(
 	setup.sh
+	onekey.sh
 	packages/system/box
 	packages/system/qbUpdate
 	packages/system/update/qbUpdateDashboard

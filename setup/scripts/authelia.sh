@@ -12,4 +12,4 @@
 #
 ################################################################################
 
-bash /usr/local/bin/quickbox/package/install/installpackage-authelia ${@}
+bash /usr/local/bin/quickbox/package/install/installpackage-authelia "$@"

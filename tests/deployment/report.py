@@ -16,6 +16,7 @@ PLANS = {
     'sandboxes': {
         'runner': 'Acceptance runner regression checks',
         'runtime': 'Node runtime policy',
+        'setup': 'Setup configuration, arguments and installation safety',
         'dashboard': 'Dashboard staging, gateway, health and update',
         'backups': 'Backup retention and configuration restore',
         'repository': 'Repository revert and reinstall',

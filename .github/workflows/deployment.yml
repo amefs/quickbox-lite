@@ -20,6 +20,9 @@ jobs:
       - name: Node runtime policy
         if: ${{ !cancelled() }}
         run: python3 tests/deployment/report.py runtime bash tests/system/run-dashboard-sandboxes.sh runtime
+      - name: Setup configuration, arguments and installation safety
+        if: ${{ !cancelled() }}
+        run: python3 tests/deployment/report.py setup bash tests/system/run-dashboard-sandboxes.sh setup
       - name: Dashboard staging, gateway, health and update
         if: ${{ !cancelled() }}
         run: python3 tests/deployment/report.py dashboard bash tests/system/run-dashboard-sandboxes.sh dashboard

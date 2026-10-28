@@ -23,6 +23,14 @@ REPO_ROOT = SYSTEM_DIR.parents[1]
 # CI stage -> scripts. Keep in sync with the step names in
 # .github/workflows/deployment.yml; adding a script is a one-line change here.
 GROUPS = {
+    "setup": (
+        "setup-config-sandbox.py",
+        "setup-config-semantics-sandbox.py",
+        "setup-install-safety-sandbox.py",
+        "setup-package-apt-sandbox.py",
+        "setup-arguments-sandbox.py",
+        "setup-followup-integration-sandbox.py",
+    ),
     "runtime": ("nodejs-update-sandbox.py",),
     "dashboard": (
         "dashboard-stage-sandbox.sh",

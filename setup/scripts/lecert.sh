@@ -14,4 +14,4 @@
 
 logpath=$1
 extra_arg=$2
-bash /usr/local/bin/quickbox/package/install/installpackage-lecert -l $logpath -d $extra_arg
+bash /usr/local/bin/quickbox/package/install/installpackage-lecert -l "$logpath" -d "$extra_arg"
