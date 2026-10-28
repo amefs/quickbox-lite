@@ -1,0 +1,60 @@
+setup/dashboard/ws/src/widgets/package-management-center-view.tsx
+  s_2df05b56a88f9a::t_78bec7ec342a3a 42-43,51-52,57,62,64,73,80
+  s_2df05b56a88f9a::t_1bef8ca4038223 78,81-83,97
+  s_2df05b56a88f9a::t_60c6f2bd6e8a3c 204
+  s_2df05b56a88f9a::t_c2985bdbd4a278 31-33,44-46,60,79,84-96
+  s_2df05b56a88f9a::t_59e334e1c5e749 54
+  s_2df05b56a88f9a::t_0d67d73dcd611e 29-30,35-41,47-50,53,55-56,58-59,61,63,65-72,74-77,98-106,168,177,185,248
+  s_2df05b56a88f9a::t_03e7fad1f4aec5 34
+setup/dashboard/css/dashboard-foundation.css
+  s_2df05b56a88f9a::t_52e374a651f081 30-31,48-52,67-68,85-89,527-578
+  s_2df05b56a88f9a::t_570dc152f426da 579
+e2e/migration/candidate-business.spec.ts
+  s_2df05b56a88f9a::t_59e334e1c5e749 332-333
+  s_2df05b56a88f9a::t_4380dfdef9e6e8 361-371,376
+  s_2df05b56a88f9a::t_b1473a470f1cb7 337
+e2e/migration/candidate-visual-details.spec.ts
+  s_2df05b56a88f9a::t_0624e6906f0232 56-75
+  s_2df05b56a88f9a::t_fb3a753537fc4b 1-55,76-80
+  s_2df05b56a88f9a::t_8c39aeafecb9dd 81-89
+e2e/migration/candidate-chrome.spec.ts
+  s_2df05b56a88f9a::t_b1473a470f1cb7 24-27,32,195,228
+setup/dashboard/css/react-package-management.css
+  s_2df05b56a88f9a::t_b1473a470f1cb7 143
+  s_2df05b56a88f9a::t_8dc5de61a41d80 27-37,99,246,256,263
+  s_2df05b56a88f9a::t_9e6b3cbf38ab3a 122-126,189
+  s_2df05b56a88f9a::t_1e095034940eee 66
+  s_2df05b56a88f9a::t_52e374a651f081 62-65,67-69,187-188
+  s_2df05b56a88f9a::t_7c6e1c962da1cf 190
+setup/dashboard/css/react-service-control.css
+  s_2df05b56a88f9a::t_fb3a753537fc4b 129,133,136-137
+  s_2df05b56a88f9a::t_60c6f2bd6e8a3c 127-128,130,132,147,150-151
+  s_2df05b56a88f9a::t_52e374a651f081 75-82
+  s_2df05b56a88f9a::t_b1473a470f1cb7 123
+e2e/migration/candidate-visual.spec.ts
+  s_2df05b56a88f9a::t_8c618c6d5a95b5 198,429,454,465
+  s_2df05b56a88f9a::t_66053854cc2bdc 83,93-96,387-413,525,535-537,539,553
+  s_2df05b56a88f9a::t_899fd42e9d4b6e 414
+setup/dashboard/js/migration/dashboard-client-manifest.json
+  s_2df05b56a88f9a::t_9d4c80d2d28290 3
+setup/dashboard/js/migration/dashboard-client.47765f62.js
+  s_2df05b56a88f9a::t_99e099de5b69a3 95
+setup/dashboard/ws/dist/server.js
+  s_2df05b56a88f9a::t_8ac666d5c559ba 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "555dbb20a04c350804c7bc443f8b4d0aabd7bc3d",
+  "prompts": {},
+  "sessions": {
+    "s_2df05b56a88f9a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16348-fa4d-7a10-a9e5-2fd1e04aabad",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
