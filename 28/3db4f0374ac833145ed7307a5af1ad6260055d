@@ -1,0 +1,41 @@
+setup/dashboard/ws/src/testing/mock-adapter.ts
+  s_2df05b56a88f9a::t_4aa7ba6c1bb22f 10,64-65
+setup/dashboard/ws/tests/handlers/utils/command.spec.ts
+  s_2df05b56a88f9a::t_101d24479a05ae 8-9,128,130-139
+  s_2df05b56a88f9a::t_a467d106e758b0 129
+setup/dashboard/ws/src/widgets/package-management-center-view.tsx
+  s_2df05b56a88f9a::t_4ff7893917e5a4 60-65
+e2e/migration/candidate-functional-roundtrip.spec.ts
+  s_2df05b56a88f9a::t_50b5d7ffa65577 3,138-182
+  s_2df05b56a88f9a::t_ddcbc59cb8cc66 1-2,4-13,54-137,183-185
+  s_2df05b56a88f9a::t_dd81b5537e77ef 14-53
+e2e/migration/candidate-server.cjs
+  s_2df05b56a88f9a::t_47150f581eebdd 107,111,114
+  s_2df05b56a88f9a::t_c9917ac59e12ce 75-85
+setup/dashboard/ws/tests/testing/mock-adapter.spec.ts
+  s_2df05b56a88f9a::t_4aa7ba6c1bb22f 43-59
+setup/dashboard/js/migration/dashboard-client-manifest.json
+  s_2df05b56a88f9a::t_d63a9e79d10a98 3
+setup/dashboard/js/migration/dashboard-client.b1e37e20.js
+  s_2df05b56a88f9a::t_d9393957e283ce 95
+setup/dashboard/ws/dist/server.js
+  s_2df05b56a88f9a::t_df5850335397fc 1
+tests/system/dashboard-theme-sandbox.sh
+  s_2df05b56a88f9a::t_26902bf625b07c 1-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "283db4f0374ac833145ed7307a5af1ad6260055d",
+  "prompts": {},
+  "sessions": {
+    "s_2df05b56a88f9a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16348-fa4d-7a10-a9e5-2fd1e04aabad",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
