@@ -15,7 +15,7 @@ From the repository root:
 
 ```sh
 python3 scripts/lint-package-scripts.py
-python3 tests/system/package-scripts-lint-test.py
+uv run --locked pytest tests/lint
 ```
 
 The checks need only the system Python 3 standard library and Bash; no Python
@@ -63,7 +63,7 @@ values aligned to column 20:
 `Original Repo` / `Credits to` only when an upstream exists. The order is fixed
 as `GitHub → Author → Maintainer → Current version → Original Repo → Credits to`;
 never keep an empty `URL:` field. `Current version` is maintained by
-`bump-version.sh` — do not change the label or its two spaces, and the template
+`scripts/bump-version.sh` — do not change the label or its two spaces, and the template
 directory is part of the version scan. Keep one empty `#` after the title and
 one before the SPDX line; after the empty `#` that follows SPDX, only
 `# shellcheck` directives are allowed. The header holds comments only, and the

@@ -125,7 +125,13 @@ function _updateAbort() {
 	local stage="$1"
 	printf '[QuickBox] Update aborted at stage: %s (%s)\n' "${stage}" "$(date -Is)" >>"${OUTTO}"
 	if [[ ${update_config_committed:-0} -ne 1 ]]; then
-		_restoreUpdateConfig || _error "Automatic configuration rollback failed; inspect ${update_backup_dir:-the update log}"
+		if [[ ${update_backup_ready:-0} -ne 1 ]]; then
+			_warning "Configuration rollback unavailable: this run took no configuration backup"
+		else
+			_restoreUpdateConfig || _error "Automatic configuration rollback failed; inspect ${update_backup_dir:-the update log}"
+		fi
+	else
+		_warning "Configuration rollback skipped: the dashboard release was already committed"
 	fi
 	_printUpdateTiming
 	_releaseUpdateInstallLock
@@ -354,9 +360,9 @@ function _restoreUpdateConfig() {
 		fi
 	fi
 	if [[ ${rc} -eq 0 ]]; then
-		_warning "Managed configuration rollback completed"
+		_warning "Configuration rollback succeeded"
 	else
-		_error "Managed configuration rollback was incomplete; inspect ${update_backup_dir}"
+		_error "Configuration rollback failed; inspect ${update_backup_dir}"
 	fi
 	return "${rc}"
 }
@@ -453,11 +459,10 @@ function _updateHeartbeatStart() {
 	update_heartbeat_pid=""
 	_updateActivityInit
 	[[ ${start_ms} =~ ^[0-9]+$ ]] || start_ms=$(_qbNowMs)
-	# Descriptor 8 is the authoritative update lock (_updateLockCheck). A tick
-	# must not inherit it: a tick that outlived its stage would keep the lock
-	# busy and block the next update or a rollback.
+	# Descriptor 8 is the update lock and descriptor 9 the operation lock; a tick
+	# must inherit neither.
 	if [[ -t 1 ]]; then
-		(_updateHeartbeatLoop 15 "${label}" terminal "${start_ms}") 8>&- &
+		(_updateHeartbeatLoop 15 "${label}" terminal "${start_ms}") 8>&- 9>&- &
 		update_heartbeat_pid=$!
 		return 0
 	fi
@@ -465,7 +470,7 @@ function _updateHeartbeatStart() {
 	# The log sink writes to the file itself, so the subshell must not keep the
 	# caller's stdout: a lingering tick would otherwise block a piped caller
 	# waiting for end-of-file.
-	(_updateHeartbeatLoop 30 "${label}" log "${start_ms}") 8>&- >/dev/null 2>&1 &
+	(_updateHeartbeatLoop 30 "${label}" log "${start_ms}") 8>&- 9>&- >/dev/null 2>&1 &
 	update_heartbeat_pid=$!
 }
 
@@ -604,19 +609,26 @@ update_started_ms=$(_qbNowMs)
 _updateLockCheck
 update_lock_status=$?
 [[ ${update_lock_status} -eq 0 ]] || exit "${update_lock_status}"
+# Take the operation lock before touching the ownership marker or the log.
+_qbAcquireOperationLock
+operation_lock_status=$?
+[[ ${operation_lock_status} -eq 0 ]] || exit "${operation_lock_status}"
 _lockCheck
 _setLock || exit 1
 trap _updateCleanup EXIT
 # Keep the previous output available until this invocation owns both locks;
 # _initializeUpdateLog then publishes the new epoch before truncating.
 _initializeUpdateLog || exit 1
+# The pre-update commit is available to box revert.
+_pruneBackups
+if [[ ${from_checkout} -eq 0 ]]; then
+	_updateStep "repository state" _saveRepoState
+fi
 if [[ $core == 0 ]]; then
 	_updateStep "system packages" _installSystemUpdates
 fi
 _preloadScript || _updateAbort "preload update scripts"
 if [[ ${from_checkout} -eq 0 ]]; then
-	_pruneBackups
-	_updateStep "repository state" _saveRepoState
 	_updateStep "repository" _updateRepo
 else
 	_info "Reinstalling from the current checkout: ${local_prefix}"
@@ -630,6 +642,7 @@ _reloadScript || _updateAbort "load update scripts"
 update_service_started=1
 _updateStep "service" _updateservice
 _updateStep "dashboard" _updatedashboard
+# The dashboard release is committed.
 update_config_committed=1
 _updateStep "language" _updatelanguage
 _fin

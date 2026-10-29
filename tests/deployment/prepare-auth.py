@@ -1,28 +1,44 @@
 #!/usr/bin/env python3
 """Generate disposable identity-provider configuration, never user credentials."""
+
 from pathlib import Path
 import re
 import subprocess
 import sys
 
 root = Path(sys.argv[1])
-for name in ['authelia', 'vouch']:
+for name in ["authelia", "vouch"]:
     (root / name).mkdir(parents=True, exist_ok=True)
     (root / name).chmod(0o755)
 output = subprocess.check_output(
-    ['docker', 'run', '--rm', '--pull=never', '--network=none', 'authelia/authelia:4.39.28',
-     'authelia', 'crypto', 'hash', 'generate', 'argon2', '--password', 'fixture-password'], text=True)
-digest = re.search(r'Digest: (\S+)', output)
+    [
+        "docker",
+        "run",
+        "--rm",
+        "--pull=never",
+        "--network=none",
+        "authelia/authelia:4.39.28",
+        "authelia",
+        "crypto",
+        "hash",
+        "generate",
+        "argon2",
+        "--password",
+        "fixture-password",
+    ],
+    text=True,
+)
+digest = re.search(r"Digest: (\S+)", output)
 assert digest is not None
-(root / 'authelia/users_database.yml').write_text(f'''
+(root / "authelia/users_database.yml").write_text(f"""
 users:
   fixture:
     displayname: Fixture Admin
     password: '{digest.group(1)}'
     email: fixture@example.com
     groups: [admins]
-''')
-(root / 'authelia/configuration.yml').write_text('''
+""")
+(root / "authelia/configuration.yml").write_text("""
 server:
   address: tcp://0.0.0.0:9091/authelia
 log:
@@ -55,8 +71,8 @@ storage:
 notifier:
   filesystem:
     filename: /config/notifications.txt
-''')
-(root / 'vouch/config.yml').write_text('''
+""")
+(root / "vouch/config.yml").write_text("""
 vouch:
   listen: 0.0.0.0
   port: 9090
@@ -83,4 +99,4 @@ oauth:
   user_info_url: http://127.0.0.1:9093/userinfo
   callback_url: https://dashboard.example.com:18443/auth/vouch/callback
   scopes: [openid, email, profile]
-''')
+""")

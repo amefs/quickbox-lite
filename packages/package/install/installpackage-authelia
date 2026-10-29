@@ -106,7 +106,10 @@ function _usage() {
 ################################################################################
 function _lockCheck() {
   if [[ ! -f /install/.docker.lock ]]; then
-    bash /usr/local/bin/quickbox/package/install/installpackage-docker -l "$OUTTO"
+    if ! bash /usr/local/bin/quickbox/package/install/installpackage-docker -l "$OUTTO"; then
+      _error "Docker is required for ${APP_TITLE} and could not be installed."
+      exit 1
+    fi
   fi
 
   if [[ -f "/install/.install.lock" ]]; then
@@ -127,7 +130,12 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	echo "${APP_TITLE}" >/install/.install.lock
+	if ! echo "${APP_TITLE}" >/install/.install.lock; then
+		_error "Cannot take the installation lock."
+		exit 1
+	fi
+	# The installation marker is cleared on exit.
+	trap '_clearInstallLock' EXIT
 }
 
 function _clearInstallLock() {
@@ -141,11 +149,16 @@ function _lockCleanup() {
   _clearInstallLock
 }
 
-function _validationExit() {
+function _abort() {
+  _error "$1"
   _clearInstallLock
   exit 1
 }
 
+function _validationExit() {
+  _clearInstallLock
+  exit 1
+}
 function _validateRequired() {
   local normalized_domain
   if [[ -z "$LOGIN_DOMAIN" ]]; then
@@ -263,8 +276,7 @@ function _generatePasswordHash() {
   )
 
   if [[ -z "$digest" ]]; then
-    _error "Failed to generate Authelia password hash."
-    exit 1
+    return 1
   fi
 
   printf "%s" "$digest"
@@ -323,18 +335,20 @@ function _installApp() {
 
   if [[ -z "$admin_user" || -z "$admin_pass" ]]; then
     _error "Could not read admin credentials from /root/.admin.info."
-    _error "Run 'box set password' then retry installation."
-    exit 1
+    _abort "Run 'box set password' then retry installation."
   fi
 
   _info "Preparing ${APP_TITLE} runtime..."
-  mkdir -p /opt/authelia
-  chmod 700 /opt/authelia
+  if ! mkdir -p /opt/authelia || ! chmod 700 /opt/authelia; then
+    _abort "Failed to prepare /opt/authelia."
+  fi
 
-  authelia_uid=$(id -u www-data)
-  authelia_gid=$(id -g www-data)
+  authelia_uid=$(id -u www-data) || _abort "The www-data user is missing."
+  authelia_gid=$(id -g www-data) || _abort "The www-data group is missing."
 
-  admin_hash="$(_generatePasswordHash "$admin_pass")"
+  if ! admin_hash="$(_generatePasswordHash "$admin_pass")" || [[ -z "$admin_hash" ]]; then
+    _abort "Failed to generate the ${APP_TITLE} password hash."
+  fi
 
   authelia_jwt_secret="$(openssl rand -hex 32)"
   authelia_session_secret="$(openssl rand -hex 32)"
@@ -380,7 +394,7 @@ EOF
 )
   fi
 
-  cat >/opt/authelia/users_database.yml <<EOF
+  if ! cat >/opt/authelia/users_database.yml <<EOF
 users:
   ${admin_user}:
     displayname: ${admin_user}
@@ -389,8 +403,11 @@ users:
     groups:
       - admins
 EOF
+  then
+    _abort "Failed to write ${APP_TITLE} users database."
+  fi
 
-  cat >/opt/authelia/configuration.yml <<EOF
+  if ! cat >/opt/authelia/configuration.yml <<EOF
 theme: auto
 
 server:
@@ -439,8 +456,11 @@ storage:
 
 ${notifier_block}
 EOF
+  then
+    _abort "Failed to write ${APP_TITLE} configuration."
+  fi
 
-  cat >/opt/authelia/docker-compose.yml <<EOF
+  if ! cat >/opt/authelia/docker-compose.yml <<EOF
 services:
   authelia:
     image: authelia/authelia:latest
@@ -452,11 +472,16 @@ services:
     volumes:
       - /opt/authelia:/config
 EOF
+  then
+    _abort "Failed to write the ${APP_TITLE} compose file."
+  fi
 
-  chown -R www-data:www-data /opt/authelia
-  chmod 750 /opt/authelia
+  # The container mounts /opt/authelia as /config; it belongs to www-data.
+  if ! chown -R www-data:www-data /opt/authelia || ! chmod 750 /opt/authelia; then
+    _abort "Failed to set ownership on /opt/authelia."
+  fi
 
-  cat >/etc/systemd/system/${APP_SERVICE}.service <<'EOF'
+  if ! cat >/etc/systemd/system/${APP_SERVICE}.service <<'EOF'
 [Unit]
 Description=Authelia container
 After=docker.service network-online.target
@@ -472,8 +497,11 @@ ExecStop=/usr/bin/docker compose down
 [Install]
 WantedBy=multi-user.target
 EOF
+  then
+    _abort "Failed to install the ${APP_SERVICE} service unit."
+  fi
 
-  cat >/etc/nginx/apps/authelia-auth.conf <<'EOF'
+  if ! cat >/etc/nginx/apps/authelia-auth.conf <<'EOF'
 location = /authelia/authz {
   internal;
   proxy_pass http://127.0.0.1:9091/api/authz/auth-request;
@@ -505,19 +533,25 @@ location /authelia {
   proxy_set_header X-Forwarded-Uri $request_uri;
 }
 EOF
+  then
+    _abort "Failed to install the ${APP_TITLE} nginx auth snippet."
+  fi
 
-  cat >/etc/nginx/conf.d/authelia-user-map.conf <<EOF
+  if ! cat >/etc/nginx/conf.d/authelia-user-map.conf <<EOF
 map \$auth_resp_remote_user \$qb_authelia_local_user {
   default "";
   "${admin_user}" "${admin_user}";
 }
 EOF
+  then
+    _abort "Failed to install the ${APP_TITLE} user map."
+  fi
 
-  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate" || { _error "Failed to migrate existing authentication configuration."; _validationExit; }
+  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate" || _abort "Failed to migrate existing authentication configuration."
 
-  _execute "systemctl daemon-reload" || { _error "Failed to reload systemd units."; _validationExit; }
-  _execute "systemctl enable ${APP_SERVICE}" || { _error "Failed to enable ${APP_SERVICE}."; _validationExit; }
-  _execute "systemctl restart ${APP_SERVICE}" || { _error "Failed to start ${APP_SERVICE}."; _validationExit; }
+  _execute "systemctl daemon-reload" || _abort "Failed to reload systemd units."
+  _execute "systemctl enable ${APP_SERVICE}" || _abort "Failed to enable ${APP_SERVICE}."
+  _execute "systemctl restart ${APP_SERVICE}" || _abort "Failed to start ${APP_SERVICE}."
 
   if [[ "$AUTH_MODE" == "mfa" ]]; then
     totp_output="$(docker compose -f /opt/authelia/docker-compose.yml exec -T authelia authelia storage user totp generate "$admin_user" 2>>"${OUTTO}" || true)"
@@ -536,8 +570,8 @@ EOF
     fi
   fi
 
-  _execute "nginx -t" || { _error "nginx configuration test failed."; _validationExit; }
-  _execute "nginx -s reload" || { _error "Failed to reload nginx."; _validationExit; }
+  _execute "nginx -t" || _abort "nginx configuration test failed."
+  _execute "nginx -s reload" || _abort "Failed to reload nginx."
 
   if [[ "$AUTH_MODE" == "mfa" ]]; then
     _print "Authelia MFA TOTP setup link (scan in authenticator app):"
@@ -549,7 +583,9 @@ EOF
 
 function _installAppLock() {
   _info "Configuring ${APP_TITLE} lock..."
-  touch /install/${APP_LOCK}
+  if ! touch /install/${APP_LOCK}; then
+    _abort "Failed to create the ${APP_TITLE} install marker."
+  fi
   _success "${APP_TITLE} lock configured."
 }
 

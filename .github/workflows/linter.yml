@@ -80,7 +80,7 @@ jobs:
       uses: azohra/shell-linter@latest
       with:
         # todo: scripts in packages
-        path: "onekey.sh,setup.sh,bump-version.sh,packages/system/auxiliary/qbEnsureNodejs,packages/system/auxiliary/qbEnsureWsGateway,packages/system/auxiliary/qbNginxProxyMigrate,packages/system/auxiliary/qbNormalizeRepo,packages/system/auxiliary/qbWsHealthCheck,packages/system/auxiliary/qbBackupPrune,packages/system/update/qbUpdateBackup,packages/system/update/qbUpdateRevert"
+        path: "onekey.sh,setup.sh,scripts/bump-version.sh,packages/system/auxiliary/qbEnsureNodejs,packages/system/auxiliary/qbEnsureWsGateway,packages/system/auxiliary/qbNginxProxyMigrate,packages/system/auxiliary/qbNormalizeRepo,packages/system/auxiliary/qbWsHealthCheck,packages/system/auxiliary/qbBackupPrune,packages/system/update/qbUpdateBackup,packages/system/update/qbUpdateRevert"
 
     - name: Check system script syntax
       run: bash scripts/check-system-script-syntax.sh
@@ -93,14 +93,16 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.14'
+    - uses: astral-sh/setup-uv@v10.3.2
+      with:
+        version: "0.12.9"
+    - run: uv sync --locked
     - name: Check all package lifecycle scripts and templates
       run: python3 scripts/lint-package-scripts.py
     - name: Test package script lint rules
-      run: python3 tests/system/package-scripts-lint-test.py
+      run: uv run --locked pytest -q tests/lint
     - name: Check tracked file modes and line endings
       run: python3 scripts/lint-repo-files.py
-    - name: Test the repository normalizer
-      run: python3 tests/system/repo-normalize-sandbox.py
 
   python-linter:
     runs-on: ubuntu-22.04
@@ -125,6 +127,40 @@ jobs:
         # pyrightconfig.json is shared with Pylance, so CI and the editor agree
         # on the file set and the checking mode.
         run: uv run --locked pyright
+
+  system-tests:
+    name: System tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv and Python 3.14
+        uses: astral-sh/setup-uv@v10.3.2
+        with:
+          version: "0.12.9"
+          python-version: '3.14'
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --locked
+      - name: Check Docker availability
+        run: docker info > /dev/null
+      - name: Node runtime policy
+        run: uv run --locked pytest -v tests/runtime
+      - name: Dashboard staging and health
+        if: ${{ !cancelled() }}
+        run: uv run --locked pytest -v tests/dashboard
+      - name: Backup and rollback
+        if: ${{ !cancelled() }}
+        run: uv run --locked pytest -v tests/backups
+      - name: Authentication and package operations
+        if: ${{ !cancelled() }}
+        run: uv run --locked pytest -v tests/linux tests/operations
+      - name: Repository and update progress
+        if: ${{ !cancelled() }}
+        run: uv run --locked pytest -v tests/repository tests/progress
+      - name: Deployment runner regression checks
+        if: ${{ !cancelled() }}
+        run: uv run --locked pytest -v tests/deployment/test_acceptance.py
 
   dashboard-changes:
     name: Select Dashboard acceptance
@@ -170,6 +206,7 @@ jobs:
       - shell-linter
       - package-script-linter
       - python-linter
+      - system-tests
       - dashboard-changes
     if: ${{ success() && needs.dashboard-changes.outputs.run == 'true' }}
     permissions:

@@ -69,6 +69,12 @@ APP_NAME="authelia"
 APP_SERVICE="authelia"
 APP_LOCK=".${APP_NAME}.lock"
 OUTTO="/srv/dashboard/db/output.log"
+UPDATE_BACKUP_DIR=""
+UPDATE_RUNTIME_PATHS=(
+	/opt/authelia/docker-compose.yml
+	/opt/authelia/configuration.yml
+	/etc/nginx/apps/authelia-auth.conf
+)
 
 ################################################################################
 # SCRIPT FUNCTIONS
@@ -96,11 +102,23 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	echo "${APP_TITLE}" >/install/.install.lock
+	if ! echo "${APP_TITLE}" >/install/.install.lock; then
+		_error "Cannot take the installation lock."
+		exit 1
+	fi
+	# The installation marker is cleared on exit.
+	trap '_clearInstallLock' EXIT
+}
+
+# Removes the installation marker when it names this package.
+function _clearInstallLock() {
+	if [[ -f /install/.install.lock ]] && [[ "$(cat /install/.install.lock 2>/dev/null)" == "${APP_TITLE}" ]]; then
+		rm -f /install/.install.lock
+	fi
 }
 
 function _lockCleanup() {
-	rm -f /install/.install.lock
+	_clearInstallLock
 }
 
 function _updateInfo() {
@@ -112,13 +130,67 @@ Please wait until the process is completed
 "
 }
 
+# Saves the package configuration and nginx auth snippet.
+function _backupRuntime() {
+	local dir="$1" path
+	for path in "${UPDATE_RUNTIME_PATHS[@]}"; do
+		if [[ -f "${path}" ]]; then
+			cp -p "${path}" "${dir}/$(basename "${path}")" || return 1
+		fi
+	done
+	return 0
+}
+
+function _restoreRuntime() {
+	local dir="$1" path rc=0
+	if [[ -z "${dir}" || ! -d "${dir}" ]]; then
+		return 1
+	fi
+	for path in "${UPDATE_RUNTIME_PATHS[@]}"; do
+		if [[ -f "${dir}/$(basename "${path}")" ]]; then
+			if ! cp -p "${dir}/$(basename "${path}")" "${path}"; then
+				_error "Cannot restore ${path}"
+				rc=1
+			fi
+		fi
+	done
+	if ((rc != 0)); then
+		return 1
+	fi
+	_execute "chown -R www-data:www-data /opt/authelia" || rc=1
+	_execute "systemctl restart ${APP_SERVICE}" || rc=1
+	_execute "nginx -t" || rc=1
+	_execute "nginx -s reload" || rc=1
+	return "${rc}"
+}
+
+function _updateFail() {
+	_error "$1"
+	if [[ -z "${UPDATE_BACKUP_DIR}" ]]; then
+		_error "No configuration was changed; the previous ${APP_TITLE} setup is still in place."
+	elif _restoreRuntime "${UPDATE_BACKUP_DIR}"; then
+		_error "Restored the saved ${APP_TITLE} configuration files."
+	else
+		_error "Automatic restore failed; inspect ${UPDATE_BACKUP_DIR} and the update log."
+	fi
+	_clearInstallLock
+	exit 1
+}
+
 function _updateApp() {
 	_info "Updating ${APP_TITLE} image and restarting service..."
+	UPDATE_BACKUP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/authelia-update.XXXXXX") || _updateFail "Cannot create a temporary rollback directory."
+	if ! _backupRuntime "${UPDATE_BACKUP_DIR}"; then
+		rm -rf "${UPDATE_BACKUP_DIR}"
+		UPDATE_BACKUP_DIR=""
+		_updateFail "Cannot back up the current ${APP_TITLE} configuration."
+	fi
+
 	if [[ -f "/opt/authelia/docker-compose.yml" ]]; then
 	  _info "Ensuring ${APP_TITLE} compose runtime user is www-data..."
-	  authelia_uid=$(id -u www-data)
-	  authelia_gid=$(id -g www-data)
-	  python3 - "$authelia_uid" "$authelia_gid" <<'PYEOF'
+	  authelia_uid=$(id -u www-data) || _updateFail "The www-data user is missing."
+	  authelia_gid=$(id -g www-data) || _updateFail "The www-data group is missing."
+	  python3 - "$authelia_uid" "$authelia_gid" <<'PYEOF' || _updateFail "Failed to rewrite the ${APP_TITLE} compose user."
 from pathlib import Path
 import re
 import sys
@@ -137,12 +209,12 @@ else:
 
 path.write_text(text)
 PYEOF
-	  _execute "chown -R www-data:www-data /opt/authelia"
+	  _execute "chown -R www-data:www-data /opt/authelia" || _updateFail "Failed to hand /opt/authelia to www-data."
 	fi
 
 	if [[ -f "/opt/authelia/configuration.yml" ]]; then
 	  _info "Applying ${APP_TITLE} base-path compatibility settings..."
-	  python3 - <<'PYEOF'
+	  python3 - <<'PYEOF' || _updateFail "Failed to rewrite the ${APP_TITLE} configuration."
 from pathlib import Path
 import re
 
@@ -159,7 +231,7 @@ PYEOF
 
 	if [[ -f "/etc/nginx/apps/authelia-auth.conf" ]]; then
 	  _info "Applying modern ${APP_TITLE} auth_request redirect flow..."
-	  python3 - <<'PYEOF'
+	  python3 - <<'PYEOF' || _updateFail "Failed to rewrite the ${APP_TITLE} nginx snippet."
 from pathlib import Path
 import re
 
@@ -203,14 +275,16 @@ path.write_text(text)
 PYEOF
 	fi
 
-	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --restore" || { _error "Failed to restore the previous authentication configuration."; _lockCleanup; exit 1; }
-	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate" || { _error "Failed to migrate existing authentication configuration."; _lockCleanup; exit 1; }
+	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --restore" || _updateFail "Failed to restore the previous authentication configuration."
+	_execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate" || _updateFail "Failed to migrate existing authentication configuration."
 
-	_execute "docker compose -f /opt/authelia/docker-compose.yml pull" || { _error "Failed to pull the ${APP_TITLE} image."; _lockCleanup; exit 1; }
-	_execute "systemctl restart ${APP_SERVICE}" || { _error "Failed to restart ${APP_SERVICE}."; _lockCleanup; exit 1; }
-	_execute "nginx -t" || { _error "nginx configuration test failed."; _lockCleanup; exit 1; }
-	_execute "nginx -s reload" || { _error "Failed to reload nginx."; _lockCleanup; exit 1; }
+	_execute "docker compose -f /opt/authelia/docker-compose.yml pull" || _updateFail "Failed to pull the ${APP_TITLE} image."
+	_execute "systemctl restart ${APP_SERVICE}" || _updateFail "Failed to restart ${APP_SERVICE}."
+	_execute "nginx -t" || _updateFail "nginx configuration test failed."
+	_execute "nginx -s reload" || _updateFail "Failed to reload nginx."
 
+	rm -rf "${UPDATE_BACKUP_DIR}"
+	UPDATE_BACKUP_DIR=""
 	_success "${APP_TITLE} updated."
 }
 

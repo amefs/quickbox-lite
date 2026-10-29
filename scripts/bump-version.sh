@@ -15,11 +15,11 @@ COMMIT=
 DRY_RUN=
 VERSION_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+$'
 
-_norm=$(tput sgr0)
-_red=$(tput setaf 1)
-_green=$(tput setaf 2)
-_tan=$(tput setaf 3)
-_cyan=$(tput setaf 6)
+_norm=$(tput sgr0 2>/dev/null || true)
+_red=$(tput setaf 1 2>/dev/null || true)
+_green=$(tput setaf 2 2>/dev/null || true)
+_tan=$(tput setaf 3 2>/dev/null || true)
+_cyan=$(tput setaf 6 2>/dev/null || true)
 
 function _print() {
 	printf "${_norm}%s${_norm}\n" "$@"
@@ -41,6 +41,14 @@ function _run() {
         _info "[dry-run] $*"
     else
         "$@"
+    fi
+}
+
+function _sed_in_place() {
+    if [[ "$(uname -s)" == Darwin ]]; then
+        _run sed -i '' -E "$@"
+    else
+        _run sed -i -E "$@"
     fi
 }
 
@@ -70,27 +78,29 @@ function _update_version() {
     FILE_LIST+=(
         onekey.sh
         setup.sh
-        bump-version.sh
+        scripts/bump-version.sh
+        packages/package/README.md
         setup/templates/motd/01-custom
     )
 
     for file in "${FILE_LIST[@]}"; do
         if [[ -f "$file" ]] && grep -qE '^# Current version:[[:space:]]+v[0-9]+\.[0-9]+\.[0-9]+' "$file"; then
-            _run sed -i -E "s|^# Current version:[[:space:]]+v[0-9]+\.[0-9]+\.[0-9]+.*$|# Current version:  v${VERSION}|" "$file"
-            _run git add "$file"
+            _sed_in_place "s|^# Current version:[[:space:]]+v[0-9]+\.[0-9]+\.[0-9]+.*$|# Current version:  v${VERSION}|" "$file" || return 1
+            _run git add "$file" || return 1
         fi
     done
 
-    _run sed -i "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README.md
-    _run sed -i "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README_zh.md
-    _run sed -i -E "s|^QUICKBOX_VERSION=.*$|QUICKBOX_VERSION=v${VERSION}|" setup/templates/motd/01-custom
-    _run sed -i -E "s|^QUICKBOX_VERSION=.*$|QUICKBOX_VERSION=v${VERSION}|" setup/templates/bash_qb.template
-    _run sed -i -E "s|^([[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+(\"[[:space:]]*,?[[:space:]]*)$|\1${VERSION}\2|" setup/dashboard/ws/package.json
-    _run git add README.md
-    _run git add README_zh.md
-    _run git add setup/templates/motd/01-custom
-    _run git add setup/templates/bash_qb.template
-    _run git add setup/dashboard/ws/package.json
+    _sed_in_place "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README.md || return 1
+    _sed_in_place "s/badge\/version-[^-]*/badge\/version-${VERSION}/" README_zh.md || return 1
+    _sed_in_place "s|^QUICKBOX_VERSION=.*$|QUICKBOX_VERSION=v${VERSION}|" setup/templates/motd/01-custom || return 1
+    _sed_in_place "s|^QUICKBOX_VERSION=.*$|QUICKBOX_VERSION=v${VERSION}|" setup/templates/bash_qb.template || return 1
+    _sed_in_place "s|^([[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+(\"[[:space:]]*,?[[:space:]]*)$|\\1${VERSION}\\2|" setup/dashboard/ws/package.json || return 1
+    # Only the first two version fields belong to this package; later fields
+    # describe dependencies and must remain unchanged.
+    _sed_in_place "1,10s|^([[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+(\"[[:space:]]*,?[[:space:]]*)$|\\1${VERSION}\\2|" setup/dashboard/ws/package-lock.json || return 1
+    _run git add README.md README_zh.md setup/templates/motd/01-custom \
+        setup/templates/bash_qb.template setup/dashboard/ws/package.json \
+        setup/dashboard/ws/package-lock.json || return 1
 }
 
 function _commit_changes() {
@@ -112,7 +122,7 @@ function _commit_changes() {
 
 function _usage() {
 	echo -e "\nQuickBox Lite Bump Version Script
-\nUsage: bash $(basename "$0") -v 1.1.4
+\nUsage: bash scripts/$(basename "$0") -v 1.1.4
 \nOptions:
   NOTE: * is required anyway
 
@@ -131,7 +141,7 @@ function _main() {
         _error "Invalid version format: $VERSION (expected: x.y.z)"
         exit 1
     fi
-    base_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    base_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." >/dev/null 2>&1 && pwd )"
     cd "$base_path" || exit 1
 
     if [[ -n "$COMMIT" ]]; then
@@ -147,7 +157,10 @@ function _main() {
         fi
     fi
 
-    _update_version
+    if ! _update_version; then
+        _error "Failed to update version information"
+        exit 1
+    fi
     _success "Version info updated"
 
     if [[ -n "$COMMIT" ]]; then

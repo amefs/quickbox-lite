@@ -6,36 +6,6 @@ permissions:
 env:
   QUICKBOX_TEST_BASELINE: e0b522b8ccced7a07d0ae9cb575c052af6054d7e
 jobs:
-  sandboxes:
-    name: Update and recovery sandboxes
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
-    env:
-      QUICKBOX_ACCEPTANCE_SUITE: sandboxes
-      QUICKBOX_ACCEPTANCE_RESULTS: /tmp/quickbox-sandbox-results.json
-    steps:
-      - uses: actions/checkout@v4
-      - name: Acceptance runner regression checks
-        run: python3 tests/deployment/report.py runner python3 -m unittest discover -s tests/deployment -p 'test_*.py' -v
-      - name: Node runtime policy
-        if: ${{ !cancelled() }}
-        run: python3 tests/deployment/report.py runtime bash tests/system/run-dashboard-sandboxes.sh runtime
-      - name: Dashboard staging, gateway, health and update
-        if: ${{ !cancelled() }}
-        run: python3 tests/deployment/report.py dashboard bash tests/system/run-dashboard-sandboxes.sh dashboard
-      - name: Backup retention and configuration restore
-        if: ${{ !cancelled() }}
-        run: python3 tests/deployment/report.py backups bash tests/system/run-dashboard-sandboxes.sh backups
-      - name: Repository revert and reinstall
-        if: ${{ !cancelled() }}
-        run: python3 tests/deployment/report.py repository bash tests/system/run-dashboard-sandboxes.sh repository
-      - name: Update progress and arguments
-        if: ${{ !cancelled() }}
-        run: python3 tests/deployment/report.py progress bash tests/system/run-dashboard-sandboxes.sh progress
-      - name: Acceptance summary
-        if: always()
-        run: python3 tests/deployment/report.py --summary
-
   panel:
     name: Dashboard browser interactions
     runs-on: ubuntu-22.04

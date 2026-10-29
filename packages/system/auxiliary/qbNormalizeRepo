@@ -98,8 +98,7 @@ function _qbNormalizeScopedTree() {
 		"${root}/setup/themes" \
 		"${root}/setup/dashboard/ws" \
 		"${root}/setup.sh" \
-		"${root}/onekey.sh" \
-		"${root}/bump-version.sh"; do
+		"${root}/onekey.sh"; do
 		[[ -e "${candidate}" ]] && scan_paths+=("${candidate}")
 	done
 	((${#scan_paths[@]})) || return 0

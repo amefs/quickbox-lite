@@ -102,6 +102,25 @@ function _qbAcquireUpdateLock() {
 	return 0
 }
 
+# Takes the shared operation lock on descriptor 9; returns 75 when another
+# operation is active, 1 on a setup failure.
+function _qbAcquireOperationLock() {
+	local lockfile="${QUICKBOX_OPERATION_LOCK:-/run/lock/quickbox-operation.lock}"
+	if ! command -v flock >/dev/null 2>&1; then
+		printf 'flock is required for safe updates\n' >&2
+		return 1
+	fi
+	if ! { exec 9>"${lockfile}"; } 2>/dev/null; then
+		printf 'Cannot open the operation lock: %s\n' "${lockfile}" >&2
+		return 1
+	fi
+	if ! flock -n 9; then
+		printf 'Another QuickBox operation is running; try again when it finishes\n' >&2
+		return 75
+	fi
+	return 0
+}
+
 # Publishes a new log epoch and then truncates the log in place.
 #
 # The order is the contract: the epoch must be visible before the truncation,
