@@ -2,8 +2,8 @@
 
 ## Continuous integration
 
-After all lint checks pass, `Linter` calls the acceptance workflow, whose  
-**Dashboard browser interactions** job runs this full suite with `npm test`.  
+In parallel with lint checks, `CI` calls the acceptance workflow, whose
+**Browser** job runs this full suite with `npm test`.
 The job uses the local mock Node server and Chromium; it requires no Docker,  
 nginx, application package installation or host service changes. Package actions  
 only change mock state. It runs in parallel with deployment image preparation.  

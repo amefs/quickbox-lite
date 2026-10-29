@@ -3,7 +3,7 @@
 The acceptance workflow separates environment preparation from application checks.
 The shared image is built once per run, then reused by Linux and authentication
 jobs. The native systemd job receives the same npm cache and compiled bundle.
-The existing Linter workflow owns the full WS unit suite; deployment acceptance
+The existing CI workflow owns the full WS unit suite; deployment acceptance
 does not repeat it.
 
 The Linux, systemd and authentication suites mutate `/srv`, `/etc/nginx`, `/etc/quickbox`, `/install` and managed
@@ -12,32 +12,33 @@ They never mount the host's deployment directories or Docker socket.
 
 ## CI stages and reports
 
-The `Linter` workflow runs system tests on pushes and pull requests alongside
-TypeScript/unit, JavaScript, shell, package-script and Python checks. All checks
-must pass before it calls the reusable deployment acceptance workflow. Both
-workflows use the same triggering commit, including the merge commit for a pull
+The `CI` workflow runs system tests on pushes and pull requests alongside
+TypeScript/unit, JavaScript, shell, and combined Python/package checks. Two system
+test groups run in parallel. Dashboard acceptance starts as soon as the change
+selection finishes, in parallel with the other checks; each job still reports its
+own result. Both workflows use the same triggering commit, including the merge commit for a pull
 request. Deployment acceptance runs for relevant pull requests; push events run
-system tests and lint without repeating deployment acceptance. To run manually, select `Linter` in
-Actions and use **Run workflow**; this runs lint followed by acceptance.
+system tests and lint without repeating deployment acceptance. To run manually, select `CI` in
+Actions and use **Run workflow**; this runs the checks and acceptance in parallel.
 
 `.github/workflows/deployment.yml` exposes these groups as individual steps:
 
 | Job | Application checks |
 | --- | --- |
-| Dashboard browser interactions | Page rendering; widgets and WS data; PMC state and mock actions; locale; debug console; error dialogs |
-| Prepare application image and offline dependencies | System tools; current and pinned baseline production dependencies; verified bundle; offline installation proof; reusable artifacts |
-| Linux application deployment | Fresh install/permissions/sudo; HTTP/TLS/Socket.IO; baseline/repeated upgrade; five injected failures and rollback; WS/CLI mutual exclusion |
-| Native systemd lifecycle | Real deployment; unit settings/automatic restart/port recovery; detached update across a WS service restart |
-| Application authentication | Basic Auth; WebKit single-login regression; Authelia; Vouch, each with its own step |
+| Browser | Page rendering; widgets and WS data; PMC state and mock actions; locale; debug console; error dialogs |
+| Build image | System tools; current and pinned baseline production dependencies; committed bundle; offline installation proof; reusable artifacts |
+| Linux deployment | Fresh install/permissions/sudo; HTTP/TLS/Socket.IO; baseline/repeated upgrade; five injected failures and rollback; WS/CLI mutual exclusion |
+| systemd | Real deployment; unit settings/automatic restart/port recovery; detached update across a WS service restart |
+| Authentication | Basic Auth; WebKit single-login regression; Authelia; Vouch, each with its own step |
 
 Each acceptance job writes a summary with passed, failed and skipped stages and
-per-stage durations. System test groups continue after a failure; stateful
+per-stage durations. System test groups run independently; stateful
 deployment and authentication steps stop after a failure. Cleanup and summary
 steps always run. Failures retain Linux/service logs or authentication
 Compose logs and browser screenshots.
 
-The browser interaction job starts alongside image preparation after the system
-tests and lint pass. It runs the full `e2e/tests` Playwright suite against the local
+The browser interaction job starts alongside image preparation while the system
+tests and lint run. It runs the full `e2e/tests` Playwright suite against the local
 Node dashboard in mock mode, without Docker, nginx or application installation.
 Package actions update mock state rather than installing software or changing
 host services. npm dependencies and Chromium are cached. HTML reports and browser
@@ -51,8 +52,9 @@ images, installing system packages, downloading locked npm dependencies, and
 installing Chromium. Docker build layers and Chromium/npm downloads are cached.
 The shared image includes current and fixed baseline production dependencies,
 plus a minimal locked Socket.IO test client in `tests/deployment/package.json`.
-It uses the committed bundle already rebuilt and verified by Linter, so it does
-not install the WS development toolchain or repeat the bundle build.
+It uses the committed bundle, so it does not install the WS development toolchain
+or repeat the bundle build. The parallel WS check rebuilds the bundle and fails if
+the committed file is stale.
 CI transfers the image as an artifact rather than rebuilding it in each consumer.
 
 Application installation and upgrade still run the real production `npm ci`.
@@ -93,7 +95,7 @@ npm ci --prefix setup/dashboard/ws
 npm run build --prefix setup/dashboard/ws
 ```
 
-The CI Linter checks that the committed bundle matches the sources. No ports are
+The CI CI checks that the committed bundle matches the sources. No ports are
 published. Set `QUICKBOX_TEST_BASELINE` to test a different available commit.
 
 For subsequent runs with unchanged dependency locks:
@@ -196,7 +198,7 @@ and tampered/expired cookies. The root health checker verifies backend HTTP,
 polling and WebSockets plus nginx readiness, independently of login or cookie
 state. It must also pass before login and after a session is tampered with.
 The current root-page assertion checks only
-that the body is nonempty; the separate Dashboard browser interactions job runs
+that the body is nonempty; the separate Browser job runs
 the full `e2e/tests` application interaction suite with its own mock server.
 
 A separate WebKit Basic Auth regression starts fresh iPhone browser contexts at

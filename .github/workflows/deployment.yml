@@ -1,4 +1,4 @@
-name: Dashboard deployment acceptance
+name: Acceptance
 on:
   workflow_call:
 permissions:
@@ -7,7 +7,7 @@ env:
   QUICKBOX_TEST_BASELINE: e0b522b8ccced7a07d0ae9cb575c052af6054d7e
 jobs:
   panel:
-    name: Dashboard browser interactions
+    name: Browser
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     env:
@@ -47,7 +47,7 @@ jobs:
           retention-days: 7
 
   prepare-image:
-    name: Prepare application image and offline dependencies
+    name: Build image
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     steps:
@@ -59,7 +59,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/baseline"
           git archive "$QUICKBOX_TEST_BASELINE" setup/dashboard setup/templates | tar -xf - -C "$RUNNER_TEMP/baseline"
       - uses: docker/setup-buildx-action@v3
-      - name: Prepare system tools, production dependencies and verified bundle
+      - name: Prepare system tools, production dependencies and dashboard bundle
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -94,7 +94,7 @@ jobs:
           retention-days: 1
 
   linux-container:
-    name: Linux application deployment
+    name: Linux deployment
     needs: prepare-image
     runs-on: ubuntu-22.04
     timeout-minutes: 20
@@ -139,7 +139,7 @@ jobs:
           path: ${{ runner.temp }}/deployment-logs
 
   systemd:
-    name: Native systemd lifecycle
+    name: systemd
     needs: prepare-image
     runs-on: ubuntu-22.04
     timeout-minutes: 20
@@ -187,7 +187,7 @@ jobs:
           path: ${{ runner.temp }}/deployment-logs
 
   authentication:
-    name: Application authentication
+    name: Authentication
     needs: prepare-image
     runs-on: ubuntu-22.04
     timeout-minutes: 20
