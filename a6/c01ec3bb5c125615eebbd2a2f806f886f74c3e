@@ -1,0 +1,153 @@
+.github/copilot-instructions.md
+  s_5f4238d90589d5::t_590e250770f871 1,3
+.github/workflows/linter.yml
+  s_5f4238d90589d5::t_70a472f9a3f918 83,96-99,103,131-164,209
+AGENTS.md
+  s_5f4238d90589d5::t_c9f6b7988a2d69 1-54
+e2e/scripts/deployment-auth.cjs
+  s_5f4238d90589d5::t_fb37e562fd90fd 17-20,24,27,134,153,157
+packages/package/README.md
+  s_5f4238d90589d5::t_6ec5e933bde125 18,66
+packages/package/install/installpackage-authelia
+  s_5f4238d90589d5::t_61d8ef27ada5ed 109-112,133-138,152-153,158-161,279,338,342-344,346-347,349-351,397,406-408,410,459-461,463,475-477,479-482,484,500-502,504,536-538,540,546-548,550,552-554,573-574,586-588
+packages/package/install/installpackage-qbittorrent
+  s_5f4238d90589d5::t_e83440ccbdf35f 99,573,588-591
+packages/package/install/installpackage-vouchproxy
+  s_5f4238d90589d5::t_95f9cda9e47404 112-115,135-140,159-164,245,252-254,276,293-295,298,301-303,306,315-323,325-327,339-341,343,359-361,363,411-413,416-418,420-421,426-427,430-434,436-437,439-443,449-451
+packages/package/remove/removepackage-authelia
+  s_5f4238d90589d5::t_81a7df65f89dec 102-114,118-124,137-139,147-149,158-159,161-163
+packages/package/remove/removepackage-vouchproxy
+  s_5f4238d90589d5::t_a076ce6c5800d7 102-114,118-124,137-139,147-149,158-159,161-163
+packages/package/update/updatepackage-authelia
+  s_5f4238d90589d5::t_117d4a927fb275 72-77,105-117,121,133-179,182-188,191-193,212,217,234,278-279,281-284,286-287
+packages/package/update/updatepackage-qbittorrent
+  s_5f4238d90589d5::t_199a6aea7444c6 95,463,478-481
+packages/package/update/updatepackage-vouchproxy
+  s_5f4238d90589d5::t_020b8ddf97cb47 72-77,105-117,121,133-178,181-187,191,215,253,257,279-281,283-284
+packages/system/auxiliary/qbEnsureNodejs
+  s_5f4238d90589d5::t_3beea4284bbbf2 116,118,125-138,145-146,158-159
+packages/system/auxiliary/qbNormalizeRepo
+  s_5f4238d90589d5::t_b873ae6e0b9b98 101
+packages/system/auxiliary/qbWsHealthCheck
+  s_5f4238d90589d5::t_4dae2c6015d7cb 5-8,16-17,25,80,100-102,104-108,117,138,142,149,151,154-158,160,162-168,170-184,212,214,219-221
+packages/system/box
+  s_5f4238d90589d5::t_66fb3851b1a097 68-69,71-74,77-87,91-107,160,162-167,181-182,191,193,196,198,219,221,246,248,300-303
+packages/system/lang/langSelect-lang_da
+  s_5f4238d90589d5::t_bbea3fb81a82c7 18-22,24
+packages/system/lang/langSelect-lang_de
+  s_5f4238d90589d5::t_2bd11f9b78e520 18-22,24
+packages/system/lang/langSelect-lang_en
+  s_5f4238d90589d5::t_e6615dbccd5436 18-22,24
+packages/system/lang/langSelect-lang_es
+  s_5f4238d90589d5::t_a72f6ad74d3fc9 18-22,24
+packages/system/lang/langSelect-lang_fr
+  s_5f4238d90589d5::t_a868f3b91267bb 18-22,24
+packages/system/lang/langSelect-lang_zh
+  s_5f4238d90589d5::t_cd67397aaab63c 18-22,24
+packages/system/qbUpdate
+  s_5f4238d90589d5::t_99c4506aca7c1d 128-134,348-350,352,355-356,363,365,462-463,465,473,612-615,622-626,645
+packages/system/update/qbUpdateBackup
+  s_5f4238d90589d5::t_06c66441d7163d 30-81,172-174,207,228-233,243,248
+packages/system/update/qbUpdateDashboard
+  s_5f4238d90589d5::t_87484c2c09fd1e 17-18,20-21,23,25-28,31-39,45-46,53,72,83-84,102-103,110-116,118-123,128-132,136,145,153,228,240-241,251,266,301-302,309,312,321,324,327,338,341-345,347-349
+packages/system/update/qbUpdateLib
+  s_5f4238d90589d5::t_c2817c1c2eb810 105-123
+packages/system/update/qbUpdateRevert
+  s_5f4238d90589d5::t_89ac44330cf61c 239
+pyproject.toml
+  s_5f4238d90589d5::t_4f4a85aaa82ce5 13,20-22
+scripts/bump-version.sh
+  s_5f4238d90589d5::t_abd98e6d325ddd 18-22,47-54,81-82,88-89,93-103,125,144,160-163
+tests/backups/test_backup_retention.py
+  s_5f4238d90589d5::t_cd17078c1b8e2d 7,30,192
+tests/backups/test_update_config.py
+  s_5f4238d90589d5::t_28be9653df9a25 1-44,46-130,132-147,149-150,152-156,159-167
+tests/backups/test_update_rollback_scope.py
+  s_5f4238d90589d5::t_dd64b3b8801677 1-111
+tests/conftest.py
+  s_5f4238d90589d5::t_1af13efa968b6c 1-32
+tests/container/Dockerfile
+  s_5f4238d90589d5::t_21a94bf09c1142 1-6
+tests/dashboard/test_dashboard_update.py
+  s_5f4238d90589d5::t_fed00e749470ae 6,13-14,16,20,22-42,45-67,73-81,85-94,102-106,108-114,164-165,168-181,183-192,194-202,204,207-208,211-217,219-222,224-227,230-243,246-269
+tests/dashboard/test_language.py
+  s_5f4238d90589d5::t_02187c141e1403 1-51
+tests/dashboard/test_permissions.py
+  s_5f4238d90589d5::t_668df74420354f 1-54
+tests/dashboard/test_qb_ensure_ws_gateway.py
+  s_5f4238d90589d5::t_00ec3b10cf0b78 3,13-40,42
+tests/dashboard/test_staging.py
+  s_5f4238d90589d5::t_294a5cbe261b0d 1-108
+tests/dashboard/test_theme_selection.py
+  s_5f4238d90589d5::t_9badee5ec5130a 3,10-11,14-55
+tests/dashboard/test_ws_health_proxy.py
+  s_5f4238d90589d5::t_da554d60e93e92 2-3,16-17,21,23,25-26,30,37-41,44-60,69,73,75,80,82,89-102,104-105,108,111,113-157,160,162-163,165,167-168,171,175,178,182-184,186-188,190
+tests/dashboard/test_ws_health_startup.py
+  s_5f4238d90589d5::t_8978e679bf6087 3-6,17-18,23,31,35-44,52,54,62-64,66-67,72-74,76,90-126
+tests/deployment/README.md
+  s_5f4238d90589d5::t_0acdb7ab47165a 15-20,34-36,39-40,195-198,233,263-272,275-277,280-284
+tests/deployment/auth.py
+  s_5f4238d90589d5::t_0a6da3f5e92a67 3,43-45,47,49-58,61,63-66,68-75,77-79,86,88,94,96-97,99-118,120,123,125-127,129-130,135-137,139-144,146-147,150,154-157,160,162,165-168,170-171,174-175,177-193,198
+tests/deployment/container-entry.sh
+  s_5f4238d90589d5::t_c4f2b8e75c7f0c 11-17,24-26
+tests/deployment/prepare-auth.py
+  s_5f4238d90589d5::t_27fd95b7535111 3,10,14-31,33,40-41,74-75,102
+tests/deployment/report.py
+  s_5f4238d90589d5::t_2c51c6a79c34d4 3,12-15,17-24,26-31,33-39,45,48-51,56-58,60-61,65-67,71,77,79,85
+tests/deployment/run.py
+  s_5f4238d90589d5::t_77b171b5c81712 3,18-29,39-54,57,61-65,71,74,76-78,82-83,85-86,110-114,116,120,122-123,129-130,132-141,143-146,149-181,200-207,211,213-218,220,225,227-230,233,235-246,248-254,258-299,301,305-320,323-328,330-331,335-336,345,347-351,353-355,359,361-362,365,367-370,372-374,379,381,387-392,404-405,407,409,423,425,427,431-432,435-436,438-440,442,444-446,448,450,459-462,464-465,467,472-473,477-490,492-493,498-504,508-509,512-514,519-520,524-525,530
+tests/deployment/service.py
+  s_5f4238d90589d5::t_5a2db8d252f052 3,14,38,40-43,45-48,52-63,70-72,74,76-78,80,83,85
+tests/deployment/test_acceptance.py
+  s_5f4238d90589d5::t_ce732565651855 3,17,27,32-38,42-44,48-53,55,59-61,65-70,74-77,81-83,85-86,92-105,109-113,118-124,126,132-133,136,139-148,151-155,159
+tests/lint/test_bump_version.py
+  s_5f4238d90589d5::t_248a650f7c56c9 1-58
+tests/lint/test_package_scripts_lint.py
+  s_5f4238d90589d5::t_f9ad6d7381ab95 14,18,23,30-31,33,42-47,58-81,85,91,93,96,98-99,101-103,106,108,111,117,119,121,125,127,131,135,137,140,142,144-146,148,151,153,156,158-161,163-165,168-170,175,177,180,182,184-185,187,189-190,192,195,197,199-200,202,205,207,209-210,212,215,217,220-221,223-224,227,229,235,238-239,242,247-263,267-275,280,283-284,287-296,302,304-306
+tests/lint/test_system_test_entry.py
+  s_5f4238d90589d5::t_541e0dc2738390 1-30
+tests/linux/auth_lifecycle.py
+  s_5f4238d90589d5::t_644007b519ecda 1-117
+tests/linux/package_options.py
+  s_5f4238d90589d5::t_f2dd7ac5d07e9d 1-114
+tests/linux/test_container.py
+  s_5f4238d90589d5::t_97e93c3901ab06 1-52
+tests/operations/test_cli_parameter_contract.py
+  s_5f4238d90589d5::t_f3118738f41428 1-52
+tests/operations/test_operation_lock.py
+  s_5f4238d90589d5::t_ee65fb95eb70b5 1-73
+tests/progress/test_update_timing.py
+  s_5f4238d90589d5::t_d922992273a9d3 1-47,51-84,86-155
+tests/repository/test_repo_normalize.py
+  s_5f4238d90589d5::t_fce247a02fbf1f 4,11-12,16,25,34,36,38-42,46,49-52,54-55,57-58,60-61,63-64,66-67,73-81,83,87,89,91,93,98,100-105,109-116,120,125,127-134,136-139,143,145,147,149-150,153,155,157,162,164,166,168-169,171-172,174,176,178
+tests/repository/test_repo_reinstall.py
+  s_5f4238d90589d5::t_847f8ed72c5e37 7,19,27-117,124-193,195-219,221-257,259-279
+tests/repository/test_repo_state.py
+  s_5f4238d90589d5::t_200dd572f8b861 1-70
+tests/run.py
+  s_5f4238d90589d5::t_05a482fe047ae6 2,9-61
+tests/runtime/test_nodejs_update.py
+  s_5f4238d90589d5::t_ae9224a19a433c 15,22,25,27-31,34-39,47-51,59-63,68-72,79-80,82-95,103-105,107,111-119,122,127-129,132,137,139-143,147,149-151,155,157-158,162,164-165,169,171-189,193,195,198,203-206,209-216,222-223,228-234,237,239-241,248-249,252,255,257-260,263,267,273,276,278-279,282,287,289-290,292-294,298,300-302,304-308,314-318,320
+tests/support.py
+  s_5f4238d90589d5::t_34c5c819db67f8 1-31
+tests/tools/nginx_production.py
+  s_5f4238d90589d5::t_f73b51b05fb468 5,8,24,29,31,33-45,50-68,71-78,83,85,90-96,101,103,108,111-123,125,127,129-140,146-149,152-156,159-172,174-175,186,188,191
+uv.lock
+  s_5f4238d90589d5::t_fcf58a24de0abf 5-13,28-36,55-72,103-111,125-140,153,163
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a6c01ec3bb5c125615eebbd2a2f806f886f74c3e",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
