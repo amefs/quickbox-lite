@@ -1,0 +1,32 @@
+tests/conftest.py
+  s_2ad0672a336b3b::t_9062ca65f81285 29
+packages/plugin/install/installplugin-chunks
+  s_2ad0672a336b3b::t_9062ca65f81285 33
+tests/lint/test_system_test_entry.py
+  s_2ad0672a336b3b::t_94ffc1c3c8860e 7,45-60
+  s_2ad0672a336b3b::t_9062ca65f81285 3,30-44
+  s_2ad0672a336b3b::t_c970db5d9f597f 61-62
+tests/run.py
+  s_2ad0672a336b3b::t_94ffc1c3c8860e 13-32,38-39
+  s_2ad0672a336b3b::t_d0a64bebced165 40
+packages/plugin/remove/removeplugin-_getdir
+  s_2ad0672a336b3b::t_9062ca65f81285 23
+tests/lint/test_plugin_lifecycle.py
+  s_2ad0672a336b3b::t_8b5edaca3e7523 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "86708438b0f45f3fe4c9e7227257358c51777b5b",
+  "prompts": {},
+  "sessions": {
+    "s_2ad0672a336b3b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18b02-249a-74e0-80a1-d1ccac90897d",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
