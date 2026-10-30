@@ -1,0 +1,45 @@
+e2e/package-lock.json
+  s_5f4238d90589d5::t_146f467d5d5527 12-13,33-35,39,71-84,86-88
+e2e/package.json
+  s_5f4238d90589d5::t_a35604f737da58 18-19
+setup/dashboard/lib/jquery-ui/jquery-ui.min.css
+  s_5f4238d90589d5::t_1555362f6fd086 1
+setup/dashboard/lib/jquery-ui/jquery-ui.min.js
+  s_5f4238d90589d5::t_ebc9110ca53b6f 1,6
+setup/dashboard/package-lock.json
+  s_5f4238d90589d5::t_90aff84cfc58ed 20
+setup/dashboard/package.json
+  s_5f4238d90589d5::t_5cd17dd213752f 20
+setup/dashboard/ws/build/vite.config.mjs
+  s_5f4238d90589d5::t_0cc5e8ccc8af4e 3-7,9-12,14-31,33
+setup/dashboard/ws/dist/server.js
+  s_5f4238d90589d5::t_1c7e09c0099507 1-820
+setup/dashboard/ws/package-lock.json
+  s_5f4238d90589d5::t_1e586f0ca83c7d 16,21,30,32-36,38,45,52,54,882-891,902-1181,1408-1410,1413,1472-1474,1478,1803-1806,1809-1813,1944-1946,1950,1953,1955,2320-2329,3370-3372,3622-3625,3627,3629,3632,3635-3658,3660-3664,3666-3670,3673-3679,3681-3685,3687-3691,3694-3706,3708,3712,3715-3727,3729,3732-3733,3736-3742,3744-3748,3750-3754,3757-3763,3765-3772,3774-3778,3781-3787,3789-3796,3798,3801-3802,3805-4016,4201-4219,4436-4439,4441-4454,4457-4459,4462,4610-4613,4617,4620-4623,4627-4628,4631,4634,4636-4651,4672-4674,4676-4679,4722-4724,5265-5267,5303-5305,5357-5360,5364-5368,5371,5374,5377,5379-5380,5383-5394,5397,5400,5403,5406,5409,5411-5427,5430,5436-5438,5447
+setup/dashboard/ws/package.json
+  s_5f4238d90589d5::t_481f1ac0d6378a 7,25,30,39,41-45,47,54,61,63
+setup/dashboard/ws/tests/controllers/test-utils.ts
+  s_5f4238d90589d5::t_6919b57099c2b5 23
+setup/dashboard/ws/tests/plugins.spec.ts
+  s_5f4238d90589d5::t_5fa6c63d95656e 14
+setup/dashboard/ws/tests/router.spec.ts
+  s_5f4238d90589d5::t_2629a59dd23856 56
+setup/dashboard/ws/tsconfig.json
+  s_5f4238d90589d5::t_fb7e519106b7df 4-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "74d55c5d86c1f13138647969cf60c1b264bb3204",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
