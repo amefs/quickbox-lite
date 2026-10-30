@@ -1,0 +1,21 @@
+setup/dashboard/ws/src/auth.ts
+  s_5f4238d90589d5::t_a04afe0cb4027c 10-19,27-29,31,65-66,75,79,84,94,170-172,178,222-240,243-248,250-268
+setup/dashboard/ws/src/router.tsx
+  s_5f4238d90589d5::t_24c3c8e602d8fb 19,28,84,88,93,104,216
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5e022fa15d51e2f370674975f9b0aa771b2530d7",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
