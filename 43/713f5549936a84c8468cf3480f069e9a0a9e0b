@@ -1,0 +1,35 @@
+packages/system/auxiliary/clean_log
+  s_5f4238d90589d5::t_d2cba38cd27bea 16-30
+packages/system/auxiliary/qbAbortTask
+  s_5f4238d90589d5::t_7ec43e5b82f678 1-129
+packages/system/auxiliary/qbBackupPrune
+  s_5f4238d90589d5::t_337e8b4690ef8a 1-199
+packages/system/auxiliary/qbEnsureSudoers
+  s_5f4238d90589d5::t_e26004995f23fc 25-26,77-99,110-111
+packages/system/box
+  s_5f4238d90589d5::t_9f98e0b488b9d3 62-80,110-111,117,159,163,185,204-207,211,251-255,342-346,356
+packages/system/update/qbUpdateBackup
+  s_5f4238d90589d5::t_3beab428f325d5 1-224
+packages/system/update/qbUpdateLib
+  s_5f4238d90589d5::t_4df692f68ee0df 1-131
+packages/system/update/qbUpdateRevert
+  s_5f4238d90589d5::t_b9e89b8d1cd12d 1-240
+packages/system/update/qbUpdateTimer
+  s_5f4238d90589d5::t_ea3b0056cb67d1 1-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "43713f5549936a84c8468cf3480f069e9a0a9e0b",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
