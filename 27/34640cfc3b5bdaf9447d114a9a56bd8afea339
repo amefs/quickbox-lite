@@ -1,0 +1,113 @@
+e2e/tests/dashboard-state.spec.ts
+  s_5f4238d90589d5::t_7da8efefdba30c 155-256
+e2e/tests/dashboard.spec.ts
+  s_5f4238d90589d5::t_ce7bd0cd6c9b37 42-76
+e2e/tests/header.spec.ts
+  s_5f4238d90589d5::t_bbda999edb0c0e 42
+packages/system/box
+  s_5f4238d90589d5::t_5542bbeb7094c4 139-140,150-151,362-370,372-373,390
+packages/system/qbUpdate
+  s_5f4238d90589d5::t_1d3ae989103116 39,63-65,74,140,587-603,670
+packages/system/update/qbUpdateRepo
+  s_5f4238d90589d5::t_125156510272d4 30,32-34,36-45,48-70,73-78
+packages/system/update/qbUpdateRevert
+  s_5f4238d90589d5::t_60d09c8f1fcfcf 240-254
+setup/dashboard/css/dashboard.css
+  s_5f4238d90589d5::t_bcf0a326d0c36c 326-426
+setup/dashboard/css/debug.css
+  s_5f4238d90589d5::t_5191cce85543bd 1-904
+setup/dashboard/js/dashboard.js
+  s_5f4238d90589d5::t_700558be788b5b 37-46,136-173,175-176,180,205-209,213-215,222,232-237,550-558,592,633-635,653-656,705-716,723-725,745-748,764-766,840-935,952,989-1001,1248-1295
+setup/dashboard/js/debug.js
+  s_5f4238d90589d5::t_8efd034c3f14f4 1-376
+setup/dashboard/lang/lang_da.json
+  s_5f4238d90589d5::t_27f133a92fc48c 121,206-221
+setup/dashboard/lang/lang_de.json
+  s_5f4238d90589d5::t_ad2ef008829d75 121,207-222
+setup/dashboard/lang/lang_en.json
+  s_5f4238d90589d5::t_446c97c5ca5b90 121,209-224
+setup/dashboard/lang/lang_es.json
+  s_5f4238d90589d5::t_1a9db1edba222c 68,121,207-223
+setup/dashboard/lang/lang_fr.json
+  s_5f4238d90589d5::t_1846078eb9dd4a 121,207-222
+setup/dashboard/lang/lang_zh-Hans-CN.json
+  s_5f4238d90589d5::t_213d2859498be8 121,209-224
+setup/dashboard/ws/dist/server.js
+  s_5f4238d90589d5::t_f081ce92615cef 2,5-13
+setup/dashboard/ws/package.json
+  s_5f4238d90589d5::t_8b712414052416 12
+setup/dashboard/ws/scripts/dev-server.js
+  s_5f4238d90589d5::t_4098d1f62bcf1f 93-94
+setup/dashboard/ws/src/dashboard-config.ts
+  s_5f4238d90589d5::t_b47e9155b9d51e 72-76,84,93-104,115
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_5f4238d90589d5::t_640de7a05e1f7a 5,41,72-76,78,89,92-94,126,216,220,416-428,457
+setup/dashboard/ws/src/debug.tsx
+  s_5f4238d90589d5::t_3ee06fb9640dd8 4,10,25-28,47,55,57,60-65,67-81,83,120-133,136,178
+setup/dashboard/ws/src/handlers/exec.ts
+  s_5f4238d90589d5::t_fc402878cd99a7 13,15-18,60-70,102,381-506,539,600
+setup/dashboard/ws/src/handlers/message.ts
+  s_5f4238d90589d5::t_ffc57eabd93dee 100
+setup/dashboard/ws/src/handlers/utils/command.ts
+  s_5f4238d90589d5::t_818b96114b6401 24-25,82-100
+setup/dashboard/ws/src/router.tsx
+  s_5f4238d90589d5::t_525817d6067782 6-7,48,55,82-89,119,161-177
+setup/dashboard/ws/src/shared/constants.ts
+  s_5f4238d90589d5::t_500fa063046d82 11-12
+setup/dashboard/ws/src/testing/bootstrap.ts
+  s_5f4238d90589d5::t_2608a7d14a2b47 57,63
+setup/dashboard/ws/src/testing/mock-adapter.ts
+  s_5f4238d90589d5::t_a9820b47cdb2a8 30,85,133-134,137,139,149-153,156-160,169-179,196-204
+setup/dashboard/ws/src/testing/mock-profiles.ts
+  s_5f4238d90589d5::t_172902e65b740d 16,71-72,163,225,339
+setup/dashboard/ws/src/widgets/service-control.tsx
+  s_5f4238d90589d5::t_4d15b52635b74e 6-7,17,23,25-26,47-50,66,69
+setup/dashboard/ws/src/widgets/service-state.ts
+  s_5f4238d90589d5::t_89390021964545 1-290
+setup/dashboard/ws/src/widgets/service-status.tsx
+  s_5f4238d90589d5::t_35187bc5e0de11 4-12,14-16,21-23,26-30
+setup/dashboard/ws/tests/controllers/node.spec.ts
+  s_5f4238d90589d5::t_60955c2d2c6035 6,9,37-57
+setup/dashboard/ws/tests/debug.spec.ts
+  s_5f4238d90589d5::t_2669d8e5fbee9d 5-6,12-14,54,56-59,63-65,68,70-72
+setup/dashboard/ws/tests/handlers/message.spec.ts
+  s_5f4238d90589d5::t_05e4fc79244861 221-223
+setup/dashboard/ws/tests/handlers/utils/command.spec.ts
+  s_5f4238d90589d5::t_d53cf57b223f3a 44-52
+setup/dashboard/ws/tests/router.spec.ts
+  s_5f4238d90589d5::t_a20874b7808a16 8-9,80,91,99-118,133,137,464
+setup/dashboard/ws/tests/testing/mock-adapter.spec.ts
+  s_5f4238d90589d5::t_7816400d30edee 6,8,37-60
+setup/dashboard/ws/tests/widgets/service-status.spec.ts
+  s_5f4238d90589d5::t_b26c6dca7f0298 5-10,13-32,35-46,49-55,58-75,78-89,92-97,99-104,107-112,114-121,124-135,137-146,148-162,164-192,194-215
+setup/themes/defaulted/skins/quick.css
+  s_5f4238d90589d5::t_cd0e180b12cf64 8951-8981
+setup/themes/smoked/skins/quick.css
+  s_5f4238d90589d5::t_b14f869652459f 8951-8981
+tests/dashboard/test_branch_switch.py
+  s_5f4238d90589d5::t_8d22de8a74ec3e 1-79
+tests/deployment/Dockerfile
+  s_5f4238d90589d5::t_2c70d4a9854cd7 5
+tests/deployment/run.py
+  s_5f4238d90589d5::t_28dfc86f605bf8 256-289
+tests/repository/test_repo_reinstall.py
+  s_5f4238d90589d5::t_2367a9ceabab66 146
+tests/repository/test_repo_state.py
+  s_5f4238d90589d5::t_499ad4585973df 29-30,36,71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2734640cfc3b5bdaf9447d114a9a56bd8afea339",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
