@@ -1,0 +1,25 @@
+packages/system/auxiliary/qbNginxProxyMigrate
+  s_5f4238d90589d5::t_4d31002b8c0991 15,41,102-103,212-232
+packages/system/auxiliary/qbWsHealthCheck
+  s_5f4238d90589d5::t_34b8947c22e8c4 15-19,29,34-52,59-62,64,79-161,185,187,193,195,202,204,210,213,295,298,303,307,309,314-316,321-329,333-335
+setup.sh
+  s_5f4238d90589d5::t_50780007566ffa 830,835,840,844-846,970,975,1000-1005
+setup/templates/nginx/dashboard.conf.template
+  s_5f4238d90589d5::t_afa4eb109398a7 42-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c98b77b06f4558650d70ad09793c3dd21ddc8325",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
