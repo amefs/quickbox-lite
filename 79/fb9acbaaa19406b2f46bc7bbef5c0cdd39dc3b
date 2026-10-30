@@ -1,0 +1,25 @@
+README.md
+  s_5f4238d90589d5::t_488631b25921f1 160-181
+README_zh.md
+  s_5f4238d90589d5::t_6686ff7fa77533 156-174
+e2e/README.md
+  s_5f4238d90589d5::t_1ab049607cafb4 3-19,23-24,62,64-77
+packages/package/README.md
+  s_5f4238d90589d5::t_cb4ac7b3445826 1,3-10,12,14,21-24,30-36,38,40-42,61-79,81-87,89-90,92,101-109,111,122-127,129-133,135-139,141,143-145,155-163,172-173,175,177,179-199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "79fb9acbaaa19406b2f46bc7bbef5c0cdd39dc3b",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
