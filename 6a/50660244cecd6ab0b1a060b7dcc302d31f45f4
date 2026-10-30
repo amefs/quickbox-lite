@@ -1,0 +1,21 @@
+.github/workflows/linter.yml
+  s_df311be3c4563f::t_9de010fb178c87 16,19,59,62,83,99,144,167
+.github/workflows/deployment.yml
+  s_df311be3c4563f::t_9de010fb178c87 17-18,26,39,54,61,63,83,89,107,110,135,151-152,155,183,202-203,208,213,236
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6a50660244cecd6ab0b1a060b7dcc302d31f45f4",
+  "prompts": {},
+  "sessions": {
+    "s_df311be3c4563f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d0f-a0de-78a1-8411-a3b3300577fa",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
