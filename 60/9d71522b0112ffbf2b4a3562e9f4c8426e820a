@@ -1,0 +1,31 @@
+.flake8
+  s_5f4238d90589d5::t_2bc3798be0eb18 6-20
+.gitignore
+  s_5f4238d90589d5::t_a112b9ea17043f 57-59
+.python-version
+  s_5f4238d90589d5::t_ca609f607f26b4 1
+pyproject.toml
+  s_5f4238d90589d5::t_660c24a4d0590f 1-18
+pyrightconfig.json
+  s_5f4238d90589d5::t_5feaaee5e66880 1-9
+typings/deluge/config.pyi
+  s_5f4238d90589d5::t_0238de4b346ce0 1,4-5,7,9-11
+uv.lock
+  s_5f4238d90589d5::t_67c635427af684 1-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "609d71522b0112ffbf2b4a3562e9f4c8426e820a",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
