@@ -1,0 +1,131 @@
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_2ad0672a336b3b::t_34f11301fb0657 417,421
+  s_2ad0672a336b3b::t_d04bc4072229db 418
+  s_2ad0672a336b3b::t_52c6a56cea769e 412,414,420,422
+  s_2ad0672a336b3b::t_7b5eb0934ced37 413,415-416,419
+  s_2ad0672a336b3b::t_97a52f56f14503 5,73,211
+  s_2ad0672a336b3b::t_a44ed36546e520 215,411
+  s_2ad0672a336b3b::t_df2fa22e921117 423
+setup/dashboard/ws/tests/controllers/node.spec.ts
+  s_2ad0672a336b3b::t_97a52f56f14503 8,36-41
+packages/system/update/qbUpdateRepo
+  s_2ad0672a336b3b::t_9a7963ef6ac41c 58-61,63
+  s_2ad0672a336b3b::t_ae883ff38fa3a1 50-53
+  s_2ad0672a336b3b::t_0c9dcb320e9fff 30,66-70
+  s_2ad0672a336b3b::t_beac2c8b8497d7 32-34,36-45,48-49,54-57,62,64-65,73-78
+setup/dashboard/ws/tests/handlers/utils/command.spec.ts
+  s_2ad0672a336b3b::t_7b76ee288d9d05 47-48
+  s_2ad0672a336b3b::t_0c9dcb320e9fff 49
+  s_2ad0672a336b3b::t_9a7963ef6ac41c 44-46,50-52
+e2e/tests/dashboard.spec.ts
+  s_2ad0672a336b3b::t_0dfaa353475e26 42-45,47-52
+  s_2ad0672a336b3b::t_7b5eb0934ced37 54,56,68
+  s_2ad0672a336b3b::t_8b9f95031006cb 46
+  s_2ad0672a336b3b::t_41ecf805e383e0 55
+  s_2ad0672a336b3b::t_1d7f02244a3259 53,57-67,69-76
+setup/dashboard/ws/package.json
+  s_2ad0672a336b3b::t_97a52f56f14503 12
+packages/system/update/qbUpdateRevert
+  s_2ad0672a336b3b::t_361cb382ba54a8 241,243,249,251-252
+  s_2ad0672a336b3b::t_5d9374bd899ee4 240,242,244-248,250,253-254
+setup/dashboard/js/dashboard.js
+  s_2ad0672a336b3b::t_8b9f95031006cb 1249-1262,1264-1266,1268-1270,1272,1274-1295
+  s_2ad0672a336b3b::t_3edfdfadeac375 1248,1263,1267,1271,1273
+setup/dashboard/ws/dist/server.js
+  s_2ad0672a336b3b::t_00266e3911b3b5 10
+  s_2ad0672a336b3b::t_d5fb68d4195856 5,12
+  s_2ad0672a336b3b::t_855d7c561a57bc 2,7-9,13
+  s_2ad0672a336b3b::t_976a488a17d748 11
+setup/dashboard/lang/lang_es.json
+  s_2ad0672a336b3b::t_34f11301fb0657 216
+  s_2ad0672a336b3b::t_3edfdfadeac375 210-213,215
+  s_2ad0672a336b3b::t_8b9f95031006cb 214,217-220
+  s_2ad0672a336b3b::t_97a52f56f14503 221-222
+setup/dashboard/ws/src/handlers/exec.ts
+  s_2ad0672a336b3b::t_a44ed36546e520 102
+packages/system/box
+  s_2ad0672a336b3b::t_beac2c8b8497d7 150-151,362-370,373,390
+  s_2ad0672a336b3b::t_45b842dcee7688 139,372
+  s_2ad0672a336b3b::t_d04bc4072229db 140
+setup/dashboard/ws/src/dashboard-config.ts
+  s_2ad0672a336b3b::t_97a52f56f14503 101-104
+  s_2ad0672a336b3b::t_a44ed36546e520 72-76,84
+  s_2ad0672a336b3b::t_9a7963ef6ac41c 93-100,115
+setup/dashboard/ws/src/testing/mock-adapter.ts
+  s_2ad0672a336b3b::t_0dfaa353475e26 198-202
+  s_2ad0672a336b3b::t_ececcfa448abf4 196-197,203-204
+setup/dashboard/ws/src/handlers/utils/command.ts
+  s_2ad0672a336b3b::t_52c6a56cea769e 24-25,82-85,87-88
+  s_2ad0672a336b3b::t_36ecabc1d4b909 86,91-99
+  s_2ad0672a336b3b::t_0c9dcb320e9fff 89-90
+  s_2ad0672a336b3b::t_810f47324011bb 100
+setup/dashboard/ws/src/router.tsx
+  s_2ad0672a336b3b::t_a44ed36546e520 150,157-160,162-165
+  s_2ad0672a336b3b::t_0c9dcb320e9fff 161
+  s_2ad0672a336b3b::t_ececcfa448abf4 151-154
+  s_2ad0672a336b3b::t_d04bc4072229db 155
+  s_2ad0672a336b3b::t_9a7963ef6ac41c 156
+tests/repository/test_repo_reinstall.py
+  s_2ad0672a336b3b::t_361cb382ba54a8 146
+tests/dashboard/test_branch_switch.py
+  s_2ad0672a336b3b::t_a7c30f8ac14e7c 1-51
+  s_2ad0672a336b3b::t_45b842dcee7688 52-74
+  s_2ad0672a336b3b::t_6102da203feba0 75-79
+packages/system/qbUpdate
+  s_2ad0672a336b3b::t_beac2c8b8497d7 39,63-65,140,587-588,590-595,597-603,670
+  s_2ad0672a336b3b::t_ae883ff38fa3a1 74,589,596
+setup/dashboard/lang/lang_da.json
+  s_2ad0672a336b3b::t_97a52f56f14503 220-221
+  s_2ad0672a336b3b::t_34f11301fb0657 215
+  s_2ad0672a336b3b::t_3edfdfadeac375 209-212,214
+  s_2ad0672a336b3b::t_8b9f95031006cb 213,216-219
+setup/dashboard/lang/lang_fr.json
+  s_2ad0672a336b3b::t_8b9f95031006cb 214,217-220
+  s_2ad0672a336b3b::t_3edfdfadeac375 210-213,215
+  s_2ad0672a336b3b::t_34f11301fb0657 216
+  s_2ad0672a336b3b::t_97a52f56f14503 221-222
+setup/dashboard/lang/lang_zh-Hans-CN.json
+  s_2ad0672a336b3b::t_8b9f95031006cb 216,219-222
+  s_2ad0672a336b3b::t_34f11301fb0657 218
+  s_2ad0672a336b3b::t_97a52f56f14503 223-224
+  s_2ad0672a336b3b::t_3edfdfadeac375 212-215,217
+tests/repository/test_repo_state.py
+  s_2ad0672a336b3b::t_361cb382ba54a8 29-30,36,71
+setup/dashboard/lang/lang_de.json
+  s_2ad0672a336b3b::t_97a52f56f14503 221-222
+  s_2ad0672a336b3b::t_3edfdfadeac375 210-213,215
+  s_2ad0672a336b3b::t_8b9f95031006cb 214,217-220
+  s_2ad0672a336b3b::t_34f11301fb0657 216
+setup/dashboard/ws/tests/router.spec.ts
+  s_2ad0672a336b3b::t_ececcfa448abf4 112,116
+setup/dashboard/css/dashboard.css
+  s_2ad0672a336b3b::t_7b5eb0934ced37 326-334,336-341,344-345,347-355,357-358,360-363,365-369,371-378,394-396,401-402,405-421,423-426
+  s_2ad0672a336b3b::t_34f11301fb0657 335,342-343,346,356,359,364,370,379-393,400,403-404,422
+  s_2ad0672a336b3b::t_96a3ecee51bc99 397-399
+setup/dashboard/lang/lang_en.json
+  s_2ad0672a336b3b::t_34f11301fb0657 218
+  s_2ad0672a336b3b::t_8b9f95031006cb 216,219-222
+  s_2ad0672a336b3b::t_97a52f56f14503 223-224
+  s_2ad0672a336b3b::t_3edfdfadeac375 212-215,217
+setup/dashboard/ws/scripts/dev-server.js
+  s_2ad0672a336b3b::t_97a52f56f14503 94
+  s_2ad0672a336b3b::t_d04bc4072229db 93
+e2e/tests/header.spec.ts
+  s_2ad0672a336b3b::t_e7221c87f446a0 42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5bea352250f0314e3a18d504a0c0ecc2413f0464",
+  "prompts": {},
+  "sessions": {
+    "s_2ad0672a336b3b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18b02-249a-74e0-80a1-d1ccac90897d",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
