@@ -1,0 +1,31 @@
+tests/deployment/README.md
+  s_c6c9f6d1e71d1c::t_7fddf5aaab238b 16-19,22,40-41,55-57
+  s_c6c9f6d1e71d1c::t_e2ce74369b5822 6,15,21,28-32,98,201
+  s_c6c9f6d1e71d1c::t_6802c120e562cb 35
+e2e/README.md
+  s_c6c9f6d1e71d1c::t_a95b6cd1ee5ff3 6
+  s_c6c9f6d1e71d1c::t_e2ce74369b5822 5
+.github/workflows/linter.yml
+  s_c6c9f6d1e71d1c::t_7fddf5aaab238b 120,122-123,125-126,128,134-137,139,141,154-155,195-196
+  s_c6c9f6d1e71d1c::t_e2ce74369b5822 1,12,22-23,56,66-67,80,96,131,138,140,158,194
+  s_c6c9f6d1e71d1c::t_3e790b57c536f5 116,121,124,127
+.github/workflows/deployment.yml
+  s_c6c9f6d1e71d1c::t_e2ce74369b5822 1,10,50,97,142,190
+  s_c6c9f6d1e71d1c::t_7fddf5aaab238b 62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2db5cefeda2b503741123ba75b882f2df3ffb37a",
+  "prompts": {},
+  "sessions": {
+    "s_c6c9f6d1e71d1c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1881a-d22a-76a2-bb57-10a2f369c624",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}

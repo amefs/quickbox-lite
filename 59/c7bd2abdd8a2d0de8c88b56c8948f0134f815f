@@ -1,0 +1,27 @@
+packages/system/auxiliary/qbWsHealthCheck
+  s_2ad0672a336b3b::t_16969c91d01072 205,220
+packages/system/update/qbUpdateDashboard
+  s_2ad0672a336b3b::t_16969c91d01072 304,312-318
+tests/dashboard/test_ws_health_proxy.py
+  s_2ad0672a336b3b::t_442baebb4d3fa9 146-147
+tests/dashboard/test_dashboard_update.py
+  s_2ad0672a336b3b::t_442baebb4d3fa9 95,100-105,197,214-215,234,248
+packages/system/update/qbUpdateStep
+  s_2ad0672a336b3b::t_16969c91d01072 46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59c7bd2abdd8a2d0de8c88b56c8948f0134f815f",
+  "prompts": {},
+  "sessions": {
+    "s_2ad0672a336b3b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18b02-249a-74e0-80a1-d1ccac90897d",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
