@@ -43,7 +43,7 @@ function _qbRunHelper() {
 	"$@" >>"${capture}" 2>&1
 	status=$?
 	if [[ -n ${OUTTO:-} ]]; then
-		cat "${capture}" >>"${OUTTO}" 2>/dev/null || true
+		cat "${capture}" 2>/dev/null >>"${OUTTO}" || true
 	fi
 	if [[ ${status} -ne 0 ]]; then
 		_error "${message}"

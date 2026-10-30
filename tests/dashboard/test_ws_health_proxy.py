@@ -143,6 +143,8 @@ class BackendHealthTest(unittest.TestCase):
         result, _ = self.health()
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertIn("nginx health endpoint failed: 503", result.stderr)
+        self.assertIn(f"Nginx probe: http://127.0.0.1:{self.proxy.server_port}/qb-healthz "
+                      f"(Host: dashboard.test:{self.proxy.server_port})", result.stderr)
 
     def test_backend_failures_are_reported_for_each_transport(self):
         for failure, diagnostic in (

@@ -28,17 +28,13 @@ function _error() {
 function _updateRepo() {
 	_info "Updating QuickBox local repository..."
 	local repo="${QUICKBOX_REPO_ROOT:-/etc/QuickBox}" branch state_branch changes
-	if [[ -f /install/.legacy.lock ]]; then
-		if [[ -n ${update_target_branch:-} && ${update_target_branch} != legacy ]]; then
-			_error "This system requires the legacy branch"
-			return 1
-		fi
-		branch=legacy
-	elif [[ -n ${update_target_branch:-} ]]; then
+	if [[ -n ${update_target_branch:-} ]]; then
 		branch=${update_target_branch}
 	elif [[ -s /install/.quickbox-branch ]]; then
 		IFS= read -r state_branch </install/.quickbox-branch
 		branch=${state_branch}
+	elif [[ -f /install/.legacy.lock ]]; then
+		branch=legacy
 	elif [[ -f /install/.developer.lock ]]; then
 		branch=development
 		if [[ -f /install/.debug.lock && -d ${repo}/.git ]]; then

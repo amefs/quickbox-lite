@@ -40,14 +40,57 @@ test.describe("Dashboard Loading", () => {
 });
 
 test("shows available branches and starts a branch update", async ({ page }) => {
+    await page.route("**/node/branches?*", async route => {
+        await route.fulfill({ json: { branches: ["master", "development", "feature/example"] } });
+    });
     await page.goto("/?locale=en");
     await page.locator(".header-account button").click();
-    await page.locator('a[href="#branchSwitch"]').click();
-    await expect(page.locator("#branchTarget option")).toHaveCount(3);
-    await page.locator("#branchTarget").selectOption("development");
+    await page.locator('a[data-branch-mode="other"]').click();
+    await expect(page.locator("#branchTarget option")).toHaveCount(4);
+    await page.locator("#branchTarget").selectOption("feature/example");
     await page.locator("#branchSwitchGo").click();
     await expect(page.locator("#sysResponse")).toBeVisible();
+    await expect.poll(async () => (await page.request.get("/node/dashboard_config")).json()).toMatchObject({ branch: "feature/example" });
+});
+
+test("recommended branches open confirmation without loading the branch list", async ({ page }) => {
+    let branchRequests = 0;
+    await page.route("**/node/branches?*", async route => {
+        branchRequests += 1;
+        await route.abort();
+    });
+    await page.goto("/?locale=en");
+    await page.locator(".header-account button").click();
+    await expect(page.locator('a[data-branch-mode="master"]')).toHaveCount(0);
+    await page.locator('a[data-branch-mode="development"]').click();
+    await expect(page.locator("#branchFixedTarget")).toHaveText("development");
+    await expect(page.locator("#branchTarget")).toBeHidden();
+    await expect(page.locator("#branchSwitchGo")).toBeEnabled();
+    expect(branchRequests).toBe(0);
+    await page.locator("#branchSwitch .modal-footer [data-dismiss=modal]").click();
+    await expect(page.locator("#branchSwitch")).toBeHidden();
+    await expect.poll(async () => (await page.request.get("/node/dashboard_config")).json()).toMatchObject({ branch: "master" });
+    await page.locator(".header-account button").click();
+    await page.locator('a[data-branch-mode="development"]').click();
+    await page.locator("#branchSwitchGo").click();
     await expect.poll(async () => (await page.request.get("/node/dashboard_config")).json()).toMatchObject({ branch: "development" });
+    await page.goto("/?locale=en");
+    await page.locator(".header-account button").click();
+    await expect(page.locator('a[data-branch-mode="development"]')).toHaveCount(0);
+    await page.locator('a[data-branch-mode="master"]').click();
+    await expect(page.locator("#branchFixedTarget")).toHaveText("master");
+    await page.locator("#branchSwitchGo").click();
+    await expect.poll(async () => (await page.request.get("/node/dashboard_config")).json()).toMatchObject({ branch: "master" });
+    expect(branchRequests).toBe(0);
+});
+
+test("a custom branch offers both recommended targets", async ({ page }) => {
+    await setMockProfile(page, "long-branch");
+    await page.goto("/?locale=en");
+    await page.locator(".header-account button").click();
+    await expect(page.locator('a[data-branch-mode="master"]')).toBeVisible();
+    await expect(page.locator('a[data-branch-mode="development"]')).toBeVisible();
+    await expect(page.locator('a[data-branch-mode="other"]')).toBeVisible();
 });
 
 test("branch list failure can be retried", async ({ page }) => {
@@ -61,7 +104,7 @@ test("branch list failure can be retried", async ({ page }) => {
     });
     await page.goto("/?locale=en");
     await page.locator(".header-account button").click();
-    await page.locator('a[href="#branchSwitch"]').click();
+    await page.locator('a[data-branch-mode="other"]').click();
     await expect(page.locator("#branchError")).toBeVisible();
     await expect(page.locator("#branchTarget option")).toHaveText("Unable to load branches");
     await expect(page.locator("#branchSwitchGo")).toBeDisabled();

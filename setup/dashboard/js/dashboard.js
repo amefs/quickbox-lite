@@ -1250,6 +1250,9 @@
       let switchButton = document.getElementById("branchSwitchGo");
       let branchError = document.getElementById("branchError");
       let branchRetry = document.getElementById("branchRetry");
+      let fixedTarget = document.getElementById("branchFixedTarget");
+      let selectContainer = document.getElementById("branchSelectContainer");
+      let directTarget = "";
       let branchRequest = 0;
       function setBranchOption(text) {
         select.replaceChildren(new Option(text, ""));
@@ -1280,13 +1283,30 @@
           branchError.hidden = false;
         });
       }
-      if (select && switchButton && branchError && branchRetry) {
-        $branchSwitch.on("show.bs.modal", loadBranches);
+      if (select && switchButton && branchError && branchRetry && fixedTarget && selectContainer) {
+        $branchSwitch.on("show.bs.modal", function (event) {
+          let trigger = event.relatedTarget;
+          let mode = trigger && trigger.dataset ? trigger.dataset.branchMode : "other";
+          directTarget = mode === "master" || mode === "development" ? mode : "";
+          branchRequest += 1;
+          branchError.hidden = true;
+          fixedTarget.hidden = !directTarget;
+          selectContainer.hidden = !!directTarget;
+          if (directTarget) {
+            fixedTarget.textContent = directTarget;
+            select.disabled = true;
+            switchButton.disabled = false;
+            switchButton.textContent = switchButton.dataset.switch;
+          } else {
+            fixedTarget.textContent = "";
+            loadBranches();
+          }
+        });
         $branchSwitch.on("hidden.bs.modal", function () { branchRequest += 1; });
         branchRetry.addEventListener("click", loadBranches);
         select.addEventListener("change", updateBranchButton);
         switchButton.addEventListener("click", function () {
-          let branch = select.value;
+          let branch = directTarget || select.value;
           if (!branch) { return; }
           $branchSwitch.modal("hide");
           window.jQuery("#sysResponse").modal("show");

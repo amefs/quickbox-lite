@@ -12,6 +12,7 @@ import signal
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 
 REPO = Path(__file__).resolve().parents[2]
@@ -266,26 +267,40 @@ def permissions():
     assert b"#branchSwitch .branch-commit" in stylesheet_response
 
     # The service runs as www-data while the checkout is owned by root.
-    # Verify the actual HTTP endpoint can query its origin.
+    # Preserve any checkout metadata already present on a real systemd runner.
     repo = Path("/etc/QuickBox")
     origin = STATE / "branch-origin.git"
-    run(["git", "init", "--bare", str(origin)], stdout=subprocess.DEVNULL)
-    run(["git", "-C", str(repo), "init", "-b", "master"], stdout=subprocess.DEVNULL)
-    run(["git", "-C", str(repo), "config", "user.name", "QuickBox test"])
-    run(["git", "-C", str(repo), "config", "user.email", "test@example.invalid"])
-    run(["git", "-C", str(repo), "commit", "--allow-empty", "-m", "fixture"], stdout=subprocess.DEVNULL)
-    run(["git", "-C", str(repo), "remote", "add", "origin", str(origin)])
-    run(["git", "-C", str(repo), "push", "origin", "master"], stdout=subprocess.DEVNULL)
-    run(["chown", "-R", "www-data:www-data", str(origin)])
+    git_dir = repo / ".git"
+    backup_dir = Path(tempfile.mkdtemp(prefix=".branch-test-", dir=repo))
+    saved_git = backup_dir / "original.git"
+    had_git = os.path.lexists(git_dir)
     try:
+        if had_git:
+            git_dir.rename(saved_git)
+        run(["git", "init", "--bare", str(origin)], stdout=subprocess.DEVNULL)
+        run(["git", "-C", str(repo), "init", "-b", "master"], stdout=subprocess.DEVNULL)
+        run(["git", "-C", str(repo), "config", "user.name", "QuickBox test"])
+        run(["git", "-C", str(repo), "config", "user.email", "test@example.invalid"])
+        run(["git", "-C", str(repo), "commit", "--allow-empty", "-m", "fixture"], stdout=subprocess.DEVNULL)
+        run(["git", "-C", str(repo), "remote", "add", "origin", str(origin)])
+        run(["git", "-C", str(repo), "push", "origin", "master"], stdout=subprocess.DEVNULL)
+        run(["chown", "-R", "www-data:www-data", str(origin)])
         response = run([
             "curl", "--noproxy", "*", "-fsS", "-u", "fixture:fixture-password",
             "http://127.0.0.1:18080/node/branches",
         ], capture_output=True, text=True)
         assert "master" in json.loads(response.stdout)["branches"], response.stdout
     finally:
-        shutil.rmtree(repo / ".git")
-        shutil.rmtree(origin)
+        # Only remove the fixture checkout after a successful backup rename.
+        if not had_git or os.path.lexists(saved_git):
+            if git_dir.is_dir() and not git_dir.is_symlink():
+                shutil.rmtree(git_dir)
+            else:
+                git_dir.unlink(missing_ok=True)
+            if had_git:
+                saved_git.rename(git_dir)
+        shutil.rmtree(backup_dir)
+        shutil.rmtree(origin, ignore_errors=True)
 
 
 def transports():

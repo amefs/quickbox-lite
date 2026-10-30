@@ -221,5 +221,6 @@
   "BRANCH_RETRY": "重试",
   "BRANCH_UPDATE": "更新",
   "BRANCH_SWITCH_ACTION": "切换并更新",
-  "DEV_ACCOUNT_LABEL": "开发环境"
+  "DEV_ACCOUNT_LABEL": "开发环境",
+  "BRANCH_OTHER": "切换到其他分支…"
 }

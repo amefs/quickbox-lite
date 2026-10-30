@@ -181,7 +181,6 @@ if [[ ${EXPECT_PROXY} -eq 1 ]]; then
 		}' "${NGINX_SITE}")
 	fi
 	HOST_HEADER="${HOST_HEADER:-127.0.0.1}"
-	[[ ${VERBOSE} -eq 0 ]] || printf 'Nginx probe Host: %s\n' "${HOST_HEADER}" >&2
 	if [[ "${NGINX_SCHEME}" == "auto" ]]; then
 		NGINX_SCHEME=""
 		for candidate in https http; do
@@ -203,6 +202,7 @@ if [[ ${EXPECT_PROXY} -eq 1 ]]; then
 	fi
 	HOST_HEADER="${HOST_HEADER}:${NGINX_PORT}"
 	PROXY_URL="${CHECK_SCHEME}://127.0.0.1:${NGINX_PORT}"
+	[[ ${VERBOSE} -eq 0 ]] || printf 'Nginx probe: %s/qb-healthz (Host: %s)\n' "${PROXY_URL}" "${HOST_HEADER}" >&2
 	proxy_code() {
 		local path="$1"
 		_http_code -H "Host: ${HOST_HEADER}" "${PROXY_URL}${path}"
@@ -217,7 +217,7 @@ fi
 
 if [[ ${CHECK_FAILED} -ne 0 ]]; then
 	if [[ ${EXPECT_PROXY} -eq 1 && ${VERBOSE} -eq 0 ]]; then
-		printf 'Nginx probe Host: %s\n' "${HOST_HEADER}" >&2
+		printf 'Nginx probe: %s/qb-healthz (Host: %s)\n' "${PROXY_URL}" "${HOST_HEADER}" >&2
 	fi
 	# A quiet run held every line back; replay the sequence so the log shows
 	# which check broke and what it answered.

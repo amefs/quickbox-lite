@@ -9,6 +9,7 @@
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+# QB_UPDATE_HANDOFF_PROTOCOL=1
 #
 # shellcheck disable=SC1090,SC1091,SC2034,SC2129
 ################################################################################
@@ -60,6 +61,7 @@ function _parseUpdateArgs() {
 		case "$1" in
 		--only-core) core=1 ;;
 		--from-checkout) from_checkout=1; core=1 ;;
+		--handoff-full) core=0 ;;
 		--branch)
 			[[ $# -ge 2 ]] || { printf "Missing branch name\n" >&2; return 2; }
 			update_target_branch=$2; shift ;;
@@ -115,6 +117,10 @@ function _updateCleanup() {
 	if [[ -n ${update_activity_file:-} ]]; then
 		rm -f "${update_activity_file}"
 		update_activity_file=""
+	fi
+	if [[ -n ${update_handoff_tmp:-} ]]; then
+		rm -rf -- "${update_handoff_tmp}"
+		update_handoff_tmp=""
 	fi
 	_releaseUpdateInstallLock
 }
@@ -403,9 +409,12 @@ function _updateActivityRead() {
 # immediately instead of after the current sleep finishes: a tick must never
 # outlive the stage that owns it or hold the updater's stdout open.
 function _updateHeartbeatLoop() {
-	local silence="$1" label="$2" sink="$3" start_ms="$4"
+	local silence="$1" label="$2" sink="$3" start_ms="$4" ready_file="${5:-}"
 	local tick=1 waited=0 now elapsed silent last stamp sleeper=""
 	trap 'kill "${sleeper:-}" 2>/dev/null; exit 0' TERM INT
+	if [[ -n ${ready_file} ]]; then
+		: >"${ready_file}" || exit 1
+	fi
 	# A stage can arrive with an unusable start (the clock was missing when
 	# _updateStep measured it). Anchor to the first tick instead of reporting an
 	# instant "still running" line against a zero baseline.
@@ -460,23 +469,37 @@ function _updateHeartbeatLoop() {
 # without one (the Dashboard launcher discards stdout) the same signal goes to
 # the shared log, which is what the Dashboard log view reads.
 function _updateHeartbeatStart() {
-	local label="$1" start_ms="${2:-}"
+	local label="$1" start_ms="${2:-}" sink=log ready_file attempts
 	update_heartbeat_pid=""
 	_updateActivityInit
+	[[ -n ${update_activity_file:-} ]] || return 0
 	[[ ${start_ms} =~ ^[0-9]+$ ]] || start_ms=$(_qbNowMs)
-	# Descriptor 8 is the update lock and descriptor 9 the operation lock; a tick
-	# must inherit neither.
+	ready_file="${update_activity_file}.heartbeat-ready"
+	rm -f "${ready_file}"
 	if [[ -t 1 ]]; then
-		(_updateHeartbeatLoop 15 "${label}" terminal "${start_ms}") 8>&- 9>&- &
-		update_heartbeat_pid=$!
+		sink=terminal
+	elif [[ ! -f ${OUTTO:-} || ! -w ${OUTTO:-} ]]; then
 		return 0
 	fi
-	[[ -n ${OUTTO:-} && -f ${OUTTO} && -w ${OUTTO} ]] || return 0
-	# The log sink writes to the file itself, so the subshell must not keep the
-	# caller's stdout: a lingering tick would otherwise block a piped caller
-	# waiting for end-of-file.
-	(_updateHeartbeatLoop 30 "${label}" log "${start_ms}") 8>&- 9>&- >/dev/null 2>&1 &
+	# The child signals readiness after installing its signal trap. Without
+	# this handshake, a fast stage can send TERM before the trap is active.
+	if [[ ${sink} == terminal ]]; then
+		(_updateHeartbeatLoop 15 "${label}" terminal "${start_ms}" "${ready_file}") 8>&- 9>&- &
+	else
+		(_updateHeartbeatLoop 30 "${label}" log "${start_ms}" "${ready_file}") 8>&- 9>&- >/dev/null 2>&1 &
+	fi
 	update_heartbeat_pid=$!
+	for (( attempts = 0; attempts < 100; attempts++ )); do
+		[[ -e ${ready_file} ]] && break
+		kill -0 "${update_heartbeat_pid}" 2>/dev/null || break
+		sleep 0.01
+	done
+	if [[ ! -e ${ready_file} ]]; then
+		kill -KILL "${update_heartbeat_pid}" 2>/dev/null || true
+		wait "${update_heartbeat_pid}" 2>/dev/null || true
+		update_heartbeat_pid=""
+	fi
+	rm -f "${ready_file}"
 }
 
 function _updateHeartbeatStop() {
@@ -567,7 +590,7 @@ function _installSystemUpdates() {
 }
 
 function _preloadScript() {
-	source "${local_prefix}packages/system/update/qbUpdateRepo" || return 1
+	source "${_qb_lib_dir}/qbUpdateRepo" || return 1
 	if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
 		if [[ ! -f /install/.legacy.lock ]]; then
 			touch /install/.legacy.lock
@@ -593,12 +616,104 @@ function _commitInstalledBranch() {
 		rm -f "${tmp}"
 		return 1
 	fi
+	if [[ ${branch} == legacy ]]; then
+		touch /install/.legacy.lock || return 1
+	else
+		rm -f /install/.legacy.lock
+	fi
 	if [[ ${branch} == master || ${branch} == legacy || ${branch} == detached ]]; then
 		rm -f /install/.developer.lock /install/.debug.lock
 	else
 		touch /install/.developer.lock || return 1
-		rm -f /install/.debug.lock
+		if [[ ${branch} == development ]]; then
+			rm -f /install/.debug.lock
+		else
+			printf '%s(%s)\n' "${branch}" "${sha:0:7}" >/install/.debug.lock || return 1
+		fi
 	fi
+}
+
+function _handoffUpdate() {
+	local target_updater="${local_prefix}packages/system/qbUpdate" hook wrapper status=0
+	local -a handoff_args=(--from-checkout)
+	local handoff_core_lock="${_qb_update_lock:-${QUICKBOX_UPDATE_CORE_LOCK:-/run/lock/quickbox-update-core.lock}}"
+	if [[ ! -f ${target_updater} ]]; then
+		_error "Target updater is missing: ${target_updater}"
+		return 1
+	fi
+	_info "Continuing with the target checkout's updater"
+	if grep -qF 'QB_UPDATE_HANDOFF_PROTOCOL=1' "${target_updater}"; then
+		[[ ${core} -eq 0 ]] && handoff_args+=(--handoff-full)
+		QUICKBOX_UPDATE_HANDOFF=1 \
+			QUICKBOX_UPDATE_CORE_LOCK_INHERITED="${handoff_core_lock}" \
+			QUICKBOX_UPDATE_OPERATION_LOCK_INHERITED="${QUICKBOX_OPERATION_LOCK:-/run/lock/quickbox-operation.lock}" \
+			QB_UPDATE_LIB_DIR="${local_prefix}packages/system/update" \
+			bash "${target_updater}" "${handoff_args[@]}"
+		return $?
+	fi
+
+	# Older updaters do not understand lock inheritance or --from-checkout.
+	# Keep their own stages, but bridge the entry point so they use the selected
+	# checkout and do not fetch a different branch or take our locks again.
+	update_handoff_tmp=$(mktemp -d /run/lock/quickbox-handoff.XXXXXX) || return 1
+	hook="${update_handoff_tmp}/hook"
+	wrapper="${update_handoff_tmp}/updater"
+	cat >"${hook}" <<'HOOK'
+_lockCheck() { :; }
+_setLock() { :; }
+_lockCleanup() { :; }
+_initializeUpdateLog() { :; }
+_qbAcquireOperationLock() { flock -n 9; }
+_preloadScript() {
+	source "${QB_HANDOFF_ROOT}/packages/system/update/qbUpdateRepo" || return 1
+	_updateRepo() { :; }
+}
+_reloadScript() {
+	source "${QB_HANDOFF_ROOT}/packages/system/update/qbUpdateRepo" || return 1
+	source "${QB_HANDOFF_ROOT}/packages/system/update/qbUpdateService" || return 1
+	source "${QB_HANDOFF_ROOT}/packages/system/update/qbUpdateDashboard" || return 1
+}
+HOOK
+	if ! awk '
+		/^[[:space:]]*#[[:space:]]*MAIN PROCESS[[:space:]]*$/ {
+			print
+			print "source \"${QB_HANDOFF_HOOK}\""
+			found = 1
+			next
+		}
+		/^[[:space:]]*_parseUpdateArgs "\$@" \|\| exit \$\?/ {
+			print
+			print "if [[ ${QB_HANDOFF_FULL:-0} == 1 ]]; then core=0; fi"
+			next
+		}
+		{ print }
+		END { if (!found) exit 1 }
+	' "${target_updater}" >"${wrapper}"; then
+		_warning "Target updater has no recognized entry point; running it directly"
+		rm -rf -- "${update_handoff_tmp}"
+		update_handoff_tmp=""
+		handoff_args=()
+		[[ ${core} -eq 1 ]] && handoff_args+=(--only-core)
+		bash "${target_updater}" "${handoff_args[@]}" || status=$?
+		legacy_handoff=1
+		return "${status}"
+	fi
+	_info "Running the target updater with legacy checkout and lock compatibility"
+	if grep -qF -- '--from-checkout)' "${target_updater}"; then
+		QB_HANDOFF_HOOK="${hook}" QB_HANDOFF_ROOT="${local_prefix%/}" QB_HANDOFF_FULL="$((1 - core))" \
+			QUICKBOX_UPDATE_CORE_LOCK_INHERITED="${handoff_core_lock}" \
+			QB_UPDATE_LIB_DIR="${local_prefix}packages/system/update" \
+			bash "${wrapper}" --from-checkout || status=$?
+	else
+		handoff_args=()
+		[[ ${core} -eq 1 ]] && handoff_args+=(--only-core)
+		QB_HANDOFF_HOOK="${hook}" QB_HANDOFF_ROOT="${local_prefix%/}" \
+			bash "${wrapper}" "${handoff_args[@]}" || status=$?
+	fi
+	rm -rf -- "${update_handoff_tmp}"
+	update_handoff_tmp=""
+	legacy_handoff=1
+	return "${status}"
 }
 
 function _fin() {
@@ -623,6 +738,14 @@ local_setup_dashboard=${local_prefix}setup/dashboard/
 # MAIN PROCESS
 ################################################################################
 _parseUpdateArgs "$@" || exit $?
+if [[ ${QUICKBOX_UPDATE_HANDOFF:-} == 1 && ${from_checkout} -ne 1 ]]; then
+	printf 'Update handoff requires --from-checkout\n' >&2
+	exit 2
+fi
+if [[ ${from_checkout} -eq 1 && ${core} -eq 0 && ${QUICKBOX_UPDATE_HANDOFF:-} != 1 ]]; then
+	printf 'Full checkout update requires a handoff\n' >&2
+	exit 2
+fi
 # The service stage is sourced into this shell, so the mode travels as an
 # exported flag rather than an argument the caller has to thread through.
 QB_UPDATE_ONLY_CORE=${core}
@@ -635,26 +758,38 @@ update_lock_status=$?
 _qbAcquireOperationLock
 operation_lock_status=$?
 [[ ${operation_lock_status} -eq 0 ]] || exit "${operation_lock_status}"
-_lockCheck
-_setLock || exit 1
+if [[ ${QUICKBOX_UPDATE_HANDOFF:-} != 1 ]]; then
+	_lockCheck
+	_setLock || exit 1
+fi
 trap _updateCleanup EXIT
 # Keep the previous output available until this invocation owns both locks;
 # _initializeUpdateLog then publishes the new epoch before truncating.
-_initializeUpdateLog || exit 1
+if [[ ${QUICKBOX_UPDATE_HANDOFF:-} != 1 ]]; then
+	_initializeUpdateLog || exit 1
+	_pruneBackups
+fi
 # The pre-update commit is available to box revert.
-_pruneBackups
 if [[ ${from_checkout} -eq 0 ]]; then
 	_updateStep "repository state" _saveRepoState
 fi
-if [[ $core == 0 ]]; then
+if [[ $core == 0 && ${from_checkout} -eq 1 ]]; then
 	_updateStep "system packages" _installSystemUpdates
 fi
 _preloadScript || _updateAbort "preload update scripts"
 if [[ ${from_checkout} -eq 0 ]]; then
 	_updateStep "repository" _updateRepo
-else
-	_info "Reinstalling from the current checkout: ${local_prefix}"
+	_updateStep "target updater" _handoffUpdate
+	_updateStep "installed branch state" _commitInstalledBranch
+	if [[ ${legacy_handoff:-0} == 1 ]]; then
+		_printUpdateTiming
+		_lockCleanup
+	else
+		_fin
+	fi
+	exit 0
 fi
+_info "Reinstalling from the current checkout: ${local_prefix}"
 _updateStep "permissions" _setPerm
 _loadBackupHelper || _updateAbort "load update backup helper"
 _updateStep "update configuration backup" _backupUpdateConfig
@@ -668,4 +803,8 @@ _updateStep "dashboard" _updatedashboard
 update_config_committed=1
 _updateStep "language" _updatelanguage
 _updateStep "installed branch state" _commitInstalledBranch
-_fin
+if [[ ${QUICKBOX_UPDATE_HANDOFF:-} == 1 ]]; then
+	_printUpdateTiming
+else
+	_fin
+fi

@@ -221,5 +221,6 @@
   "BRANCH_RETRY": "Retry",
   "BRANCH_UPDATE": "Update",
   "BRANCH_SWITCH_ACTION": "Switch and update",
-  "DEV_ACCOUNT_LABEL": "Development"
+  "DEV_ACCOUNT_LABEL": "Development",
+  "BRANCH_OTHER": "Switch to another branch…"
 }

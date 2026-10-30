@@ -129,8 +129,8 @@
   "SWAP_TITLE": "Uso de Memoria SWAP",
   "SWAP_TOTAL_TXT": "Memoria SWAP",
   "SWAP_USED_TXT": "en uso {{used}}",
-  "SWITCH_DEV": "Switch to <code>development</code>",
-  "SWITCH_MASTER": "Switch to <code>master</code>",
+  "SWITCH_DEV": "Cambiar a <code>development</code>",
+  "SWITCH_MASTER": "Cambiar a <code>master</code>",
   "SABNZBD": "The free and easy binary newsreader",
   "SYNCTHING": "Herramienta de código abierto para la sincronización continua de archivos mediante BitTorrent.",
   "SYSTEM_RAM_STATUS": "Memoria RAM",
@@ -219,5 +219,6 @@
   "BRANCH_RETRY": "Retry",
   "BRANCH_UPDATE": "Update",
   "BRANCH_SWITCH_ACTION": "Switch and update",
-  "DEV_ACCOUNT_LABEL": "Development"
+  "DEV_ACCOUNT_LABEL": "Development",
+  "BRANCH_OTHER": "Cambiar a otra rama…"
 }

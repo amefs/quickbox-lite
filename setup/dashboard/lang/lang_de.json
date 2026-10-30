@@ -129,8 +129,8 @@
   "SWAP_TITLE": "Swap-Nutzung",
   "SWAP_TOTAL_TXT": "SWAP Area",
   "SWAP_USED_TXT": "belegt {{used}}",
-  "SWITCH_DEV": "Switch to <code>development</code>",
-  "SWITCH_MASTER": "Switch to <code>master</code>",
+  "SWITCH_DEV": "Zu <code>development</code> wechseln",
+  "SWITCH_MASTER": "Zu <code>master</code> wechseln",
   "SABNZBD": "The free and easy binary newsreader",
   "SYNCTHING": "Syncthing ist eine quelloffen und in Go geschriebene Dateisynchronisation mit BitTorrent.",
   "SYSTEM_RAM_STATUS": "Status deines Arbeitsspeichers",
@@ -219,5 +219,6 @@
   "BRANCH_RETRY": "Retry",
   "BRANCH_UPDATE": "Update",
   "BRANCH_SWITCH_ACTION": "Switch and update",
-  "DEV_ACCOUNT_LABEL": "Development"
+  "DEV_ACCOUNT_LABEL": "Development",
+  "BRANCH_OTHER": "Zu einem anderen Branch wechseln…"
 }

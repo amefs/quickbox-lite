@@ -301,7 +301,7 @@ PYEOF
 	# Probe backend HTTP, Socket.IO and nginx readiness. Individual probes only
 	# print when they fail or --verbose is set.
 	lap=$(_qbNowMs)
-	local health_output health_deadline=$((SECONDS + 5))
+	local health_output health_deadline=$((SECONDS + 5)) transport_retry=0
 	local -a health_args=(--expect-proxy)
 	if _qbIsVerbose; then
 		health_args+=(--verbose)
@@ -309,6 +309,13 @@ PYEOF
 	# Allow a short activation retry window for the service and nginx readiness.
 	while ! health_output=$(bash /usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck "${health_args[@]}" 2>&1); do
 		if (( SECONDS >= health_deadline )); then
+			# A timed-out local connection can consume the entire retry window.
+			# Give the service one more full probe before rolling back.
+			if [[ ${transport_retry} -eq 0 && "${health_output}" == *"failed: 000"* ]]; then
+				transport_retry=1
+				sleep 1
+				continue
+			fi
 			printf '%s\n' "${health_output}" >>"${OUTTO}"
 			printf '%s\n' "${health_output}" >&2
 			_error "Dashboard health check failed"

@@ -110,6 +110,13 @@ function _qbAcquireOperationLock() {
 		printf 'flock is required for safe updates\n' >&2
 		return 1
 	fi
+	if [[ "${QUICKBOX_UPDATE_OPERATION_LOCK_INHERITED:-}" == "${lockfile}" ]]; then
+		if flock -n 9; then
+			return 0
+		fi
+		printf 'Cannot reuse the inherited operation lock: %s\n' "${lockfile}" >&2
+		return 75
+	fi
 	if ! { exec 9>"${lockfile}"; } 2>/dev/null; then
 		printf 'Cannot open the operation lock: %s\n' "${lockfile}" >&2
 		return 1

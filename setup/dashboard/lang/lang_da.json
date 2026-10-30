@@ -129,8 +129,8 @@
   "SWAP_TITLE": "Swap Forbrug",
   "SWAP_TOTAL_TXT": "SWAP Område",
   "SWAP_USED_TXT": "brugt {{used}}",
-  "SWITCH_DEV": "Switch to <code>development</code>",
-  "SWITCH_MASTER": "Switch to <code>master</code>",
+  "SWITCH_DEV": "Skift til <code>development</code>",
+  "SWITCH_MASTER": "Skift til <code>master</code>",
   "SABNZBD": "The free and easy binary newsreader",
   "SYNCTHING": "Open Source kontinuerlig Filsynkronisering med BitTorrent",
   "SYSTEM_RAM_STATUS": "RAM Status",
@@ -218,5 +218,6 @@
   "BRANCH_RETRY": "Retry",
   "BRANCH_UPDATE": "Update",
   "BRANCH_SWITCH_ACTION": "Switch and update",
-  "DEV_ACCOUNT_LABEL": "Development"
+  "DEV_ACCOUNT_LABEL": "Development",
+  "BRANCH_OTHER": "Skift til en anden gren…"
 }

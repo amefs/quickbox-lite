@@ -73,6 +73,20 @@ function dashboardAssetUrl(asset: string, version: string): string {
     return version ? `${asset}?v=${version}` : asset;
 }
 
+function BranchSwitchMenu({ branch }: { branch: string }) {
+    return (
+        <>
+            {branch !== "development" ? (
+                <li><a href="#branchSwitch" data-toggle="modal" data-branch-mode="development" dangerouslySetInnerHTML={{ __html: i18n.t("SWITCH_DEV") }}></a></li>
+            ) : null}
+            {branch !== "master" ? (
+                <li><a href="#branchSwitch" data-toggle="modal" data-branch-mode="master" dangerouslySetInnerHTML={{ __html: i18n.t("SWITCH_MASTER") }}></a></li>
+            ) : null}
+            <li><a href="#branchSwitch" data-toggle="modal" data-branch-mode="other">{i18n.t("BRANCH_OTHER")}</a></li>
+        </>
+    );
+}
+
 export function DashboardPage({ basePath, socketUpgrade = true, locale, menuState, ssrFragments, assetVersions = { css: "", js: "" } }: DashboardPageProps) {
     const config = dashboardConfig();
     const accountLabel = dashboardAccountLabel(config.username, process.env.QUICKBOX_DEV_SERVER === "1", i18n.t("DEV_ACCOUNT_LABEL"));
@@ -217,7 +231,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                                                 <span className="caret"></span>
                                             </button>
                                             <ul className="dropdown-menu pull-right">
-                                                <li><a href="#branchSwitch" data-toggle="modal">{i18n.t("BRANCH_SWITCH")}</a></li>
+                                                <BranchSwitchMenu branch={config.branch} />
                                                 {config.hasExternalAuth ? (
                                                     <li>
                                                         <a href={`/logout?url=${encodeURIComponent(config.ssoLogoutUrl || "/")}`}>
@@ -418,8 +432,9 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                             <div className="modal-header"><h4 className="modal-title" id="branchSwitchTitle">{i18n.t("BRANCH_SWITCH")}</h4><button type="button" className="close" data-dismiss="modal" aria-label={i18n.t("CLOSE")}>×</button></div>
                             <div className="modal-body">
                                 <div className="branch-current"><div className="branch-label">{i18n.t("BRANCH_CURRENT")}</div><div className="branch-value">{config.branch}{config.branchCommit ? <span className="branch-commit">{" "}{config.branchCommit.slice(0, 12)}</span> : null}</div></div>
-                                <label className="branch-label" htmlFor="branchTarget">{i18n.t("BRANCH_TARGET")}</label>
-                                <div className="branch-select"><select id="branchTarget" data-current={config.branch} data-loading={i18n.t("BRANCH_LOADING")} data-failed={i18n.t("BRANCH_LOAD_FAILED")} data-select={i18n.t("BRANCH_SELECT")} className="form-control input-sm" disabled><option>{i18n.t("BRANCH_LOADING")}</option></select></div>
+                                <div className="branch-label" id="branchTargetLabel">{i18n.t("BRANCH_TARGET")}</div>
+                                <div id="branchFixedTarget" className="branch-value" hidden></div>
+                                <div id="branchSelectContainer" className="branch-select"><select id="branchTarget" aria-labelledby="branchTargetLabel" data-current={config.branch} data-loading={i18n.t("BRANCH_LOADING")} data-failed={i18n.t("BRANCH_LOAD_FAILED")} data-select={i18n.t("BRANCH_SELECT")} className="form-control input-sm" disabled><option>{i18n.t("BRANCH_LOADING")}</option></select></div>
                                 <p id="branchError" className="text-danger" role="alert" hidden>{i18n.t("BRANCH_LIST_ERROR")} <button type="button" id="branchRetry" className="btn btn-link">{i18n.t("BRANCH_RETRY")}</button></p>
                                 <p className="branch-warning">{i18n.t("BRANCH_WARNING")}</p>
                             </div>

@@ -106,6 +106,18 @@ _updateHeartbeatLoop 1 probe terminal "$(_qbNowMs)"
     assert result.returncode == 0 and not activity.exists()
 
 
+def test_fast_stages_stop_heartbeat_without_hanging(driver):
+    path, env = driver
+    result = run_bash(
+        'source "$1"; for ((i=0; i<50; i++)); do '
+        '_updateHeartbeatStart fast "$(_qbNowMs)"; _updateHeartbeatStop; done; _updateCleanup',
+        path,
+        env=env,
+        timeout=15,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 @pytest.mark.parametrize(
     ("arguments", "expected"),
     [

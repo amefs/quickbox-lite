@@ -92,12 +92,17 @@ def run_case(stage):
         )
         (auxiliary / "qbNginxAuth").write_text("printf '    auth_basic \"fixture\";\\n'\n")
         (auxiliary / "qbWsHealthCheck").write_text("""
-if [[ "$FAIL_STAGE" == health-transient ]]; then
+if [[ "$FAIL_STAGE" == health-transient || "$FAIL_STAGE" == health-slow-transient ]]; then
     count=0
     [[ ! -f "$SANDBOX/health-attempts" ]] || read -r count <"$SANDBOX/health-attempts"
     count=$((count + 1))
     printf '%s\\n' "$count" >"$SANDBOX/health-attempts"
-    [[ "$count" -ge 3 ]]
+    if [[ "$FAIL_STAGE" == health-slow-transient && "$count" -eq 1 ]]; then
+        sleep 5
+        printf 'backend WebSocket Upgrade /socket.io failed: 000\\n' >&2
+        exit 1
+    fi
+    [[ "$FAIL_STAGE" == health-slow-transient || "$count" -ge 3 ]]
 else
     if [[ "$FAIL_STAGE" == health ]]; then
         printf 'fixture health probe: nginx HTTP 500\\n' >&2
@@ -189,7 +194,7 @@ exit "$result"
         # User content outside db/ survives the release replacement.
         assert (live / "custom/custom.css").read_text() == "user-custom"
         assert (live / "fileshare/uploaded.txt").read_text() == "user-upload"
-        if stage in ("success", "health-transient"):
+        if stage in ("success", "health-transient", "health-slow-transient"):
             assert result.returncode == 0, (result.stdout, result.stderr)
             assert (live / "ws/dist.js").read_text() == "new-runtime-v2"
             assert not (live / "db/output.log.generation").exists()
@@ -206,6 +211,8 @@ exit "$result"
             assert dashboard_backups[0].stat().st_mode & 0o777 == 0o700
             if stage == "health-transient":
                 assert (root / "health-attempts").read_text() == "3\n"
+            if stage == "health-slow-transient":
+                assert (root / "health-attempts").read_text() == "2\n"
         else:
             assert result.returncode != 0, (stage, result.stdout, result.stderr)
             assert (live / "ws/dist.js").read_text() == "old-runtime", stage
@@ -224,6 +231,7 @@ exit "$result"
                 assert "fixture health probe: nginx HTTP 500" in (live / "db/output.log").read_text()
             if stage != "npm":
                 assert "Dashboard rollback succeeded" in result.stdout, (stage, result.stdout)
+                assert "No such file or directory" not in result.stderr
         print(f"{stage}: passed")
 
 
@@ -237,6 +245,7 @@ exit "$result"
         "health",
         "theme",
         "health-transient",
+        "health-slow-transient",
         "success",
     ],
 )
