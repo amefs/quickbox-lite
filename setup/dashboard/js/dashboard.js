@@ -4,7 +4,9 @@
 
 (function () {
   let runtime = window.quickboxRuntime || {};
-  let supported = ["da", "de", "en", "es", "fr", "zh"];
+  let supported = Array.isArray(runtime.locales) && runtime.locales.length > 0
+    ? runtime.locales.slice()
+    : ["da", "de", "en", "es", "fr", "zh"];
   let aliases = { "zh-cn": "zh", "zh-hans-cn": "zh" };
 
   function normalizeLocale(value) {
@@ -17,19 +19,39 @@
   }
 
   function persistLocale(locale) {
-    localStorage.setItem("quickbox:locale", locale);
-    document.cookie = "quickbox_locale=" + encodeURIComponent(locale) + "; Path=/; SameSite=Lax";
+    try {
+      localStorage.setItem("quickbox:locale", locale);
+    } catch (error) {
+      console.warn("[ws] failed to persist locale", error);
+    }
+    let cookie = "quickbox_locale=" + encodeURIComponent(locale) + "; Path=/; SameSite=Lax";
+    if (window.location.protocol === "https:") {
+      cookie += "; Secure";
+    }
+    document.cookie = cookie;
   }
 
   let messages = (runtime && typeof runtime.messages === "object" && runtime.messages !== null) ? runtime.messages : {};
   window.quickboxApiBase = (runtime && typeof runtime.basePath === "string") ? runtime.basePath : "";
   window.quickboxLocale = normalizeLocale(runtime ? runtime.locale : undefined);
-  window.quickboxMessages = Object.assign({ enabled: "Enabled", disabled: "Disabled", refresh: "Refresh" }, messages);
+  window.quickboxMessages = Object.assign({
+    enabled: "Enabled",
+    disabled: "Disabled",
+    serviceActionPending: "Working…",
+    refresh: "Refresh",
+    systemResponse: "System Response",
+    serviceStatusUnconfirmed: "Status not confirmed",
+    serviceStatusStale: "Status may be out of date",
+    serviceStatusLastConfirmedTemplate: "Last confirmed __SERVICE_STATUS_TIME__"
+  }, messages);
   persistLocale(window.quickboxLocale);
 
   window.quickboxSetLocale = function (locale) {
     window.quickboxLocale = normalizeLocale(locale);
     persistLocale(window.quickboxLocale);
+    if (typeof window.quickboxResetWidgetState === "function") {
+      window.quickboxResetWidgetState();
+    }
     if (window.socket && window.socket.connected) {
       window.socket.emit("i18n", window.quickboxLocale);
     }
@@ -42,7 +64,10 @@
 })();
 
 (function () {
-  let socket = io(location.origin, { path: (window.quickboxApiBase || "") + "/socket.io" });
+  let socket = io(location.origin, {
+    path: (window.quickboxApiBase || "") + "/socket.io",
+    upgrade: (window.quickboxRuntime || {}).socketUpgrade !== false
+  });
   window.socket = socket;
   socket.on("connect", function () {
     socket.emit("i18n", window.quickboxLocale || "en");
@@ -65,48 +90,94 @@
     });
   }
 
-  let serviceStatusItems = [
-    { service: "authelia", id: "#appstat_authelia" },
-    { service: "resilio-sync", id: "#appstat_resilio-sync" },
-    { service: "smbd", id: "#appstat_smbd" },
-    { service: "deluged", id: "#appstat_deluged" },
-    { service: "deluge-web", id: "#appstat_deluge-web" },
-    { service: "denyhosts", id: "#appstat_denyhosts" },
-    { service: "emby-server", id: "#appstat_emby-server" },
-    { service: "fail2ban", id: "#appstat_fail2ban" },
-    { service: "filebrowser", id: "#appstat_filebrowser" },
-    { service: "filebrowser-ee", id: "#appstat_filebrowser-ee" },
-    { service: "flexget", id: "#appstat_flexget" },
-    { service: "flood", id: "#appstat_flood" },
-    { service: "jellyfin", id: "#appstat_jellyfin" },
-    { service: "irssi", id: "#appstat_irssi" },
-    { service: "netdata", id: "#appstat_netdata" },
-    { service: "nfs-server", id: "#appstat_nfs-server" },
-    { service: "tightvnc", id: "#appstat_tightvnc" },
-    { service: "openvpn", id: "#appstat_openvpn" },
-    { service: "peerbanhelper", id: "#appstat_peerbanhelper" },
-    { service: "plexmediaserver", id: "#appstat_plexmediaserver" },
-    { service: "rclone-web", id: "#appstat_rclone-web" },
-    { service: "rtorrent", id: "#appstat_rtorrent" },
-    { service: "sabnzbd", id: "#appstat_sabnzbd" },
-    { service: "syncthing", id: "#appstat_syncthing" },
-    { service: "transmission", id: "#appstat_transmission" },
-    { service: "qbittorrent", id: "#appstat_qbittorrent" },
-    { service: "qbittorrent-clientblocker", id: "#appstat_qbittorrent-clientblocker" },
-    { service: "webdav", id: "#appstat_webdav" },
-    { service: "vsftpd", id: "#appstat_vsftpd" },
-    { service: "vouch-proxy", id: "#appstat_vouch-proxy" },
-    { service: "ttyd", id: "#appstat_ttyd" },
-    { service: "x2go", id: "#appstat_x2go" },
-    { service: "znc", id: "#appstat_znc" }
-  ];
-  let lastServiceStatusResponse = {};
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
-  function ensureServiceStatusPlaceholders() {
+  var WRITE_SOURCE = { PREFETCH: 1, WS: 2 };
+  var widgetWritePriority = {};
+
+  function markWidgetWritten(selector, source) {
+    if (!selector) { return; }
+    widgetWritePriority[selector] = source;
+  }
+
+  function canWriteWidget(selector, source) {
+    return Boolean(selector) && source >= (widgetWritePriority[selector] || 0);
+  }
+
+  function resetWidgetWriteState() {
+    widgetWritePriority = {};
+  }
+
+  window.quickboxResetWidgetState = resetWidgetWriteState;
+
+  let runtime = window.quickboxRuntime || {};
+  let fallbackServiceKeys = [
+    "authelia", "resilio-sync", "smbd", "deluged", "deluge-web", "denyhosts",
+    "emby-server", "fail2ban", "filebrowser", "filebrowser-ee", "flexget", "flood",
+    "jellyfin", "irssi", "netdata", "nfs-server", "tightvnc", "openvpn",
+    "peerbanhelper", "plexmediaserver", "rclone-web", "rtorrent", "sabnzbd",
+    "syncthing", "transmission", "qbittorrent", "qbittorrent-clientblocker",
+    "webdav", "vsftpd", "vouch-proxy", "ttyd", "x2go", "znc"
+  ];
+  let serviceStatusItems = (Array.isArray(runtime.serviceKeys) && runtime.serviceKeys.length > 0
+    ? runtime.serviceKeys
+    : fallbackServiceKeys
+  ).map(function (service) {
+    return { service, id: "#appstat_" + service };
+  });
+  let lastServiceStatusResponse = {};
+  let serviceStatusNextAllowedAt = 0;
+  let serviceStatusFailureCount = 0;
+  let serviceStatusRetryTimer = null;
+  let serviceActionRequestSeq = 0;
+  let serviceActionRequests = {};
+  let pendingServiceActionByService = {};
+  let reconcileServiceControlOnReconnect = false;
+
+  function markServiceStatusesStale(service) {
+    serviceStatusItems.forEach(function (item) {
+      if (service && item.service !== service) return;
+      let $status = window.jQuery(item.id);
+      if ($status.length === 0) return;
+      let messages = window.quickboxMessages || {};
+      let unconfirmed = messages.serviceStatusUnconfirmed || "Status not confirmed";
+      let staleLabel = messages.serviceStatusStale || "Status may be out of date";
+      if ($status.find(".badge").length === 0) {
+        let $unknown = window.jQuery("<span>").attr({ title: unconfirmed, "aria-label": unconfirmed });
+        $unknown.append(window.jQuery("<span>").addClass("badge badge-service-unknown-dot badge-service-stale"));
+        $unknown.append(window.jQuery("<span>").addClass("badge badge-service-unknown-pulse badge-service-stale"));
+        $status.empty().append($unknown);
+      } else {
+        $status.find(".badge").addClass("badge-service-stale");
+        let $badge = $status.find("span[data-observed-at]").first();
+        if ($badge.length === 0) $badge = $status.children("span").first();
+        let observedAt = Number($badge.attr("data-observed-at"));
+        let title = unconfirmed;
+        if (observedAt) {
+          let time = new Date(observedAt).toLocaleString(window.quickboxLocale || undefined);
+          let template = messages.serviceStatusLastConfirmedTemplate || "Last confirmed __SERVICE_STATUS_TIME__";
+          let lastConfirmed = template.split("__SERVICE_STATUS_TIME__").join(time);
+          title = staleLabel + "; " + lastConfirmed;
+        }
+        $badge.attr("title", title).attr("aria-label", title);
+      }
+      lastServiceStatusResponse[item.service] = $status.html() || "";
+    });
+  }
+
+
+  function ensureServiceStatusPlaceholders(restoreCached) {
     serviceStatusItems.forEach(function (item) {
       let $status = window.jQuery(item.id);
       let cached = lastServiceStatusResponse[item.service];
-      if ($status.length > 0 && $status.html() === "" && cached) {
+      if ($status.length > 0 && cached && (restoreCached || $status.html() === "")) {
         $status.html(cached);
       }
     });
@@ -131,21 +202,24 @@
       ensureServiceStatusPlaceholders();
       return;
     }
-    Object.keys(response).forEach(function (service) {
-      if (response[service] !== undefined && response[service] !== "") {
-        lastServiceStatusResponse[service] = response[service];
+    let badges = response.badges && typeof response.badges === "object" ? response.badges : response;
+    Object.keys(badges).forEach(function (service) {
+      if (pendingServiceActionByService[service]) return;
+      if (badges[service] !== undefined && badges[service] !== "") {
+        lastServiceStatusResponse[service] = badges[service];
       }
     });
     serviceStatusItems.forEach(function (item) {
-      if (response[item.service] !== undefined) {
-        window.jQuery(item.id).html(response[item.service] || lastServiceStatusResponse[item.service] || "");
+      if (pendingServiceActionByService[item.service]) return;
+      if (badges[item.service] !== undefined) {
+        window.jQuery(item.id).html(badges[item.service] || lastServiceStatusResponse[item.service] || "");
       }
     });
     ensureServiceStatusPlaceholders();
   }
 
   function initializeServiceToggles() {
-    ensureServiceStatusPlaceholders();
+    ensureServiceStatusPlaceholders(true);
     window.jQuery(".toggle-en, .toggle-dis").each(function () {
       let $toggle = window.jQuery(this);
       if ($toggle.parent(".toggle-slide").length > 0 || $toggle.parent(".toggle-modern").length > 0) {
@@ -155,28 +229,82 @@
         on: $toggle.hasClass("toggle-en"),
         height: 26,
         width: 100,
-        text: $toggle.hasClass("toggle-en") ? { on: window.quickboxMessages.enabled } : { off: window.quickboxMessages.disabled }
+        click: false,
+        drag: false,
+        text: {
+          on: window.quickboxMessages.enabled,
+          off: window.quickboxMessages.disabled
+        }
       });
     });
     window.jQuery(".tooltips").tooltip();
   }
 
-  function initializePackageTable() {
+  function capturePackageTableState(task) {
     let $ = window.jQuery;
-    let currentPage = 0;
+    if (!$ || !$.fn || !$.fn.DataTable || !$.fn.DataTable.isDataTable("#dataTable1")) {
+      return;
+    }
+    let existing = $("#dataTable1").DataTable();
+    let state = {
+      page: existing.page(),
+      search: existing.search(),
+      order: existing.order(),
+      length: existing.page.len()
+    };
+    existing.destroy();
+    if (task) {
+      task._tableState = state;
+    }
+  }
+
+  function initializePackageTable(task) {
+    let $ = window.jQuery;
+    if (!$ || !$.fn || !$.fn.DataTable) {
+      return;
+    }
+    let state = (task && task._tableState) || null;
     if ($.fn.DataTable.isDataTable("#dataTable1")) {
-      currentPage = $("#dataTable1").DataTable().page();
-      $("#dataTable1").DataTable().destroy();
+      let existing = $("#dataTable1").DataTable();
+      state = state || {
+        page: existing.page(),
+        search: existing.search(),
+        order: existing.order(),
+        length: existing.page.len()
+      };
+      existing.destroy();
+    }
+    if (task) {
+      task._tableState = null;
     }
     let table = $("#dataTable1").DataTable();
     $(table.table().container()).find("input[type='search']").attr({
       id: "dataTable1-search",
       name: "dataTable1-search"
     });
-    if (currentPage > 0) {
-      table.page(currentPage).draw(false);
+    if (!state) {
+      $(".tooltips").tooltip({ container: "body" });
+      return;
     }
-    $(".tooltips").tooltip();
+    if (state.length) {
+      table.page.len(state.length);
+    }
+    if (state.search) {
+      table.search(state.search);
+    }
+    if (state.order && state.order.length > 0) {
+      table.order(state.order);
+    }
+    table.draw(false);
+    let page = state.page || 0;
+    let pageCount = table.page.info().pages;
+    if (pageCount > 0 && page > pageCount - 1) {
+      page = pageCount - 1;
+    }
+    if (page > 0) {
+      table.page(page).draw("page");
+    }
+    $(".tooltips").tooltip({ container: "body" });
   }
 
   function updateNetworkStatus(dataJSON) {
@@ -223,41 +351,92 @@
     }
   }
 
+  function renderSshOutput(el, task, nextChunk, replaced) {
+    let maxBytes = 1024 * 1024;
+    if ((task._rawContent || "").length > maxBytes) {
+      task._rawContent = task._rawContent.slice(-maxBytes);
+      replaced = true;
+    }
+    if (!window.AnsiUp) {
+      el.text(task._rawContent || "");
+      return;
+    }
+    if (replaced || !task._ansi) {
+      task._ansi = new window.AnsiUp();
+      el.html(task._ansi.ansi_to_html(task._rawContent || ""));
+      return;
+    }
+    if (nextChunk) {
+      el.append(task._ansi.ansi_to_html(nextChunk));
+    }
+  }
+
   function updateSshOutput(task, response) {
+    let container = document.getElementById("sysPre");
+    let followOutput = container && container.scrollHeight - container.scrollTop - container.clientHeight <= 24;
     let el = window.jQuery(task.id);
     if (typeof response === "object" && response !== null && "content" in response) {
       let previousEnd = task._endOffset;
-      if (previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
+      let nextChunk = "";
+      let epochChanged = response.epoch !== undefined && task._epoch !== response.epoch;
+      let replaced = epochChanged;
+      if (epochChanged || previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
         task._rawContent = response.content;
         task._endOffset = response.end;
+        replaced = true;
       } else if (response.end > previousEnd && response.content) {
         let overlap = Math.max(0, previousEnd - response.start);
-        let nextContent = overlap > 0 ? response.content.slice(overlap) : response.content;
-        if (nextContent) {
-          task._rawContent = (task._rawContent || "") + nextContent;
+        nextChunk = overlap > 0 ? response.content.slice(overlap) : response.content;
+        if (nextChunk) {
+          task._rawContent = (task._rawContent || "") + nextChunk;
         }
         task._endOffset = response.end;
       }
-      let display = task._rawContent || "";
-      if (window.AnsiUp) {
-        display = new window.AnsiUp().ansi_to_html(display);
+      if (response.epoch !== undefined) {
+        task._epoch = response.epoch;
       }
-      el.html(display);
+      renderSshOutput(el, task, nextChunk, replaced);
     } else {
       task._rawContent = "";
       task._endOffset = -1;
-      let display = response;
+      task._ansi = undefined;
       if (window.AnsiUp) {
-        display = new window.AnsiUp().ansi_to_html(display);
+        el.html(new window.AnsiUp().ansi_to_html(String(response || "")));
+      } else {
+        el.text(String(response || ""));
       }
-      el.html(display);
+    }
+    if (container && followOutput) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+
+  // The log panel is a viewer with a session, not a window onto a persistent
+  // buffer: every open starts from zero, so the cursor and the rendered DOM are
+  // wiped first. startStatusUpdates() replaces this with the live implementation
+  // once the SSH_OUTPUT task exists.
+  let resetSshOutputCursor = function () {};
+
+  // Force one polling task to run now, without reloading the document. Widgets
+  // whose content follows a client-side choice (the bandwidth page) use this so
+  // a choice swaps that widget's data and leaves the page exactly where it was.
+  // startStatusUpdates() replaces this once the task registry exists.
+  let requestTaskRefresh = function () {
+    return false;
+  };
+  window.quickboxRefreshTask = function (key) {
+    return requestTaskRefresh(key);
+  };
+
+  function resetSysResponseView() {
+    resetSshOutputCursor();
+    let output = document.getElementById("sshoutput");
+    if (output) {
+      output.textContent = "";
     }
     let container = document.getElementById("sysPre");
-    if (window.__psSysPre) {
-      window.__psSysPre.update();
-    }
     if (container) {
-      container.scrollTop = container.scrollHeight;
+      container.scrollTop = 0;
     }
   }
 
@@ -284,9 +463,19 @@
         key: "PMC",
         url: "/node/pmc",
         id: "#pmc_widget",
+        beforeHtml: capturePackageTableState,
         after: initializePackageTable,
         bootstrap: !hasSsrPackageManagement,
         time: 30000
+      },
+      {
+        // Renders nothing while no operation holds the install lock, so the
+        // banner appears and disappears on its own.
+        key: "RUNNING_TASK",
+        url: "/node/task_status",
+        id: "#running_task_widget",
+        bootstrap: true,
+        time: 5000
       },
       {
         key: "NETWORK",
@@ -304,7 +493,7 @@
         id: "#bw_tables",
         before: function (task) {
           let page = localStorage.getItem("bw_tables:page");
-          if (page && page.length === 1 && "shdmt".indexOf(page) >= 0) {
+          if (page && page.length === 1 && "hdmt".indexOf(page) >= 0) {
             task.url = task.urlTemplate.replace("{0}", page);
           }
           return true;
@@ -320,6 +509,7 @@
         id: "#sshoutput",
         time: 2000,
         _endOffset: -1,
+        _epoch: undefined,
         _requestLength: 65536,
         before: function (task) {
           if (!window.jQuery("#sysResponse").is(":visible")) {
@@ -329,6 +519,9 @@
             task.url = "/db/output.log?offset=" + task._endOffset + "&length=" + task._requestLength;
           } else {
             task.url = "/db/output.log?length=" + task._requestLength;
+          }
+          if (task._epoch !== undefined) {
+            task.url += "&epoch=" + encodeURIComponent(task._epoch);
           }
           return true;
         },
@@ -354,7 +547,17 @@
     let pendingRequests = {};
     let pendingRequestByKey = {};
     let firstRequest = true;
-    let errorCount = 0;
+    function scheduleServiceStatusRetry(baseDelay) {
+      serviceStatusFailureCount += 1;
+      let exponentialDelay = Math.min(30000, 5000 * Math.pow(2, serviceStatusFailureCount - 1));
+      let delay = Math.max(exponentialDelay, Number(baseDelay) || 0);
+      serviceStatusNextAllowedAt = Date.now() + delay + Math.floor(Math.random() * 750);
+      if (serviceStatusRetryTimer) clearTimeout(serviceStatusRetryTimer);
+      let statusTask = taskMapping.SERVICE_STATUS_ALL;
+      if (statusTask) serviceStatusRetryTimer = setTimeout(function () { queueTask(statusTask, 0); }, Math.max(0, serviceStatusNextAllowedAt - Date.now()));
+    }
+    let errorCountByKey = {};
+    let stoppedKeys = {};
     let bootstrapDispatched = false;
     let requestSeq = 0;
     let pendingRequestTimeoutMs = 15000;
@@ -370,6 +573,34 @@
         sshOutputTask = task;
       }
     });
+
+    resetSshOutputCursor = function () {
+      if (!sshOutputTask) {
+        return;
+      }
+      sshOutputTask._rawContent = "";
+      sshOutputTask._endOffset = -1;
+      sshOutputTask._epoch = undefined;
+      sshOutputTask._ansi = undefined;
+    };
+
+    requestTaskRefresh = function (key) {
+      let task = taskMapping[key];
+      if (!task) {
+        return false;
+      }
+      if (key === "SERVICE_STATUS_ALL" && Date.now() < serviceStatusNextAllowedAt) return false;
+      // Drop a request already in flight for this key: the answer it brings was
+      // derived from the previous choice, so waiting for it would repaint the
+      // widget with the old data and leave the new one pending a whole interval.
+      let pendingRequestId = pendingRequestByKey[task.key];
+      if (pendingRequestId) {
+        clearPendingRequestById(pendingRequestId);
+      }
+      task._lastHtml = null;
+      queueTask(task, 0);
+      return true;
+    };
 
     function clearPendingRequestById(requestId) {
       let pending = pendingRequests[requestId];
@@ -393,6 +624,15 @@
 
     function queueTask(task, delay) {
       setTimeout(function () {
+        if (stoppedKeys[task.key]) {
+          return;
+        }
+        if (!socket.connected) {
+          return;
+        }
+        if (task.key === "SERVICE_STATUS_ALL" && Date.now() < serviceStatusNextAllowedAt) {
+          return;
+        }
         let request = Object.assign({}, task);
         if (request.before && typeof request.before === "function" && request.before(request) === false) {
           return;
@@ -410,7 +650,10 @@
             console.warn("[ws] request timed out: " + request.requestId);
             clearPendingRequestById(request.requestId);
             if (socket.connected) {
-              queueTask(task, 0);
+              if (task.key === "SERVICE_STATUS_ALL") {
+                markServiceStatusesStale();
+                scheduleServiceStatusRetry();
+              } else queueTask(task, 0);
             }
           }
         }, pendingRequestTimeoutMs);
@@ -441,6 +684,9 @@
 
     socket.on("message", function (response) {
       let pending = response.requestId ? pendingRequests[response.requestId] : undefined;
+      if (response.requestId && !pending) {
+        return;
+      }
       let request = pending ? pending.request : undefined;
       let task = pending ? pending.task : taskMapping[response.key];
       if (response.requestId) {
@@ -451,12 +697,41 @@
           console.warn("[ws] task config not found,", response);
           return;
         }
+        if (errorCountByKey[task.key]) {
+          errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
+        }
         if (task.override && typeof task.override === "function") {
           task.override.call(task, response.response, response, request);
+          if (task.key === "SERVICE_STATUS_ALL") {
+            let health = response.response && response.response.health;
+            if (health === "unavailable") {
+              markServiceStatusesStale();
+              scheduleServiceStatusRetry(Math.max(5000, Number(response.response.retryAfterMs) || 0));
+            } else {
+              serviceStatusFailureCount = 0;
+              serviceStatusNextAllowedAt = Date.now() + 5000;
+              if (serviceStatusRetryTimer) clearTimeout(serviceStatusRetryTimer);
+              serviceStatusRetryTimer = setTimeout(function () { queueTask(task, 0); }, 5000);
+            }
+          }
           return;
         }
         if (task.id !== undefined) {
+          if (!canWriteWidget(task.id, WRITE_SOURCE.WS)) {
+            return;
+          }
+          if (task.key === "SERVICE_CONTROL" && Object.keys(pendingServiceActionByService).length > 0) {
+            return;
+          }
+          if (task._lastHtml === response.response) {
+            return;
+          }
+          task._lastHtml = response.response;
+          if (task.beforeHtml && typeof task.beforeHtml === "function") {
+            task.beforeHtml(task);
+          }
           window.jQuery(task.id).html(response.response);
+          markWidgetWritten(task.id, WRITE_SOURCE.WS);
           if (task.after && typeof task.after === "function") {
             task.after(task);
           }
@@ -464,18 +739,31 @@
           console.warn("[ws] DOM id not found, status won't update,", response);
         }
       } else {
-        errorCount += 1;
+        let failedKey = (task && task.key) || response.key || "unknown";
+        errorCountByKey[failedKey] = (errorCountByKey[failedKey] || 0) + 1;
         console.error("[ws] request failed,", response);
-      }
-      if (errorCount > 256) {
-        console.warn("[ws] too many errors, stop status update");
-        socket.close();
+        if (failedKey === "SERVICE_STATUS_ALL") {
+          markServiceStatusesStale();
+          scheduleServiceStatusRetry();
+        } else if (errorCountByKey[failedKey] > 32 && !stoppedKeys[failedKey]) {
+          stoppedKeys[failedKey] = true;
+          console.warn("[ws] stopping updates for " + failedKey);
+          if (window.jQuery && window.jQuery.gritter) {
+            window.jQuery.gritter.add({
+              title: "QuickBox",
+              text: "Stopped status updates for " + failedKey
+            });
+          }
+        }
       }
     });
 
     socket.on("connect", function () {
       clearAllPendingRequests("socket reconnected");
       bootstrapDispatched = false;
+      serviceStatusNextAllowedAt = 0;
+      serviceStatusFailureCount = 0;
+      if (serviceStatusRetryTimer) clearTimeout(serviceStatusRetryTimer);
       dispatchBootstrapTasks();
       if (sshOutputTask && window.jQuery("#sysResponse").is(":visible")) {
         queueTask(sshOutputTask, 0);
@@ -515,36 +803,154 @@
   }
 
   function showAlert(message) {
-    if (window.bootbox && typeof window.bootbox.alert === "function") {
-      window.bootbox.alert({
-        message,
-        backdrop: true,
-        size: "large"
-      });
+    let $ = window.jQuery;
+    if (!$ || typeof $.fn.modal !== "function") {
+      window.alert(message);
       return;
     }
-    window.alert(message);
+    let modalId = "quickbox-alert-modal";
+    let $modal = $("#" + modalId);
+    let title = (window.quickboxMessages && window.quickboxMessages.systemResponse) || "System Response";
+    if ($modal.length === 0) {
+      $modal = $(
+        "<div class='modal fade' id='" + modalId + "' tabindex='-1' role='dialog' aria-modal='true' aria-labelledby='quickbox-alert-title'>" +
+          "<div class='modal-dialog'>" +
+            "<div class='modal-content'>" +
+              "<div class='modal-header'>" +
+                "<h4 class='modal-title' id='quickbox-alert-title'>" + escapeHtml(title) + "</h4>" +
+                "<button type='button' class='quickbox-modal-close' data-dismiss='modal' aria-label='Close'>" +
+                  "<span aria-hidden='true'>&times;</span>" +
+                "</button>" +
+              "</div>" +
+              "<div class='modal-body'></div>" +
+              "<div class='modal-footer'>" +
+                "<button type='button' class='btn btn-primary' data-dismiss='modal'>OK</button>" +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+        "</div>"
+      );
+      $("body").append($modal);
+    }
+    $modal.find(".modal-title").text(title);
+    $modal.find(".modal-body").html(message);
+    $modal.modal("show");
   }
+
+  function serviceActionRow(service) {
+    return window.jQuery("#service_control_widget [data-service]")
+      .filter(function () { return this.dataset.service === service; })
+      .first()
+      .closest("tr");
+  }
+
+  function setServiceActionPending(service, pending) {
+    let $row = serviceActionRow(service);
+    if ($row.length === 0) return;
+    $row.toggleClass("service-action-pending", pending).attr("aria-busy", pending ? "true" : "false");
+    $row.find("button[data-click-handler='serviceUpdate']").prop("disabled", pending);
+    $row.find(".toggle-en, .toggle-dis").toggleClass("disabled", pending);
+  }
+
+  function updateServiceToggle(service, enabled) {
+    let $toggle = serviceActionRow(service).find(".toggle-en, .toggle-dis").first();
+    if ($toggle.length === 0) return;
+    if (typeof enabled !== "boolean") enabled = $toggle.hasClass("toggle-en");
+    $toggle.removeClass("toggle-en toggle-dis").addClass(enabled ? "toggle-en" : "toggle-dis");
+    $toggle.attr("data-service-action", enabled ? "disable" : "enable");
+    if ($toggle.data("toggles")) {
+      $toggle.toggles(enabled);
+    }
+    $toggle.find(".toggle-on").text(window.quickboxMessages.enabled);
+    $toggle.find(".toggle-off").text(window.quickboxMessages.disabled);
+  }
+
+  function setServiceTogglePending(service) {
+    let $toggle = serviceActionRow(service).find(".toggle-en, .toggle-dis").first();
+    if ($toggle.length === 0) return;
+    let pendingText = window.quickboxMessages.serviceActionPending || "Working…";
+    $toggle.find(".toggle-on, .toggle-off").text(pendingText);
+  }
+
+  socket.on("service-action-result", function (response) {
+    if (!response || typeof response.requestId !== "string") return;
+    let request = serviceActionRequests[response.requestId];
+    if (!request || request.service !== response.service) return;
+    if (response.phase === "action-complete") {
+      request.actionComplete = true;
+      markServiceStatusesStale(request.service);
+      if (response.success === false) {
+        request.failureShown = true;
+        let message = escapeHtml(response.message || "Service action failed");
+        if (response.failedOperation) message += "<br><code>systemctl " + escapeHtml(response.failedOperation) + "</code>";
+        let output = response.stderr || response.stdout || "";
+        if (output) {
+          output = window.AnsiUp ? new window.AnsiUp().ansi_to_html(output) : escapeHtml(output);
+          message += "<hr><div class='exec-output' style='display: inline-grid'>" + output + "</div>";
+        }
+        showAlert(message);
+      }
+      return;
+    }
+    delete serviceActionRequests[response.requestId];
+    if (pendingServiceActionByService[request.service] === response.requestId) {
+      delete pendingServiceActionByService[request.service];
+      setServiceActionPending(request.service, false);
+    }
+    if (response.status) updateServiceStatus(response.status);
+    updateServiceToggle(request.service, response.enabled);
+    if (response.success === false && !request.failureShown) {
+      let message = escapeHtml(response.message || "Service action failed");
+      if (response.failedOperation) message += "<br><code>systemctl " + escapeHtml(response.failedOperation) + "</code>";
+      let output = response.stderr || response.stdout || "";
+      if (output) {
+        output = window.AnsiUp ? new window.AnsiUp().ansi_to_html(output) : escapeHtml(output);
+        message += "<hr><div class='exec-output' style='display: inline-grid'>" + output + "</div>";
+      }
+      showAlert(message);
+    }
+    if (response.statusError) {
+      showAlert("The service action finished, but its current status could not be confirmed.");
+    }
+    requestTaskRefresh("SERVICE_CONTROL");
+  });
+
+  socket.on("disconnect", function () {
+    let pendingServices = Object.keys(pendingServiceActionByService);
+    if (pendingServices.length > 0) reconcileServiceControlOnReconnect = true;
+    pendingServices.forEach(function (service) {
+      let requestId = pendingServiceActionByService[service];
+      delete pendingServiceActionByService[service];
+      if (requestId) delete serviceActionRequests[requestId];
+      setServiceActionPending(service, false);
+      updateServiceToggle(service);
+    });
+  });
+
+  socket.on("connect", function () {
+    if (!reconcileServiceControlOnReconnect) return;
+    reconcileServiceControlOnReconnect = false;
+    requestTaskRefresh("SERVICE_CONTROL");
+  });
 
   socket.on("exec", function (response) {
     if (response && response.success === false) {
-      let message = response.message || "";
+      let message = escapeHtml(response.message || "");
       let output = response.stdout || response.stderr || "";
-      output = output.replace(/\\u001b[()][B0UK]/g, "");
       if (window.AnsiUp) {
         output = new window.AnsiUp().ansi_to_html(output);
+      } else {
+        output = escapeHtml(output);
       }
-      message = message + "<br><code>" + response.cmd + "</code>";
+      message = message + "<br><code>" + escapeHtml(response.cmd || "") + "</code>";
       if (output) {
         message += "<hr><div class='exec-output' style='display: inline-grid'>" + output + "</div>";
       }
       showAlert(message);
       return;
     }
-    if (response && response.cmd && (response.cmd.indexOf("systemctl") === 0 || response.cmd.indexOf("box:lang") === 0)) {
-      setTimeout(function () {
-        location.reload();
-      }, 100);
+    if (response && response.cmd && response.cmd.indexOf("box:lang") === 0) {
+      location.reload();
     }
   });
 
@@ -554,24 +960,6 @@
       return;
     }
     socket.emit("exec", command);
-  }
-
-  function checkParameters(params) {
-    if (!params || typeof params !== "object") {
-      return true;
-    }
-    let missing = "";
-    Object.keys(params).forEach(function (key) {
-      if (!params[key]) {
-        missing += "'" + key + "', ";
-      }
-    });
-    missing = missing.replace(/, $/, "");
-    if (missing) {
-      showAlert("Parameter: " + missing + " required but not found");
-      return false;
-    }
-    return true;
   }
 
   function closestDatasetTarget(initialTarget, datasetKey) {
@@ -584,10 +972,7 @@
 
   function packageHandler(template) {
     return function (event) {
-      if (!checkParameters({ event })) {
-        return;
-      }
-      let target = event.target;
+      let target = closestDatasetTarget(event.target, "package");
       if (!target || !target.dataset) {
         return;
       }
@@ -596,24 +981,28 @@
   }
 
   function serviceUpdateHandler(event) {
-    if (!checkParameters({ event })) {
-      return;
-    }
     let target = closestDatasetTarget(event.target, "service");
     if (!target || !target.dataset) {
       return;
     }
     let service = target.dataset.service;
-    let operations = target.dataset.operation || "";
-    operations.split(",").forEach(function (operation) {
-      exec("systemctl:" + operation + ":" + service);
+    let action = target.dataset.serviceAction;
+    if (!service || !action || pendingServiceActionByService[service]) return;
+    let requestId = "SERVICE_ACTION:" + (++serviceActionRequestSeq);
+    serviceActionRequests[requestId] = { service, action };
+    pendingServiceActionByService[service] = requestId;
+    setServiceActionPending(service, true);
+    setServiceTogglePending(service);
+    markServiceStatusesStale(service);
+    socket.emit("service-action", {
+      requestId,
+      service,
+      action,
+      locale: window.quickboxLocale || "en"
     });
   }
 
   function boxHandler(event) {
-    if (!checkParameters({ event })) {
-      return;
-    }
     let target = closestDatasetTarget(event.target, "package");
     if (!target || !target.dataset) {
       return;
@@ -682,9 +1071,12 @@
       payload.bwPages.forEach(function (page) {
         let option = document.createElement("div");
         option.style.cursor = "pointer";
+        // Picking a bandwidth page changes one widget's data, nothing else:
+        // re-request that widget instead of reloading the document, so the page
+        // keeps its scroll position and the rest of the dashboard stays live.
         option.onclick = function () {
           localStorage.setItem("bw_tables:page", page.key);
-          location.reload();
+          window.quickboxRefreshTask("BANDWIDTH");
         };
         option.textContent = page.title;
         appendSmallOption(bwContainer, option);
@@ -780,60 +1172,65 @@
       renderNetworkInterfaces([]);
     });
 
-    // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready)
+    // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready).
+    function applyPrefetchHtml(selector, html) {
+      if (!canWriteWidget(selector, WRITE_SOURCE.PREFETCH)) {
+        return;
+      }
+      let $el = window.jQuery(selector);
+      if (!$el.length) {
+        return;
+      }
+      $el.html(html);
+      markWidgetWritten(selector, WRITE_SOURCE.PREFETCH);
+    }
+
     fetch(window.quickboxWidgetUrl("/node/load"), { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { window.jQuery("#cpuload").html(html); })
+      .then(function (html) { applyPrefetchHtml("#cpuload", html); })
       .catch(function () { /* WebSocket will fill in later */ });
 
     fetch(window.quickboxWidgetUrl("/node/disk_data"), { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { window.jQuery("#disk_data").html(html); })
+      .then(function (html) { applyPrefetchHtml("#disk_data", html); })
       .catch(function () { /* WebSocket will fill in later */ });
 
     fetch(window.quickboxWidgetUrl("/node/ram_stats"), { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { window.jQuery("#meterram").html(html); })
+      .then(function (html) { applyPrefetchHtml("#meterram", html); })
       .catch(function () { /* WebSocket will fill in later */ });
   }
 
-  function configureSysResponseCloseAction(mode) {
-    let closeButton = document.getElementById("sysResponseCloseAction");
-    if (!(closeButton instanceof HTMLElement)) {
+  // Two close affordances, one decision each, both taken on the spot: the footer
+  // button hides the panel and reloads the page; the header X (and Escape) only
+  // hides it. Nothing is remembered for later — there is no mode and no pending
+  // reload, so a command finishing in the background can never move the page.
+  let sysResponseClosing = false;
+
+  function isSysResponseVisible() {
+    return !!window.jQuery && window.jQuery("#sysResponse").is(":visible");
+  }
+
+  function closeSysResponsePanel(options) {
+    let reload = !!(options && options.reload);
+    if (sysResponseClosing) {
       return;
     }
-
-    let defaultHandler = closeButton.dataset.defaultClickHandler || "boxHandler";
-    let defaultRefreshAfterClose = closeButton.dataset.defaultRefreshAfterClose || "true";
-    let defaultPackage = closeButton.dataset.defaultPackage || "log";
-    let defaultOperation = closeButton.dataset.defaultOperation || "clean";
-    let defaultLabel = closeButton.dataset.labelDefault || closeButton.textContent || "";
-    let logViewLabel = closeButton.dataset.labelLogView || defaultLabel;
-
-    if (mode === "log-view") {
-      closeButton.removeAttribute("data-click-handler");
-      closeButton.removeAttribute("data-refresh-after-close");
-      closeButton.removeAttribute("data-package");
-      closeButton.removeAttribute("data-operation");
-      closeButton.textContent = logViewLabel;
-      return;
+    sysResponseClosing = true;
+    if (window.jQuery) {
+      window.jQuery("#sysResponse").modal("hide");
     }
-
-    closeButton.dataset.clickHandler = defaultHandler;
-    closeButton.dataset.refreshAfterClose = defaultRefreshAfterClose;
-    closeButton.dataset.package = defaultPackage;
-    closeButton.dataset.operation = defaultOperation;
-    closeButton.textContent = defaultLabel;
+    resetSysResponseView();
+    if (reload) {
+      location.reload();
+    }
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     let psElements = document.querySelectorAll(".ps");
     if (typeof window.PerfectScrollbar === "function") {
       psElements.forEach(function (element) {
-        let psInstance = new window.PerfectScrollbar(element);
-        if (element.id === "sysPre") {
-          window.__psSysPre = psInstance;
-        }
+        new window.PerfectScrollbar(element);
       });
     } else {
       // Fallback: keep scrollable containers usable even if Perfect Scrollbar fails to load.
@@ -844,14 +1241,100 @@
 
     let reset = document.getElementById("node-panel-reset");
     if (reset) { reset.addEventListener("click", resetPanel); }
+
+    // Every trigger opens the dialog through Bootstrap's data-toggle, so the
+    // session reset hangs off the dialog's own event instead of each entry.
+    if (window.jQuery) {
+      let $branchSwitch = window.jQuery("#branchSwitch");
+      let select = document.getElementById("branchTarget");
+      let switchButton = document.getElementById("branchSwitchGo");
+      let branchError = document.getElementById("branchError");
+      let branchRetry = document.getElementById("branchRetry");
+      let fixedTarget = document.getElementById("branchFixedTarget");
+      let selectContainer = document.getElementById("branchSelectContainer");
+      let directTarget = "";
+      let branchRequest = 0;
+      function setBranchOption(text) {
+        select.replaceChildren(new Option(text, ""));
+      }
+      function updateBranchButton() {
+        switchButton.disabled = !select.value;
+        switchButton.textContent = select.value === select.dataset.current ? switchButton.dataset.update : switchButton.dataset.switch;
+      }
+      function loadBranches() {
+        let request = ++branchRequest;
+        select.disabled = true;
+        switchButton.disabled = true;
+        branchError.hidden = true;
+        setBranchOption(select.dataset.loading);
+        fetchJson("/node/branches").then(function (data) {
+          if (request !== branchRequest) { return; }
+          if (!Array.isArray(data.branches) || data.branches.length === 0) { throw new Error("No branches"); }
+          setBranchOption(select.dataset.select);
+          data.branches.forEach(function (branch) {
+            select.add(new Option(branch, branch));
+          });
+          select.value = data.branches.includes(select.dataset.current) ? select.dataset.current : "";
+          select.disabled = false;
+          updateBranchButton();
+        }).catch(function () {
+          if (request !== branchRequest) { return; }
+          setBranchOption(select.dataset.failed);
+          branchError.hidden = false;
+        });
+      }
+      if (select && switchButton && branchError && branchRetry && fixedTarget && selectContainer) {
+        $branchSwitch.on("show.bs.modal", function (event) {
+          let trigger = event.relatedTarget;
+          let mode = trigger && trigger.dataset ? trigger.dataset.branchMode : "other";
+          directTarget = mode === "master" || mode === "development" ? mode : "";
+          branchRequest += 1;
+          branchError.hidden = true;
+          fixedTarget.hidden = !directTarget;
+          selectContainer.hidden = !!directTarget;
+          if (directTarget) {
+            fixedTarget.textContent = directTarget;
+            select.disabled = true;
+            switchButton.disabled = false;
+            switchButton.textContent = switchButton.dataset.switch;
+          } else {
+            fixedTarget.textContent = "";
+            loadBranches();
+          }
+        });
+        $branchSwitch.on("hidden.bs.modal", function () { branchRequest += 1; });
+        branchRetry.addEventListener("click", loadBranches);
+        select.addEventListener("change", updateBranchButton);
+        switchButton.addEventListener("click", function () {
+          let branch = directTarget || select.value;
+          if (!branch) { return; }
+          $branchSwitch.modal("hide");
+          window.jQuery("#sysResponse").modal("show");
+          exec("box:switch-branch:" + branch);
+        });
+      }
+      let $sysResponse = window.jQuery("#sysResponse");
+      if ($sysResponse.length) {
+        $sysResponse.on("show.bs.modal", function () {
+          sysResponseClosing = false;
+          resetSysResponseView();
+        });
+        $sysResponse.on("hidden.bs.modal", function () {
+          resetSysResponseView();
+        });
+      }
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape" && event.key !== "Esc") { return; }
+      if (!isSysResponseVisible()) { return; }
+      event.preventDefault();
+      closeSysResponsePanel({ reload: false });
+    });
+
     document.addEventListener("click", function (event) {
       let target = event.target;
       if (!(target instanceof Element)) { return; }
-      let sysResponseTrigger = target.closest("[data-target='#sysResponse']");
-      if (sysResponseTrigger instanceof HTMLElement) {
-        let mode = sysResponseTrigger.dataset.sysresponseMode === "log-view" ? "log-view" : "default";
-        configureSysResponseCloseAction(mode);
-      }
       let themeButton = target.closest("[data-click-handler='themeSelect']");
       if (themeButton && themeButton instanceof HTMLElement && themeButton.dataset.theme) {
         applyDashboardTheme(themeButton.dataset.theme);
@@ -874,11 +1357,15 @@
       let boxHandlerButton = target.closest("[data-click-handler='boxHandler']");
       if (boxHandlerButton) {
         window.boxHandler(event);
-        if (boxHandlerButton instanceof HTMLElement && boxHandlerButton.dataset.refreshAfterClose === "true") {
-          setTimeout(function () {
-            location.reload();
-          }, 150);
-        }
+      }
+      // The two closing affordances differ in exactly one bit: reload or not.
+      if (target.closest("#sysResponseCloseAction")) {
+        closeSysResponsePanel({ reload: true });
+        return;
+      }
+      if (target.closest("#sysResponseDismiss")) {
+        closeSysResponsePanel({ reload: false });
+        return;
       }
     });
     loadNodeFragments();

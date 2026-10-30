@@ -1,0 +1,152 @@
+#!/bin/bash
+if [ "${QB_NORMALIZE_BOOTSTRAP:-0}" != 1 ] && [ "${BASH_SOURCE[0]:-}" = "$0" ] && grep -q $'\r' "$0" 2>/dev/null; then sed 's/\r$//' "$0" >"${0}.$$.tmp" && mv "${0}.$$.tmp" "$0" || exit 1; QB_NORMALIZE_BOOTSTRAP=1 exec bash "$0" "$@" ; fi #
+#
+# [QuickBox Lite Repository Normalizer]
+#
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           TautCony
+# Current version:  v1.6.1
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+################################################################################
+
+# Restore the executable bit and LF line endings of a QuickBox checkout.
+#
+# The rule is intentionally simple and independent of the Git index:
+#   * a tracked file whose first line starts with "#!" is mode 0755
+#   * every other tracked file is mode 0644
+#   * tracked text files use LF
+#
+# Tracked files are repaired from Git metadata. A second, deliberately scoped
+# pass covers untracked deployable files under packages/, setup/scripts,
+# setup/lang, setup/templates, setup/themes, setup/dashboard/ws and the root
+# entry scripts. It never enters .git, node_modules or runtime state, and it is
+# safe to repeat. This is the single repair path used by the installer, the
+# updater and the one-key wrapper.
+
+function _qbNormalizeStripCR() {
+	local file="$1"
+	if command -v perl >/dev/null 2>&1; then
+		perl -pi -e 's/\r\n/\n/g' -- "${file}" >/dev/null 2>&1
+	elif command -v dos2unix >/dev/null 2>&1; then
+		dos2unix "${file}" >/dev/null 2>&1
+	elif sed --version >/dev/null 2>&1; then
+		sed -i 's/\r$//' "${file}"
+	else
+		sed -i '' 's/\r$//' "${file}"
+	fi
+}
+
+function _qbNormalizeGitTree() {
+	local root="$1"
+	local record meta path line
+
+	if ! git -C "${root}" ls-files -z >/dev/null 2>&1; then
+		return 1
+	fi
+
+	# Repair line endings first: an in-place text rewrite may replace the file
+	# and reset its mode, so the mode pass must run last.
+	while IFS= read -r -d '' record; do
+		[[ "${record}" == *$'\t'* ]] || continue
+		meta="${record%%$'\t'*}"
+		[[ "${meta}" == *'/-text'* ]] && continue
+		[[ "${meta}" == *w/crlf* || "${meta}" == *w/mixed* ]] || continue
+		path="${record#*$'\t'}"
+		[[ -L "${root}/${path}" ]] && continue
+		[[ -f "${root}/${path}" ]] || continue
+		_qbNormalizeStripCR "${root}/${path}" || return 1
+	done < <(git -C "${root}" ls-files --eol -z)
+
+	while IFS= read -r -d '' record; do
+		[[ "${record}" == *$'\t'* ]] || continue
+		meta="${record%%$'\t'*}"
+		path="${record#*$'\t'}"
+		case "${meta%% *}" in
+		100755 | 100644) ;;
+		*) continue ;;
+		esac
+		[[ -L "${root}/${path}" ]] && continue
+		[[ -f "${root}/${path}" ]] || continue
+		line=""
+		IFS= read -r -n 2 line <"${root}/${path}" 2>/dev/null || true
+		if [[ "${line}" == '#!' ]]; then
+			chmod 0755 "${root}/${path}" || return 1
+		else
+			chmod 0644 "${root}/${path}" || return 1
+		fi
+	done < <(git -C "${root}" ls-files -s -z)
+	return 0
+}
+
+# Scoped fallback for deployable paths. This is deliberately narrower than the
+# historical `find ${root} -type f` pass: it never enters .git or node_modules,
+# never touches setup/dashboard/fileshare or runtime state, and preserves file
+# names with spaces because every walk is NUL-delimited.
+function _qbNormalizeScopedTree() {
+	local root="$1"
+	local file line
+	local -a scan_paths=()
+	local candidate
+
+	for candidate in \
+		"${root}/packages" \
+		"${root}/setup/scripts" \
+		"${root}/setup/lang" \
+		"${root}/setup/templates" \
+		"${root}/setup/themes" \
+		"${root}/setup/dashboard/ws" \
+		"${root}/setup.sh" \
+		"${root}/onekey.sh"; do
+		[[ -e "${candidate}" ]] && scan_paths+=("${candidate}")
+	done
+	((${#scan_paths[@]})) || return 0
+
+	# Convert CRLF only for text files that contain a carriage return. `grep -I`
+	# skips binary files, and `-print0` preserves spaces in file names.
+	while IFS= read -r -d '' file; do
+		if grep -Iq $'\r' "${file}" 2>/dev/null; then
+			_qbNormalizeStripCR "${file}" || return 1
+		fi
+	done < <(find "${scan_paths[@]}" \
+		\( -name .git -o -name node_modules \) -prune -o \
+		-type f -print0 2>/dev/null)
+
+	# Add the executable bit only to files that start with a shebang. Data and
+	# asset files are left exactly as they are.
+	while IFS= read -r -d '' file; do
+		line=""
+		IFS= read -r -n 2 line <"${file}" 2>/dev/null || true
+		if [[ "${line}" == '#!' ]]; then
+			chmod 0755 "${file}" || return 1
+		fi
+	done < <(find "${scan_paths[@]}" \
+		\( -name .git -o -name node_modules \) -prune -o \
+		-type f -print0 2>/dev/null)
+	return 0
+}
+
+function qbNormalizeRepo() {
+	local root="${1:-/etc/QuickBox}"
+	local failed=0
+	root="${root%/}"
+	if [[ ! -d "${root}" ]]; then
+		return 1
+	fi
+	if command -v git >/dev/null 2>&1 &&
+		git -C "${root}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		_qbNormalizeGitTree "${root}" || failed=1
+	fi
+	# Always run the scoped pass as a fallback. It also repairs untracked files
+	# that Git cannot know about, without widening the old blanket find scope.
+	_qbNormalizeScopedTree "${root}" || failed=1
+	return "${failed}"
+}
+
+# Executing this file directly normalizes the path in $1 (default /etc/QuickBox).
+# Callers that strip CR before handing the script to bash set
+# QB_NORMALIZE_RUN=1, because BASH_SOURCE is empty in a `bash -c` script.
+if [[ "${BASH_SOURCE[0]:-}" == "$0" || "${QB_NORMALIZE_RUN:-0}" == 1 ]]; then
+	qbNormalizeRepo "${1:-/etc/QuickBox}" || exit 1
+fi

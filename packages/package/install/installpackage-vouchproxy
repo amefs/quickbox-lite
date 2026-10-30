@@ -2,21 +2,19 @@
 #
 # [QuickBox Lite Vouch Proxy Installer]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-#################################################################################
+################################################################################
+
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
-
-set -euo pipefail
-
 export NEWT_COLORS='
 root=,black
 window=,lightgray
@@ -39,22 +37,39 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-_execute() { ($1 >>"${OUTTO}" 2>&1); }
-_print() { printf "${_norm}%s${_norm}\n" "$@"; printf "%s\n" "$@" >>"${OUTTO}"; }
-_info() { printf "${_cyan}➜ %s${_norm}\n" "$@"; printf ">> Info: %s\n" "$@" >>"${OUTTO}"; }
-_success() { printf "${_green}✓ %s${_norm}\n" "$@"; printf ">> Success: %s\n" "$@" >>"${OUTTO}"; }
-_warning() { printf "${_tan}⚠ %s${_norm}\n" "$@"; printf ">> Warning: %s\n" "$@" >>"${OUTTO}"; }
-_error() { printf "${_red}✗ %s${_norm}\n" "$@"; printf ">> Error: %s\n" "$@" >>"${OUTTO}"; }
+function _execute() {
+	($1 >>"${OUTTO}" 2>&1)
+}
+function _print() {
+	printf "${_norm}%s${_norm}\n" "$@"
+	printf "%s\n" "$@" >>"${OUTTO}"
+}
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
 
-#################################################################################
+################################################################################
 # APP VARIABLE
-#################################################################################
+################################################################################
 APP_TITLE="Vouch Proxy"
 APP_NAME="vouchproxy"
 APP_SERVICE="vouch-proxy"
-APP_LOCK=.${APP_NAME}.lock
+APP_LOCK=".${APP_NAME}.lock"
 APP_BASEDEPS=""
-OUTTO=/srv/dashboard/db/output.log
+OUTTO="/srv/dashboard/db/output.log"
 
 OIDC_AUTH_URL=""
 OIDC_TOKEN_URL=""
@@ -70,7 +85,7 @@ EMAIL_DOMAINS=""
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
-_usage() {
+function _usage() {
   echo -e "\nQuickBox Lite ${APP_TITLE} Installer"
   echo -e "\nUsage:\n$(basename "$0") [-l logfile] --auth-url URL --token-url URL --userinfo-url URL --client-id ID --client-secret SECRET --domain DOMAIN [--oidc-user USER] [--oidc-map CSV]"
   echo -e "\nOptions:\n"
@@ -88,10 +103,16 @@ _usage() {
   echo "-h, --help                       display this help and exit"
 }
 
-_lockCheck() {
+################################################################################
+# INSTALL FUNCTIONS
+################################################################################
+function _lockCheck() {
   # install docker stack runtime through the dedicated package installer
   if [[ ! -f /install/.docker.lock ]]; then
-    bash /usr/local/bin/quickbox/package/install/installpackage-docker -l "$OUTTO"
+    if ! bash /usr/local/bin/quickbox/package/install/installpackage-docker -l "$OUTTO"; then
+      _error "Docker is required for ${APP_TITLE} and could not be installed."
+      exit 1
+    fi
   fi
 
   if [[ -f "/install/.install.lock" ]]; then
@@ -110,22 +131,38 @@ _lockCheck() {
   fi
 }
 
-_setLock() { echo "${APP_TITLE}" >/install/.install.lock; }
-_clearInstallLock() {
+function _setLock() {
+	if ! echo "${APP_TITLE}" >/install/.install.lock; then
+		_error "Cannot take the installation lock."
+		exit 1
+	fi
+	# The installation marker is cleared on exit.
+	trap '_clearInstallLock' EXIT
+}
+
+function _clearInstallLock() {
   if [[ -f /install/.install.lock ]] && [[ "$(cat /install/.install.lock)" == "${APP_TITLE}" ]]; then
     rm -f /install/.install.lock
   fi
 }
-_lockCleanup() {
+
+function _lockCleanup() {
   echo "$APP_TITLE Install Complete!" >>"${OUTTO}" 2>&1
   _clearInstallLock
 }
-_validationExit() {
+
+function _validationExit() {
   _clearInstallLock
   exit 1
 }
 
-_validateRequired() {
+function _abort() {
+  _error "$1"
+  _clearInstallLock
+  exit 1
+}
+
+function _validateRequired() {
   local admin_user
   local normalized_domain
 
@@ -202,18 +239,19 @@ _validateRequired() {
   fi
 }
 
-_installDepends() {
+function _installDepends() {
   _info "Installing ${APP_TITLE} dependencies..."
   for depend in $APP_BASEDEPS; do
-    _execute "apt-get -y --allow-unauthenticated -f install ${depend}" || { _error "Could not install ${depend}."; exit 1; }
+    _execute "apt-get -y --allow-unauthenticated -f install ${depend}" || _abort "Could not install ${depend}."
   done
   _success "${APP_TITLE} dependencies installed."
 }
 
-_installApp() {
+function _installApp() {
   _info "Preparing ${APP_TITLE} runtime..."
-  mkdir -p /opt/vouch-proxy
-  chmod 700 /opt/vouch-proxy
+  if ! mkdir -p /opt/vouch-proxy || ! chmod 700 /opt/vouch-proxy; then
+    _abort "Failed to prepare /opt/vouch-proxy."
+  fi
 
   # Build domains list from comma-separated EMAIL_DOMAINS
   local domains_yaml=""
@@ -235,7 +273,7 @@ _installApp() {
     post_logout_redirects_yaml+="    - ${OIDC_END_SESSION_ENDPOINT}"$'\n'
   fi
 
-  cat >/opt/vouch-proxy/config.yml <<EOF
+  if ! cat >/opt/vouch-proxy/config.yml <<EOF
 vouch:
   logLevel: info
   listen: 0.0.0.0
@@ -252,14 +290,20 @@ oauth:
   token_url: ${OIDC_TOKEN_URL}
   user_info_url: ${OIDC_USERINFO_URL}
 EOF
-
-  if [[ -n "$OIDC_END_SESSION_ENDPOINT" ]]; then
-    cat >>/opt/vouch-proxy/config.yml <<EOF
-  end_session_endpoint: '${OIDC_END_SESSION_ENDPOINT}'
-EOF
+  then
+    _abort "Failed to write the ${APP_TITLE} configuration."
   fi
 
-  cat >>/opt/vouch-proxy/config.yml <<EOF
+  if [[ -n "$OIDC_END_SESSION_ENDPOINT" ]]; then
+    if ! cat >>/opt/vouch-proxy/config.yml <<EOF
+  end_session_endpoint: '${OIDC_END_SESSION_ENDPOINT}'
+EOF
+    then
+      _abort "Failed to write the ${APP_TITLE} end-session endpoint."
+    fi
+  fi
+
+  if ! cat >>/opt/vouch-proxy/config.yml <<EOF
   callback_url: 'https://${LOGIN_DOMAIN}/auth'
   client_id: ${OIDC_CLIENT_ID}
   client_secret: ${OIDC_CLIENT_SECRET}
@@ -268,12 +312,19 @@ EOF
     - profile
     - email
 EOF
-  chown -R www-data:www-data /opt/vouch-proxy
-  chmod 644 /opt/vouch-proxy/config.yml
+  then
+    _abort "Failed to write the ${APP_TITLE} OIDC client settings."
+  fi
+  if ! chmod 0644 /opt/vouch-proxy/config.yml; then
+    _abort "Cannot set permissions on the ${APP_TITLE} configuration."
+  fi
+  if ! chown -R www-data:www-data /opt/vouch-proxy; then
+    _abort "Failed to set ownership on /opt/vouch-proxy."
+  fi
 
-  vouch_uid=$(id -u www-data)
-  vouch_gid=$(id -g www-data)
-  cat >/opt/vouch-proxy/docker-compose.yml <<EOF
+  vouch_uid=$(id -u www-data) || _abort "The www-data user is missing."
+  vouch_gid=$(id -g www-data) || _abort "The www-data group is missing."
+  if ! cat >/opt/vouch-proxy/docker-compose.yml <<EOF
 services:
   vouch-proxy:
     image: quay.io/vouch/vouch-proxy:latest
@@ -285,8 +336,11 @@ services:
     volumes:
       - /opt/vouch-proxy/config.yml:/config/config.yml:ro
 EOF
+  then
+    _abort "Failed to write the ${APP_TITLE} compose file."
+  fi
 
-  cat >/etc/systemd/system/${APP_SERVICE}.service <<'EOF'
+  if ! cat >/etc/systemd/system/${APP_SERVICE}.service <<'EOF'
 [Unit]
 Description=Vouch Proxy container
 After=docker.service network-online.target
@@ -302,15 +356,21 @@ ExecStop=/usr/bin/docker compose down
 [Install]
 WantedBy=multi-user.target
 EOF
+  then
+    _abort "Failed to install the ${APP_SERVICE} service unit."
+  fi
 
-  cat >/etc/nginx/apps/vouchproxy-auth.conf <<'EOF'
+  if ! cat >/etc/nginx/apps/vouchproxy-auth.conf <<'EOF'
 location = /validate {
   internal;
   proxy_pass http://127.0.0.1:9090/validate;
   proxy_pass_request_body off;
   proxy_set_header Content-Length "";
   proxy_set_header X-Original-URI $request_uri;
-  proxy_set_header Host $http_host;
+  # Vouch's domain authorization expects a hostname without a listener port.
+  # Preserve the public authority in the request/redirect paths, not this
+  # internal validation request's Host header.
+  proxy_set_header Host $host;
   proxy_set_header X-Forwarded-Proto $scheme;
   proxy_set_header X-Forwarded-Host $host;
   proxy_set_header X-Forwarded-Uri $request_uri;
@@ -348,107 +408,131 @@ location /auth {
   proxy_set_header X-Forwarded-Host $host;
 }
 EOF
+  then
+    _abort "Failed to install the ${APP_TITLE} nginx auth snippet."
+  fi
 
   local_admin_user=$(cut -d: -f1 /root/.admin.info)
-  cat >/etc/nginx/conf.d/vouch-user-map.conf <<EOF
-# Map authenticated OIDC user to the local QuickBox admin user.
+  # The user map is written in one buffer.
+  local user_map
+  user_map="# Map authenticated OIDC user to the local QuickBox admin user.
 map \$auth_resp_x_vouch_user \$qb_vouch_local_user {
-  default "";
-EOF
-
+  default \"\";
+"
   IFS=',' read -r -a oidc_users <<<"$OIDC_USER_MAP"
   for oidc_user in "${oidc_users[@]}"; do
     oidc_user="$(echo "$oidc_user" | xargs)"
     if [[ -n "$oidc_user" ]]; then
-      printf '  "%s" "%s";\n' "$oidc_user" "$local_admin_user" >>/etc/nginx/conf.d/vouch-user-map.conf
+      user_map+="  \"${oidc_user}\" \"${local_admin_user}\";
+"
     fi
   done
-  echo "}" >>/etc/nginx/conf.d/vouch-user-map.conf
+  user_map+="}
+"
+  if ! printf '%s' "${user_map}" > /etc/nginx/conf.d/vouch-user-map.conf; then
+    _abort "Failed to install the ${APP_TITLE} user map."
+  fi
 
-  chmod +x /usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate || true
-  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --migrate"
+  chmod +x /usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate || _abort "Cannot make qbAuthMigrate executable."
+  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --migrate" || _abort "Failed to migrate existing authentication configuration."
 
-  _execute "systemctl daemon-reload"
-  _execute "systemctl enable ${APP_SERVICE}"
-  _execute "systemctl restart ${APP_SERVICE}"
-  _execute "nginx -t"
-  _execute "nginx -s reload"
+  _execute "systemctl daemon-reload" || _abort "Failed to reload systemd units."
+  _execute "systemctl enable ${APP_SERVICE}" || _abort "Failed to enable ${APP_SERVICE}."
+  _execute "systemctl restart ${APP_SERVICE}" || _abort "Failed to start ${APP_SERVICE}."
+  _execute "nginx -t" || _abort "nginx configuration test failed."
+  _execute "nginx -s reload" || _abort "Failed to reload nginx."
   _success "${APP_TITLE} configured."
 }
 
-_installAppLock() {
+function _installAppLock() {
   _info "Configuring ${APP_TITLE} lock..."
-  touch /install/${APP_LOCK}
+  if ! touch /install/${APP_LOCK}; then
+    _abort "Failed to create the ${APP_TITLE} install marker."
+  fi
   _success "${APP_TITLE} lock configured."
 }
 
-if ! ARGS=$(getopt -a -o hl: -l help,log:,auth-url:,token-url:,userinfo-url:,client-id:,client-secret:,end-session-endpoint:,domain:,oidc-user:,oidc-map:,email-domains: -- "$@"); then
-  _usage
-  exit 1
-fi
+function _installInfo() {
+	_print "
+$APP_TITLE will now be installed.
 
-# shellcheck disable=SC2086
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+################################################################################
+# OPT GENERATOR
+################################################################################
+if ! ARGS=$(getopt -a -o hl: -l help,log:,auth-url:,token-url:,userinfo-url:,client-id:,client-secret:,end-session-endpoint:,domain:,oidc-user:,oidc-map:,email-domains: -- "$@"); then
+	_usage
+	exit 1
+fi
 eval set -- "${ARGS}"
 while true; do
-  case "$1" in
-    -h|--help)
-      _usage
-      exit 0
-      ;;
-    -l|--log)
-      OUTTO="$2"
-      shift
-      ;;
-    --auth-url)
-      OIDC_AUTH_URL="$2"
-      shift
-      ;;
-    --token-url)
-      OIDC_TOKEN_URL="$2"
-      shift
-      ;;
-    --userinfo-url)
-      OIDC_USERINFO_URL="$2"
-      shift
-      ;;
-    --client-id)
-      OIDC_CLIENT_ID="$2"
-      shift
-      ;;
-    --client-secret)
-      OIDC_CLIENT_SECRET="$2"
-      shift
-      ;;
-    --end-session-endpoint)
-      OIDC_END_SESSION_ENDPOINT="$2"
-      shift
-      ;;
-    --domain)
-      LOGIN_DOMAIN="$2"
-      shift
-      ;;
-    --oidc-user)
-      OIDC_USER="$2"
-      shift
-      ;;
-    --oidc-map)
-      OIDC_USER_MAP="$2"
-      shift
-      ;;
-    --email-domains)
-      EMAIL_DOMAINS="$2"
-      shift
-      ;;
-    --)
-      shift
-      break
-      ;;
-  esac
-  shift
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 0
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	--auth-url)
+		OIDC_AUTH_URL="$2"
+		shift
+		;;
+	--token-url)
+		OIDC_TOKEN_URL="$2"
+		shift
+		;;
+	--userinfo-url)
+		OIDC_USERINFO_URL="$2"
+		shift
+		;;
+	--client-id)
+		OIDC_CLIENT_ID="$2"
+		shift
+		;;
+	--client-secret)
+		OIDC_CLIENT_SECRET="$2"
+		shift
+		;;
+	--end-session-endpoint)
+		OIDC_END_SESSION_ENDPOINT="$2"
+		shift
+		;;
+	--domain)
+		LOGIN_DOMAIN="$2"
+		shift
+		;;
+	--oidc-user)
+		OIDC_USER="$2"
+		shift
+		;;
+	--oidc-map)
+		OIDC_USER_MAP="$2"
+		shift
+		;;
+	--email-domains)
+		EMAIL_DOMAINS="$2"
+		shift
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
 done
 
+################################################################################
+# MAIN PROCESS
+################################################################################
 _lockCheck
 _setLock
+_installInfo
 _validateRequired
 _installDepends
 _installApp

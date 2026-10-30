@@ -2,20 +2,20 @@
 #
 # [QuickBox Lite box Command resolver]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # shellcheck disable=SC1090,SC1091,SC2034,SC2129
-#################################################################################
-#################################################################################
+################################################################################
+
+################################################################################
 # HELP FUNCTIONS
-#################################################################################
+################################################################################
 export NEWT_COLORS='
 root=,black
 window=,lightgray
@@ -56,9 +56,57 @@ function _warning() {
 function _error() {
 	printf "${_red}✗ %s${_norm}\n" "$@"
 }
-#################################################################################
+################################################################################
 # SCRIPT FUNCTIONS
-#################################################################################
+################################################################################
+# Every package operation writes the shared Dashboard log, so it starts a new
+# log the way `box update quickbox` does: clean_log publishes a new epoch and
+# then truncates the file in place, which is what tells the Dashboard its byte
+# offset is stale. Without it the dialog shows the previous operation above
+# this one.
+#
+# The operation lock stays on descriptor 7 for the package script; contention
+# returns 75.
+function _startOperationLog() {
+	local lockfile="${QUICKBOX_OPERATION_LOCK:-/run/lock/quickbox-operation.lock}"
+	local prevApp
+	if ! { exec 7>"${lockfile}"; } 2>/dev/null; then
+		_warning "Cannot open the operation lock; continuing without it: ${lockfile}"
+		return 0
+	fi
+	if command -v flock >/dev/null 2>&1 && ! flock -n 7; then
+		exec 7>&-
+		_error "Another QuickBox operation is running; try again when it finishes"
+		return 75
+	fi
+	if [[ -f "/install/.install.lock" ]]; then
+		prevApp=$(cat /install/.install.lock 2>/dev/null || true)
+		exec 7>&-
+		_error "${prevApp:-Another operation} is running; try again when it finishes"
+		return 75
+	fi
+	if ! bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/auxiliary/clean_log"; then
+		_warning "Failed to start a new installation log"
+	fi
+	return 0
+}
+
+# Writes one dashboard db file as www-data through an atomic rename.
+function _writeDashboardDbFile() {
+	local name="$1" value="$2"
+	local dir="${QUICKBOX_DASHBOARD_DB:-/srv/dashboard/db}" target tmp
+	target="${dir}/${name}"
+	tmp=$(mktemp "${dir}/.${name}.XXXXXX") || return 1
+	if ! printf '%s\n' "${value}" >"${tmp}" ||
+		! chown www-data:www-data "${tmp}" ||
+		! chmod 0640 "${tmp}" ||
+		! mv -f "${tmp}" "${target}"; then
+		rm -f "${tmp}"
+		return 1
+	fi
+	return 0
+}
+
 function _batchInstall() {
 	applist=()
 	locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template\|lecert\|denyhosts\|fail2ban" | sort -d)
@@ -88,31 +136,37 @@ function _help() {
 	echo "                                  blank to use batch install"
 	echo "remove <appname>                  remove installed application"
 	echo "update <appname>                  upgrade installed application"
+	echo "update quickbox [--only-core] [--branch <branch>] [--verbose]"
+	echo "                                  upgrade QuickBox from the specified branch on origin"
+	echo "revert [--list] [--yes] [COMMIT]  restore and reinstall a QuickBox commit"
 	echo "lang <da|de|en|es|fr|zh>          change dashboard language"
 	echo "clean <mem|log>                   clean memory or installation log"
 	echo "fix <dpkg|interface|home>         fix your setting"
 	echo "set <interface|passwd|cdn>        change interface setting/password"
 	echo "iotest                            run IO test"
+	echo "abort                             stop the running installation or update"
 	echo "troubleshoot                      generate log for troubleshoot"
 	echo "unban <IP adress>                 remove a IP/all IP from banned list"
-	echo "enable-dev|disable-dev            enable or disable development mode"
+	echo "switch-branch <branch>            switch branch and update QuickBox"
+	echo "enable-dev|disable-dev            switch to development or master"
 	echo ""
 	echo "help                              display this help and exit"
 }
-#################################################################################
+################################################################################
 # ARGUMENT SETTING
-#################################################################################
+################################################################################
 resolver=$1
 
 if [[ $resolver == "lang" ]]; then
 	langname=$2
+	langscript=""
 	case $langname in
-	"da" | "dansk" | "danish" | "lang_da") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_da ;;
-	"de" | "deutsch" | "germany" | "lang_de") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_de ;;
-	"en" | "en-us" | "english" | "lang_en") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_en ;;
-	"es" | "spanish" | "lang_es") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_es ;;
-	"fr" | "french" | "lang_fr") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_fr ;;
-	"zh" | "zh-cn" | "chinese" | "lang_zh-cn" | "lang_zh") bash /usr/local/bin/quickbox/system/lang/langSelect-lang_zh ;;
+	"da" | "dansk" | "danish" | "lang_da") langscript="lang_da" ;;
+	"de" | "deutsch" | "germany" | "lang_de") langscript="lang_de" ;;
+	"en" | "en-us" | "english" | "lang_en") langscript="lang_en" ;;
+	"es" | "spanish" | "lang_es") langscript="lang_es" ;;
+	"fr" | "french" | "lang_fr") langscript="lang_fr" ;;
+	"zh" | "zh-cn" | "chinese" | "lang_zh-cn" | "lang_zh") langscript="lang_zh" ;;
 	*)
 	echo -e "\nQuickBox Lite Cli Tools"
 	echo -e "\nUsage: \n$(basename "$0") lang LANGUAGE"
@@ -126,6 +180,8 @@ if [[ $resolver == "lang" ]]; then
 	exit 1
 	;;
 	esac
+	bash /usr/local/bin/quickbox/system/lang/"langSelect-${langscript}"
+	exit $?
 fi
 
 if [[ $resolver == "install" ]]; then
@@ -134,10 +190,14 @@ if [[ $resolver == "install" ]]; then
 	if [[ -z $extraarg ]]; then
 		_batchInstall
 	elif [[ $appname == "bbr" || $appname == "BBR" ]]; then
+		_startOperationLog || exit $?
 		bash /usr/local/bin/quickbox/system/auxiliary/install-BBR.sh "${*:3}"
+		exit $?
 	else
 		if [[ -f /usr/local/bin/quickbox/package/install/installpackage-"${appname}" ]]; then
+			_startOperationLog || exit $?
 			bash /usr/local/bin/quickbox/package/install/installpackage-"${appname}" ${*:3}
+			exit $?
 		else
 			locks=$(find /usr/local/bin/quickbox/package/install -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
 			_error "${appname} Installer not exist"
@@ -158,7 +218,9 @@ if [[ $resolver == "remove" ]]; then
 		_error "Nothing will be removed"
 	else
 		if [[ -f /usr/local/bin/quickbox/package/remove/removepackage-"${appname}" ]]; then
+			_startOperationLog || exit $?
 			bash /usr/local/bin/quickbox/package/remove/removepackage-"${appname}" ${*:3}
+			exit $?
 		else
 			locks=$(find /usr/local/bin/quickbox/package/remove -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
 			_error "${appname} Remover not exist"
@@ -176,10 +238,16 @@ if [[ $resolver == "update" ]]; then
 	appname=$2
 	extraarg=${*:2}
 	if [[ $appname == "quickbox" ]]; then
-		bash /usr/local/bin/quickbox/system/qbUpdate "${*:3}"
+		bash /usr/local/bin/quickbox/system/qbUpdate "${@:3}"
+		exit $?
+	elif [[ $appname == "revert" ]]; then
+		bash /usr/local/bin/quickbox/system/update/qbUpdateRevert "${@:3}"
+		exit $?
 	elif [[ -n $extraarg ]]; then
 		if [[ -f /usr/local/bin/quickbox/package/update/updatepackage-"${appname}" ]]; then
+			_startOperationLog || exit $?
 			bash /usr/local/bin/quickbox/package/update/updatepackage-"${appname}" ${*:3}
+			exit $?
 		else
 			locks=$(find /usr/local/bin/quickbox/package/update -type f -printf "%f\n" | cut -d "-" -f 2-3 | grep -v "Template" | sort -d)
 			_error "${appname} Updater not exist"
@@ -218,6 +286,11 @@ if [[ $resolver == "clean" ]]; then
 	fi
 fi
 
+if [[ $resolver == "abort" ]]; then
+	bash /usr/local/bin/quickbox/system/auxiliary/qbAbortTask
+	exit $?
+fi
+
 if [[ $resolver == "troubleshoot" ]]; then
 	bash /usr/local/bin/quickbox/system/auxiliary/logCollector.sh
 fi
@@ -226,9 +299,11 @@ if [[ $resolver == "set" ]]; then
 	command=$2
 	case $command in
 	"interface")
-		echo "$3" >/srv/dashboard/db/interface.txt
+		if ! _writeDashboardDbFile interface.txt "$3"; then
+			_error "Failed to update the dashboard interface"
+			exit 1
+		fi
 		bash /usr/local/bin/quickbox/system/auxiliary/set_interface
-		chown -R www-data: /srv/dashboard
 		;;
 	"passwd" | "password")
 		bash /usr/local/bin/quickbox/system/users/changePass -p ${*:3}
@@ -284,24 +359,23 @@ if [[ $resolver == "unban" ]]; then
 	fi
 fi
 
-if [[ $resolver == "enable-dev" ]]; then
-	if [[ -f /install/.developer.lock ]]; then
-		_warning "Already in development mode!"
-	else
-		_success "Switching to development mode"
-		touch /install/.developer.lock
-		/usr/local/bin/quickbox/system/box update quickbox
+if [[ $resolver == "enable-dev" || $resolver == "disable-dev" || $resolver == "switch-branch" ]]; then
+	case "$resolver" in
+		enable-dev) branch=development ;;
+		disable-dev) branch=master ;;
+		*) branch=${2:-} ;;
+	esac
+	if [[ -z ${branch} || ${branch} == -* ]] || ! git check-ref-format --branch "${branch}" >/dev/null 2>&1; then
+		_error "Invalid branch name"
+		exit 2
 	fi
+	/usr/local/bin/quickbox/system/box update quickbox --only-core --branch "${branch}"
+	exit $?
 fi
 
-if [[ $resolver == "disable-dev" ]]; then
-	if [[ -f /install/.developer.lock ]]; then
-		_success "Switching to master branch"
-		rm -f /install/.developer.lock
-		/usr/local/bin/quickbox/system/box update quickbox
-	else
-		_warning "Development mode is not activated"
-	fi
+if [[ $resolver == "revert" ]]; then
+	bash /usr/local/bin/quickbox/system/update/qbUpdateRevert "${@:2}"
+	exit $?
 fi
 
 if [[ $resolver == "help" ]]; then
@@ -309,11 +383,11 @@ if [[ $resolver == "help" ]]; then
 	exit 0
 fi
 
-#################################################################################
+################################################################################
 # ERROR HANDLER
-#################################################################################
+################################################################################
 
-if [[ ! $resolver =~ ("lang"|"install"|"remove"|"update"|"clean"|"troubleshoot"|"set"|"fix"|"iotest"|"disktest"|"unban"|"enable-dev"|"disable-dev"|"help") ]]; then
+if [[ ! $resolver =~ ("lang"|"install"|"remove"|"update"|"revert"|"abort"|"clean"|"troubleshoot"|"set"|"fix"|"iotest"|"disktest"|"unban"|"enable-dev"|"disable-dev"|"switch-branch"|"help") ]]; then
 	_error "Command not exist!"
 	_help
 	exit 1

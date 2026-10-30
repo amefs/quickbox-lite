@@ -2,113 +2,597 @@
 #
 # [QuickBox Lite box System Updater]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+# QB_UPDATE_HANDOFF_PROTOCOL=1
 #
 # shellcheck disable=SC1090,SC1091,SC2034,SC2129
-#################################################################################
-#################################################################################
+################################################################################
+
+################################################################################
 # CORE VARIABLE
-#################################################################################
+################################################################################
 CODENAME=$(lsb_release -cs)
 DISTRO=$(lsb_release -is)
 
-#################################################################################
+################################################################################
 # HELP FUNCTIONS
-#################################################################################
-_norm=$(tput sgr0)
-_red=$(tput setaf 1)
-_green=$(tput setaf 2)
-_tan=$(tput setaf 3)
-_cyan=$(tput setaf 6)
+################################################################################
+_norm=$(tput sgr0 2>/dev/null || true)
+_red=$(tput setaf 1 2>/dev/null || true)
+_green=$(tput setaf 2 2>/dev/null || true)
+_tan=$(tput setaf 3 2>/dev/null || true)
+_cyan=$(tput setaf 6 2>/dev/null || true)
+_dim=$(tput dim 2>/dev/null || true)
 OUTTO=/srv/dashboard/db/output.log
-if [[ $1 == "--only-core" ]]; then
-	core=1
-else
-	core=0
-fi
+update_backup_dir=""
+update_backup_ready=0
+update_backup_available=0
+update_config_committed=0
+update_service_started=0
+core=0
+from_checkout=0
+update_target_branch=""
+# Timing state for the end-of-run report. Indexed arrays keep the shared
+# helpers usable on the bash shipped by every supported release.
+update_started_ms=0
+update_stage_labels=()
+update_stage_ms=()
+update_heartbeat_pid=""
+update_activity_file=""
 
-function _execute() {
-	($1 >>"${OUTTO}" 2>&1)
+# The service and dashboard stages live one directory below this driver.
+_qb_lib_dir="${QB_UPDATE_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/update}"
+if [[ ! -f "${_qb_lib_dir}/qbUpdateLib" ]]; then
+	printf '✗ Update helpers are missing: %s\n' "${_qb_lib_dir}" >&2
+	exit 1
+fi
+# shellcheck source=packages/system/update/qbUpdateLib
+# shellcheck disable=SC1090,SC1091
+source "${_qb_lib_dir}/qbUpdateLib"
+source "${_qb_lib_dir}/qbUpdateRecovery"
+
+function _parseUpdateArgs() {
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+		--only-core) core=1 ;;
+		--from-checkout) from_checkout=1; core=1 ;;
+		--handoff-full) core=0 ;;
+		--branch)
+			[[ $# -ge 2 ]] || { printf "Missing branch name\n" >&2; return 2; }
+			update_target_branch=$2; shift ;;
+		--verbose | -v)
+			# The service and dashboard stages are sourced into this shell, so
+			# one exported switch reaches every sub-step and helper.
+			QB_UPDATE_VERBOSE=1
+			export QB_UPDATE_VERBOSE
+			;;
+		*)
+			printf 'Unknown update option: %s\n' "$1" >&2
+			printf 'Available options: --only-core, --from-checkout, --branch BRANCH, --verbose\n' >&2
+			return 2
+			;;
+		esac
+		shift
+	done
 }
-function _print() {
-	printf "${_norm}%s${_norm}\n" "$@"
-	printf "%s\n" "$@" >>"${OUTTO}"
+
+function _updateRefused() {
+	# Refusal diagnostics go to stderr, never the shared output log.
+	printf '%s\n' "$*" >&2
 }
-function _info() {
-	printf "${_cyan}➜ %s${_norm}\n" "$@"
-	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
-}
-function _success() {
-	printf "${_green}✓ %s${_norm}\n" "$@"
-	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
-}
-function _warning() {
-	printf "${_tan}⚠ %s${_norm}\n" "$@"
-	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
-}
-function _error() {
-	printf "${_red}✗ %s${_norm}\n" "$@"
-	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
-}
-#################################################################################
+################################################################################
 # SCRIPT FUNCTIONS
-#################################################################################
+################################################################################
 function _lockCheck() {
 	if [[ -f "/install/.install.lock" ]]; then
 		prevApp=$(cat /install/.install.lock)
-		_info "$prevApp update is running."
-		_info "If you believe this to be in error, please manually remove the /install/.install.lock"
-		_error "Exiting..."
+		_updateRefused "$prevApp update is running; remove /install/.install.lock only if it is stale."
 		exit 1
 	fi
 }
 function _setLock() {
-	echo "QuickBox" >/install/.install.lock
+	echo "QuickBox" >/install/.install.lock || return 1
+	update_owns_install_lock=1
+}
+function _releaseUpdateInstallLock() {
+	if [[ "${update_owns_install_lock:-0}" == 1 ]]; then
+		update_owns_install_lock=0
+		rm -f /install/.install.lock
+	fi
 }
 function _lockCleanup() {
-	rm -f /install/.install.lock
+	_releaseUpdateInstallLock
 	_success "QuickBox update finished!"
+}
+
+# Exit trap: a heartbeat subshell must never outlive the update that owns it,
+# and neither must the activity stamp it reads.
+function _updateCleanup() {
+	_updateHeartbeatStop
+	if [[ -n ${update_activity_file:-} ]]; then
+		rm -f "${update_activity_file}"
+		update_activity_file=""
+	fi
+	if [[ -n ${update_handoff_tmp:-} ]]; then
+		rm -rf -- "${update_handoff_tmp}"
+		update_handoff_tmp=""
+	fi
+	_releaseUpdateInstallLock
+}
+
+# The WS launcher holds its own flock around the detached runner; the core lock
+# below serializes the update body itself, so both entry points queue here.
+function _updateLockCheck() {
+	_qbAcquireUpdateLock
+}
+
+function _updateAbort() {
+	local stage="$1"
+	printf '[QuickBox] Update aborted at stage: %s (%s)\n' "${stage}" "$(date -Is)" >>"${OUTTO}"
+	if [[ ${update_config_committed:-0} -ne 1 ]]; then
+		if [[ ${update_backup_ready:-0} -ne 1 ]]; then
+			_warning "Configuration rollback unavailable: this run took no configuration backup"
+		else
+			_restoreUpdateConfig || _error "Automatic configuration rollback failed; inspect ${update_backup_dir:-the update log}"
+		fi
+	else
+		_warning "Configuration rollback skipped: the dashboard release was already committed"
+	fi
+	_error "Update did not complete. The repository may have changed; inspect the log and use box revert if needed."
+	_printUpdateTiming
+	_releaseUpdateInstallLock
+	exit 1
+}
+
+function _initializeUpdateLog() {
+	local epoch_status=0
+	_qbPublishLogEpoch "${OUTTO}" || epoch_status=$?
+	case "${epoch_status}" in
+	0) ;;
+	1)
+		_updateRefused "Cannot publish log epoch: ${OUTTO}.epoch"
+		return 1
+		;;
+	*)
+		_updateRefused "Cannot initialize update log: ${OUTTO}"
+		return 1
+		;;
+	esac
+	printf '[%s] QuickBox update started (pid=%s)\n' "$(date -Is)" "$$" >>"${OUTTO}"
+}
+
+# Old rollback copies are only useful for a bounded time. Prune them before this
+# run creates new ones; pruning never blocks an update.
+function _pruneBackups() {
+	local prune_helper="/usr/local/bin/quickbox/system/auxiliary/qbBackupPrune"
+	if [[ ! -f "${prune_helper}" ]]; then
+		_warning "Backup pruning helper is missing: ${prune_helper}"
+		return 0
+	fi
+	if ! bash "${prune_helper}" >>"${OUTTO}" 2>&1; then
+		_warning "Failed to prune old backups under ${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}"
+	fi
+	return 0
+}
+
+# Record the pre-update commit so a destructive git reset can be undone with
+# `box revert`. Only a small state file and a one-line history entry are kept.
+function _saveRepoState() {
+	local repo="${QUICKBOX_REPO_ROOT:-/etc/QuickBox}"
+	local root="${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}"
+	local branch sha ts state_tmp history
+	if [[ ! -d "${repo}/.git" ]]; then
+		_info "No local git metadata to record in ${repo}"
+		return 0
+	fi
+	if [[ -L "${root}" ]]; then
+		_error "Refusing symlinked backup root: ${root}"
+		return 1
+	fi
+	if [[ -e "${root}" && ! -d "${root}" ]]; then
+		_error "Backup root is not a directory: ${root}"
+		return 1
+	fi
+	(umask 077; mkdir -p "${root}") || {
+		_error "Cannot create the backup root: ${root}"
+		return 1
+	}
+	branch=$(git -C "${repo}" symbolic-ref --short -q HEAD 2>/dev/null || printf 'detached')
+	sha=$(git -C "${repo}" rev-parse --verify HEAD 2>/dev/null) || {
+		_warning "Cannot record the current repository commit; no HEAD in ${repo}"
+		return 0
+	}
+	if [[ -e "${root}/repo-state.env" && ! -f "${root}/repo-state.env" ]]; then
+		_error "Repository state path is not a regular file: ${root}/repo-state.env"
+		return 1
+	fi
+	ts=$(date +%Y%m%d-%H%M%S)
+	# Pin the commit with local refs so git gc cannot collect it after a
+	# branch switch or hard reset.
+	git -C "${repo}" update-ref "refs/quickbox/pre-update/${ts}" "${sha}" || {
+		_error "Cannot record the pre-update repository ref in ${repo}"
+		return 1
+	}
+	git -C "${repo}" update-ref refs/quickbox/pre-update-latest "${sha}" || {
+		_error "Cannot record the latest pre-update repository ref in ${repo}"
+		return 1
+	}
+	state_tmp=$(mktemp "${root}/.repo-state.XXXXXX") || return 1
+	if ! {
+		printf 'QUICKBOX_REPO=%s\n' "${repo}"
+		printf 'QUICKBOX_REPO_BRANCH=%s\n' "${branch}"
+		printf 'QUICKBOX_REPO_COMMIT=%s\n' "${sha}"
+		printf 'QUICKBOX_REPO_TIMESTAMP=%s\n' "${ts}"
+	} >"${state_tmp}"; then
+		rm -f "${state_tmp}"
+		return 1
+	fi
+	chmod 0600 "${state_tmp}" || {
+		rm -f "${state_tmp}"
+		return 1
+	}
+	mv -f "${state_tmp}" "${root}/repo-state.env" || {
+		rm -f "${state_tmp}"
+		return 1
+	}
+	history="${root}/repo-history.tsv"
+	if [[ -L "${history}" ]]; then
+		_error "Refusing symlinked repository history: ${history}"
+		return 1
+	fi
+	if [[ -e "${history}" && ! -f "${history}" ]]; then
+		_error "Repository history path is not a regular file: ${history}"
+		return 1
+	fi
+	if [[ ! -e "${history}" ]]; then
+		(umask 077; : >"${history}") || return 1
+	fi
+	chmod 0600 "${history}" 2>/dev/null || _warning "Cannot restrict the repository history: ${history}"
+	printf '%s\t%s\t%s\t%s\n' "${ts}" "${branch}" "${sha}" "${repo}" >>"${history}" ||
+		_warning "Cannot append the repository state history: ${history}"
+	_success "Pre-update repository commit: ${branch}@${sha} (state: ${root}/repo-state.env)"
+	return 0
+}
+
+# The helper is shipped by the repository that _updateRepo just refreshed, so it
+# is loaded after the repository stage.
+function _loadBackupHelper() {
+	local helper="${local_prefix}packages/system/update/qbUpdateBackup"
+	if [[ ! -f "${helper}" ]]; then
+		_warning "Update backup helper is missing; continuing without the managed configuration snapshot: ${helper}"
+		update_backup_available=0
+		return 0
+	fi
+	# shellcheck source=packages/system/update/qbUpdateBackup
+	# shellcheck disable=SC1090,SC1091
+	if ! source "${helper}"; then
+		_warning "Update backup helper could not be loaded; continuing without the managed configuration snapshot: ${helper}"
+		update_backup_available=0
+		return 0
+	fi
+	update_backup_available=1
+	return 0
+}
+
+# Every configuration file that the update pipeline may rewrite. The dashboard
+# paths are included here so the dashboard stage can share one rollback set.
+function _managedUpdatePaths() {
+	local username="" motd
+	if [[ -f /root/.admin.info ]]; then
+		username=$(cut -d: -f1 </root/.admin.info 2>/dev/null || true)
+	fi
+	printf '%s\n' \
+		/etc/nginx/sites-enabled/default \
+		/etc/profile \
+		/etc/update-motd.d/01-custom \
+		/etc/systemd/system/ttyd.service \
+		/etc/init.d/ttyd \
+		/usr/local/bin/ttyd \
+		/install/.ttyd.lock \
+		/install/.shellinabox.lock \
+		/etc/sudoers.d/dashboard \
+		/etc/sudoers.d/quickbox \
+		/root/.bash_qb \
+		/root/.bash_qb.bak \
+		/root/.bash_qb_extras \
+		/root/.bash_qb_extras.bak \
+		/etc/skel/.bashrc \
+		/etc/skel/.bash_logout \
+		/etc/skel/.profile \
+		/etc/nginx/apps/dashboard.conf \
+		/etc/nginx/snippets/proxy.conf \
+		/etc/nginx/snippets/quickbox-ws-gateway.conf \
+		/etc/systemd/system/quickbox-ws.service \
+		/etc/quickbox/ws.secret \
+		/srv/dashboard/db/ws.secret \
+		/srv/dashboard/db/nginx-ws-gateway.conf
+	if [[ -n "${username}" ]]; then
+		printf '/etc/nginx/apps/%s.flexget.conf\n' "${username}"
+		printf '/etc/nginx/apps/%s.console.conf\n' "${username}"
+	fi
+	# The service stage changes the mode of every motd script, not only the
+	# managed one, so record the rest of the directory as well.
+	for motd in /etc/update-motd.d/*; do
+		if [[ -e "${motd}" && "${motd}" != "/etc/update-motd.d/01-custom" ]]; then
+			printf '%s\n' "${motd}"
+		fi
+	done
+}
+
+function _backupUpdateConfig() {
+	local root backup_dir path
+	local -a paths=()
+	if [[ ${update_backup_available:-0} -ne 1 ]]; then
+		_warning "Managed configuration backup is unavailable; skipping"
+		return 0
+	fi
+	root=$(_qbBackupRoot) || return 1
+	backup_dir=$(_qbBackupUniqueDir "${root}/$(date +%Y%m%d-%H%M%S)-update")
+	while IFS= read -r path; do
+		[[ -n "${path}" ]] && paths+=("${path}")
+	done < <(_managedUpdatePaths)
+	if [[ ${#paths[@]} -eq 0 ]]; then
+		_error "No managed configuration paths to back up"
+		return 1
+	fi
+	if ! _qbBackupCreate "${backup_dir}" "${paths[@]}"; then
+		rm -rf "${backup_dir}"
+		_error "Failed to create the update configuration backup"
+		return 1
+	fi
+	update_backup_dir="${backup_dir}"
+	update_backup_ready=1
+	_qbRecoveryWrite backup "${backup_dir}" || return 1
+	_info "Update rollback backup: ${update_backup_dir}"
+	return 0
+}
+
+function _restoreUpdateConfig() {
+	[[ ${update_backup_ready:-0} -eq 1 && -n ${update_backup_dir:-} ]] || return 0
+	local rc=0
+	_warning "Restoring managed configuration from ${update_backup_dir}"
+	_qbBackupRestoreAll "${update_backup_dir}" || rc=1
+	if [[ ${rc} -ne 0 ]]; then
+		_warning "Skipping service activation because managed files were not fully restored"
+	elif [[ ${update_service_started:-0} -eq 1 ]]; then
+		if command -v systemctl >/dev/null 2>&1; then
+			_qbRunHelper "Managed rollback: systemctl daemon-reload failed" systemctl daemon-reload || rc=1
+		fi
+		if command -v nginx >/dev/null 2>&1; then
+			if _qbRunHelper "Managed rollback: nginx configuration test failed" nginx -t; then
+				_qbRunHelper "Managed rollback: nginx reload failed" nginx -s reload || rc=1
+			else
+				rc=1
+			fi
+		fi
+	fi
+	if [[ ${rc} -eq 0 ]]; then
+		_warning "Configuration rollback succeeded"
+	else
+		_error "Configuration rollback failed; inspect ${update_backup_dir}"
+	fi
+	return "${rc}"
+}
+
+# The heartbeat measures silence, not a fixed cadence. Every line printed on the
+# terminal and every reported duration refreshes the timestamp below, so a stage
+# that keeps producing sub-step timings never also claims to be "still running".
+# The stamp has to live in a file: the tick runs in a subshell and cannot see the
+# parent's variables.
+function _updateActivityInit() {
+	if [[ -z ${update_activity_file:-} ]]; then
+		update_activity_file=$(mktemp "${TMPDIR:-/tmp}/qb-update-activity.XXXXXX" 2>/dev/null) || update_activity_file=""
+	fi
+	_updateTouchActivity
+}
+
+function _updateTouchActivity() {
+	[[ -n ${update_activity_file:-} ]] || return 0
+	_qbNowMs >"${update_activity_file}" 2>/dev/null || true
+	return 0
+}
+
+function _updateActivityRead() {
+	local value=""
+	[[ -n ${update_activity_file:-} && -f ${update_activity_file} ]] || return 1
+	# `read` is a builtin: the tick runs once a second and must not fork.
+	read -r value <"${update_activity_file}" 2>/dev/null || return 1
+	printf '%s' "${value}"
+}
+
+# Progress ticks for one stage. The interval process is started in the
+# background and awaited, so a TERM from _updateHeartbeatStop is handled
+# immediately instead of after the current sleep finishes: a tick must never
+# outlive the stage that owns it or hold the updater's stdout open.
+function _updateHeartbeatLoop() {
+	local silence="$1" label="$2" sink="$3" start_ms="$4" ready_file="${5:-}"
+	local tick=1 waited=0 now elapsed silent last stamp sleeper=""
+	trap 'kill "${sleeper:-}" 2>/dev/null; exit 0' TERM INT
+	if [[ -n ${ready_file} ]]; then
+		: >"${ready_file}" || exit 1
+	fi
+	# A stage can arrive with an unusable start (the clock was missing when
+	# _updateStep measured it). Anchor to the first tick instead of reporting an
+	# instant "still running" line against a zero baseline.
+	now=$(_qbNowMs)
+	if (( now > 0 )) && (( start_ms <= 0 )); then
+		start_ms=${now}
+	fi
+	last=${start_ms}
+	while :; do
+		sleep "${tick}" &
+		sleeper=$!
+		wait "${sleeper}"
+		waited=$(( waited + tick ))
+		now=$(_qbNowMs)
+		if [[ ${now} =~ ^[0-9]+$ ]] && (( now > 0 )); then
+			stamp=$(_updateActivityRead || true)
+			if [[ ! ${stamp} =~ ^[0-9]+$ ]]; then
+				# A writer may sit between truncate and write; one retry covers
+				# it, so a read race never turns into a false "still running".
+				stamp=$(_updateActivityRead || true)
+			fi
+			if [[ ${stamp} =~ ^[0-9]+$ ]] && (( stamp > last )); then
+				last=${stamp}
+			fi
+			silent=$(( now - last ))
+			elapsed=$(( now - start_ms ))
+		else
+			# Without a working clock the tick counter is all there is; a
+			# missing timing helper must not silence progress entirely.
+			silent=$(( silent + tick * 1000 ))
+			elapsed=$(( waited * 1000 ))
+		fi
+		(( silent >= silence * 1000 )) || continue
+		if [[ ${sink} == log ]]; then
+			printf '>> Timing: %s still running (no output for %s, %s elapsed)\n' \
+				"${label}" "$(_qbFormatMs "${silent}")" "$(_qbFormatMs "${elapsed}")" >>"${OUTTO}"
+		else
+			printf '%s   … %s still running (no output for %s, %s elapsed)%s\n' \
+				"${_dim}" "${label}" "$(_qbFormatMs "${silent}")" "$(_qbFormatMs "${elapsed}")" "${_norm}"
+		fi
+		if (( now > 0 )); then
+			last=${now}
+		else
+			silent=0
+		fi
+	done
+}
+
+# Live progress for long stages. A stage that goes quiet for `silence` seconds
+# repeats how long it has been going, so a silent `npm ci` or apt step is
+# visibly alive instead of looking hung. A terminal keeps these lines to itself;
+# without one (the Dashboard launcher discards stdout) the same signal goes to
+# the shared log, which is what the Dashboard log view reads.
+function _updateHeartbeatStart() {
+	local label="$1" start_ms="${2:-}" sink=log ready_file attempts
+	update_heartbeat_pid=""
+	_updateActivityInit
+	[[ -n ${update_activity_file:-} ]] || return 0
+	[[ ${start_ms} =~ ^[0-9]+$ ]] || start_ms=$(_qbNowMs)
+	ready_file="${update_activity_file}.heartbeat-ready"
+	rm -f "${ready_file}"
+	if [[ -t 1 ]]; then
+		sink=terminal
+	elif [[ ! -f ${OUTTO:-} || ! -w ${OUTTO:-} ]]; then
+		return 0
+	fi
+	# The child signals readiness after installing its signal trap. Without
+	# this handshake, a fast stage can send TERM before the trap is active.
+	if [[ ${sink} == terminal ]]; then
+		(_updateHeartbeatLoop 15 "${label}" terminal "${start_ms}" "${ready_file}") 8>&- 9>&- &
+	else
+		(_updateHeartbeatLoop 30 "${label}" log "${start_ms}" "${ready_file}") 8>&- 9>&- >/dev/null 2>&1 &
+	fi
+	update_heartbeat_pid=$!
+	for (( attempts = 0; attempts < 100; attempts++ )); do
+		[[ -e ${ready_file} ]] && break
+		kill -0 "${update_heartbeat_pid}" 2>/dev/null || break
+		sleep 0.01
+	done
+	if [[ ! -e ${ready_file} ]]; then
+		kill -KILL "${update_heartbeat_pid}" 2>/dev/null || true
+		wait "${update_heartbeat_pid}" 2>/dev/null || true
+		update_heartbeat_pid=""
+	fi
+	rm -f "${ready_file}"
+}
+
+function _updateHeartbeatStop() {
+	[[ -n ${update_heartbeat_pid:-} ]] || return 0
+	kill "${update_heartbeat_pid}" 2>/dev/null
+	wait "${update_heartbeat_pid}" 2>/dev/null
+	update_heartbeat_pid=""
+}
+
+function _updateRecordStage() {
+	update_stage_labels[${#update_stage_labels[@]}]="$1"
+	update_stage_ms[${#update_stage_ms[@]}]="$2"
+}
+
+function _updateTimingRow() {
+	local label="$1" ms="${2:-0}" total="${3:-0}" pct=0 cells bar=""
+	if [[ ! ${ms} =~ ^[0-9]+$ ]]; then
+		ms=0
+	fi
+	if [[ ${total} =~ ^[0-9]+$ ]] && (( total > 0 )); then
+		pct=$(( ms * 100 / total ))
+	fi
+	# A rounded or residual measurement may exceed the wall clock; the bar has
+	# to stay inside its 20 cells regardless.
+	if (( pct > 100 )); then
+		pct=100
+	fi
+	cells=$(( pct / 5 ))
+	while (( cells > 0 )); do
+		bar+="#"
+		cells=$(( cells - 1 ))
+	done
+	printf '  %-34s %8s  %-20s %3d%%\n' "${label}" "$(_qbFormatMs "${ms}")" "${bar}" "${pct}"
+}
+
+function _printUpdateTiming() {
+	local total accounted=0 residual=0 i
+	if [[ ! ${update_started_ms:-0} =~ ^[0-9]+$ ]] || (( update_started_ms <= 0 )); then
+		return 0
+	fi
+	total=$(( $(_qbNowMs) - update_started_ms ))
+	if (( total < 0 )); then
+		total=0
+	fi
+	printf '%s➜ Update timing (total %s)%s\n' "${_cyan}" "$(_qbFormatMs "${total}")" "${_norm}"
+	if [[ -n ${OUTTO:-} && -f ${OUTTO} && -w ${OUTTO} ]]; then
+		printf '>> Timing: update total %s (%dms)\n' "$(_qbFormatMs "${total}")" "${total}" >>"${OUTTO}"
+	fi
+	for (( i = 0; i < ${#update_stage_labels[@]}; i++ )); do
+		_updateTimingRow "${update_stage_labels[i]}" "${update_stage_ms[i]}" "${total}"
+		accounted=$(( accounted + update_stage_ms[i] ))
+	done
+	residual=$(( total - accounted ))
+	if (( residual > 500 )); then
+		_updateTimingRow "other (locks, prepare, cleanup)" "${residual}" "${total}"
+	fi
+	printf '  %-34s %8s\n' "total" "$(_qbFormatMs "${total}")"
+}
+
+function _updateStep() {
+	local stage="$1"
+	shift
+	local start_ms elapsed status
+	start_ms=$(_qbNowMs)
+	_updateHeartbeatStart "${stage}" "${start_ms}"
+	"$@"
+	status=$?
+	_updateHeartbeatStop
+	elapsed=$(( $(_qbNowMs) - start_ms ))
+	if (( elapsed < 0 )); then
+		elapsed=0
+	fi
+	if [[ ${status} -ne 0 ]]; then
+		_updateRecordStage "${stage} (failed)" "${elapsed}"
+		_error "Update stage failed: ${stage} (after $(_qbFormatMs "${elapsed}"))"
+		_updateAbort "${stage}"
+	fi
+	_updateRecordStage "${stage}" "${elapsed}"
+	_qbReportMs "${stage}" "${elapsed}"
 }
 
 function _installSystemUpdates() {
 	_info "Checking and performing updates to system... "
-	_execute "dpkg --configure -a"
-	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
-	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >>"${OUTTO}" 2>&1
-	## auto solve lock
-	if [ "$?" -eq 2 ]; then
-		_warning "dpkg database is locked."
-		_info "fixing dpkg lock..."
-		rm -f /var/lib/dpkg/updates/0*
-		locks=$(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*)
-		if [[ ${locks} == $(find /var/lib/dpkg/lock* && find /var/cache/apt/archives/lock*) ]]; then
-			for l in ${locks}; do
-				rm -rf "${l}"
-			done
-			_execute "dpkg --configure -a"
-			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1
-			DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >>"${OUTTO}" 2>&1
-		fi
-		if ! (apt-get check >/dev/null); then
-			apt-get install -f >>"${OUTTO}" 2>&1
-			if ! (apt-get check >/dev/null); then
-				whiptail --title "$ERROR_TITLE_INSTALL" --msgbox "$ERROR_TEXT_INSTALL_1" --ok-button "$BUTTON_OK" 8 72
-				exit 1
-			fi
-		fi
-	fi
+	_execute "dpkg --configure -a" || return 1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update >>"${OUTTO}" 2>&1 || return 1
+	DEBIAN_FRONTEND=noninteractive apt-get -yqq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade >>"${OUTTO}" 2>&1 || return 1
 	_success "System updated."
 }
 
 function _preloadScript() {
-	source /usr/local/bin/quickbox/system/update/qbUpdateRepo
+	source "${_qb_lib_dir}/qbUpdateRepo" || return 1
 	if [[ "$CODENAME" =~ ("xenial"|"stretch") ]]; then
 		if [[ ! -f /install/.legacy.lock ]]; then
 			touch /install/.legacy.lock
@@ -120,14 +604,124 @@ function _preloadScript() {
 }
 
 function _reloadScript() {
-	source /usr/local/bin/quickbox/system/update/qbUpdateRepo
-	source /usr/local/bin/quickbox/system/update/qbUpdateService
-	source /usr/local/bin/quickbox/system/update/qbUpdateDashboard
+	source "${local_prefix}packages/system/update/qbUpdateRepo" || return 1
+	source "${local_prefix}packages/system/update/qbUpdateService" || return 1
+	source "${local_prefix}packages/system/update/qbUpdateDashboard" || return 1
+}
+
+function _commitInstalledBranch() {
+	local branch sha tmp
+	branch=$(git -C "${local_prefix}" symbolic-ref --short -q HEAD) || branch=detached
+	sha=$(git -C "${local_prefix}" rev-parse --verify HEAD) || return 1
+	tmp=$(mktemp /install/.quickbox-branch.XXXXXX) || return 1
+	if ! printf '%s\n%s\n' "${branch}" "${sha}" >"${tmp}" || ! chmod 0644 "${tmp}" || ! mv -f "${tmp}" /install/.quickbox-branch; then
+		rm -f "${tmp}"
+		return 1
+	fi
+	if [[ ${branch} == legacy ]]; then
+		touch /install/.legacy.lock || return 1
+	else
+		rm -f /install/.legacy.lock
+	fi
+	if [[ ${branch} == master || ${branch} == legacy || ${branch} == detached ]]; then
+		rm -f /install/.developer.lock /install/.debug.lock
+	else
+		touch /install/.developer.lock || return 1
+		if [[ ${branch} == development ]]; then
+			rm -f /install/.debug.lock
+		else
+			printf '%s(%s)\n' "${branch}" "${sha:0:7}" >/install/.debug.lock || return 1
+		fi
+	fi
+}
+
+function _handoffUpdate() {
+	local target_updater="${local_prefix}packages/system/qbUpdate" hook wrapper status=0
+	local -a handoff_args=(--from-checkout)
+	local handoff_core_lock="${_qb_update_lock:-${QUICKBOX_UPDATE_CORE_LOCK:-/run/lock/quickbox-update-core.lock}}"
+	if [[ ! -f ${target_updater} ]]; then
+		_error "Target updater is missing: ${target_updater}"
+		return 1
+	fi
+	_info "Continuing with the target checkout's updater"
+	if grep -qF 'QB_UPDATE_HANDOFF_PROTOCOL=1' "${target_updater}"; then
+		[[ ${core} -eq 0 ]] && handoff_args+=(--handoff-full)
+		QUICKBOX_UPDATE_HANDOFF=1 \
+			QUICKBOX_UPDATE_CORE_LOCK_INHERITED="${handoff_core_lock}" \
+			QUICKBOX_UPDATE_OPERATION_LOCK_INHERITED="${QUICKBOX_OPERATION_LOCK:-/run/lock/quickbox-operation.lock}" \
+			QB_UPDATE_LIB_DIR="${local_prefix}packages/system/update" \
+			bash "${target_updater}" "${handoff_args[@]}"
+		return $?
+	fi
+
+	# Older updaters do not understand lock inheritance or --from-checkout.
+	# Keep their own stages, but bridge the entry point so they use the selected
+	# checkout and do not fetch a different branch or take our locks again.
+	update_handoff_tmp=$(mktemp -d /run/lock/quickbox-handoff.XXXXXX) || return 1
+	hook="${update_handoff_tmp}/hook"
+	wrapper="${update_handoff_tmp}/updater"
+	cat >"${hook}" <<'HOOK'
+_lockCheck() { :; }
+_setLock() { :; }
+_lockCleanup() { :; }
+_initializeUpdateLog() { :; }
+_qbAcquireOperationLock() { flock -n 9; }
+_preloadScript() {
+	source "${QB_HANDOFF_ROOT}/packages/system/update/qbUpdateRepo" || return 1
+	_updateRepo() { :; }
+}
+_reloadScript() {
+	source "${QB_HANDOFF_ROOT}/packages/system/update/qbUpdateRepo" || return 1
+	source "${QB_HANDOFF_ROOT}/packages/system/update/qbUpdateService" || return 1
+	source "${QB_HANDOFF_ROOT}/packages/system/update/qbUpdateDashboard" || return 1
+}
+HOOK
+	if ! awk '
+		/^[[:space:]]*#[[:space:]]*MAIN PROCESS[[:space:]]*$/ {
+			print
+			print "source \"${QB_HANDOFF_HOOK}\""
+			found = 1
+			next
+		}
+		/^[[:space:]]*_parseUpdateArgs "\$@" \|\| exit \$\?/ {
+			print
+			print "if [[ ${QB_HANDOFF_FULL:-0} == 1 ]]; then core=0; fi"
+			next
+		}
+		{ print }
+		END { if (!found) exit 1 }
+	' "${target_updater}" >"${wrapper}"; then
+		_warning "Target updater has no recognized entry point; running it directly"
+		rm -rf -- "${update_handoff_tmp}"
+		update_handoff_tmp=""
+		handoff_args=()
+		[[ ${core} -eq 1 ]] && handoff_args+=(--only-core)
+		bash "${target_updater}" "${handoff_args[@]}" || status=$?
+		legacy_handoff=1
+		return "${status}"
+	fi
+	_info "Running the target updater with legacy checkout and lock compatibility"
+	if grep -qF -- '--from-checkout)' "${target_updater}"; then
+		QB_HANDOFF_HOOK="${hook}" QB_HANDOFF_ROOT="${local_prefix%/}" QB_HANDOFF_FULL="$((1 - core))" \
+			QUICKBOX_UPDATE_CORE_LOCK_INHERITED="${handoff_core_lock}" \
+			QB_UPDATE_LIB_DIR="${local_prefix}packages/system/update" \
+			bash "${wrapper}" --from-checkout || status=$?
+	else
+		handoff_args=()
+		[[ ${core} -eq 1 ]] && handoff_args+=(--only-core)
+		QB_HANDOFF_HOOK="${hook}" QB_HANDOFF_ROOT="${local_prefix%/}" \
+			bash "${wrapper}" "${handoff_args[@]}" || status=$?
+	fi
+	rm -rf -- "${update_handoff_tmp}"
+	update_handoff_tmp=""
+	legacy_handoff=1
+	return "${status}"
 }
 
 function _fin() {
 	source ~/.profile
 	source ~/.bashrc
+	_printUpdateTiming
 	_lockCleanup
 	echo >>"${OUTTO}" 2>&1
 	echo "[QuickBox] Seedbox & GUI Update Completed ! " >>"${OUTTO}" 2>&1
@@ -137,25 +731,92 @@ function _fin() {
 }
 
 # initialization environment
-local_prefix=/etc/QuickBox/
+local_prefix="${QUICKBOX_REPO_ROOT:-/etc/QuickBox}"
+local_prefix="${local_prefix%/}/"
 local_setup_template=${local_prefix}setup/templates/
 local_setup_dashboard=${local_prefix}setup/dashboard/
 
-#################################################################################
+################################################################################
 # MAIN PROCESS
-#################################################################################
-_lockCheck
-_setLock
-if [[ $core == 0 ]]; then
-	_installSystemUpdates
+################################################################################
+_parseUpdateArgs "$@" || exit $?
+if [[ ${QUICKBOX_UPDATE_HANDOFF:-} == 1 && ${from_checkout} -ne 1 ]]; then
+	printf 'Update handoff requires --from-checkout\n' >&2
+	exit 2
 fi
-_preloadScript
-_updateRepo
-_setPerm
-_bashrc
-_updateskel
-_reloadScript
-_updateservice
-_updatedashboard
-_updatelanguage
-_fin
+if [[ ${from_checkout} -eq 1 && ${core} -eq 0 && ${QUICKBOX_UPDATE_HANDOFF:-} != 1 ]]; then
+	printf 'Full checkout update requires a handoff\n' >&2
+	exit 2
+fi
+# The service stage is sourced into this shell, so the mode travels as an
+# exported flag rather than an argument the caller has to thread through.
+QB_UPDATE_ONLY_CORE=${core}
+export QB_UPDATE_ONLY_CORE
+update_started_ms=$(_qbNowMs)
+_updateLockCheck
+update_lock_status=$?
+[[ ${update_lock_status} -eq 0 ]] || exit "${update_lock_status}"
+# Take the operation lock before touching the ownership marker or the log.
+_qbAcquireOperationLock
+operation_lock_status=$?
+[[ ${operation_lock_status} -eq 0 ]] || exit "${operation_lock_status}"
+if [[ ${QUICKBOX_UPDATE_HANDOFF:-} != 1 ]]; then
+	unset QB_RECOVERY_ACTIVE
+	_qbRecoveryResume || exit 1
+	_lockCheck
+	_setLock || exit 1
+fi
+trap _updateCleanup EXIT
+if [[ ${QUICKBOX_UPDATE_HANDOFF:-} != 1 ]]; then
+	_pruneBackups
+	[[ ${QB_RECOVERY_ACTIVE:-0} == 1 ]] || _qbRecoveryBegin || exit 1
+fi
+# Keep the previous output available until this invocation owns both locks;
+# _initializeUpdateLog then publishes the new epoch before truncating.
+if [[ ${QUICKBOX_UPDATE_HANDOFF:-} != 1 ]]; then
+	_initializeUpdateLog || exit 1
+fi
+# The pre-update commit is available to box revert.
+if [[ ${from_checkout} -eq 0 ]]; then
+	if [[ ! -f $(_qbRecoveryDir)/repo_saved ]]; then
+		_updateStep "repository state" _saveRepoState
+		_qbRecoveryWrite repo_saved 1 || exit 1
+	fi
+fi
+if [[ $core == 0 && ${from_checkout} -eq 1 ]]; then
+	_updateStep "system packages" _installSystemUpdates
+fi
+_preloadScript || _updateAbort "preload update scripts"
+if [[ ${from_checkout} -eq 0 ]]; then
+	_updateStep "repository" _updateRepo
+	_updateStep "target updater" _handoffUpdate
+	_updateStep "installed branch state" _commitInstalledBranch
+	if [[ ${legacy_handoff:-0} == 1 ]]; then
+		_printUpdateTiming
+		_lockCleanup
+	else
+		_fin
+	fi
+	_qbRecoveryFinish || exit 1
+	exit 0
+fi
+_info "Reinstalling from the current checkout: ${local_prefix}"
+_updateStep "permissions" _setPerm
+_loadBackupHelper || _updateAbort "load update backup helper"
+_updateStep "update configuration backup" _backupUpdateConfig
+_updateStep "shell profile" _bashrc
+_updateStep "skel" _updateskel
+_reloadScript || _updateAbort "load update scripts"
+update_service_started=1
+_updateStep "service" _updateservice
+_updateStep "dashboard" _updatedashboard
+# The dashboard release is committed.
+update_config_committed=1
+_updateStep "language" _updatelanguage
+_updateStep "installed branch state" _commitInstalledBranch
+if [[ ${QUICKBOX_UPDATE_HANDOFF:-} == 1 ]]; then
+	_printUpdateTiming
+else
+	_fin
+	_qbRecoveryFinish || exit 1
+fi

@@ -2,21 +2,34 @@
 #
 # [QuickBox Lite Authelia Installer]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
+#
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
+################################################################################
 
-#################################################################################
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
-
-set -euo pipefail
+export NEWT_COLORS='
+root=,black
+window=,lightgray
+shadow=,color8
+title=color8,
+checkbox=,magenta
+entry=,color8
+label=blue,
+actlistbox=,magenta
+actsellistbox=,magenta
+helpline=,magenta
+roottext=,magenta
+emptyscale=magenta
+disabledentry=magenta,
+'
 
 _norm=$(tput sgr0)
 _red=$(tput setaf 1)
@@ -24,18 +37,38 @@ _green=$(tput setaf 2)
 _tan=$(tput setaf 3)
 _cyan=$(tput setaf 6)
 
-_execute() { ($1 >>"${OUTTO}" 2>&1); }
-_print() { printf "${_norm}%s${_norm}\n" "$@"; printf "%s\n" "$@" >>"${OUTTO}"; }
-_info() { printf "${_cyan}➜ %s${_norm}\n" "$@"; printf ">> Info: %s\n" "$@" >>"${OUTTO}"; }
-_success() { printf "${_green}✓ %s${_norm}\n" "$@"; printf ">> Success: %s\n" "$@" >>"${OUTTO}"; }
-_warning() { printf "${_tan}⚠ %s${_norm}\n" "$@"; printf ">> Warning: %s\n" "$@" >>"${OUTTO}"; }
-_error() { printf "${_red}✗ %s${_norm}\n" "$@"; printf ">> Error: %s\n" "$@" >>"${OUTTO}"; }
+function _execute() {
+	($1 >>"${OUTTO}" 2>&1)
+}
+function _print() {
+	printf "${_norm}%s${_norm}\n" "$@"
+	printf "%s\n" "$@" >>"${OUTTO}"
+}
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
 
+################################################################################
+# APP VARIABLE
+################################################################################
 APP_TITLE="Authelia"
 APP_NAME="authelia"
 APP_SERVICE="authelia"
-APP_LOCK=.${APP_NAME}.lock
-OUTTO=/srv/dashboard/db/output.log
+APP_LOCK=".${APP_NAME}.lock"
+OUTTO="/srv/dashboard/db/output.log"
 LOGIN_DOMAIN=""
 AUTH_MODE=""
 ADMIN_EMAIL=""
@@ -48,8 +81,7 @@ SMTP_SENDER=""
 ################################################################################
 # SCRIPT FUNCTIONS
 ################################################################################
-
-_usage() {
+function _usage() {
   echo -e "\nQuickBox Lite ${APP_TITLE} Installer"
   echo -e "\nUsage:\n$(basename "$0") [-l logfile] --domain DOMAIN"
   echo -e "\nOptions:\n"
@@ -58,6 +90,7 @@ _usage() {
   echo "--auth-mode <mode>           auth mode: password, mfa, or passwordless"
   echo "--password                   shortcut for --auth-mode password"
   echo "--mfa                        shortcut for --auth-mode mfa"
+  echo "--password-mfa               alias for --mfa"
   echo "--passwordless               shortcut for --auth-mode passwordless"
   echo "--admin-email <email>        admin email (required for passwordless)"
   echo "--smtp-host <host>           smtp host (required for passwordless)"
@@ -68,9 +101,15 @@ _usage() {
   echo "-h, --help                   display this help and exit"
 }
 
-_lockCheck() {
+################################################################################
+# INSTALL FUNCTIONS
+################################################################################
+function _lockCheck() {
   if [[ ! -f /install/.docker.lock ]]; then
-    bash /usr/local/bin/quickbox/package/install/installpackage-docker -l "$OUTTO"
+    if ! bash /usr/local/bin/quickbox/package/install/installpackage-docker -l "$OUTTO"; then
+      _error "Docker is required for ${APP_TITLE} and could not be installed."
+      exit 1
+    fi
   fi
 
   if [[ -f "/install/.install.lock" ]]; then
@@ -90,22 +129,37 @@ _lockCheck() {
   fi
 }
 
-_setLock() { echo "${APP_TITLE}" >/install/.install.lock; }
-_clearInstallLock() {
+function _setLock() {
+	if ! echo "${APP_TITLE}" >/install/.install.lock; then
+		_error "Cannot take the installation lock."
+		exit 1
+	fi
+	# The installation marker is cleared on exit.
+	trap '_clearInstallLock' EXIT
+}
+
+function _clearInstallLock() {
   if [[ -f /install/.install.lock ]] && [[ "$(cat /install/.install.lock)" == "${APP_TITLE}" ]]; then
     rm -f /install/.install.lock
   fi
 }
-_lockCleanup() {
+
+function _lockCleanup() {
   echo "$APP_TITLE Install Complete!" >>"${OUTTO}" 2>&1
   _clearInstallLock
 }
-_validationExit() {
+
+function _abort() {
+  _error "$1"
   _clearInstallLock
   exit 1
 }
 
-_validateRequired() {
+function _validationExit() {
+  _clearInstallLock
+  exit 1
+}
+function _validateRequired() {
   local normalized_domain
   if [[ -z "$LOGIN_DOMAIN" ]]; then
     _error "Missing required --domain argument."
@@ -212,7 +266,7 @@ _validateRequired() {
   LOGIN_DOMAIN="$normalized_domain"
 }
 
-_generatePasswordHash() {
+function _generatePasswordHash() {
   local password="$1"
   local digest
 
@@ -222,14 +276,13 @@ _generatePasswordHash() {
   )
 
   if [[ -z "$digest" ]]; then
-    _error "Failed to generate Authelia password hash."
-    exit 1
+    return 1
   fi
 
   printf "%s" "$digest"
 }
 
-_readAdminPassword() {
+function _readAdminPassword() {
   local passphrase
   local passtext
   local decoded
@@ -261,7 +314,7 @@ _readAdminPassword() {
   return 0
 }
 
-_installApp() {
+function _installApp() {
   local admin_user
   local admin_pass
   local admin_hash
@@ -282,18 +335,20 @@ _installApp() {
 
   if [[ -z "$admin_user" || -z "$admin_pass" ]]; then
     _error "Could not read admin credentials from /root/.admin.info."
-    _error "Run 'box set password' then retry installation."
-    exit 1
+    _abort "Run 'box set password' then retry installation."
   fi
 
   _info "Preparing ${APP_TITLE} runtime..."
-  mkdir -p /opt/authelia
-  chmod 700 /opt/authelia
+  if ! mkdir -p /opt/authelia || ! chmod 700 /opt/authelia; then
+    _abort "Failed to prepare /opt/authelia."
+  fi
 
-  authelia_uid=$(id -u www-data)
-  authelia_gid=$(id -g www-data)
+  authelia_uid=$(id -u www-data) || _abort "The www-data user is missing."
+  authelia_gid=$(id -g www-data) || _abort "The www-data group is missing."
 
-  admin_hash="$(_generatePasswordHash "$admin_pass")"
+  if ! admin_hash="$(_generatePasswordHash "$admin_pass")" || [[ -z "$admin_hash" ]]; then
+    _abort "Failed to generate the ${APP_TITLE} password hash."
+  fi
 
   authelia_jwt_secret="$(openssl rand -hex 32)"
   authelia_session_secret="$(openssl rand -hex 32)"
@@ -339,7 +394,7 @@ EOF
 )
   fi
 
-  cat >/opt/authelia/users_database.yml <<EOF
+  if ! cat >/opt/authelia/users_database.yml <<EOF
 users:
   ${admin_user}:
     displayname: ${admin_user}
@@ -348,8 +403,11 @@ users:
     groups:
       - admins
 EOF
+  then
+    _abort "Failed to write ${APP_TITLE} users database."
+  fi
 
-  cat >/opt/authelia/configuration.yml <<EOF
+  if ! cat >/opt/authelia/configuration.yml <<EOF
 theme: auto
 
 server:
@@ -398,8 +456,11 @@ storage:
 
 ${notifier_block}
 EOF
+  then
+    _abort "Failed to write ${APP_TITLE} configuration."
+  fi
 
-  cat >/opt/authelia/docker-compose.yml <<EOF
+  if ! cat >/opt/authelia/docker-compose.yml <<EOF
 services:
   authelia:
     image: authelia/authelia:latest
@@ -411,11 +472,16 @@ services:
     volumes:
       - /opt/authelia:/config
 EOF
+  then
+    _abort "Failed to write the ${APP_TITLE} compose file."
+  fi
 
-  chown -R www-data:www-data /opt/authelia
-  chmod 750 /opt/authelia
+  # The container mounts /opt/authelia as /config; it belongs to www-data.
+  if ! chown -R www-data:www-data /opt/authelia || ! chmod 750 /opt/authelia; then
+    _abort "Failed to set ownership on /opt/authelia."
+  fi
 
-  cat >/etc/systemd/system/${APP_SERVICE}.service <<'EOF'
+  if ! cat >/etc/systemd/system/${APP_SERVICE}.service <<'EOF'
 [Unit]
 Description=Authelia container
 After=docker.service network-online.target
@@ -431,8 +497,11 @@ ExecStop=/usr/bin/docker compose down
 [Install]
 WantedBy=multi-user.target
 EOF
+  then
+    _abort "Failed to install the ${APP_SERVICE} service unit."
+  fi
 
-  cat >/etc/nginx/apps/authelia-auth.conf <<'EOF'
+  if ! cat >/etc/nginx/apps/authelia-auth.conf <<'EOF'
 location = /authelia/authz {
   internal;
   proxy_pass http://127.0.0.1:9091/api/authz/auth-request;
@@ -464,19 +533,25 @@ location /authelia {
   proxy_set_header X-Forwarded-Uri $request_uri;
 }
 EOF
+  then
+    _abort "Failed to install the ${APP_TITLE} nginx auth snippet."
+  fi
 
-  cat >/etc/nginx/conf.d/authelia-user-map.conf <<EOF
+  if ! cat >/etc/nginx/conf.d/authelia-user-map.conf <<EOF
 map \$auth_resp_remote_user \$qb_authelia_local_user {
   default "";
   "${admin_user}" "${admin_user}";
 }
 EOF
+  then
+    _abort "Failed to install the ${APP_TITLE} user map."
+  fi
 
-  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate"
+  _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --provider authelia --migrate" || _abort "Failed to migrate existing authentication configuration."
 
-  _execute "systemctl daemon-reload"
-  _execute "systemctl enable ${APP_SERVICE}"
-  _execute "systemctl restart ${APP_SERVICE}"
+  _execute "systemctl daemon-reload" || _abort "Failed to reload systemd units."
+  _execute "systemctl enable ${APP_SERVICE}" || _abort "Failed to enable ${APP_SERVICE}."
+  _execute "systemctl restart ${APP_SERVICE}" || _abort "Failed to start ${APP_SERVICE}."
 
   if [[ "$AUTH_MODE" == "mfa" ]]; then
     totp_output="$(docker compose -f /opt/authelia/docker-compose.yml exec -T authelia authelia storage user totp generate "$admin_user" 2>>"${OUTTO}" || true)"
@@ -495,8 +570,8 @@ EOF
     fi
   fi
 
-  _execute "nginx -t"
-  _execute "nginx -s reload"
+  _execute "nginx -t" || _abort "nginx configuration test failed."
+  _execute "nginx -s reload" || _abort "Failed to reload nginx."
 
   if [[ "$AUTH_MODE" == "mfa" ]]; then
     _print "Authelia MFA TOTP setup link (scan in authenticator app):"
@@ -506,91 +581,99 @@ EOF
   _success "${APP_TITLE} configured."
 }
 
-_installAppLock() {
+function _installAppLock() {
   _info "Configuring ${APP_TITLE} lock..."
-  touch /install/${APP_LOCK}
+  if ! touch /install/${APP_LOCK}; then
+    _abort "Failed to create the ${APP_TITLE} install marker."
+  fi
   _success "${APP_TITLE} lock configured."
 }
 
-#################################################################################
+function _installInfo() {
+	_print "
+$APP_TITLE will now be installed.
+
+This process may take a few minutes
+Please wait until the process is completed
+"
+}
+
+################################################################################
 # OPT GENERATOR
-#################################################################################
-
-#################################################################################
-# MAIN PROCESS
-#################################################################################
-
+################################################################################
 if ! ARGS=$(getopt -a -o hl: -l help,log:,domain:,auth-mode:,password,mfa,passwordless,password-mfa,admin-email:,smtp-host:,smtp-port:,smtp-username:,smtp-password:,smtp-sender: -- "$@"); then
-  _usage
-  exit 1
+	_usage
+	exit 1
 fi
-
-# shellcheck disable=SC2086
 eval set -- "${ARGS}"
 while true; do
-  case "$1" in
-    -h|--help)
-      _usage
-      exit 0
-      ;;
-    -l|--log)
-      OUTTO="$2"
-      shift
-      ;;
-    --domain)
-      LOGIN_DOMAIN="$2"
-      shift
-      ;;
-    --auth-mode)
-      AUTH_MODE="$2"
-      shift
-      ;;
-    --admin-email)
-      ADMIN_EMAIL="$2"
-      shift
-      ;;
-    --smtp-host)
-      SMTP_HOST="$2"
-      shift
-      ;;
-    --smtp-port)
-      SMTP_PORT="$2"
-      shift
-      ;;
-    --smtp-username)
-      SMTP_USERNAME="$2"
-      shift
-      ;;
-    --smtp-password)
-      SMTP_PASSWORD="$2"
-      shift
-      ;;
-    --smtp-sender)
-      SMTP_SENDER="$2"
-      shift
-      ;;
-    --password)
-      AUTH_MODE="password"
-      ;;
-    --mfa)
-      AUTH_MODE="mfa"
-      ;;
-    --password-mfa)
-      AUTH_MODE="mfa"
-      ;;
-    --passwordless)
-      AUTH_MODE="passwordless"
-      ;;
-    --)
-      shift
-      break
-      ;;
-  esac
-  shift
+	case "$1" in
+	-h | --help)
+		_usage
+		exit 0
+		;;
+	-l | --log)
+		OUTTO="$2"
+		shift
+		;;
+	--domain)
+		LOGIN_DOMAIN="$2"
+		shift
+		;;
+	--auth-mode)
+		AUTH_MODE="$2"
+		shift
+		;;
+	--admin-email)
+		ADMIN_EMAIL="$2"
+		shift
+		;;
+	--smtp-host)
+		SMTP_HOST="$2"
+		shift
+		;;
+	--smtp-port)
+		SMTP_PORT="$2"
+		shift
+		;;
+	--smtp-username)
+		SMTP_USERNAME="$2"
+		shift
+		;;
+	--smtp-password)
+		SMTP_PASSWORD="$2"
+		shift
+		;;
+	--smtp-sender)
+		SMTP_SENDER="$2"
+		shift
+		;;
+	--password)
+		AUTH_MODE="password"
+		;;
+	--mfa)
+		AUTH_MODE="mfa"
+		;;
+	--password-mfa)
+		AUTH_MODE="mfa"
+		;;
+	--passwordless)
+		AUTH_MODE="passwordless"
+		;;
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
 done
 
+################################################################################
+# MAIN PROCESS
+################################################################################
 _lockCheck
 _setLock
+_installInfo
 _validateRequired
 _installApp
 _installAppLock

@@ -1,0 +1,204 @@
+#!/bin/bash
+#
+# Prune timestamped backup directories created by the update helpers.
+#
+# Layout under the backup root:
+#   <YYYYmmdd-HHMMSS>[-n]             qbNginxProxyMigrate proxy snippet
+#   <YYYYmmdd-HHMMSS>-dashboard[-n]   qbUpdateDashboard standalone rollback copy
+#   <YYYYmmdd-HHMMSS>-update[-n]      qbUpdate managed configuration snapshot
+#   <YYYYmmdd-HHMMSS>-sudoers[-n]     qbEnsureSudoers previous policy
+#
+# For each family the newest KEEP entries are always kept. Entries beyond that
+# are removed only once they are DAYS old, so several failed updates in a short
+# window still leave recent rollback material behind. Unknown files and
+# directories are never touched. A DAYS value of 0 disables the age gate.
+#
+# Usage: qbBackupPrune [--keep N] [--days N] [--dry-run]
+# Environment:
+#   QUICKBOX_BACKUP_DIR    backup root (default /var/backups/quickbox)
+#   QUICKBOX_BACKUP_KEEP   newest entries kept per family (default 10)
+#   QUICKBOX_BACKUP_DAYS   age before an excess entry is removed (default 30)
+#
+# Author: TautCony
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -uo pipefail
+
+BACKUP_ROOT="${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}"
+RECOVERY_DIR="${QUICKBOX_RECOVERY_DIR:-/var/lib/quickbox/update-recovery}"
+KEEP="${QUICKBOX_BACKUP_KEEP:-10}"
+DAYS="${QUICKBOX_BACKUP_DAYS:-30}"
+DRY_RUN=0
+
+_info() { printf '➜ %s\n' "$@" >&2; }
+_warning() { printf '⚠ %s\n' "$@" >&2; }
+_error() { printf '✗ %s\n' "$@" >&2; }
+
+usage() {
+	cat <<'EOF'
+Usage: qbBackupPrune [--keep N] [--days N] [--dry-run]
+
+  --keep N    newest entries kept per backup family (default 10)
+  --days N    age in days before an excess entry is removed (default 30)
+  --dry-run   report what would be removed without deleting anything
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	--keep)
+		KEEP="${2:-}"
+		shift 2
+		;;
+	--days)
+		DAYS="${2:-}"
+		shift 2
+		;;
+	--dry-run)
+		DRY_RUN=1
+		shift
+		;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	*)
+		_error "Unknown option: $1"
+		usage >&2
+		exit 2
+		;;
+	esac
+done
+
+if ! [[ ${KEEP} =~ ^[0-9]+$ ]]; then
+	_error "--keep must be a non-negative integer"
+	exit 2
+fi
+if ! [[ ${DAYS} =~ ^[0-9]+$ ]]; then
+	_error "--days must be a non-negative integer"
+	exit 2
+fi
+
+if [[ -L "${BACKUP_ROOT}" ]]; then
+	_error "refusing symlinked backup root: ${BACKUP_ROOT}"
+	exit 1
+fi
+if [[ ! -e "${BACKUP_ROOT}" ]]; then
+	_info "backup root does not exist: ${BACKUP_ROOT}"
+	exit 0
+fi
+if [[ ! -d "${BACKUP_ROOT}" ]]; then
+	_error "backup root is not a directory: ${BACKUP_ROOT}"
+	exit 1
+fi
+if [[ -e ${RECOVERY_DIR} || -L ${RECOVERY_DIR} ]]; then
+	_warning "An update needs recovery; keeping all backups"
+	exit 0
+fi
+
+entry_mtime() {
+	local value
+	value=$(stat -c %Y "$1" 2>/dev/null) || value=$(stat -f %m "$1" 2>/dev/null) || return 1
+	[[ -n "${value}" ]] || return 1
+	printf '%s\n' "${value}"
+}
+
+# One pattern per family. The optional trailing number is the collision suffix
+# added when a backup directory already exists for the same second.
+FAMILY_PATTERNS=(
+	'^[0-9]{8}-[0-9]{6}(-[0-9]+)?$'
+	'^[0-9]{8}-[0-9]{6}-dashboard(-[0-9]+)?$'
+	'^[0-9]{8}-[0-9]{6}-update(-[0-9]+)?$'
+	'^[0-9]{8}-[0-9]{6}-sudoers(-[0-9]+)?$'
+)
+
+# Sort collision suffixes numerically, not lexicographically: -10 is newer than
+# -2 when several backups share one second.
+_prune_sort_key() {
+	local name="$1" ts rest suffix=0 base
+	if [[ ${name} =~ ^([0-9]{8}-[0-9]{6})(.*)$ ]]; then
+		ts="${BASH_REMATCH[1]}"
+		rest="${BASH_REMATCH[2]}"
+		if [[ ${rest} =~ ^(.*)-([0-9]+)$ ]]; then
+			base="${BASH_REMATCH[1]}"
+			suffix="${BASH_REMATCH[2]}"
+		else
+			base="${rest}"
+		fi
+		printf '%s-%010d%s\n' "${ts}" "${suffix}" "${base}"
+	else
+		printf '%s\n' "${name}"
+	fi
+}
+
+entries=()
+while IFS= read -r -d '' entry; do
+	entries+=("${entry##*/}")
+done < <(find "${BACKUP_ROOT}" -mindepth 1 -maxdepth 1 -type d -print0)
+
+if [[ ${#entries[@]} -eq 0 ]]; then
+	_info "no backup directories found: ${BACKUP_ROOT}"
+	exit 0
+fi
+
+now=$(date +%s)
+cutoff=$((now - DAYS * 86400))
+removed=0
+failures=0
+
+for pattern in "${FAMILY_PATTERNS[@]}"; do
+	members=()
+	for name in "${entries[@]}"; do
+		if [[ ${name} =~ ${pattern} ]]; then
+			members+=("${name}")
+		fi
+	done
+	[[ ${#members[@]} -gt 0 ]] || continue
+
+	sorted=()
+	while IFS=$'\t' read -r _ name; do
+		sorted+=("${name}")
+	done < <(
+		for name in "${members[@]}"; do
+			printf '%s\t%s\n' "$(_prune_sort_key "${name}")" "${name}"
+		done | LC_ALL=C sort -r
+	)
+
+	for ((index = KEEP; index < ${#sorted[@]}; index++)); do
+		name="${sorted[index]}"
+		path="${BACKUP_ROOT}/${name}"
+
+		if [[ ${DAYS} -gt 0 ]]; then
+			mtime=$(entry_mtime "${path}") || {
+				_warning "cannot read the modification time of ${path}"
+				failures=1
+				continue
+			}
+			if [[ ${mtime} -ge ${cutoff} ]]; then
+				continue
+			fi
+		fi
+
+		if [[ ${DRY_RUN} -eq 1 ]]; then
+			_info "would remove ${path}"
+			removed=$((removed + 1))
+			continue
+		fi
+		if rm -rf -- "${path}"; then
+			_info "removed ${path}"
+			removed=$((removed + 1))
+		else
+			_warning "cannot remove ${path}"
+			failures=1
+		fi
+	done
+done
+
+if [[ ${DRY_RUN} -eq 1 ]]; then
+	_info "dry run: ${removed} backup entries would be removed"
+else
+	_info "${removed} backup entries removed"
+fi
+
+exit "${failures}"

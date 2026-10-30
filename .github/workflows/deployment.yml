@@ -1,0 +1,240 @@
+name: Acceptance
+on:
+  workflow_call:
+permissions:
+  contents: read
+env:
+  QUICKBOX_TEST_BASELINE: e0b522b8ccced7a07d0ae9cb575c052af6054d7e
+jobs:
+  panel:
+    name: Browser
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    env:
+      QUICKBOX_ACCEPTANCE_SUITE: panel
+      QUICKBOX_ACCEPTANCE_RESULTS: /tmp/quickbox-panel-results.json
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            setup/dashboard/ws/package-lock.json
+            e2e/package-lock.json
+      - name: Cache Chromium
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
+      - name: Prepare Node dependencies and Chromium
+        run: python3 tests/deployment/report.py prepare bash tests/deployment/prepare.sh panel
+      - name: Type-check the browser suite
+        run: python3 tests/deployment/report.py typecheck npm run typecheck --prefix e2e
+      - name: Dashboard rendering, widgets, state and interactions
+        run: python3 tests/deployment/report.py tests npm test --prefix e2e
+      - name: Acceptance summary
+        if: always()
+        run: python3 tests/deployment/report.py --summary
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: dashboard-panel-browser-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  prepare-image:
+    name: Build image
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Export pinned upgrade baseline
+        run: |
+          mkdir -p "$RUNNER_TEMP/baseline"
+          git archive "$QUICKBOX_TEST_BASELINE" setup/dashboard setup/templates | tar -xf - -C "$RUNNER_TEMP/baseline"
+      - uses: docker/setup-buildx-action@v4
+      - name: Prepare system tools, production dependencies and dashboard bundle
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: tests/deployment/Dockerfile
+          build-contexts: baseline=${{ runner.temp }}/baseline
+          load: true
+          platforms: linux/amd64
+          tags: quickbox-deployment-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Export reusable image and systemd inputs
+        run: |
+          set -euo pipefail
+          docker save quickbox-deployment-test | gzip -1 > "$RUNNER_TEMP/deployment-image.tar.gz"
+          fixture=$(docker create quickbox-deployment-test)
+          trap 'docker rm "$fixture"' EXIT
+          mkdir -p "$RUNNER_TEMP/systemd-inputs"
+          docker cp "$fixture:/opt/quickbox-npm-cache" "$RUNNER_TEMP/systemd-inputs/npm-cache"
+          docker cp "$fixture:/opt/quickbox-source/setup/dashboard/ws/dist" "$RUNNER_TEMP/systemd-inputs/dist"
+          tar -czf "$RUNNER_TEMP/systemd-inputs.tar.gz" -C "$RUNNER_TEMP/systemd-inputs" .
+      - uses: actions/upload-artifact@v6
+        with:
+          name: dashboard-deployment-image
+          path: ${{ runner.temp }}/deployment-image.tar.gz
+          compression-level: 0
+          retention-days: 1
+      - uses: actions/upload-artifact@v6
+        with:
+          name: dashboard-systemd-inputs
+          path: ${{ runner.temp }}/systemd-inputs.tar.gz
+          compression-level: 0
+          retention-days: 1
+
+  linux-container:
+    name: Linux deployment
+    needs: prepare-image
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    env:
+      QUICKBOX_ACCEPTANCE_SUITE: linux
+      QUICKBOX_ACCEPTANCE_RESULTS: /tmp/quickbox-linux-results.json
+      QUICKBOX_DEPLOYMENT_CONTAINER: quickbox-linux-acceptance
+      QUICKBOX_DEPLOYMENT_USE_IMAGE: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v7
+        with:
+          name: dashboard-deployment-image
+          path: ${{ runner.temp }}
+      - name: Load prepared image and start isolated environment
+        run: python3 tests/deployment/report.py prepare bash tests/deployment/prepare.sh linux
+      - name: Fresh install, permissions and sudo
+        run: python3 tests/deployment/report.py install bash tests/deployment/run-linux.sh --phase install
+      - name: HTTP, TLS and Socket.IO transports
+        run: python3 tests/deployment/report.py transports bash tests/deployment/run-linux.sh --phase transports
+      - name: Baseline upgrade and repeated upgrade
+        run: python3 tests/deployment/report.py upgrade bash tests/deployment/run-linux.sh --phase upgrade
+      - name: Rollback after dependency, service, nginx and health failures
+        run: python3 tests/deployment/report.py recovery bash tests/deployment/run-linux.sh --phase recovery
+      - name: WS and CLI update mutual exclusion
+        run: python3 tests/deployment/report.py mutex bash tests/deployment/run-linux.sh --phase mutex
+      - name: Collect diagnostics and remove environment
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/deployment-logs"
+          set -o pipefail
+          python3 tests/deployment/report.py cleanup bash tests/deployment/run-linux.sh --cleanup 2>&1 | tee "$RUNNER_TEMP/deployment-logs/linux.log"
+      - name: Acceptance summary
+        if: always()
+        run: python3 tests/deployment/report.py --summary
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: linux-deployment-diagnostics
+          path: ${{ runner.temp }}/deployment-logs
+
+  systemd:
+    name: systemd
+    needs: prepare-image
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    env:
+      QUICKBOX_ACCEPTANCE_SUITE: systemd
+      QUICKBOX_ACCEPTANCE_RESULTS: /tmp/quickbox-systemd-results.json
+      npm_config_cache: /tmp/quickbox-systemd-inputs/npm-cache
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v7
+        with:
+          name: dashboard-systemd-inputs
+          path: ${{ runner.temp }}
+      - name: Prepare VM tools and offline application dependencies
+        run: python3 tests/deployment/report.py prepare bash tests/deployment/prepare.sh systemd
+      - name: Deploy application under real systemd
+        run: |
+          python3 tests/deployment/report.py install sudo env PATH="$PATH" QUICKBOX_TEST_DISPOSABLE=1 \
+            npm_config_cache="$npm_config_cache" python3 tests/deployment/run.py --systemd --phase install
+      - name: Unit settings, automatic restart and port recovery
+        run: |
+          python3 tests/deployment/report.py lifecycle sudo env PATH="$PATH" QUICKBOX_TEST_DISPOSABLE=1 \
+            npm_config_cache="$npm_config_cache" python3 tests/deployment/run.py --systemd --phase lifecycle
+      - name: Detached update across service restart
+        run: |
+          python3 tests/deployment/report.py mutex sudo env PATH="$PATH" QUICKBOX_TEST_DISPOSABLE=1 \
+            npm_config_cache="$npm_config_cache" python3 tests/deployment/run.py --systemd --phase mutex
+      - name: Collect diagnostics and stop services
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/deployment-logs"
+          set -o pipefail
+          python3 tests/deployment/report.py cleanup sudo env PATH="$PATH" QUICKBOX_TEST_DISPOSABLE=1 \
+            python3 tests/deployment/run.py --systemd --phase cleanup 2>&1 | tee "$RUNNER_TEMP/deployment-logs/systemd.log"
+      - name: Acceptance summary
+        if: always()
+        run: python3 tests/deployment/report.py --summary
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: systemd-deployment-diagnostics
+          path: ${{ runner.temp }}/deployment-logs
+
+  authentication:
+    name: Authentication
+    needs: prepare-image
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    env:
+      QUICKBOX_ACCEPTANCE_SUITE: authentication
+      QUICKBOX_ACCEPTANCE_RESULTS: /tmp/quickbox-authentication-results.json
+      QUICKBOX_AUTH_FIXTURES: /tmp/quickbox-auth-fixtures
+      QUICKBOX_AUTH_PROJECT: quickbox-auth-acceptance
+      QUICKBOX_AUTH_ARTIFACTS: /tmp/quickbox-auth-artifacts
+      QUICKBOX_AUTH_SKIP_BUILD: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - uses: actions/download-artifact@v7
+        with:
+          name: dashboard-deployment-image
+          path: ${{ runner.temp }}
+      - name: Cache authentication browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: auth-browsers-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
+          restore-keys: chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
+      - name: Prepare browser, application and identity providers
+        run: python3 tests/deployment/report.py prepare bash tests/deployment/prepare.sh authentication
+      - name: Basic Auth access and transports
+        run: python3 tests/deployment/report.py basic bash tests/deployment/run-auth.sh --provider basic
+      - name: WebKit Basic Auth login, refresh and reconnect
+        env:
+          QUICKBOX_AUTH_BROWSER: webkit
+        run: python3 tests/deployment/report.py basic-webkit bash tests/deployment/run-auth.sh --provider basic
+      - name: Authelia login, access and session rejection
+        run: python3 tests/deployment/report.py authelia bash tests/deployment/run-auth.sh --provider authelia
+      - name: Vouch login, access and session rejection
+        run: python3 tests/deployment/report.py vouch bash tests/deployment/run-auth.sh --provider vouch
+      - name: Collect diagnostics and remove authentication environment
+        if: always()
+        run: python3 tests/deployment/report.py cleanup bash tests/deployment/run-auth.sh --cleanup
+      - name: Acceptance summary
+        if: always()
+        run: python3 tests/deployment/report.py --summary
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: authentication-browser-diagnostics
+          path: /tmp/quickbox-auth-artifacts

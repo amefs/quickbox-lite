@@ -1,38 +1,165 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Dashboard update step for qbUpdate. Every step reports its own failure so the
+# caller never reports "update finished" after a partial deployment.
 
-function _execute() {
-	($1 >>"${OUTTO}" 2>&1)
-}
-function _print() {
-	printf "${_norm}%s${_norm}\n" "$@"
-	printf "%s\n" "$@" >>"${OUTTO}"
-}
-function _info() {
-	printf "${_cyan}➜ %s${_norm}\n" "$@"
-	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
-}
-function _success() {
-	printf "${_green}✓ %s${_norm}\n" "$@"
-	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
-}
-function _warning() {
-	printf "${_tan}⚠ %s${_norm}\n" "$@"
-	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
-}
-function _error() {
-	printf "${_red}✗ %s${_norm}\n" "$@"
-	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+_qb_lib_dir="${QB_UPDATE_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)}"
+# shellcheck source=packages/system/update/qbUpdateLib
+# shellcheck disable=SC1090,SC1091
+source "${_qb_lib_dir}/qbUpdateLib"
+source "${_qb_lib_dir}/qbUpdateRecovery"
+
+if ! _qbSourceLib qbUpdateBackup; then
+	printf '✗ Update backup helper is missing: %s\n' "${_qb_lib_dir}/qbUpdateBackup" >&2
+	return 1
+fi
+
+# Trees carried over from the live dashboard; everything else is release content.
+QB_DASHBOARD_STATE_PATHS=(db custom fileshare skins)
+
+# Build a full replacement in the staging path: release files first, then the
+# state trees above. Only the staging path is modified.
+function _dashboardPrepareStage() {
+	local live="$1" stage="$2" source="$3" runtime_file lap path
+	lap=$(_qbNowMs)
+	if [[ ! -d "${source}" ]]; then
+		_error "Dashboard release source is missing: ${source}"
+		return 1
+	fi
+	rm -rf "${stage}" || return 1
+	mkdir -p "${stage}" || return 1
+	rsync -a "${source%/}/" "${stage}/" || return 1
+	for path in "${QB_DASHBOARD_STATE_PATHS[@]}"; do
+		[[ -d "${live}/${path}" ]] || continue
+		mkdir -p "${stage}/${path}" || return 1
+		# Log files are excluded here and hardlinked below.
+		rsync -a --exclude=output.log --exclude=output.log.epoch \
+			--exclude=output.log.generation \
+			"${live}/${path}/" "${stage}/${path}/" || return 1
+	done
+	install -d -m 0700 -o www-data -g www-data "${stage}/db/tmp" || return 1
+	_qbReportLap "dashboard stage files (rsync)" "${lap}"
+	lap=$(_qbNowMs)
+	(cd "${stage}/ws" && npm ci --production >>"${OUTTO}" 2>&1) || return 1
+	_qbReportLap "dashboard dependencies (npm ci)" "${lap}"
+	# Hardlink runtime files so open descriptors follow the activated tree;
+	# requires the same filesystem.
+	for runtime_file in output.log output.log.epoch interface.txt master.txt update.pid update.state; do
+		if [[ -f "${live}/db/${runtime_file}" ]]; then
+			rm -f "${stage}/db/${runtime_file}" || return 1
+			ln "${live}/db/${runtime_file}" "${stage}/db/${runtime_file}" || return 1
+		fi
+	done
+	# Drop the pre-rename marker even when the source tree has no db/.
+	rm -f "${stage}/db/output.log.generation" || return 1
+	return 0
 }
 
 function _updatedashboard() {
 	_info "Updating QuickBox dashboard..."
-	# Update dashboard config
-	cd /srv/dashboard || exit 1
-	_execute "rsync -aP --delete --exclude=output.log  --exclude=interface.txt --exclude=master.txt --exclude=.smoked.lock --exclude=.defaulted.lock --exclude=custom.css ${local_setup_dashboard}* /srv/dashboard"
-	username=$(cat /root/.admin.info | cut -d: -f1)
-	\cp -f ${local_setup_template}nginx/dashboard.conf.template /etc/nginx/apps/dashboard.conf
-	python3 - "/etc/nginx/apps/dashboard.conf" "/etc/htpasswd.d/htpasswd.${username}" <<'PYEOF'
+
+	local backup_root backup_dir required lap
+	local -a backup_paths=(
+		/etc/nginx/apps/dashboard.conf
+		/etc/nginx/snippets/proxy.conf
+		/etc/nginx/snippets/quickbox-ws-gateway.conf
+		/etc/systemd/system/quickbox-ws.service
+		/etc/quickbox/ws.secret
+		/srv/dashboard/db/ws.secret
+		/srv/dashboard/db/nginx-ws-gateway.conf
+	)
+
+	# qbUpdate passes one complete set; standalone runs fall back to a local copy.
+	backup_dir="${update_backup_dir:-}"
+	if [[ -n "${backup_dir}" ]]; then
+		for required in "${backup_paths[@]}"; do
+			if ! _qbBackupHasPath "${backup_dir}" "${required}"; then
+				_error "Shared update backup misses ${required}: ${backup_dir}"
+				return 1
+			fi
+		done
+	else
+		backup_root=$(_qbBackupRoot) || return 1
+		backup_dir=$(_qbBackupUniqueDir "${backup_root}/$(date +%Y%m%d-%H%M%S)-dashboard")
+		if ! _qbBackupCreate "${backup_dir}" "${backup_paths[@]}"; then
+			_error "Failed to create a rollback backup"
+			return 1
+		fi
+		_info "Rollback backup: ${backup_dir}"
+	fi
+	# Build the full replacement away from the live tree. Preserve runtime state,
+	# but keep the previous executable payload and dependencies until health passes.
+	local stage_dir previous_dir activated=0
+	stage_dir=$(mktemp -d /srv/.dashboard-stage.XXXXXX) || return 1
+	previous_dir="${stage_dir}.previous"
+	_qbRecoveryWrite stage "${stage_dir}" || { rm -rf "${stage_dir}"; return 1; }
+	if ! _dashboardPrepareStage /srv/dashboard "${stage_dir}" "${local_setup_dashboard}"; then
+		rm -rf "${stage_dir}"; _error "Failed to prepare staged dashboard files and dependencies"; return 1
+	fi
+
+	_restoreDashboardRelease() {
+		local failed=0
+		if [[ ${activated} -eq 1 ]]; then
+			if _qbRunHelper "Dashboard rollback: cannot move the failed release to ${stage_dir}" mv /srv/dashboard "${stage_dir}" &&
+				_qbRunHelper "Dashboard rollback: cannot restore ${previous_dir}" mv "${previous_dir}" /srv/dashboard; then
+				activated=0
+			else
+				_error "Cannot restore dashboard tree; retain ${previous_dir} and ${stage_dir} for recovery"
+				return 1
+			fi
+		fi
+		_qbBackupRestorePath "${backup_dir}" /etc/nginx/apps/dashboard.conf || failed=1
+		_qbBackupRestorePath "${backup_dir}" /etc/nginx/snippets/proxy.conf || failed=1
+		_qbBackupRestorePath "${backup_dir}" /etc/nginx/snippets/quickbox-ws-gateway.conf || failed=1
+		_qbBackupRestorePath "${backup_dir}" /etc/systemd/system/quickbox-ws.service || failed=1
+		_qbBackupRestorePath "${backup_dir}" /etc/quickbox/ws.secret || failed=1
+		_qbBackupRestorePath "${backup_dir}" /srv/dashboard/db/ws.secret || failed=1
+		_qbBackupRestorePath "${backup_dir}" /srv/dashboard/db/nginx-ws-gateway.conf || failed=1
+		if [[ ${failed} -eq 0 ]]; then
+			# Skip activation unless every paired file was restored.
+			if _qbRunHelper "Dashboard rollback: systemctl daemon-reload failed" systemctl daemon-reload &&
+				_qbRunHelper "Dashboard rollback: nginx configuration test failed" nginx -t; then
+				_qbRunHelper "Dashboard rollback: quickbox-ws restart failed" systemctl restart quickbox-ws.service &&
+					_qbRunHelper "Dashboard rollback: quickbox-ws is not active" systemctl is-active --quiet quickbox-ws.service &&
+					_qbRunHelper "Dashboard rollback: nginx reload failed" nginx -s reload || failed=1
+			else
+				failed=1
+			fi
+		fi
+		if [[ ${failed} -eq 0 ]]; then
+			_warning "Dashboard rollback succeeded"
+		else
+			_error "Dashboard rollback incomplete; inspect ${backup_dir} and update log"
+		fi
+		return "${failed}"
+	}
+
+	# The shared nginx proxy snippet forwards the Host header.
+	lap=$(_qbNowMs)
+	if ! _qbRunHelper "Failed to migrate the nginx proxy snippet" \
+		bash /usr/local/bin/quickbox/system/auxiliary/qbNginxProxyMigrate \
+		--template "${local_setup_template}nginx/proxy.conf"; then
+		_restoreDashboardRelease; return 1
+	fi
+	_qbReportLap "nginx proxy snippet" "${lap}"
+
+	# Move the gateway secret and injected header into root-managed paths.
+	lap=$(_qbNowMs)
+	if ! _qbRunHelper "Failed to prepare the WS gateway secret" \
+		bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureWsGateway; then
+		_restoreDashboardRelease; return 1
+	fi
+	_qbReportLap "ws gateway secret" "${lap}"
+
+	# Dashboard vhost (user authentication, no loopback bypass).
+	lap=$(_qbNowMs)
+	if ! \cp -f "${local_setup_template}nginx/dashboard.conf.template" /etc/nginx/apps/dashboard.conf; then
+		_error "Failed to install the dashboard nginx config"
+		_restoreDashboardRelease; return 1
+	fi
+	username=$(cut -d: -f1 < /root/.admin.info)
+	if ! python3 - "/etc/nginx/apps/dashboard.conf" "/etc/htpasswd.d/htpasswd.${username}" <<'PYEOF'
 import re
 import subprocess
 import sys
@@ -67,7 +194,19 @@ while i < len(lines):
 	out.append(line)
 	i += 1
 
-	if re.match(r"\s*deny\s+all;", line):
+	# New template marker: replaces the copied basic auth block.
+	if re.match(r"\s*#\s*qb-auth-begin\s*$", line):
+		while i < len(lines) and re.match(r"\s*auth_basic(?:_user_file)?\b", lines[i]):
+			i += 1
+		if location_path == "/db/":
+			out.extend(plain_auth)
+		else:
+			out.extend(proxy_auth)
+		continue
+
+	# Legacy template: the auth block followed "deny all;" directly.
+	if (re.match(r"\s*deny\s+all;", line) and i < len(lines)
+		and re.match(r"\s*auth_basic(?:_user_file)?\b", lines[i])):
 		while i < len(lines) and re.match(r"\s*auth_basic(?:_user_file)?\b", lines[i]):
 			i += 1
 		if location_path == "/db/":
@@ -78,32 +217,149 @@ while i < len(lines):
 with open(path, "w", encoding="utf-8") as f:
 	f.writelines(out)
 PYEOF
-	cd /srv/dashboard/ws || exit 1
-	_execute "npm ci --production"
-	\cp -f ${local_setup_template}systemd/quickbox-ws.service.template /etc/systemd/system/quickbox-ws.service
-	_execute "systemctl daemon-reload"
-	_execute "systemctl enable quickbox-ws.service"
-	_execute "systemctl restart quickbox-ws.service"
-	touch /install/.quickbox-ws.lock
+	then
+		_error "Failed to apply the dashboard authentication config"
+		_restoreDashboardRelease; return 1
+	fi
+	if ! grep -qE 'auth_(basic|request)' /etc/nginx/apps/dashboard.conf; then
+		_error "The dashboard config has no user authentication directive"
+		_restoreDashboardRelease; return 1
+	fi
+	_qbReportLap "dashboard vhost and auth" "${lap}"
+
+	# Root owns code and policy; www-data owns the state directories only.
+	lap=$(_qbNowMs)
+	if ! chown -R root:root "${stage_dir}"; then
+		_error "Failed to reset dashboard ownership"
+		_restoreDashboardRelease; return 1
+	fi
+	if ! chown -R www-data:www-data "${stage_dir}/db" "${stage_dir}/skins"; then
+		_error "Failed to grant the service user its runtime directories"
+		_restoreDashboardRelease; return 1
+	fi
+	_qbReportLap "ownership" "${lap}"
+
+	# Swap directory names on the same filesystem and keep the previous tree for
+	# rollback.
+	lap=$(_qbNowMs)
+	if ! mv /srv/dashboard "${previous_dir}" || ! mv "${stage_dir}" /srv/dashboard; then
+		[[ -d /srv/dashboard ]] || mv "${previous_dir}" /srv/dashboard
+		_error "Failed to activate staged dashboard"
+		_restoreDashboardRelease; return 1
+	fi
+	activated=1
+	_qbReportLap "activation" "${lap}"
+
+	# Service unit and restart.
+	lap=$(_qbNowMs)
+	if ! \cp -f "${local_setup_template}systemd/quickbox-ws.service.template" /etc/systemd/system/quickbox-ws.service; then
+		_error "Failed to install the quickbox-ws service unit"
+		_restoreDashboardRelease; return 1
+	fi
+	if ! _execute "systemctl daemon-reload"; then
+		_error "systemctl daemon-reload failed"
+		_restoreDashboardRelease; return 1
+	fi
+	if ! _execute "systemctl enable quickbox-ws.service"; then
+		_error "Failed to enable quickbox-ws.service"
+		_restoreDashboardRelease; return 1
+	fi
+
+	# Validate the nginx configuration before restarting anything.
+	if ! _execute "nginx -t"; then
+		_error "nginx configuration test failed"
+		_restoreDashboardRelease; return 1
+	fi
+
+	if ! _execute "systemctl restart quickbox-ws.service"; then
+		_error "Failed to restart quickbox-ws.service"
+		_restoreDashboardRelease
+		return 1
+	fi
+
+	if ! _execute "systemctl is-active --quiet quickbox-ws.service"; then
+		_error "quickbox-ws.service is not running after the restart"
+		_restoreDashboardRelease
+		return 1
+	fi
+	_qbReportLap "service unit and restart" "${lap}"
+
+	lap=$(_qbNowMs)
+	if ! _execute "nginx -s reload"; then
+		_error "nginx reload failed"
+		_restoreDashboardRelease
+		return 1
+	fi
 
 	if [[ -f /srv/dashboard/db/.smoked.lock ]]; then
-		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"
+		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked" || { _restoreDashboardRelease; return 1; }
 	elif [[ -f /srv/dashboard/db/.defaulted.lock ]]; then
-		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-defaulted"
+		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-defaulted" || { _restoreDashboardRelease; return 1; }
 	else
-		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked"
+		_execute "bash /usr/local/bin/quickbox/system/theme/themeSelect-smoked" || { _restoreDashboardRelease; return 1; }
 	fi
-	chown -R www-data:www-data /srv/dashboard
-	_execute "nginx -s reload"
+	_qbReportLap "nginx reload and theme" "${lap}"
+
+	# Probe backend HTTP, Socket.IO and nginx readiness. Individual probes only
+	# print when they fail or --verbose is set.
+	lap=$(_qbNowMs)
+	local health_output health_deadline=$((SECONDS + 5)) transport_retry=0
+	local -a health_args=(--expect-proxy)
+	if _qbIsVerbose; then
+		health_args+=(--verbose)
+	fi
+	# Allow a short activation retry window for the service and nginx readiness.
+	while ! health_output=$(bash /usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck "${health_args[@]}" 2>&1); do
+		if (( SECONDS >= health_deadline )); then
+			# A timed-out local connection can consume the entire retry window.
+			# Give the service one more full probe before rolling back.
+			if [[ ${transport_retry} -eq 0 && "${health_output}" == *"failed: 000"* ]]; then
+				transport_retry=1
+				sleep 1
+				continue
+			fi
+			printf '%s\n' "${health_output}" >>"${OUTTO}"
+			printf '%s\n' "${health_output}" >&2
+			_error "Dashboard health check failed"
+			_restoreDashboardRelease
+			_warning "Rollback backup kept at ${backup_dir}"
+			return 1
+		fi
+		sleep 0.1
+	done
+	printf '%s\n' "${health_output}" >>"${OUTTO}"
+	printf '%s\n' "${health_output}" >&2
+	_qbReportLap "health check" "${lap}"
+	# The active release has passed its health check.
+	if [[ ${QB_RECOVERY_ACTIVE:-0} != 1 ]]; then
+		rm -rf "${previous_dir}" "${stage_dir}"
+	fi
+
+	# Remove the legacy gateway copies; nginx and the runtime no longer read them.
+	lap=$(_qbNowMs)
+	_qbRunHelper "Failed to clean up the legacy gateway files" \
+		bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureWsGateway --cleanup-legacy || true
+	_qbReportLap "legacy gateway cleanup" "${lap}"
+
+	touch /install/.quickbox-ws.lock
 	_success "QuickBox dashboard updated"
+	return 0
 }
 
+# Non-blocking: a language failure falls back to English and only warns.
 function _updatelanguage() {
 	_info "Updating QuickBox language..."
-	dashlang=$(find /install -type f | grep -e "lang.*.lock" | cut -d "." -f 2)
-	if ! bash /usr/local/bin/quickbox/system/box lang "$dashlang"; then
+	local box_cli="${QUICKBOX_BOX_CLI:-/usr/local/bin/quickbox/system/box}"
+	local dashlang=""
+	# The language lock records the selected dashboard language.
+	dashlang=$(find /install -type f 2>/dev/null | grep -e "lang.*.lock" | cut -d "." -f 2 || true)
+	if ! bash "${box_cli}" lang "$dashlang"; then
 		_warning "Failed to update language: $dashlang, fallback to en"
-		bash /usr/local/bin/quickbox/system/box lang en
+		if ! bash "${box_cli}" lang en; then
+			_warning "Failed to update the dashboard language; the dashboard keeps its current language"
+			return 0
+		fi
 	fi
 	_success "QuickBox language updated"
+	return 0
 }

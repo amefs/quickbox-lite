@@ -20,7 +20,7 @@ function _removeplugin-getdir() {
 	username=$(whoami)
 	rutorrent="/srv/rutorrent/"
 	echo "Uninstalling the getdir plugin ... " >>"${OUTTO}" 2>&1
-	PLUGIN="getdir"
+	PLUGIN="_getdir"
 	for i in $PLUGIN; do
 		rm -rf "${rutorrent}plugins/$i"
 	done

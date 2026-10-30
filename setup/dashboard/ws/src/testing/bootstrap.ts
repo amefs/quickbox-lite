@@ -25,12 +25,25 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
     const { getActiveProfile } = require("./mock-adapter") as {
         getActiveProfile: () => import("./mock-profiles").MockProfile;
     };
+    const { mockVnstatInterface } = require("./mock-vnstat") as {
+        mockVnstatInterface: (filePath: string) => string | undefined;
+    };
     const getPrimaryInterface = () => getActiveProfile().networkInterfaces[0]?.iface ?? "eth0";
 
     // ── systeminformation ──────────────────────────────────
 
     si.mem = async () => {
         return getActiveProfile().memory;
+    };
+
+    si.cpu = async () => {
+        const profile = getActiveProfile();
+        return {
+            brand: profile.cpuModel,
+            manufacturer: "Intel",
+            cores: profile.cpuCount,
+            speed: 2.4,
+        };
     };
 
     si.processes = async () => {
@@ -41,13 +54,13 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
             blocked:  0,
             sleeping: 0,
             unknown:  0,
-            list: p.processes.map((proc: { pid: number; name: string; cpu: number; mem: number; user: string }) => ({
+            list: p.processes.map((proc: { pid: number; name: string; cpu: number; mem: number; user: string; params?: string }) => ({
                 pid: proc.pid, parentPid: 1,
                 name: proc.name, cpu: proc.cpu, cpuu: proc.cpu, cpus: 0,
                 mem: proc.mem, priority: 20, memVsz: 0, memRss: 0,
                 nice: 0, started: "2026-01-01 00:00:00", state: "running",
                 tty: "", user: proc.user, command: proc.name,
-                params: "", path: `/usr/bin/${proc.name}`,
+                params: proc.params ?? "", path: `/usr/bin/${proc.name}`,
             })),
         };
     };
@@ -98,6 +111,8 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
 
     const origExistsSync   = fs.existsSync.bind(fs);
     const origReadFileSync = fs.readFileSync.bind(fs);
+    const origReaddirSync  = fs.readdirSync.bind(fs);
+    const MOCK_OPERATION_PID = "4242";
 
     fs.existsSync = (filePath: unknown): boolean => {
         if (typeof filePath !== "string") {
@@ -124,9 +139,9 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         }
 
         // Vnstat dump files
-        if (filePath.startsWith("./dumps/vnstat_dump_")) {
-            const iface = filePath.replace("./dumps/vnstat_dump_", "");
-            return p.vnstatData?.[iface] !== undefined;
+        const vnstatIface = mockVnstatInterface(filePath);
+        if (vnstatIface !== undefined) {
+            return p.vnstatData?.[vnstatIface] !== undefined;
         }
 
         // Config files that the mock provides in-memory
@@ -140,9 +155,40 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         return origExistsSync(filePath);
     };
 
+    // /proc is faked just far enough for the running-task widget: one process
+    // whose cmdline is the lifecycle script of the active profile, which is how
+    // production tells an install from a removal.
+    fs.readdirSync = (dir: unknown, options?: unknown): unknown => {
+        if (dir === "/proc") {
+            return getActiveProfile().installLockOperation ? [MOCK_OPERATION_PID] : [];
+        }
+        return origReaddirSync(dir, options);
+    };
+
     fs.readFileSync = (filePath: unknown, options?: unknown): unknown => {
         if (typeof filePath === "string") {
             const p = getActiveProfile();
+
+            if (filePath === `/proc/${MOCK_OPERATION_PID}/cmdline`) {
+                const operation = p.installLockOperation;
+                if (operation) {
+                    return `/bin/bash\0/usr/local/bin/quickbox/package/${operation}/${operation}package-jellyfin\0`;
+                }
+            }
+
+            if (filePath === "/install/.debug.lock" && p.branch) {
+                return p.branch + "\n";
+            }
+
+            // The install lock carries the running operation's title.
+            if (filePath === "/install/.install.lock") {
+                if (p.lockFiles.includes("/install/.install.lock")) {
+                    return `${p.installLockTitle ?? "QuickBox"}\n`;
+                }
+                const missing: NodeJS.ErrnoException = new Error(`ENOENT: no such file, open '${filePath}'`);
+                missing.code = "ENOENT";
+                throw missing;
+            }
 
             if (filePath === "/srv/dashboard/db/master.txt") {
                 return p.username + "\n";
@@ -153,9 +199,9 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
             }
 
             // Vnstat dump files
-            if (filePath.startsWith("./dumps/vnstat_dump_")) {
-                const iface = filePath.replace("./dumps/vnstat_dump_", "");
-                const data = p.vnstatData?.[iface];
+            const vnstatIface = mockVnstatInterface(filePath);
+            if (vnstatIface !== undefined) {
+                const data = p.vnstatData?.[vnstatIface];
                 if (data) {
                     return data;
                 }

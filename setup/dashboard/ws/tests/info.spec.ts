@@ -4,7 +4,7 @@
 import "mocha";
 import { expect } from "chai";
 
-import { packageMap, packageList, serviceMap, getPackage, Service } from "../src/info";
+import { packageMap, packageList, serviceMap, getPackage } from "../src/info";
 
 describe("info", () => {
     describe("packageMap", () => {
@@ -35,12 +35,17 @@ describe("info", () => {
     });
 
     describe("serviceMap", () => {
-        it("should contain services from packages with services defined", () => {
-            // At minimum, irssi should be in serviceMap from autodlirssi package
-            const hasServices = packageList.some((pkg: Service) => pkg.services !== undefined);
-            if (hasServices) {
-                expect(serviceMap.size).to.be.greaterThan(0);
+        it("should contain every service declared by a package", () => {
+            const declared = new Set<string>();
+            for (const pkg of packageList) {
+                for (const key of Object.keys(pkg.services ?? {})) {
+                    declared.add(key);
+                }
             }
+            // Guard the fixture: an empty declaration would make the equality
+            // below pass without checking anything.
+            expect(declared.size).to.be.greaterThan(0);
+            expect(serviceMap.size).to.equal(declared.size);
         });
 
         it("should have process or systemdUnit and name in each service", () => {
@@ -74,6 +79,9 @@ describe("info", () => {
     // A6: replaceAll — no field in the loaded info should still contain raw "$username$" placeholder
     describe("username placeholder replacement", () => {
         it("should replace all $username$ placeholders in lockfile fields", () => {
+            // At least one lockfile must carry the placeholder, otherwise the
+            // loop below proves nothing about the replacement.
+            expect(packageList.filter((pkg) => pkg.lockfile).length).to.be.greaterThan(1);
             for (const pkg of packageList) {
                 if (pkg.lockfile) {
                     expect(pkg.lockfile).to.not.include("$username$",
@@ -90,6 +98,8 @@ describe("info", () => {
         });
 
         it("should replace all $username$ placeholders in service tooltips fields", () => {
+            const withTooltips = Array.from(serviceMap.values()).filter((service) => service.tooltips);
+            expect(withTooltips.length).to.be.greaterThan(0);
             for (const [key, service] of serviceMap) {
                 if (service.tooltips) {
                     expect(service.tooltips).to.not.include("$username$",
