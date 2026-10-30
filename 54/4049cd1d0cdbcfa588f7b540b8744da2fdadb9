@@ -1,0 +1,29 @@
+CHANGELOG.md
+  s_5f4238d90589d5::t_ce48c943af5708 1-31
+e2e/tests/dashboard.spec.ts
+  s_5f4238d90589d5::t_a2c13ab7e45520 93-97,125-129,133
+packages/system/update/qbUpdateService
+  s_5f4238d90589d5::t_c34326739af577 60-90,110
+setup/dashboard/ws/src/testing/bootstrap.ts
+  s_5f4238d90589d5::t_08ce4526f85d7d 28-30,142-144,202-204
+setup/dashboard/ws/src/testing/mock-vnstat.ts
+  s_5f4238d90589d5::t_4f5f72abffb6b6 1-18
+setup/dashboard/ws/tests/testing/mock-vnstat.spec.ts
+  s_5f4238d90589d5::t_4bc28485d0c985 1-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "544049cd1d0cdbcfa588f7b540b8744da2fdadb9",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
