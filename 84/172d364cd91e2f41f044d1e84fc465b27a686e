@@ -1,0 +1,45 @@
+setup/dashboard/lang/lang_de.json
+  s_2ad0672a336b3b::t_08c9c1a1be39f1 132-133
+  s_2ad0672a336b3b::t_ec5d7856774d03 222-223
+setup/dashboard/js/dashboard.js
+  s_2ad0672a336b3b::t_ec5d7856774d03 1253-1255,1286-1304,1309
+setup/dashboard/ws/dist/server.js
+  s_2ad0672a336b3b::t_bb2285c52784d1 5
+  s_2ad0672a336b3b::t_b8bd967fe6b830 12-13
+setup/dashboard/lang/lang_en.json
+  s_2ad0672a336b3b::t_ec5d7856774d03 224-225
+setup/dashboard/lang/lang_fr.json
+  s_2ad0672a336b3b::t_ec5d7856774d03 222-223
+  s_2ad0672a336b3b::t_08c9c1a1be39f1 132-133
+setup/dashboard/lang/lang_zh-Hans-CN.json
+  s_2ad0672a336b3b::t_ec5d7856774d03 224-225
+setup/dashboard/lang/lang_da.json
+  s_2ad0672a336b3b::t_08c9c1a1be39f1 132-133
+  s_2ad0672a336b3b::t_ec5d7856774d03 221-222
+setup/dashboard/lang/lang_es.json
+  s_2ad0672a336b3b::t_08c9c1a1be39f1 132-133
+  s_2ad0672a336b3b::t_ec5d7856774d03 222-223
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_2ad0672a336b3b::t_fedf59cff90c35 76-89,234
+  s_2ad0672a336b3b::t_ec5d7856774d03 435-437
+e2e/tests/dashboard.spec.ts
+  s_2ad0672a336b3b::t_6aa50212ae35e3 43-45,49-50,53
+  s_2ad0672a336b3b::t_badcb6320843a8 48,54,56-75,77-93,107
+  s_2ad0672a336b3b::t_78bcde64454fae 55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "84172d364cd91e2f41f044d1e84fc465b27a686e",
+  "prompts": {},
+  "sessions": {
+    "s_2ad0672a336b3b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18b02-249a-74e0-80a1-d1ccac90897d",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
