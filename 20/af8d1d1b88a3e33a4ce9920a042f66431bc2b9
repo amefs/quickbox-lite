@@ -1,0 +1,53 @@
+.github/workflows/deployment.yml
+  s_5f4238d90589d5::t_dbe37a1f10f9ee 81
+.github/workflows/linter.yml
+  s_5f4238d90589d5::t_908e8bb194558c 44-46,49-51
+AGENTS.md
+  s_5f4238d90589d5::t_48c2674f2ff922 14,25-47,57,60
+packages/system/update/qbUpdateRevert
+  s_5f4238d90589d5::t_229c66604f76fe 32-33
+setup/dashboard/lang/lang_da.json
+  s_5f4238d90589d5::t_dc115df7a8cfee 3-5,24,27,30-31,34-37,56,67,69,72,75,79,87,103-104,123-124,138,148-149,151-152,154-155,168,177,179-180,183,192,194-195,201,207,213-224
+setup/dashboard/lang/lang_de.json
+  s_5f4238d90589d5::t_83311ab96656fd 24,30-31,34,36-37,66-67,72,75,104,110,130,155,168,177,179,183,191,194,199,201,213-224
+setup/dashboard/lang/lang_es.json
+  s_5f4238d90589d5::t_d44dd994b43afb 3-5,24,27,30-31,56,68-69,75,79,87,103,124,138,154-155,168,177,179-180,183,194,201,213-224
+setup/dashboard/lang/lang_fr.json
+  s_5f4238d90589d5::t_2674bc0d9c7347 3-5,24,27,30-31,46,56,62,69,75,79,87,103,118,124,138,154-155,168,177,179-180,183,194,199,201-202,213-224
+setup/dashboard/ws/build/vite.config.mjs
+  s_5f4238d90589d5::t_5bece05ad502d4 8,16-66,70,83-90
+setup/dashboard/ws/dist/i18n.js
+  s_5f4238d90589d5::t_8af966e9f93c6b 1-25
+setup/dashboard/ws/dist/rolldown-runtime.js
+  s_5f4238d90589d5::t_b7ea2b116e0526 1
+setup/dashboard/ws/dist/server.js
+  s_5f4238d90589d5::t_843cc3809e6b5d 1-18
+setup/dashboard/ws/dist/widgets.js
+  s_5f4238d90589d5::t_6eb4fe90531618 1-27
+setup/dashboard/ws/src/i18n.ts
+  s_5f4238d90589d5::t_574a0e7c6f3e02 13,26
+setup/dashboard/ws/tests/i18n.spec.ts
+  s_5f4238d90589d5::t_af3bb9102bbbd3 1-34
+tests/deployment/prepare.sh
+  s_5f4238d90589d5::t_2149124d42925e 25-26
+tests/operations/test_update_recovery.py
+  s_5f4238d90589d5::t_33e955dd39c545 127,141-142
+tests/progress/test_update_timing.py
+  s_5f4238d90589d5::t_795a8b564523f3 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "20af8d1d1b88a3e33a4ce9920a042f66431bc2b9",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
