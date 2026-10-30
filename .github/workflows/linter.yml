@@ -41,15 +41,14 @@ jobs:
       run: |
           cd setup/dashboard/ws || exit 1
           npm run build
-          if git diff --quiet -- dist/server.js; then
-            echo "dist/server.js is up to date."
+          NODE_ENV=test node -e "require('./dist/server.js'); process.exit(0)"
+          if git diff --quiet -- dist && [ -z "$(git ls-files --others --exclude-standard -- dist)" ]; then
+            echo "Dashboard build artifacts are up to date."
             exit 0
           fi
-          echo "::error file=setup/dashboard/ws/dist/server.js::dist/server.js is out of date: rebuild it and commit the artifact."
-          git diff --numstat -- dist/server.js
-          echo "committed size: $(git show :dist/server.js | wc -c | tr -d ' ') bytes"
-          echo "rebuilt size:   $(wc -c < dist/server.js | tr -d ' ') bytes"
-          echo "Run 'npm run build' in setup/dashboard/ws and commit the result." >&2
+          echo "::error::Dashboard build artifacts are out of date. Run 'npm run build' in setup/dashboard/ws and commit all changes in dist/."
+          git status --short -- dist
+          git diff --stat -- dist
           exit 1
 
   es-linter-for-js:

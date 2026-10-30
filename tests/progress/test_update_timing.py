@@ -19,7 +19,7 @@ def driver(tmp_path):
             "/srv/dashboard/db/output.log", str(tmp_path / "out.log")
         ),
     )
-    for name in ("qbUpdateTimer", "qbUpdateStep", "qbUpdateLib"):
+    for name in ("qbUpdateTimer", "qbUpdateStep", "qbUpdateLib", "qbUpdateRecovery"):
         target = root / "update" / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(REPO / "packages/system/update" / name, target)

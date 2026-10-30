@@ -78,7 +78,7 @@ jobs:
           trap 'docker rm "$fixture"' EXIT
           mkdir -p "$RUNNER_TEMP/systemd-inputs"
           docker cp "$fixture:/opt/quickbox-npm-cache" "$RUNNER_TEMP/systemd-inputs/npm-cache"
-          docker cp "$fixture:/opt/quickbox-source/setup/dashboard/ws/dist/server.js" "$RUNNER_TEMP/systemd-inputs/server.js"
+          docker cp "$fixture:/opt/quickbox-source/setup/dashboard/ws/dist" "$RUNNER_TEMP/systemd-inputs/dist"
           tar -czf "$RUNNER_TEMP/systemd-inputs.tar.gz" -C "$RUNNER_TEMP/systemd-inputs" .
       - uses: actions/upload-artifact@v4
         with:

@@ -29,6 +29,8 @@ _qb_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 # shellcheck source=packages/system/update/qbUpdateLib
 # shellcheck disable=SC1090,SC1091
 source "${_qb_lib_dir}/qbUpdateLib"
+# shellcheck source=packages/system/update/qbUpdateRecovery
+# shellcheck disable=SC1090,SC1091
 source "${_qb_lib_dir}/qbUpdateRecovery"
 
 # Initialize the lock path for static analysis; _qbAcquireUpdateLock confirms

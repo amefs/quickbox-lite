@@ -124,6 +124,7 @@ def test_killed_update_keeps_marker_and_blocks_next_update(tmp_path):
         ["bash", "-c", 'source "$1"; _qbRecoveryBegin || exit 1; echo ready; exec sleep 30', "test", str(helper)],
         env=env, stdout=subprocess.PIPE, text=True,
     )
+    assert process.stdout is not None
     try:
         assert process.stdout.readline().strip() == "ready"
         process.kill()
@@ -137,4 +138,5 @@ def test_killed_update_keeps_marker_and_blocks_next_update(tmp_path):
         if process.poll() is None:
             process.kill()
             process.wait()
-        process.stdout.close()
+        if process.stdout is not None:
+            process.stdout.close()

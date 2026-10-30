@@ -22,7 +22,8 @@ systemd)
   mkdir -p "$(dirname "$npm_config_cache")"
   tar -xzf "$RUNNER_TEMP/systemd-inputs.tar.gz" -C "$(dirname "$npm_config_cache")"
   npm ci --offline --no-audit --no-fund --prefix tests/deployment
-  cp "$(dirname "$npm_config_cache")/server.js" setup/dashboard/ws/dist/server.js
+  rm -rf setup/dashboard/ws/dist
+  cp -a "$(dirname "$npm_config_cache")/dist" setup/dashboard/ws/dist
   ;;
 authentication)
   docker load -i "$RUNNER_TEMP/deployment-image.tar.gz"
