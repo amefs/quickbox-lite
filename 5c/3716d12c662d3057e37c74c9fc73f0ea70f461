@@ -1,0 +1,93 @@
+setup/dashboard/lang/lang_da.json
+  s_2ad613a0aaf767::t_a2a6b46c8b1555 34-37,67,69,72,79,87,103-104,123,148-149,151-152,155
+  s_2ad613a0aaf767::t_4780fc0c056d90 168,177,179-180,183
+  s_2ad613a0aaf767::t_f8b2d56ce0c6be 3-5,24,27,30-31,56,75,124,138,154,192,194-195,201,207,213-224
+setup/dashboard/ws/tests/i18n.spec.ts
+  s_2ad613a0aaf767::t_8e95ece317183b 1-15,17-34
+  s_2ad613a0aaf767::t_5f4808d0e37993 16
+setup/dashboard/ws/dist/rolldown-runtime.js
+  s_c66886945c3ab2::t_dae2a19f9f52d8 1
+AGENTS.md
+  s_221bf38e872a59::t_3abcde42234103 40,42-46
+  s_221bf38e872a59::t_d412bd845f7f7f 25-39
+  s_2ad613a0aaf767::t_8e95ece317183b 14
+  s_2ad613a0aaf767::t_15ac6d49d2a3f4 57
+  s_2ad613a0aaf767::t_ae4a82241e7587 60
+  s_221bf38e872a59::t_7cb2576ded6124 41,47
+tests/operations/test_update_recovery.py
+  s_c66886945c3ab2::t_e2fb646ea92222 127,141-142
+tests/progress/test_update_timing.py
+  s_c66886945c3ab2::t_e2fb646ea92222 22
+setup/dashboard/ws/build/vite.config.mjs
+  s_2ad613a0aaf767::t_ae4a82241e7587 16-17
+  s_c66886945c3ab2::t_e76e64790fc17e 62
+  s_c66886945c3ab2::t_e85a2a99314b72 63
+  s_2ad613a0aaf767::t_1a80a57212d610 48,50,59-61,64-66
+  s_c66886945c3ab2::t_6d6c3bd9ac30d8 8,18,20-46
+  s_c66886945c3ab2::t_19fe441d997edd 47,49,52-53,58,70
+  s_2ad613a0aaf767::t_3f3336436fe215 83,85-90
+  s_2ad613a0aaf767::t_d183699a5f34a5 84
+  s_c66886945c3ab2::t_188142ad2610c5 57
+  s_c66886945c3ab2::t_60fc687a72af0e 51,54-56
+  s_c66886945c3ab2::t_d7e8dc19f1a647 19
+setup/dashboard/ws/dist/i18n.js
+  s_c66886945c3ab2::t_3d6b725b6bd0fb 1-25
+setup/dashboard/lang/lang_fr.json
+  s_2ad613a0aaf767::t_4780fc0c056d90 168,177,179-180,183
+  s_2ad613a0aaf767::t_f8b2d56ce0c6be 3-5,24,27,30-31,56,75,124,138,154,194,201,213-224
+  s_2ad613a0aaf767::t_a2a6b46c8b1555 46,62,69,79,87,103,118,155,199,202
+.github/workflows/linter.yml
+  s_2ad613a0aaf767::t_ae4a82241e7587 44-46,49-51
+tests/deployment/prepare.sh
+  s_2ad613a0aaf767::t_ae4a82241e7587 25-26
+packages/system/update/qbUpdateRevert
+  s_c66886945c3ab2::t_e2fb646ea92222 32-33
+setup/dashboard/ws/dist/server.js
+  s_c66886945c3ab2::t_3d6b725b6bd0fb 1-18
+setup/dashboard/lang/lang_de.json
+  s_2ad613a0aaf767::t_a2a6b46c8b1555 34,36-37,66-67,72,104,110,130,155,199
+  s_2ad613a0aaf767::t_4780fc0c056d90 168,177,179,183,191
+  s_2ad613a0aaf767::t_f8b2d56ce0c6be 24,30-31,75,194,201,213-224
+setup/dashboard/ws/dist/widgets.js
+  s_c66886945c3ab2::t_3d6b725b6bd0fb 1-27
+.github/workflows/deployment.yml
+  s_2ad613a0aaf767::t_ae4a82241e7587 81
+setup/dashboard/lang/lang_es.json
+  s_2ad613a0aaf767::t_f8b2d56ce0c6be 3-5,24,27,30-31,56,68,75,124,138,154,194,201,213-224
+  s_2ad613a0aaf767::t_4780fc0c056d90 168,177,179-180,183
+  s_2ad613a0aaf767::t_a2a6b46c8b1555 69,79,87,103,155
+setup/dashboard/ws/src/i18n.ts
+  s_2ad613a0aaf767::t_8e95ece317183b 13,26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5c3716d12c662d3057e37c74c9fc73f0ea70f461",
+  "prompts": {},
+  "sessions": {
+    "s_221bf38e872a59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18cfa-c768-7c82-a5e3-1b35aae1fd48",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_2ad613a0aaf767": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18c30-9d9d-7760-ab2f-8bb8547b94eb",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_c66886945c3ab2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18cc4-2296-7782-90e1-aa16d0b227b1",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}

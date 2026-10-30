@@ -1,0 +1,100 @@
+packages/system/qbUpdate
+  s_2ad0672a336b3b::t_f9b36d47e61105 639,648,704
+  s_2ad0672a336b3b::t_e4932c88cd8fe5 412,415-417,472,475,477-478,480-481,484-490,492-502
+  s_2ad0672a336b3b::t_344bf1861eba85 619-623,628-632
+  s_2ad0672a336b3b::t_648f8f6d347261 692,695-699
+  s_2ad0672a336b3b::t_8f8a06cd028168 593
+  s_2ad0672a336b3b::t_3d6de8691cd173 12,636,644,717-718,741-742,747-748,761-764,768-771,782,788-790,792,806-810
+  s_2ad0672a336b3b::t_b7e35dec1c0089 637,640-643,645,647,649-650,652-657,661-683,689-691,700-702,705-707,710,712,716,783,787
+  s_2ad0672a336b3b::t_46b90f5c5e6672 64,638,646,651,684-688,703,708-709,711,743-746,776
+  s_2ad0672a336b3b::t_122d4669a5c0d0 121-124,658-660,693-694,713-714
+  s_2ad0672a336b3b::t_e7872c730944cc 715,784-786
+tests/progress/test_update_timing.py
+  s_2ad0672a336b3b::t_d228fbe5ee370d 109-120
+packages/system/update/qbUpdateLib
+  s_2ad0672a336b3b::t_3d6de8691cd173 113-119
+tests/repository/fixtures/legacy-qbUpdate
+  s_2ad0672a336b3b::t_158a4b8f6c7c61 1-161
+tests/repository/test_update_handoff.py
+  s_2ad0672a336b3b::t_629b992651bb8a 1-6,9-15,20-38,43-58,60-80,110-118,128,136-137,141-143
+  s_2ad0672a336b3b::t_74119b28212212 18-19,39-42,98-101,121-125,129-132
+  s_2ad0672a336b3b::t_d690ae095b4038 102-104
+  s_2ad0672a336b3b::t_6b6ad1945aa8ac 93-96
+  s_2ad0672a336b3b::t_ab7512f28d3bf0 107-108
+  s_2ad0672a336b3b::t_ff45647fdc8eb3 7-8,105-106,109,119,140
+  s_2ad0672a336b3b::t_7a5b8d9e4fac26 16,81-92
+  s_2ad0672a336b3b::t_02afeff8bc5e55 17,59,97,120,126-127,133-135,138-139
+tests/deployment/run.py
+  s_2ad0672a336b3b::t_95ea4a1853097e 15,270,273-276,278-287,294-303
+packages/system/update/qbUpdateRepo
+  s_2ad0672a336b3b::t_344bf1861eba85 31,36-37
+setup/dashboard/lang/lang_de.json
+  s_2ad0672a336b3b::t_08c9c1a1be39f1 132-133
+  s_2ad0672a336b3b::t_ec5d7856774d03 222-223
+setup/dashboard/js/dashboard.js
+  s_2ad0672a336b3b::t_ec5d7856774d03 1253-1255,1286-1304,1309
+setup/dashboard/ws/dist/server.js
+  s_2ad0672a336b3b::t_bb2285c52784d1 5
+  s_2ad0672a336b3b::t_b8bd967fe6b830 12-13
+setup/dashboard/lang/lang_en.json
+  s_2ad0672a336b3b::t_ec5d7856774d03 224-225
+setup/dashboard/lang/lang_fr.json
+  s_2ad0672a336b3b::t_ec5d7856774d03 222-223
+  s_2ad0672a336b3b::t_08c9c1a1be39f1 132-133
+setup/dashboard/lang/lang_zh-Hans-CN.json
+  s_2ad0672a336b3b::t_ec5d7856774d03 224-225
+setup/dashboard/lang/lang_da.json
+  s_2ad0672a336b3b::t_08c9c1a1be39f1 132-133
+  s_2ad0672a336b3b::t_ec5d7856774d03 221-222
+setup/dashboard/lang/lang_es.json
+  s_2ad0672a336b3b::t_08c9c1a1be39f1 132-133
+  s_2ad0672a336b3b::t_ec5d7856774d03 222-223
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_2ad0672a336b3b::t_fedf59cff90c35 76-89,234
+  s_2ad0672a336b3b::t_ec5d7856774d03 435-437
+e2e/tests/dashboard.spec.ts
+  s_2ad0672a336b3b::t_6aa50212ae35e3 43-45,49-50,53
+  s_2ad0672a336b3b::t_badcb6320843a8 48,54,56-75,77-93,107
+  s_2ad0672a336b3b::t_78bcde64454fae 55
+packages/system/auxiliary/qbWsHealthCheck
+  s_2ad0672a336b3b::t_16969c91d01072 205,220
+packages/system/update/qbUpdateDashboard
+  s_2ad0672a336b3b::t_16969c91d01072 304,312-318
+tests/dashboard/test_ws_health_proxy.py
+  s_2ad0672a336b3b::t_442baebb4d3fa9 146-147
+tests/dashboard/test_dashboard_update.py
+  s_2ad0672a336b3b::t_442baebb4d3fa9 95,100-105,197,214-215,234,248
+packages/system/update/qbUpdateStep
+  s_2ad0672a336b3b::t_16969c91d01072 46
+tests/conftest.py
+  s_2ad0672a336b3b::t_9062ca65f81285 29
+packages/plugin/install/installplugin-chunks
+  s_2ad0672a336b3b::t_9062ca65f81285 33
+tests/lint/test_system_test_entry.py
+  s_2ad0672a336b3b::t_94ffc1c3c8860e 7,45-60
+  s_2ad0672a336b3b::t_9062ca65f81285 3,30-44
+  s_2ad0672a336b3b::t_c970db5d9f597f 61-62
+tests/run.py
+  s_2ad0672a336b3b::t_94ffc1c3c8860e 13-32,38-39
+  s_2ad0672a336b3b::t_d0a64bebced165 40
+packages/plugin/remove/removeplugin-_getdir
+  s_2ad0672a336b3b::t_9062ca65f81285 23
+tests/lint/test_plugin_lifecycle.py
+  s_2ad0672a336b3b::t_8b5edaca3e7523 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "05c896d5caa45fa376fb109b4579794ee9c9ae60",
+  "prompts": {},
+  "sessions": {
+    "s_2ad0672a336b3b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18b02-249a-74e0-80a1-d1ccac90897d",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
