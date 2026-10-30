@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install nodejs
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v5
       with:
         node-version: 24
         cache: npm
@@ -56,10 +56,10 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install nodejs
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v5
       with:
         node-version: 24
         cache: npm
@@ -80,7 +80,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Run linter
       uses: azohra/shell-linter@latest
@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install uv and Python 3.14
         uses: astral-sh/setup-uv@v10.3.2
         with:
@@ -141,7 +141,7 @@ jobs:
           - group: operations
             paths: tests/backups tests/linux tests/operations tests/repository tests/progress tests/deployment/test_acceptance.py
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install uv and Python 3.14
         uses: astral-sh/setup-uv@v10.3.2
         with:
@@ -164,7 +164,7 @@ jobs:
     outputs:
       run: ${{ steps.changes.outputs.run }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Check application and acceptance paths

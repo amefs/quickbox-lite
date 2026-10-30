@@ -14,8 +14,8 @@ jobs:
       QUICKBOX_ACCEPTANCE_SUITE: panel
       QUICKBOX_ACCEPTANCE_RESULTS: /tmp/quickbox-panel-results.json
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -23,7 +23,7 @@ jobs:
             setup/dashboard/ws/package-lock.json
             e2e/package-lock.json
       - name: Cache Chromium
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
@@ -36,7 +36,7 @@ jobs:
       - name: Acceptance summary
         if: always()
         run: python3 tests/deployment/report.py --summary
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: dashboard-panel-browser-report
@@ -51,16 +51,16 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Export pinned upgrade baseline
         run: |
           mkdir -p "$RUNNER_TEMP/baseline"
           git archive "$QUICKBOX_TEST_BASELINE" setup/dashboard setup/templates | tar -xf - -C "$RUNNER_TEMP/baseline"
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
       - name: Prepare system tools, production dependencies and dashboard bundle
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: tests/deployment/Dockerfile
@@ -80,13 +80,13 @@ jobs:
           docker cp "$fixture:/opt/quickbox-npm-cache" "$RUNNER_TEMP/systemd-inputs/npm-cache"
           docker cp "$fixture:/opt/quickbox-source/setup/dashboard/ws/dist" "$RUNNER_TEMP/systemd-inputs/dist"
           tar -czf "$RUNNER_TEMP/systemd-inputs.tar.gz" -C "$RUNNER_TEMP/systemd-inputs" .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: dashboard-deployment-image
           path: ${{ runner.temp }}/deployment-image.tar.gz
           compression-level: 0
           retention-days: 1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: dashboard-systemd-inputs
           path: ${{ runner.temp }}/systemd-inputs.tar.gz
@@ -104,10 +104,10 @@ jobs:
       QUICKBOX_DEPLOYMENT_CONTAINER: quickbox-linux-acceptance
       QUICKBOX_DEPLOYMENT_USE_IMAGE: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: dashboard-deployment-image
           path: ${{ runner.temp }}
@@ -132,7 +132,7 @@ jobs:
       - name: Acceptance summary
         if: always()
         run: python3 tests/deployment/report.py --summary
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: linux-deployment-diagnostics
@@ -148,11 +148,11 @@ jobs:
       QUICKBOX_ACCEPTANCE_RESULTS: /tmp/quickbox-systemd-results.json
       npm_config_cache: /tmp/quickbox-systemd-inputs/npm-cache
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: dashboard-systemd-inputs
           path: ${{ runner.temp }}
@@ -180,7 +180,7 @@ jobs:
       - name: Acceptance summary
         if: always()
         run: python3 tests/deployment/report.py --summary
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: systemd-deployment-diagnostics
@@ -199,18 +199,18 @@ jobs:
       QUICKBOX_AUTH_ARTIFACTS: /tmp/quickbox-auth-artifacts
       QUICKBOX_AUTH_SKIP_BUILD: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: e2e/package-lock.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: dashboard-deployment-image
           path: ${{ runner.temp }}
       - name: Cache authentication browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: auth-browsers-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
@@ -233,7 +233,7 @@ jobs:
       - name: Acceptance summary
         if: always()
         run: python3 tests/deployment/report.py --summary
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: authentication-browser-diagnostics
