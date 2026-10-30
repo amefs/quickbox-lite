@@ -1,0 +1,25 @@
+packages/system/auxiliary/deluge.changeUserpass.py
+  s_5f4238d90589d5::t_751ca093d0ac13 11-19,32-33
+packages/system/auxiliary/fio-bench.py
+  s_5f4238d90589d5::t_67aa78dcc46b09 34-37,76-78,93,147,152,155-159
+scripts/check-system-script-syntax.sh
+  s_5f4238d90589d5::t_4388599e12a476 1-39
+scripts/lint-package-scripts.py
+  s_5f4238d90589d5::t_fdc189e7438e92 178-180,223,235-237,253-255,264,285-288,297-299,310-312,323-325,342-400
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bddd609b49b140a3c5b7bc8dab3bfc646f7dfa64",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
