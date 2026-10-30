@@ -135,6 +135,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - group: setup
+            paths: tests/setup
           - group: dashboard
             paths: tests/runtime tests/dashboard
           - group: operations

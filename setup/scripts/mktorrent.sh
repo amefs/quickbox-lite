@@ -13,4 +13,4 @@
 ################################################################################
 
 logpath=$1
-bash /usr/local/bin/quickbox/package/install/installpackage-mktorrent -l $logpath
+bash /usr/local/bin/quickbox/package/install/installpackage-mktorrent -l "$logpath"

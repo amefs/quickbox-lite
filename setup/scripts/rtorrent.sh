@@ -12,9 +12,18 @@
 #
 ################################################################################
 
+if (($# < 2)); then
+	printf '%s\n' 'Usage: rtorrent.sh LOG_PATH GUI [installer arguments...]' >&2
+	exit 2
+fi
 logpath=$1
 gui=$2
-extra_arg=${*:3}
-bash /usr/local/bin/quickbox/package/install/installpackage-rtorrent -l $logpath $extra_arg
+shift 2
+case "$gui" in
+	rutorrent|flood) ;;
+	*) printf '%s\n' 'GUI must be rutorrent or flood.' >&2; exit 2 ;;
+esac
+
+bash /usr/local/bin/quickbox/package/install/installpackage-rtorrent -l "$logpath" "$@" || exit $?
 sleep 5
-bash /usr/local/bin/quickbox/package/install/installpackage-$gui -l $logpath
+bash "/usr/local/bin/quickbox/package/install/installpackage-${gui}" -l "$logpath"

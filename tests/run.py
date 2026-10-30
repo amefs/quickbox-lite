@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_IMAGE = "quickbox-system-tests:py3.14-pytest9.2"
+DEFAULT_IMAGE = "quickbox-system-tests:py3.14-pytest9.2-jq"
 
 
 def main():

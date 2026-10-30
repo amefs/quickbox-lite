@@ -102,7 +102,15 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	echo "${APP_TITLE}" >/install/.install.lock
+	( set -o noclobber; echo "${APP_TITLE}" >/install/.install.lock ) || exit 1
+	lock_identity=$(stat -Lc '%d:%i' /install/.install.lock) || exit 1
+	trap '_clearInstallLock' EXIT
+}
+
+function _clearInstallLock() {
+	if [[ -n ${lock_identity:-} && $(stat -Lc '%d:%i' /install/.install.lock 2>/dev/null) == "$lock_identity" ]]; then
+		rm -f /install/.install.lock
+	fi
 }
 
 function _lockCleanup() {
@@ -110,7 +118,7 @@ function _lockCleanup() {
 
 
 Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
-	rm -f /install/.install.lock
+	_clearInstallLock
 }
 
 function _installInfo() {
@@ -179,15 +187,18 @@ function _installApp() {
 	if [[ $ppa == 1 ]]; then
 		_installDepends
 	else
-		cd /tmp || exit 1
-		wget -t2 -T5 -q -N -O ffmpeg-release-amd64-static.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
-		mkdir ffmpeg
-		_execute "tar xvf ffmpeg-release-amd64-static.tar.xz -C /tmp/ffmpeg --strip-components=1"
-		cd /tmp/ffmpeg || exit 1
-		_execute "cp -f ffmpeg /usr/bin"
-		_execute "cp -f ffprobe /usr/bin"
-		_execute "cp -f qt-faststart /usr/bin"
-		rm -rf /tmp/{ffmpeg-release-amd64-static.tar.xz,ffmpeg}
+		local workdir
+		workdir=$(mktemp -d /tmp/quickbox-ffmpeg.XXXXXX) || return 1
+		if ! wget -t2 -T5 -q -O "$workdir/archive.tar.xz" https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz ||
+			! tar xf "$workdir/archive.tar.xz" -C "$workdir" --strip-components=1 >>"${OUTTO}" 2>&1 ||
+			! cp -f "$workdir/ffmpeg" /usr/bin/ffmpeg ||
+			! cp -f "$workdir/ffprobe" /usr/bin/ffprobe ||
+			! cp -f "$workdir/qt-faststart" /usr/bin/qt-faststart; then
+			rm -rf "$workdir"
+			_error "Failed to install ${APP_TITLE}."
+			return 1
+		fi
+		rm -rf "$workdir"
 	fi
 	_success "${APP_TITLE} Built."
 }
@@ -200,7 +211,7 @@ function _configureApp() {
 
 function _installAppLock() {
 	_info "Configuring ${APP_TITLE} lock..."
-	touch /install/${APP_LOCK}
+	touch /install/${APP_LOCK} || return 1
 	_success "${APP_TITLE} lock configured."
 }
 
@@ -248,6 +259,6 @@ _installInfo
 if [[ ! -f /install/.system.lock ]]; then
 	_installSystemUpdates
 fi
-_installApp
-_installAppLock
+_installApp || exit 1
+_installAppLock || exit 1
 _lockCleanup
