@@ -1,0 +1,61 @@
+e2e/tests/dashboard.spec.ts
+  s_5f4238d90589d5::t_8389904d50c6bc 43-45,48-50,53-75,77-93,107
+packages/system/auxiliary/qbWsHealthCheck
+  s_5f4238d90589d5::t_0314af0a625fec 205,220
+packages/system/qbUpdate
+  s_5f4238d90589d5::t_481dedf82a35ec 12,64,121-124,412,415-417,472,475,477-478,480-481,484-490,492-502,593,619-623,628-632,636-718,741-748,761-764,768-771,776,782-790,792,806-810
+packages/system/update/qbUpdateDashboard
+  s_5f4238d90589d5::t_4844489a80d1ca 304,312-318
+packages/system/update/qbUpdateLib
+  s_5f4238d90589d5::t_6a5f2679d4132e 113-119
+packages/system/update/qbUpdateRepo
+  s_5f4238d90589d5::t_63f4f062d295db 31,36-37
+packages/system/update/qbUpdateStep
+  s_5f4238d90589d5::t_bcf911a1a4595f 46
+setup/dashboard/js/dashboard.js
+  s_5f4238d90589d5::t_1dc46a995fdd4c 1253-1255,1286-1304,1309
+setup/dashboard/lang/lang_da.json
+  s_5f4238d90589d5::t_6240e0573d76a1 132-133,221-222
+setup/dashboard/lang/lang_de.json
+  s_5f4238d90589d5::t_2c8592f6d3ca1c 132-133,222-223
+setup/dashboard/lang/lang_en.json
+  s_5f4238d90589d5::t_cfda4117870644 224-225
+setup/dashboard/lang/lang_es.json
+  s_5f4238d90589d5::t_6ce03dc0d2ed00 132-133,222-223
+setup/dashboard/lang/lang_fr.json
+  s_5f4238d90589d5::t_7210e1c3099b20 132-133,222-223
+setup/dashboard/lang/lang_zh-Hans-CN.json
+  s_5f4238d90589d5::t_2d4e5eeb7a027b 224-225
+setup/dashboard/ws/dist/server.js
+  s_5f4238d90589d5::t_df49692359c777 5,12-13
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_5f4238d90589d5::t_bcac28913cde62 76-89,234,435-437
+tests/dashboard/test_dashboard_update.py
+  s_5f4238d90589d5::t_898f726c7f8dec 95,100-105,197,214-215,234,248
+tests/dashboard/test_ws_health_proxy.py
+  s_5f4238d90589d5::t_22bb6a0b5de772 146-147
+tests/deployment/run.py
+  s_5f4238d90589d5::t_57ffb766a872dc 15,270,273-276,278-287,294-303
+tests/progress/test_update_timing.py
+  s_5f4238d90589d5::t_acfc62b4a3d0f8 109-120
+tests/repository/fixtures/legacy-qbUpdate
+  s_5f4238d90589d5::t_7040f4fc0d053d 1-161
+tests/repository/test_update_handoff.py
+  s_5f4238d90589d5::t_9983c2797e87fb 1-143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "997390ba3a131f5d8c005f40e6d00af07b288614",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
