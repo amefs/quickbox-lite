@@ -1,0 +1,111 @@
+e2e/package.json
+  s_5f4238d90589d5::t_33eda5b66be22e 8
+e2e/playwright.config.ts
+  s_5f4238d90589d5::t_4da838fa84c196 21-23
+e2e/tests/dashboard-state.spec.ts
+  s_5f4238d90589d5::t_ffebd1ba3c910a 11-15,26-31,48-52,58-59,126-128,130,139,142-143,215-240,378-416,432-434,436-438,441,444-454,463,471,488,490-492
+e2e/tests/dashboard.spec.ts
+  s_5f4238d90589d5::t_2a7ccfb5fdcbb2 1,3,5-7,115-151,177-184
+e2e/tests/debug-console.spec.ts
+  s_5f4238d90589d5::t_79bd1cf6c93680 1,3-9,11-13,40-42,47,64,68-70
+e2e/tests/header.spec.ts
+  s_5f4238d90589d5::t_fecda11045b4e4 1-74
+e2e/tests/interaction.spec.ts
+  s_5f4238d90589d5::t_651b61bdd83d03 1-14,122,127-149,160-172
+e2e/tests/log-panel.spec.ts
+  s_5f4238d90589d5::t_f1203fe02f9f3c 1-208
+e2e/tests/running-task.spec.ts
+  s_5f4238d90589d5::t_9a4e79d8cd1bdf 1-62
+e2e/tests/side-panels.spec.ts
+  s_5f4238d90589d5::t_d1dd896dbe42d2 1-92
+e2e/tests/sidebar.spec.ts
+  s_5f4238d90589d5::t_4b15cced17bcd7 1-88
+e2e/tests/support/helpers.ts
+  s_5f4238d90589d5::t_bedce9e6dae5d1 1-65
+e2e/tsconfig.json
+  s_5f4238d90589d5::t_5f864812510c61 4-5
+setup/dashboard/css/dashboard.css
+  s_5f4238d90589d5::t_b6d5e09014040a 1-325
+setup/dashboard/js/dashboard.js
+  s_5f4238d90589d5::t_c469ca02c039e7 58-61,93-94,98,101-102,106,249,319-320,325-327,339-341,353-379,381,383,415-423,456,467-469,512-538,636-638,647,763-768,770,881-883,886,984,992,1011-1019,1021-1023,1026-1033,1040,1051-1073,1099-1107
+setup/dashboard/lang/lang_da.json
+  s_5f4238d90589d5::t_a2a74b09f7a1fb 32,139-146
+setup/dashboard/lang/lang_de.json
+  s_5f4238d90589d5::t_6da0791c531c95 32,139-146
+setup/dashboard/lang/lang_en.json
+  s_5f4238d90589d5::t_538a2b24d57fa6 32,139-146
+setup/dashboard/lang/lang_es.json
+  s_5f4238d90589d5::t_80294f7f54a7c5 32,139-146
+setup/dashboard/lang/lang_fr.json
+  s_5f4238d90589d5::t_04bcd2db170f06 32,139-146
+setup/dashboard/lang/lang_zh-Hans-CN.json
+  s_5f4238d90589d5::t_30954837367fcc 32,139-146
+setup/dashboard/ws/config/commands.json
+  s_5f4238d90589d5::t_3c71559ebdd67d 8,13,19
+setup/dashboard/ws/dist/server.js
+  s_5f4238d90589d5::t_81d913b3ed3d9d 1
+setup/dashboard/ws/src/controllers/dashboard.tsx
+  s_5f4238d90589d5::t_51ccda4f32c447 11,18,22,30
+setup/dashboard/ws/src/controllers/output-log.ts
+  s_5f4238d90589d5::t_2044ce95d9b6e6 12
+setup/dashboard/ws/src/dashboard-page.tsx
+  s_5f4238d90589d5::t_5494a4aaf3ef5c 25,37,71,76,114-117,134-138,143-144,204,207,235,283,285,332,336-337,341-344,403-417,419-420,422-423
+setup/dashboard/ws/src/handlers/exec.ts
+  s_5f4238d90589d5::t_92aefa4b5884fa 34-50,52,75-78,119,137-141,143,148-157,159-160,162,167,172,177-179,182-211,240-280,282,290-292,304,308,316,319-320,420,422,425-429
+setup/dashboard/ws/src/handlers/message.ts
+  s_5f4238d90589d5::t_94bf442f7e1795 18,62-77,91-92,104-106,108-110
+setup/dashboard/ws/src/router.tsx
+  s_5f4238d90589d5::t_9d7b83941068fb 73
+setup/dashboard/ws/src/testing/bootstrap.ts
+  s_5f4238d90589d5::t_9149df59f59110 111-112,155-164,169-189
+setup/dashboard/ws/src/testing/mock-adapter.ts
+  s_5f4238d90589d5::t_43f0a299ef5e4e 163-166
+setup/dashboard/ws/src/testing/mock-profiles.ts
+  s_5f4238d90589d5::t_577a002444d3a5 53,64-67,360-372
+setup/dashboard/ws/src/widgets/disk-data.tsx
+  s_5f4238d90589d5::t_e97d0f85909bb4 61-62,64,66-69,79-80
+setup/dashboard/ws/src/widgets/output-log.ts
+  s_5f4238d90589d5::t_9846a82c3a63d4 3,68-73,93-94,96-109,115-121,123,135-139,148,156,165,184,191
+setup/dashboard/ws/src/widgets/running-task.tsx
+  s_5f4238d90589d5::t_e6028347c508ea 1-149
+setup/dashboard/ws/tests/controllers/dashboard.spec.ts
+  s_5f4238d90589d5::t_696c691ba18301 10-33
+setup/dashboard/ws/tests/controllers/output-log.spec.ts
+  s_5f4238d90589d5::t_300a86123dc042 14,23,28
+setup/dashboard/ws/tests/handlers/exec.spec.ts
+  s_5f4238d90589d5::t_dd53ffef7de5e3 14-15,18,23-26,163-205,237-238,245,257,260,301-377
+setup/dashboard/ws/tests/handlers/handler.spec.ts
+  s_5f4238d90589d5::t_753d929d6d6cfc 11-31,66,68-76,88,90-94
+setup/dashboard/ws/tests/handlers/message.spec.ts
+  s_5f4238d90589d5::t_bb628cc83a35d5 6,42-48,51-68,188-203,211-215,236,243
+setup/dashboard/ws/tests/handlers/utils/command.spec.ts
+  s_5f4238d90589d5::t_a020b4d90bd4fe 136-144
+setup/dashboard/ws/tests/info.spec.ts
+  s_5f4238d90589d5::t_dab365341b0663 7,38-43,45-48,82-84,101-102
+setup/dashboard/ws/tests/router.spec.ts
+  s_5f4238d90589d5::t_186f32e48d192a 88-91,168-190
+setup/dashboard/ws/tests/utils/vnstat.spec.ts
+  s_5f4238d90589d5::t_8b94e8f4a27518 192-195,216-217,242
+setup/dashboard/ws/tests/widgets/bandwidth-tables.spec.ts
+  s_5f4238d90589d5::t_b1781fdd36cc6e 99-102,107,113-114,119-120,125-126,135-137
+setup/dashboard/ws/tests/widgets/output-log.spec.ts
+  s_5f4238d90589d5::t_c1a52f068cc92d 5-7,9-37,40-48,52-58,61-67,71-77,81-83,86,89-97,101-158
+setup/dashboard/ws/tests/widgets/running-task.spec.ts
+  s_5f4238d90589d5::t_bf23831c28a1fd 1-169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4e83833868bb0303b3cdc4dc877c9c1f8225a7ba",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
