@@ -1,0 +1,51 @@
+packages/package/install/installpackage-authelia
+  s_42d20f62a4a36e::t_29c57f1c657498 539-540
+  s_5f4238d90589d5::t_00066ad89354b6 516,518-520
+packages/package/update/updatepackage-vouchproxy
+  s_42d20f62a4a36e::t_29c57f1c657498 117,209-211
+  s_5f4238d90589d5::t_67ef82f867ffca 183
+packages/package/install/installpackage-vouchproxy
+  s_42d20f62a4a36e::t_29c57f1c657498 397-401
+  s_5f4238d90589d5::t_fcaafec8a75628 395
+packages/package/update/updatepackage-authelia
+  s_42d20f62a4a36e::t_29c57f1c657498 206-207,209-212
+packages/package/remove/removepackage-authelia
+  h_3705811fa4502c 124-125
+  s_42d20f62a4a36e::t_29c57f1c657498 126,128,134,136
+  s_5f4238d90589d5::t_656c3c37afb0dc 137
+packages/package/install/installpackage-flood
+  h_3705811fa4502c 182-184
+packages/package/remove/removepackage-vouchproxy
+  h_3705811fa4502c 124-125
+  s_42d20f62a4a36e::t_29c57f1c657498 128,134,136-137
+  s_5f4238d90589d5::t_c6572d3bb9f2c4 126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3ec662c8aed4e5f18c7d82f628f3b89c6ce29e0e",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_42d20f62a4a36e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16204-269b-7121-a4ac-d674ac3d69be",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
