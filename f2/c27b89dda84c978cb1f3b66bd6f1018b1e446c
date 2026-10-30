@@ -1,0 +1,29 @@
+packages/plugin/install/installplugin-chunks
+  s_5f4238d90589d5::t_c833488ae699ca 33
+packages/plugin/remove/removeplugin-_getdir
+  s_5f4238d90589d5::t_0500cc168021c9 23
+tests/conftest.py
+  s_5f4238d90589d5::t_5539d98b431025 29
+tests/lint/test_plugin_lifecycle.py
+  s_5f4238d90589d5::t_1a7556b8d458f7 1-34
+tests/lint/test_system_test_entry.py
+  s_5f4238d90589d5::t_91fb204b3bc9e8 3,7,30-62
+tests/run.py
+  s_5f4238d90589d5::t_b8290eb37f37cb 13-32,38-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f2c27b89dda84c978cb1f3b66bd6f1018b1e446c",
+  "prompts": {},
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
