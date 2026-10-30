@@ -1,0 +1,58 @@
+packages/system/qbUpdate
+  s_83cda6ca5fe147::t_9e304c0b7ed028 764
+  s_83cda6ca5fe147::t_4cdf3b924a0ebd 765,772,781-784
+  s_83cda6ca5fe147::t_b9772f2e73fece 771
+  s_83cda6ca5fe147::t_68e597a4c93da9 58,351,770,773,800,821
+tests/repository/test_update_handoff.py
+  s_83cda6ca5fe147::t_b9772f2e73fece 66,118
+  s_83cda6ca5fe147::t_0af1dc6d2ca3e0 142,145
+  s_83cda6ca5fe147::t_e4705a7d9e405e 119,148-154
+tests/repository/test_repo_reinstall.py
+  s_83cda6ca5fe147::t_b9772f2e73fece 93,146,204
+  s_83cda6ca5fe147::t_53a18ab7649f6c 205-208
+packages/system/update/qbUpdateRecovery
+  s_83cda6ca5fe147::t_85dca0634bd6a2 10,18-23
+  s_83cda6ca5fe147::t_f1926ca3aefc9a 1-9,11-13,15-17,24-27,95-113,115-119
+  s_83cda6ca5fe147::t_4cdf3b924a0ebd 14,28-31,33-37,46-94
+  s_83cda6ca5fe147::t_df368f57c77a3e 32,38-45
+  s_83cda6ca5fe147::t_856990678023be 114
+packages/system/update/qbUpdateRevert
+  s_83cda6ca5fe147::t_4cdf3b924a0ebd 136
+  s_83cda6ca5fe147::t_abcaf4d382730f 32,135,137-138
+packages/system/auxiliary/qbBackupPrune
+  s_83cda6ca5fe147::t_68e597a4c93da9 29,95-97
+  s_83cda6ca5fe147::t_f9d97d7abc8dae 98
+packages/system/update/qbUpdateDashboard
+  s_83cda6ca5fe147::t_68e597a4c93da9 96,334-336
+  s_83cda6ca5fe147::t_85dca0634bd6a2 11
+packages/system/auxiliary/qbAbortTask
+  s_83cda6ca5fe147::t_856990678023be 62,136
+  s_83cda6ca5fe147::t_551f5ea0d1aafd 67-71
+  s_83cda6ca5fe147::t_cf3cad9d38ba71 79-85,99,111-112,114,118-120,131-133
+  s_83cda6ca5fe147::t_1f1c3dc66fcc82 64-66,72,137-142
+tests/operations/test_update_recovery.py
+  s_83cda6ca5fe147::t_75ec88013f3a38 76,78,80,102-105,109-110,114-115,135
+  s_83cda6ca5fe147::t_0af1dc6d2ca3e0 117-134,136-140
+  s_83cda6ca5fe147::t_c4b27c92757152 106-108
+  s_83cda6ca5fe147::t_35f13c4f450f4d 44-64
+  s_83cda6ca5fe147::t_fde7b446666060 1-42,65-75,77,79,83-89,91-101,111-113,116
+  s_83cda6ca5fe147::t_61df28330fab45 81-82
+  s_83cda6ca5fe147::t_abcaf4d382730f 90
+  s_83cda6ca5fe147::t_6f3e211063c7da 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "24cccfadf2879f4e9f02948bdb1862a4f40826a7",
+  "prompts": {},
+  "sessions": {
+    "s_83cda6ca5fe147": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18bf2-bcad-7591-a2df-06137823dec3",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
