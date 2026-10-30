@@ -26,6 +26,7 @@
 set -uo pipefail
 
 BACKUP_ROOT="${QUICKBOX_BACKUP_DIR:-/var/backups/quickbox}"
+RECOVERY_DIR="${QUICKBOX_RECOVERY_DIR:-/var/lib/quickbox/update-recovery}"
 KEEP="${QUICKBOX_BACKUP_KEEP:-10}"
 DAYS="${QUICKBOX_BACKUP_DAYS:-30}"
 DRY_RUN=0
@@ -90,6 +91,10 @@ fi
 if [[ ! -d "${BACKUP_ROOT}" ]]; then
 	_error "backup root is not a directory: ${BACKUP_ROOT}"
 	exit 1
+fi
+if [[ -e ${RECOVERY_DIR} || -L ${RECOVERY_DIR} ]]; then
+	_warning "An update needs recovery; keeping all backups"
+	exit 0
 fi
 
 entry_mtime() {

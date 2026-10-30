@@ -28,7 +28,6 @@ _tan=$(tput setaf 3 2>/dev/null || true)
 _cyan=$(tput setaf 6 2>/dev/null || true)
 OUTTO=/srv/dashboard/db/output.log
 INSTALL_LOCK=/install/.install.lock
-UPDATE_PID=/srv/dashboard/db/update.pid
 
 function _info() {
 	printf "${_cyan}➜ %s${_norm}\n" "$@"
@@ -60,18 +59,28 @@ function _tree() {
 	printf '%s\n' "${pid}"
 }
 
-# The lifecycle scripts and, for an update, the detached Dashboard runner. Both
-# paths are root-owned helpers that only these operations execute.
+# Identify task owners from root-owned lifecycle processes.
 function _owners() {
-	pgrep -f '/usr/local/bin/quickbox/package/(install|remove|update)/' 2>/dev/null
-	pgrep -f '/usr/local/bin/quickbox/system/qbUpdate' 2>/dev/null
-	if [[ -f ${UPDATE_PID} ]]; then
-		head -n 1 "${UPDATE_PID}" 2>/dev/null
-	fi
+	local pid uid
+	while read -r pid; do
+		uid=$(ps -o uid= -p "${pid}" 2>/dev/null | tr -d ' ')
+		[[ ${uid} == 0 ]] || continue
+		if tr '\0' '\n' <"/proc/${pid}/cmdline" 2>/dev/null |
+			grep -Eq '^/usr/local/bin/quickbox/(package/(install|remove|update)/[^/]+|system/qbUpdate)$'; then
+			printf '%s\n' "${pid}"
+		fi
+	done < <(pgrep -f '/usr/local/bin/quickbox/package/(install|remove|update)/|/usr/local/bin/quickbox/system/qbUpdate' 2>/dev/null)
 }
 
 function _isAlive() {
 	[[ -n "$1" ]] && kill -0 "$1" 2>/dev/null
+}
+
+function _startTime() {
+	local stat
+	stat=$(cat "/proc/$1/stat" 2>/dev/null) || return 1
+	stat=${stat##*) }
+	awk '{print $20}' <<<"${stat}"
 }
 
 ################################################################################
@@ -87,6 +96,7 @@ task=${task:-QuickBox}
 _info "Stopping ${task}..."
 
 declare -a victims=()
+declare -a start_times=()
 seen=" "
 while read -r pid; do
 	if [[ ! ${pid} =~ ^[0-9]+$ ]] || [[ ${pid} == "$$" ]] || [[ ${pid} == "${PPID}" ]]; then
@@ -98,12 +108,16 @@ while read -r pid; do
 		*" ${member} "*) continue ;;
 		esac
 		seen+="${member} "
+		start=$(_startTime "${member}") || continue
+		[[ -n ${start} ]] || continue
 		victims+=("${member}")
+		start_times+=("${start}")
 	done < <(_tree "${pid}")
 done < <(_owners)
 
-for pid in "${victims[@]}"; do
-	kill -TERM "${pid}" 2>/dev/null
+for index in "${!victims[@]}"; do
+	pid=${victims[index]}
+	[[ $(_startTime "${pid}") == "${start_times[index]}" ]] && kill -TERM "${pid}" 2>/dev/null
 done
 # Give every process a chance to run its own cleanup before forcing the rest.
 for _ in 1 2 3 4 5; do
@@ -114,11 +128,18 @@ for _ in 1 2 3 4 5; do
 	(( running )) || break
 	sleep 1
 done
-for pid in "${victims[@]}"; do
-	_isAlive "${pid}" && kill -KILL "${pid}" 2>/dev/null
+for index in "${!victims[@]}"; do
+	pid=${victims[index]}
+	[[ $(_startTime "${pid}") == "${start_times[index]}" ]] && kill -KILL "${pid}" 2>/dev/null
 done
 
-rm -f "${INSTALL_LOCK}" "${UPDATE_PID}"
+# Clear the install marker while holding the operation lock.
+operation_lock="${QUICKBOX_OPERATION_LOCK:-/run/lock/quickbox-operation.lock}"
+if ! { exec 7>"${operation_lock}"; } 2>/dev/null || ! flock -n 7; then
+	_error "The operation lock is still held; the install marker was retained"
+	exit 1
+fi
+rm -f "${INSTALL_LOCK}"
 
 if [[ ${#victims[@]} -gt 0 ]]; then
 	_success "${task} stopped"

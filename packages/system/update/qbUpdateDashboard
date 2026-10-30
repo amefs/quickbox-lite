@@ -8,6 +8,7 @@ _qb_lib_dir="${QB_UPDATE_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/nu
 # shellcheck source=packages/system/update/qbUpdateLib
 # shellcheck disable=SC1090,SC1091
 source "${_qb_lib_dir}/qbUpdateLib"
+source "${_qb_lib_dir}/qbUpdateRecovery"
 
 if ! _qbSourceLib qbUpdateBackup; then
 	printf '✗ Update backup helper is missing: %s\n' "${_qb_lib_dir}/qbUpdateBackup" >&2
@@ -92,6 +93,7 @@ function _updatedashboard() {
 	local stage_dir previous_dir activated=0
 	stage_dir=$(mktemp -d /srv/.dashboard-stage.XXXXXX) || return 1
 	previous_dir="${stage_dir}.previous"
+	_qbRecoveryWrite stage "${stage_dir}" || { rm -rf "${stage_dir}"; return 1; }
 	if ! _dashboardPrepareStage /srv/dashboard "${stage_dir}" "${local_setup_dashboard}"; then
 		rm -rf "${stage_dir}"; _error "Failed to prepare staged dashboard files and dependencies"; return 1
 	fi
@@ -329,7 +331,9 @@ PYEOF
 	printf '%s\n' "${health_output}" >&2
 	_qbReportLap "health check" "${lap}"
 	# The active release has passed its health check.
-	rm -rf "${previous_dir}" "${stage_dir}"
+	if [[ ${QB_RECOVERY_ACTIVE:-0} != 1 ]]; then
+		rm -rf "${previous_dir}" "${stage_dir}"
+	fi
 
 	# Remove the legacy gateway copies; nginx and the runtime no longer read them.
 	lap=$(_qbNowMs)

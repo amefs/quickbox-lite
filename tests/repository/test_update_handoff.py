@@ -63,7 +63,7 @@ _updateservice() {
 _updatedashboard() { printf 'dashboard TARGET_LABEL\\n' >>"$TEST_EVENTS"; }
 _updatelanguage() { :; }
 ''')
-    for name in ("qbUpdateLib", "qbUpdateTimer", "qbUpdateStep"):
+    for name in ("qbUpdateLib", "qbUpdateTimer", "qbUpdateStep", "qbUpdateRecovery"):
         shutil.copy(REPO / "packages/system/update" / name, update / name)
     write_file(system / "qbUpdate", driver.replace("DRIVER_LABEL", "driver master"))
     git(source, "add", ".")
@@ -115,6 +115,8 @@ printf 'dashboard feature\n' >>"$TEST_EVENTS"
     git(source, "push", "origin", "feature")
     env = dict(os.environ, TERM="xterm", QUICKBOX_REPO_ROOT=str(checkout),
                QUICKBOX_BACKUP_DIR=str(tmp_path / "backups"),
+               QUICKBOX_RECOVERY_DIR=str(tmp_path / "recovery"),
+               QUICKBOX_INSTALL_DIR=str(install),
                QUICKBOX_UPDATE_CORE_LOCK=str(tmp_path / "core.lock"),
                QUICKBOX_OPERATION_LOCK=str(tmp_path / "operation.lock"), TEST_EVENTS=str(events),
                TEST_LOG=str(log), TEST_INSTALL=str(install), TEST_FAIL_TARGET="1" if fail else "0")
@@ -137,7 +139,16 @@ printf 'dashboard feature\n' >>"$TEST_EVENTS"
     assert f"QUICKBOX_REPO_COMMIT={master}" in (tmp_path / "backups/repo-state.env").read_text()
     if fail:
         assert not (install / ".quickbox-branch").exists()
+        assert (tmp_path / "recovery").is_dir()
     else:
         assert (install / ".quickbox-branch").read_text().splitlines()[0] == "feature"
+        assert not (tmp_path / "recovery").exists()
     assert "Continuing with the target checkout's updater" in log.read_text()
     assert not (install / ".install.lock").exists()
+    if fail:
+        env["TEST_FAIL_TARGET"] = "0"
+        retry = subprocess.run(args, env=env, text=True, capture_output=True, timeout=30)
+        assert retry.returncode == 0, (retry.stdout, retry.stderr)
+        assert not (tmp_path / "recovery").exists()
+        assert (install / ".quickbox-branch").read_text().splitlines()[0] == "feature"
+        assert f"QUICKBOX_REPO_COMMIT={master}" in (tmp_path / "backups/repo-state.env").read_text()

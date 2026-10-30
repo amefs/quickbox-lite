@@ -90,7 +90,7 @@ def test_revert_reinstalls_selected_checkout():
         )
         write(system / "qbUpdate", driver)
         write(system / "update/qbUpdateRevert", (REPO / "packages/system/update/qbUpdateRevert").read_text())
-        for shared in ("qbUpdateLib", "qbUpdateTimer", "qbUpdateStep"):
+        for shared in ("qbUpdateLib", "qbUpdateTimer", "qbUpdateStep", "qbUpdateRecovery"):
             shutil.copy(REPO / "packages/system/update" / shared, system / "update" / shared)
         box = (
             (REPO / "packages/system/box").read_text().replace("/usr/local/bin/quickbox/", str(work / "packages") + "/")
@@ -143,6 +143,7 @@ except BlockingIOError:
             PATH=str(bin_dir) + os.pathsep + os.environ["PATH"],
             QUICKBOX_ALLOW_NON_ROOT="1",
             QUICKBOX_BACKUP_DIR=str(backup),
+            QUICKBOX_RECOVERY_DIR=str(root / "recovery"),
             QUICKBOX_INSTALL_DIR=str(root / "install"),
             QUICKBOX_REPO_ROOT=str(work),
             QUICKBOX_UPDATE_CORE_LOCK=str(root / "update.lock"),
@@ -200,6 +201,11 @@ except BlockingIOError:
         assert "reinstallation failed" in result.stderr
         assert "restored and reinstalled" not in result.stderr
         assert not (root / "install/.install.lock").exists()
+        assert (root / "recovery").is_dir()
+        result = box_run("update", "quickbox", "--from-checkout")
+        assert result.returncode == 0, (result.stdout, result.stderr)
+        assert not (root / "recovery").exists()
+        assert deployed.read_text() == "version A\n"
         print("reinstall failure: passed")
 
         reset()

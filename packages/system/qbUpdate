@@ -55,6 +55,7 @@ fi
 # shellcheck source=packages/system/update/qbUpdateLib
 # shellcheck disable=SC1090,SC1091
 source "${_qb_lib_dir}/qbUpdateLib"
+source "${_qb_lib_dir}/qbUpdateRecovery"
 
 function _parseUpdateArgs() {
 	while [[ $# -gt 0 ]]; do
@@ -347,6 +348,7 @@ function _backupUpdateConfig() {
 	fi
 	update_backup_dir="${backup_dir}"
 	update_backup_ready=1
+	_qbRecoveryWrite backup "${backup_dir}" || return 1
 	_info "Update rollback backup: ${update_backup_dir}"
 	return 0
 }
@@ -759,19 +761,27 @@ _qbAcquireOperationLock
 operation_lock_status=$?
 [[ ${operation_lock_status} -eq 0 ]] || exit "${operation_lock_status}"
 if [[ ${QUICKBOX_UPDATE_HANDOFF:-} != 1 ]]; then
+	unset QB_RECOVERY_ACTIVE
+	_qbRecoveryResume || exit 1
 	_lockCheck
 	_setLock || exit 1
 fi
 trap _updateCleanup EXIT
+if [[ ${QUICKBOX_UPDATE_HANDOFF:-} != 1 ]]; then
+	_pruneBackups
+	[[ ${QB_RECOVERY_ACTIVE:-0} == 1 ]] || _qbRecoveryBegin || exit 1
+fi
 # Keep the previous output available until this invocation owns both locks;
 # _initializeUpdateLog then publishes the new epoch before truncating.
 if [[ ${QUICKBOX_UPDATE_HANDOFF:-} != 1 ]]; then
 	_initializeUpdateLog || exit 1
-	_pruneBackups
 fi
 # The pre-update commit is available to box revert.
 if [[ ${from_checkout} -eq 0 ]]; then
-	_updateStep "repository state" _saveRepoState
+	if [[ ! -f $(_qbRecoveryDir)/repo_saved ]]; then
+		_updateStep "repository state" _saveRepoState
+		_qbRecoveryWrite repo_saved 1 || exit 1
+	fi
 fi
 if [[ $core == 0 && ${from_checkout} -eq 1 ]]; then
 	_updateStep "system packages" _installSystemUpdates
@@ -787,6 +797,7 @@ if [[ ${from_checkout} -eq 0 ]]; then
 	else
 		_fin
 	fi
+	_qbRecoveryFinish || exit 1
 	exit 0
 fi
 _info "Reinstalling from the current checkout: ${local_prefix}"
@@ -807,4 +818,5 @@ if [[ ${QUICKBOX_UPDATE_HANDOFF:-} == 1 ]]; then
 	_printUpdateTiming
 else
 	_fin
+	_qbRecoveryFinish || exit 1
 fi
