@@ -10,10 +10,33 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_IMAGE = "quickbox-system-tests:py3.14-pytest9.2-jq"
 
 
+def container_arguments(arguments):
+    result = []
+    for argument in arguments:
+        path, separator, node = argument.partition("::")
+        if argument.startswith("-") or path.startswith("/repo/"):
+            result.append(argument)
+            continue
+        resolved = Path(path).resolve()
+        try:
+            relative = resolved.relative_to(REPO_ROOT)
+        except ValueError:
+            result.append(argument)
+            continue
+        if resolved.exists():
+            result.append(f"/repo/{relative.as_posix()}{separator}{node}")
+        else:
+            result.append(argument)
+    return result
+
+
 def main():
     arguments = sys.argv[1:] or ["tests"]
     if sys.platform.startswith("linux"):
         return subprocess.call(["uv", "run", "--locked", "pytest", *arguments], cwd=REPO_ROOT)
+
+    if sys.platform == "win32":
+        arguments = container_arguments(arguments)
 
     image = os.environ.get("QUICKBOX_SYSTEM_TEST_IMAGE", DEFAULT_IMAGE)
     if (

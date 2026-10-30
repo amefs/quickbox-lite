@@ -26,7 +26,7 @@ def pytest_cmdline_main(config):
             relative = Path(path).resolve().relative_to(TESTS_ROOT.parent)
         except ValueError:
             continue
-        arguments[arguments.index(target)] = f"/repo/{relative}{separator}{node}"
+        arguments[arguments.index(target)] = f"/repo/{relative.as_posix()}{separator}{node}"
 
     print("Running system tests in Linux Docker container...", flush=True)
     return subprocess.call([sys.executable, str(TESTS_ROOT / "run.py"), *arguments])

@@ -30,7 +30,7 @@ function _installplugin-chunks() {
 	for i in $PLUGIN; do
 		cp -R "${PLUGINVAULT}$i" .
 	done
-	sleep5
+	sleep 5
 
 	echo "Adjusting permissions ... " >>"${OUTTO}" 2>&1
 	chown -R www-data: ${rutorrent}plugins/$PLUGIN
