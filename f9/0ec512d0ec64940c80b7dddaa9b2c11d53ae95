@@ -1,0 +1,16 @@
+tests/repository/test_repo_reinstall.py
+  h_3705811fa4502c 91-101,125-131,172-173
+tests/repository/test_update_handoff.py
+  h_3705811fa4502c 31-38,54-62,139-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f90ec512d0ec64940c80b7dddaa9b2c11d53ae95",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
