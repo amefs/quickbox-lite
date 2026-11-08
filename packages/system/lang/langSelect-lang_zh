@@ -13,7 +13,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-language='lang_zh-Hans-CN'
+# The marker name is the selector basename: package scripts and iotest check
+# /install/.lang_zh.lock for localized defaults and guidance.
+language='lang_zh'
 
 rm -f /install/.lang_* || exit 1
 touch /install/.${language}.lock || exit 1

@@ -67,3 +67,18 @@ def test_box_language_alias_selects_the_matching_script(tmp_path, alias, script)
     )
     result = run_bash(box, "lang", alias)
     assert result.returncode == 0
+
+
+def test_zh_selector_writes_the_marker_its_consumers_check(tmp_path):
+    # Package install/update scripts and iotest gate localized defaults on
+    # /install/.lang_zh.lock; a differently named marker silently disables them.
+    install = tmp_path / "install"
+    install.mkdir()
+    write_file(tmp_path / "nginx", "#!/bin/sh\nexit 0\n", executable=True)
+    script = (LANG / "langSelect-lang_zh").read_text().replace("/install/", str(install) + "/")
+    result = run_bash(
+        "sleep() { :; }; " + script,
+        env={"PATH": str(tmp_path) + os.pathsep + os.environ["PATH"]},
+    )
+    assert result.returncode == 0
+    assert (install / ".lang_zh.lock").is_file()

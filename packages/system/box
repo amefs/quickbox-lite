@@ -87,9 +87,14 @@ function _startOperationLog() {
 		_error "${prevApp:-Another operation} is running; try again when it finishes"
 		return 75
 	fi
-	if ! bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/auxiliary/clean_log"; then
+	# clean_log takes the update-core lock itself and re-flocks this process's
+	# operation lock through descriptor 9, so the reset cannot race the package
+	# operation it precedes.
+	exec 9<&7
+	if ! QUICKBOX_UPDATE_OPERATION_LOCK_INHERITED="${lockfile}" bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/auxiliary/clean_log"; then
 		_warning "Failed to start a new installation log"
 	fi
+	exec 9>&-
 	return 0
 }
 
@@ -276,8 +281,10 @@ if [[ $resolver == "clean" ]]; then
 	command=$2
 	if [[ $command == "mem" || $command == "memory" ]]; then
 		bash /usr/local/bin/quickbox/system/auxiliary/clean_mem
+		exit $?
 	elif [[ $command == "log" ]]; then
 		bash /usr/local/bin/quickbox/system/auxiliary/clean_log
+		exit $?
 	else
 		_error "${appname} Cleaner not exist"
 		echo -e "\nQuickBox Lite Cli Tools"

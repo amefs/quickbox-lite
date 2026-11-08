@@ -48,8 +48,6 @@ The local defaults are Nginx at `127.0.0.1:8880` and the Node mock server at por
 
 During `npm run e2e`, the host Node process listens on `0.0.0.0:TEST_WS_PORT` so the Nginx container can reach it through `host.docker.internal`. Docker Compose maps that name with `host-gateway` for Linux engines; Docker Desktop provides the host name on macOS. The Node port is not published by Docker, but the host listener is reachable on host network interfaces while the test runs. The Nginx port is bound to loopback only. Plain `npm test` binds the Node server to loopback.
 
-The current workflow does not read `e2e/.env.compose`.
-
 ## Test environment
 
 The Node test server runs with `NODE_ENV=test`, `MOCK_ENABLED=1`, and `MOCK_PROFILE=partial-running` by default. It creates a temporary database directory with test user and interface seeds, uses the existing mock profiles for system information, and deletes that directory when it exits. Dashboard static assets are served directly from `setup/dashboard`; Nginx proxies requests to Node, including `/debug/assets/*` and Socket.IO.

@@ -23,6 +23,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../update" >/dev/null 2>&1 && pwd)/
 }
 
 _qbAcquireUpdateLock || exit $?
+_qbAcquireOperationLock || exit $?
 
 if ! _qbPublishLogEpoch "${log_file}"; then
 	printf 'Cannot clear %s\n' "${log_file}" >&2

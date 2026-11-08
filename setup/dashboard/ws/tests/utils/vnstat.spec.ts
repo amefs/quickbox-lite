@@ -189,9 +189,6 @@ describe("vnstat utils", () => {
         const iface = "testiface-future";
         const dumpPath = path.join(dumpsDir, `vnstat_dump_${iface}`);
         const now = new Date();
-        // Build the timestamp with a real offset: adding two hours modulo 24
-        // yields a past hour after 22:00 and would silently drop the case where
-        // the entry is genuinely ahead of now.
         const future = new Date(now.getTime() + 2 * 60 * 60 * 1000);
         const fixture = {
             vnstatversion: "2.10",
@@ -204,9 +201,12 @@ describe("vnstat utils", () => {
                         date: { year: now.getFullYear(), month: now.getMonth() + 1, day: 1 },
                         time: { hour: 0, minute: 0 },
                     },
+                    // buildHourEntries keeps only hours whose date matches updated.date,
+                    // so the fixture's update timestamp carries the same future date as
+                    // the hour entry and the entry survives the filter at any wall clock.
                     updated: {
-                        date: { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() },
-                        time: { hour: now.getHours(), minute: 0 },
+                        date: { year: future.getFullYear(), month: future.getMonth() + 1, day: future.getDate() },
+                        time: { hour: future.getHours(), minute: 0 },
                     },
                     traffic: {
                         total: { rx: 100000, tx: 50000 },
@@ -227,6 +227,7 @@ describe("vnstat utils", () => {
         };
         fs.writeFileSync(dumpPath, JSON.stringify(fixture), "utf8");
         const data = await getVnstatData(iface);
+        expect(data.hour).to.have.lengthOf(1);
         // avg values should be finite numbers, not Infinity or NaN
         for (const entry of data.hour) {
             expect(isFinite(entry.rx_avg)).to.equal(true, `rx_avg is not finite: ${entry.rx_avg}`);
