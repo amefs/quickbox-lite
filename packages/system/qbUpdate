@@ -257,9 +257,8 @@ function _saveRepoState() {
 	return 0
 }
 
-# The helper is shipped by the repository that _updateRepo just refreshed, so it
-# is loaded after the repository stage. Without it there is no snapshot to roll
-# back to, so a missing helper aborts before anything is rewritten.
+# Load after the repository stage: the helper comes from the refreshed tree and
+# provides the rollback snapshot. A missing helper aborts before any rewrite.
 function _loadBackupHelper() {
 	local helper="${local_prefix}packages/system/update/qbUpdateBackup"
 	if [[ ! -f "${helper}" ]]; then
@@ -344,11 +343,10 @@ function _backupUpdateConfig() {
 	return 0
 }
 
-# Rollback restores the full managed set, then re-activates. The dashboard
-# stage may already have reloaded its own seven files, but the service stage
+# Rollback restores the full managed set, then re-activates. The service stage
 # writes /etc/nginx/sites-enabled/default, the per-user app confs and the ttyd
-# unit, and those are only put back here — the reload has to follow this
-# restore or the running configuration keeps the failed update's version.
+# unit; this restore puts those back, and the reload runs after it so nginx and
+# systemd pick up the pre-update files.
 function _restoreUpdateConfig() {
 	[[ ${update_backup_ready:-0} -eq 1 && -n ${update_backup_dir:-} ]] || return 0
 	local rc=0

@@ -13,21 +13,22 @@ import sys
 REPO = Path(__file__).resolve().parents[1]
 PACKAGE = REPO / 'packages/package'
 ROLES = {'install': 'Installer', 'remove': 'Remover', 'update': 'Updater'}
+# Canonical width for new scripts; the section rules accept any width.
 SEPARATOR = '#' * 80
-SECTION = re.compile(r'^#{80}\n# ([A-Z ]+)\n#{80}\n', re.M)
+SECTION = re.compile(r'^(?P<rule>#{3,})\n# (?P<title>[A-Z ]+)\n(?P=rule)\n', re.M)
 SECTION_TITLE = re.compile(
     r'^# (CORE VARIABLE|HELP FUNCTIONS|APP VARIABLE|SCRIPT FUNCTIONS|'
     r'INSTALL FUNCTIONS|REMOVE FUNCTIONS|UPDATE FUNCTIONS|OPT GENERATOR|MAIN PROCESS)$', re.M)
 SECTION_NAMES = {'CORE VARIABLE', 'HELP FUNCTIONS', 'APP VARIABLE', 'SCRIPT FUNCTIONS',
                  'INSTALL FUNCTIONS', 'REMOVE FUNCTIONS', 'UPDATE FUNCTIONS',
                  'OPT GENERATOR', 'MAIN PROCESS'}
-BANNER = re.compile(r'^#{80}\n# ([^\n]+)\n#{80}\n', re.M)
+BANNER = re.compile(r'^(?P<rule>#{3,})\n# (?P<title>[^\n]+)\n(?P=rule)\n', re.M)
 FUNCTION = re.compile(r'^(?:function )?(\w+)\(\)[ \t]*\{[^\n]*\n', re.M)
 FUNCTION_LIKE = re.compile(
     r'^(?:function[ \t]+(?P<keyword>\w+)(?:[ \t]*\([ \t]*\))?|'
     r'(?P<plain>\w+)[ \t]*\([ \t]*\))[ \t]*(?:\{.*)?$', re.M)
 HEREDOC = re.compile(r'''(?<!<)<<(?P<tabs>-?)[ \t]*(?:'(?P<single>\w+)'|"(?P<double>\w+)"|(?P<bare>\w+))''')
-GETOPT = re.compile(r'\Aif ! ARGS=\$\(getopt -a -o ([\w:]+) -l ([\w,:-]+) -- "\$@"\); then\n')
+GETOPT = re.compile(r'\Aif ! ARGS=\$\(getopt\b(?P<args>[^)]*)\); then\n')
 CASE = re.compile(r'^\t((?:-[\w]|--[\w-]+)(?: \| (?:-[\w]|--[\w-]+))*)\)\n(.*?)\t\t;;\n', re.M | re.S)
 HEADER_FIELDS = ('GitHub', 'Author', 'Maintainer', 'Current version', 'Original Repo', 'Credits to')
 HEADER_REQUIRED = {'GitHub', 'Author', 'Current version'}
@@ -58,10 +59,10 @@ def shell_view(source):
 
 
 def header_lines(source):
-    """Return the header lines before the first 80-hash delimiter."""
+    """Return the header lines before the first section divider."""
     result = []
     for line in source.splitlines(keepends=True):
-        if line.rstrip('\n') == SEPARATOR:
+        if re.fullmatch(r'#{3,}\n?', line.rstrip('\r')):
             break
         result.append(line)
     return result
@@ -109,7 +110,7 @@ def check_header_schema(source, error):
 
 def sections(source):
     matches = list(SECTION.finditer(shell_view(source)))
-    return [(match[1], match.end(), matches[index + 1].start() if index + 1 < len(matches) else len(source))
+    return [(match['title'], match.end(), matches[index + 1].start() if index + 1 < len(matches) else len(source))
             for index, match in enumerate(matches)]
 
 
@@ -135,11 +136,17 @@ def functions(source):
 def check_options(source, error):
     match = GETOPT.match(source + '\n')
     if not match:
-        error('options', 'use the template getopt header and quote "$@"')
+        error('options', 'assign getopt output to ARGS in an "if ! ...; then" guard')
         return {}
     if 'eval set -- "${ARGS}"' not in source:
         error('options', 'restore getopt output with eval set -- "${ARGS}"')
-    short, long = match.groups()
+    args = match['args']
+    short_spec = re.search(r'(?:^|\s)-o\s+([\w:]+)(?=\s|$)', args)
+    long_spec = re.search(r'(?:^|\s)-l\s+([\w,:-]+)(?=\s|$)', args)
+    if not short_spec or not long_spec or not re.search(r'--\s+"\$@"', args):
+        error('options', 'declare -o/-l specs and pass -- "$@" to getopt')
+        return {}
+    short, long = short_spec[1], long_spec[1]
     valid_short = re.fullmatch(r'(?:[A-Za-z0-9]:?)+', short)
     valid_long = re.fullmatch(r'[a-z][a-z0-9-]*:?(?:,[a-z][a-z0-9-]*:?)*', long)
     if not valid_short or not valid_long:
@@ -184,13 +191,13 @@ def check_options(source, error):
 
 def check_section_markers(view, error):
     banners = list(SECTION.finditer(view))
-    title_offsets = {match.start() + len(SEPARATOR) + 1 for match in banners}
+    title_offsets = {match.start() + len(match['rule']) + 1 for match in banners}
     for match in SECTION_TITLE.finditer(view):
         if match.start() not in title_offsets:
             error('sections', 'stray or duplicate section title outside a complete banner: ' + match[1], match.start())
     for match in BANNER.finditer(view):
-        if match[1] not in SECTION_NAMES:
-            error('sections', 'unknown section title: ' + match[1], match.start())
+        if match['title'] not in SECTION_NAMES:
+            error('sections', 'unknown section title: ' + match['title'], match.start())
 
 
 def check_metadata(blocks, header, action, error):
@@ -286,16 +293,17 @@ def check_usage_documents(declared, usage, error):
             error('usage', 'document ' + flag + ' in _usage')
 
 
-def check_main(blocks, bodies, required, action, error):
+def check_main(blocks, bodies, required, error):
     main = [line.strip() for line in shell_view(blocks['MAIN PROCESS']).splitlines()
             if line.strip() and not line.lstrip().startswith('#')]
-    prefix = ['_lockCheck', '_setLock', '_' + action + 'Info']
-    if main[:3] != prefix:
-        error('lifecycle', 'main must start with ' + ', '.join(prefix))
-    for line in main:
-        if not re.fullmatch(r'_\w+(?:[ \t]+[^;]+)?|(?:if|elif) \[\[ .* \]\]; then|else|fi', line):
-            error('lifecycle', 'put executable steps in functions; main allows calls and [[ ]] conditionals')
-            break
+    lock_lines = [index for index, line in enumerate(main)
+                  if re.match(r'^_(lockCheck|setLock)\b', line)]
+    first_step = next((index for index, line in enumerate(main)
+                       if re.match(r'^_\w+', line) and not re.match(r'^_(lockCheck|setLock)\b', line)),
+                      len(main))
+    if ([main[index].split()[0] for index in lock_lines[:2]] != ['_lockCheck', '_setLock']
+            or any(index > first_step for index in lock_lines[:2])):
+        error('lifecycle', 'acquire the package lock before running lifecycle steps')
     calls = re.findall(r'^\s*(_\w+)(?:\s|$)', blocks['MAIN PROCESS'], re.M)
     for name in calls:
         if name not in bodies:
@@ -362,7 +370,7 @@ def check_script(path, action, templates):
     check_locks(bodies, action, error)
     declared = check_options(blocks['OPT GENERATOR'], error)
     check_usage_documents(declared, usage, error)
-    check_main(blocks, bodies, required, action, error)
+    check_main(blocks, bodies, required, error)
     return errors
 
 

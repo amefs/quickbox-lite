@@ -34,10 +34,9 @@ if (!configPath) {
 
 const config = new WatchedConfig<CommandType>(configPath);
 
-// The runner is started without a login shell, so nothing fills in PATH from
-// /etc/profile any more. Name a sane default instead of exporting the string
-// "undefined" when the unit environment is bare, and skip the locale variables
-// when they are unset (LC_ALL=undefined only earns a setlocale warning).
+// The runner starts without a login shell, so PATH comes from the unit
+// environment or FALLBACK_PATH. Locale variables are only set when defined;
+// LC_ALL=undefined produces a setlocale warning.
 const FALLBACK_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 
 function buildExecEnvironment(): NodeJS.ProcessEnv {
@@ -216,15 +215,10 @@ export interface UpdateLaunchResult {
     detail?: string;
 }
 
-// The runner acknowledges within a second on a healthy box: it reports the lock
-// outcome as soon as qbUpdate owns both locks, which is a few hundred
-// milliseconds of shell startup away. The window is far wider than that because
-// a slow box (NSS lookup for the service user, a contended /run/lock, a busy
-// disk) can delay the acknowledgement without preventing the update.
-//
-// Past the window the decision rests on whether the runner is still alive, not
-// on the clock: a live runner means the update is starting, so a missed
-// acknowledgement must not be reported as a launch failure.
+// Wait up to 9s for the runner's lock acknowledgement. Slow NSS lookups, a
+// contended /run/lock or a busy disk can delay it on a healthy box. After the
+// window, a live runner counts as started; a missed acknowledgement alone is
+// not a launch failure.
 export const UPDATE_ACK_TIMEOUT_MS = 9000;
 
 export interface LaunchObservation {
@@ -257,15 +251,13 @@ export function interpretLaunchStatus({ observed, childAlive }: LaunchObservatio
 }
 
 export async function launchPersistentUpdate(command: string): Promise<UpdateLaunchResult> {
-    // Lock contention is detected by the runner's own flock, which acks "busy"
-    // through the status file; probing the lock here would only duplicate that
-    // verdict with a result that is stale the moment it returns.
+    // The runner owns lock contention: its flock writes "busy" to the status
+    // file that the launch wait reads.
     const statusPath = path.join(os.tmpdir(), `quickbox-update-${process.pid}-${Date.now()}-${randomUUID()}.status`);
     const script = buildUpdateRunnerScript(command, statusPath);
     let childPid: number | undefined;
     try {
-        // Not a login shell: the script only needs PATH, and /etc/profile is an
-        // unbounded amount of work that used to run before the acknowledgement.
+        // Non-login shell: the runner needs PATH, not /etc/profile.
         const child = spawn("/bin/bash", ["-c", script], {
             detached: true,
             stdio: "ignore",

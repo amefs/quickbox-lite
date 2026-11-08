@@ -197,8 +197,8 @@ _restoreUpdateConfig
     result = run_bash(restore, backup, env=env)
     assert result.returncode == 0, result.stderr
     assert managed.read_text() == "before\n"
-    # The service stage writes nginx and systemd files that only this restore
-    # puts back, so the activation has to follow it.
+    # The restore puts back the service-stage nginx/systemd files; activation
+    # follows it in the same shell function.
     activated = calls.read_text().splitlines()
     assert "systemctl daemon-reload" in activated
     assert "nginx -s reload" in activated

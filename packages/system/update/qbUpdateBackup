@@ -177,12 +177,6 @@ _qbBackupCreate() {
 	return 0
 }
 
-# _qbBackupHasPath <backup_dir> <path>
-_qbBackupHasPath() {
-	local backup_dir="$1" path="$2"
-	awk -F '\t' -v wanted="${path}" '$2 == wanted { found = 1 } END { exit !found }' "${backup_dir}/manifest.tsv"
-}
-
 # Restore one path from a set. Manifest records are checksum-verified.
 _qbBackupRestorePath() {
 	local backup_dir="$1" original="$2"

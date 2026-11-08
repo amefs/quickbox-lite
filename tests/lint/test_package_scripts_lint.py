@@ -53,6 +53,18 @@ class PackageLintTest(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertGreater(count, 0)
 
+    def test_section_dividers_are_not_fixed_to_one_width(self):
+        narrow = '#' * 24
+        self.script().write_text(TEMPLATES["install"].replace(LINT.SEPARATOR, narrow))
+        self.assertEqual(LINT.lint(self.root), ([], 3))
+
+    def test_getopt_flags_can_be_reordered(self):
+        self.mutate(
+            'getopt -a -o hl: -l help,log: -- "$@"',
+            'getopt -o hl: -l help,log: -a -- "$@"',
+        )
+        self.assertEqual(LINT.lint(self.root), ([], 3))
+
     def test_invalid_scaffolds_are_rejected(self):
         mutations = [
             ("#!/bin/bash", "#!/bin/sh", "[header]"),
@@ -68,7 +80,7 @@ class PackageLintTest(unittest.TestCase):
             ("\n_installApp\n", "\n_missingApp\n", "[lifecycle]"),
             ("\n_lockCheck\n_setLock\n", "\n_setLock\n_lockCheck\n", "[lifecycle]"),
             ("\n_installAppLock\n", "\n# _installAppLock\n", "[lifecycle]"),
-            ("\n_installApp\n", "\n_installApp\ntouch unexpected\n", "[lifecycle]"),
+            ("\n_lockCheck\n_setLock\n", "\n_installApp\n_lockCheck\n_setLock\n", "[lifecycle]"),
             ("rm -f /install/.install.lock", ":", "[locks]"),
             ('eval set -- "${ARGS}"', "set -- $ARGS", "[options]"),
             ('OUTTO="$2"', "OUTTO=$2", "[options]"),

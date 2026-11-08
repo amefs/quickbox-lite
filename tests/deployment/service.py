@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Container-only process adapter. This deliberately does not emulate systemd."""
+"""Container-only process adapter for the deployment harness."""
 
 import os
 from pathlib import Path

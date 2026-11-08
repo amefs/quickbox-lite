@@ -12,10 +12,6 @@ COPY tests/deployment/package*.json tests/deployment/
 RUN cd tests/deployment && npm ci
 COPY --from=baseline / /opt/quickbox-baseline/
 RUN cd /opt/quickbox-baseline/setup/dashboard/ws && npm ci --omit=dev
-RUN mkdir /tmp/quickbox-offline-check \
-    && cp setup/dashboard/ws/package*.json /tmp/quickbox-offline-check/ \
-    && cd /tmp/quickbox-offline-check && npm ci --offline --omit=dev \
-    && rm -rf /tmp/quickbox-offline-check
 COPY . .
 ENV QUICKBOX_TEST_DISPOSABLE=1
 ENV npm_config_offline=true

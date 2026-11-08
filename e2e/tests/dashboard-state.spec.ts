@@ -153,12 +153,34 @@ async function openDashboard(page: Page): Promise<void> {
     await expect.poll(async () => isPackageTableReady(page), { timeout: 60000 }).toBe(true);
 }
 
+/** The server-rendered badge is unconfirmed; the first successful reply writes
+ * data-observed-at and gives stale marking a "last confirmed" time to keep. */
+async function waitForConfirmedServiceStatus(page: Page): Promise<void> {
+    await expect.poll(
+        () => page.locator("#appstat_rtorrent span[data-observed-at]").count(),
+        { timeout: 15000 },
+    ).toBeGreaterThan(0);
+}
+
+/** Every response in this spec is delivered directly to the socket listeners;
+ * suppress spontaneous retries so the mock server cannot overwrite them. */
+async function suppressServiceStatusRequests(page: Page): Promise<void> {
+    await page.evaluate(() => {
+        const socket = (window as unknown as { socket: { send: (payload: unknown) => unknown } }).socket;
+        const send = socket.send.bind(socket);
+        socket.send = (payload: unknown) => {
+            if ((payload as { key?: string }).key === "SERVICE_STATUS_ALL") return socket;
+            return send(payload);
+        };
+    });
+}
+
 test.describe("service status recovery", () => {
     test.setTimeout(45000);
 
     test("backs off across periodic polls and lets reconnect trigger an immediate request", async ({ page }) => {
         await openDashboard(page);
-        await expect(page.locator("#appstat_rtorrent .badge").first()).toBeVisible({ timeout: 15000 });
+        await waitForConfirmedServiceStatus(page);
         await page.evaluate(() => {
             const win = window as unknown as { socket?: { send: (payload: unknown) => unknown }; __serviceStatusRequests?: unknown[] };
             const socket = win.socket;
@@ -178,19 +200,17 @@ test.describe("service status recovery", () => {
 
         await deliverSocketMessage(page, { key: "SERVICE_STATUS_ALL", success: false, message: "fixture failure" });
         // Backoff is 5000·2^(n-1) ms with the jitter pinned to 0 by the
-        // Math.random stub above, so the first retry lands at 5s and the second
-        // at 10s; the waits bracket those boundaries deterministically.
-        await page.waitForTimeout(4500);
-        expect(await page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length)).toBe(0);
-        await page.waitForTimeout(1000);
-        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length)).toBe(1);
+        // Math.random stub above. The retry request and its elapsed delay are
+        // both observed through polling.
+        const firstFailureAt = Date.now();
+        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length), { timeout: 12000 }).toBe(1);
+        expect(Date.now() - firstFailureAt).toBeGreaterThanOrEqual(4500);
 
         const firstRequest = await page.evaluate(() => (window as unknown as { __serviceStatusRequests: { requestId: string }[] }).__serviceStatusRequests[0]);
         await deliverSocketMessage(page, { key: "SERVICE_STATUS_ALL", requestId: firstRequest.requestId, success: false, message: "fixture failure" });
-        await page.waitForTimeout(9000);
-        expect(await page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length)).toBe(1);
-        await page.waitForTimeout(1500);
-        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length)).toBe(2);
+        const secondFailureAt = Date.now();
+        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length), { timeout: 15000 }).toBe(2);
+        expect(Date.now() - secondFailureAt).toBeGreaterThanOrEqual(9000);
 
         await deliverSocketMessage(page, {
             key: "SERVICE_STATUS_ALL",
@@ -211,7 +231,8 @@ test.describe("service status recovery", () => {
 
     test("marks badges stale on transport failure, rejects late replies and accepts recovery", async ({ page }) => {
         await openDashboard(page);
-        await expect(page.locator("#appstat_rtorrent .badge").first()).toBeVisible({ timeout: 15000 });
+        await waitForConfirmedServiceStatus(page);
+        await suppressServiceStatusRequests(page);
 
         await deliverSocketMessage(page, {
             key: "SERVICE_STATUS_ALL",

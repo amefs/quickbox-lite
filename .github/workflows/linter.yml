@@ -175,12 +175,16 @@ jobs:
             echo 'run=true' >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # Unit test changes are covered by the flake8/pyright and
+          # system-tests jobs above. e2e stays here because the browser suite
+          # only runs from the acceptance workflow; deployment harness changes
+          # need the full run.
           git diff --name-only "$BASE_SHA" "$GITHUB_SHA" -- \
             setup.sh setup packages/system \
             packages/package/install/installpackage-authelia \
             packages/package/install/installpackage-vouchproxy \
             packages/package/install/installpackage-flood \
-            tests ':(exclude)tests/lint' e2e \
+            tests/deployment e2e \
             .github/workflows/deployment.yml .github/workflows/linter.yml \
             > "$RUNNER_TEMP/dashboard-changes.txt"
           if [[ -s "$RUNNER_TEMP/dashboard-changes.txt" ]]; then

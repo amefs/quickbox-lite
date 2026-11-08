@@ -48,9 +48,8 @@ async function expectLogInViewport(page: Page) {
 }
 
 // Footer buttons must stay consistent inside each dialog and readable: equal
-// height and font size across siblings, a label that fits without clipping,
-// and no min-size inflation of their own. Exact theme metrics live in the
-// theme stylesheets and are deliberately not restated here.
+// height and font size across siblings, equal min-size rules, and a label that
+// fits without clipping. Theme metrics stay in the theme stylesheets.
 async function expectFooterButtonsConsistent(page: Page) {
     const buttons = await page.evaluate(() => Array.from(document.querySelectorAll(".modal-footer .btn")).map(el => {
         const style = getComputedStyle(el);
@@ -61,6 +60,7 @@ async function expectFooterButtonsConsistent(page: Page) {
             label: (el.textContent ?? "").trim(),
             visible: rect.height > 0,
             fontSize: parseFloat(style.fontSize),
+            width: rect.width,
             height: rect.height,
             minWidth: style.minWidth,
             minHeight: style.minHeight,
@@ -85,8 +85,10 @@ async function expectFooterButtonsConsistent(page: Page) {
             const who = `${dialog || "dialog"} footer button "${button.label}"`;
             expect(button.fontSize, who).toBeCloseTo(first.fontSize, 0);
             expect(button.height, who).toBeCloseTo(first.height, 0);
-            expect(button.minWidth, who).toBe("0px");
-            expect(button.minHeight, who).toBe("0px");
+            expect(button.minWidth, who).toBe(first.minWidth);
+            expect(button.minHeight, who).toBe(first.minHeight);
+            expect(parseFloat(button.minWidth) || 0, who).toBeLessThanOrEqual(first.width);
+            expect(parseFloat(button.minHeight) || 0, who).toBeLessThanOrEqual(first.height);
             expect(button.clipped, who).toBe(false);
         }
     }

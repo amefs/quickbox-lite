@@ -16,7 +16,7 @@ REPO = Path(__file__).resolve().parents[2]
 SCRIPT = (REPO / "packages/system/update/qbUpdateDashboard").read_text()
 
 
-def run_case(stage):
+def run_case(stage, shared_backup=False):
     with tempfile.TemporaryDirectory(prefix="quickbox-update-") as temporary:
         root = Path(temporary)
         for name in [
@@ -113,12 +113,35 @@ fi
 """)
         for theme in ["smoked", "defaulted"]:
             (root / f"quickbox/system/theme/themeSelect-{theme}").write_text('[ "$FAIL_STAGE" != theme ]\n')
+        managed_paths = [
+            "/etc/nginx/apps/dashboard.conf",
+            "/etc/nginx/snippets/proxy.conf",
+            "/etc/nginx/snippets/quickbox-ws-gateway.conf",
+            "/etc/systemd/system/quickbox-ws.service",
+            "/etc/quickbox/ws.secret",
+            "/srv/dashboard/db/ws.secret",
+            "/srv/dashboard/db/nginx-ws-gateway.conf",
+        ]
+        # Standalone callers (legacy upgrade, repeat upgrade in the deployment
+        # harness) have no update_backup_dir and create their own rollback set.
+        # The qbUpdate path passes the shared set instead.
+        backup_setup = ""
+        if shared_backup:
+            backup_setup = (
+                f'update_backup_dir="{root}/backups"\n'
+                '_qbBackupCreate "$update_backup_dir" '
+                + " ".join(f'"{rewrite(path)}"' for path in managed_paths)
+                + " || exit 1\n"
+            )
         driver = root / "driver.sh"
         driver.write_text(
             rewrite(SCRIPT)
             + r"""
 _norm= _cyan= _green= _tan= _red=
 OUTTO="$SANDBOX/srv/dashboard/db/output.log"
+"""
+            + backup_setup
+            + r"""
 local_setup_dashboard="$SANDBOX/payload/"
 local_setup_template="$SANDBOX/templates/"
 QUICKBOX_BACKUP_DIR="$SANDBOX/backups"
@@ -203,9 +226,13 @@ exit "$result"
                 assert "fixture health probe: passed" in (live / "db/output.log").read_text()
             backups = root / "backups"
             assert backups.stat().st_mode & 0o777 == 0o700
-            dashboard_backups = list(backups.glob("*-dashboard"))
-            assert len(dashboard_backups) == 1, dashboard_backups
-            assert dashboard_backups[0].stat().st_mode & 0o777 == 0o700
+            if shared_backup:
+                assert (backups / "manifest.tsv").is_file()
+                assert not list(backups.glob("*-dashboard"))
+            else:
+                dashboard_backups = list(backups.glob("*-dashboard"))
+                assert len(dashboard_backups) == 1, dashboard_backups
+                assert dashboard_backups[0].stat().st_mode & 0o777 == 0o700
             if stage == "health-transient":
                 assert (root / "health-attempts").read_text() == "3\n"
             if stage == "health-slow-transient":
@@ -248,6 +275,10 @@ exit "$result"
 )
 def test_dashboard_update(failure):
     run_case(failure)
+
+
+def test_shared_backup_is_reused():
+    run_case("success", shared_backup=True)
 
 
 def test_cli_early_exit_clears_lock():

@@ -70,7 +70,7 @@ function _updatedashboard() {
 		/srv/dashboard/db/nginx-ws-gateway.conf
 	)
 
-	# qbUpdate passes one complete set; standalone runs fall back to a local copy.
+	# qbUpdate passes one complete set; standalone runs create their own.
 	backup_dir="${update_backup_dir:-}"
 	if [[ -z "${backup_dir}" ]]; then
 		backup_root=$(_qbBackupRoot) || return 1
@@ -301,10 +301,9 @@ PYEOF
 	if _qbIsVerbose; then
 		health_args+=(--verbose)
 	fi
-	# A round already waits ~20s inside the helper for the backend listener, so
-	# repeating a failed round would only repeat that wait. The window only
-	# covers a fast failure: nginx worker transitions and transient probe
-	# timeouts right after the reload, which settle within seconds.
+	# Retry only fast failures (nginx worker transitions and transient probe
+	# timeouts) within a 5s window; the helper's own listener wait covers slow
+	# starts, and a full failed round ends the loop at the deadline.
 	while true; do
 		if health_output=$(bash /usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck "${health_args[@]}" 2>&1); then
 			break
@@ -327,7 +326,7 @@ PYEOF
 		rm -rf "${previous_dir}" "${stage_dir}"
 	fi
 
-	# Remove the legacy gateway copies; nginx and the runtime no longer read them.
+	# Remove the legacy gateway copies; nginx and the runtime read the new ones.
 	lap=$(_qbNowMs)
 	_qbRunHelper "Failed to clean up the legacy gateway files" \
 		bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureWsGateway --cleanup-legacy || true
