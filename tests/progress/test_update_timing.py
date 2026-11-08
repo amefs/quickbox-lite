@@ -106,6 +106,22 @@ _updateHeartbeatLoop 1 probe terminal "$(_qbNowMs)"
     assert result.returncode == 0 and not activity.exists()
 
 
+def test_child_progress_stage_skips_the_heartbeat(driver, tmp_path):
+    path, env = driver
+    (tmp_path / "out.log").write_text("")
+    probe = 'probe() { printf "pid=<%s>\\n" "${update_heartbeat_pid:-}"; }; '
+    skipped = run_bash(
+        'source "$1"; ' + probe + '_updateStep --child-progress handoff probe', path, env=env
+    )
+    assert skipped.returncode == 0, skipped.stderr
+    assert "pid=<>" in skipped.stdout
+    assert "⏱ handoff:" in skipped.stdout
+    assert "Timing: handoff took" in (tmp_path / "out.log").read_text()
+    started = run_bash('source "$1"; ' + probe + '_updateStep handoff probe', path, env=env)
+    assert started.returncode == 0, started.stderr
+    assert "pid=<>" not in started.stdout
+
+
 def test_fast_stages_stop_heartbeat_without_hanging(driver):
     path, env = driver
     result = run_bash(

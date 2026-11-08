@@ -4,9 +4,8 @@
 # Shared bootstrap for the QuickBox update pipeline.
 #
 # Sourcing this file loads the clock (qbUpdateTimer), the step output policy
-# (qbUpdateStep), the printers, the update lock and the log epoch. The three
-# files ship together and are replaced together by the repository stage. A
-# missing sibling stops the update here with the helper path on stderr.
+# (qbUpdateStep), the printers, the update lock and the log epoch. A missing
+# sibling stops the update here with the helper path on stderr.
 
 _qb_lib_dir="${QB_UPDATE_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)}"
 

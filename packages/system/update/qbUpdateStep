@@ -4,12 +4,10 @@
 # Shared output policy for the QuickBox update pipeline.
 #
 # An update is read at two levels: one line per stage, one duration per
-# expensive sub-step. Everything a helper script prints while it succeeds is
-# detail; it belongs in the shared log, not on the terminal, otherwise a routine
-# update buries its own result under "already up to date" lines.
+# expensive sub-step. A helper's successful output goes to the shared log and
+# stays off the terminal; --verbose mirrors it there.
 #
-# A failing helper is the opposite case: its own output is the diagnosis, so it
-# is replayed in full, indented under the failure.
+# A failing helper's output is replayed in full, indented under the failure.
 #
 # Callers must have OUTTO (the shared log) and the _error printer available.
 # The file only defines functions, so it is safe to source repeatedly and under
@@ -26,9 +24,9 @@ function _qbIsVerbose() {
 #   _qbRunHelper "Failed to migrate the nginx proxy snippet" \
 #       bash /usr/local/bin/quickbox/system/auxiliary/qbNginxProxyMigrate
 #
-# The first argument is the failure message, so callers keep one diagnostic per
-# step instead of a generic one. Success writes the helper's output to the log
-# and, in verbose mode, mirrors it on the terminal.
+# The first argument is the failure message: a step reports that message and
+# not a generic one. Success writes the helper's output to the log and, in
+# verbose mode, mirrors it on the terminal.
 function _qbRunHelper() {
 	local message="$1"
 	shift

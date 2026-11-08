@@ -3,12 +3,10 @@
 #
 # Shared wall-clock helpers for the QuickBox update pipeline.
 #
-# qbUpdate, qbUpdateService and qbUpdateDashboard source this file so every
-# stage and every expensive sub-step can report how long it took. A slow update
-# then points at one step instead of an opaque "the update took a while".
+# qbUpdate, qbUpdateService and qbUpdateDashboard source this file; every stage
+# and every expensive sub-step reports how long it took.
 #
-# The file must stay free of side effects and safe to source from a script that
-# runs under `set -u`; it only defines functions.
+# The file only defines functions: no side effects, safe under `set -u`.
 
 # Prints the current time in milliseconds.
 #
@@ -55,9 +53,8 @@ function _qbFormatMs() {
 	fi
 }
 
-# Tells a running heartbeat that the stage is still producing output. The
-# driver owns the stamp; callers that run without it (tests, helper scripts)
-# simply skip the refresh, so this stays free of side effects.
+# Writes the current time to the driver's activity stamp. Without a driver
+# (tests, helper scripts) there is no stamp and the call returns 0.
 function _qbTouchActivity() {
 	if [[ $(type -t _updateTouchActivity) == function ]]; then
 		_updateTouchActivity
@@ -93,11 +90,10 @@ function _qbReportMs() {
 }
 
 # Measures the time since a _qbNowMs value and reports it. Callers that also
-# need the millisecond count should compute it themselves and use _qbReportMs.
+# need the millisecond count compute it themselves and use _qbReportMs.
 #
-# A sub-step that finishes in under a tenth of a second says nothing about where
-# the update spent its time, so only the log keeps it. Stage durations go
-# through _qbReportMs and are always shown.
+# Sub-steps under 100ms go to the log only. Stage durations go through
+# _qbReportMs and always print.
 function _qbReportLap() {
 	local label="$1" start_ms="${2:-}" elapsed
 	if [[ ! ${start_ms} =~ ^[0-9]+$ ]]; then

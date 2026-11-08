@@ -110,8 +110,8 @@ function _lockCleanup() {
 	_success "QuickBox update finished!"
 }
 
-# Exit trap: a heartbeat subshell must never outlive the update that owns it,
-# and neither must the activity stamp it reads.
+# Exit trap: stops the heartbeat subshell and removes the activity stamp, so
+# neither outlives the update.
 function _updateCleanup() {
 	_updateHeartbeatStop
 	if [[ -n ${update_activity_file:-} ]]; then
@@ -370,11 +370,9 @@ function _restoreUpdateConfig() {
 	return "${rc}"
 }
 
-# The heartbeat measures silence, not a fixed cadence. Every line printed on the
-# terminal and every reported duration refreshes the timestamp below, so a stage
-# that keeps producing sub-step timings never also claims to be "still running".
-# The stamp has to live in a file: the tick runs in a subshell and cannot see the
-# parent's variables.
+# The heartbeat measures silence since the last activity, not a fixed cadence.
+# Every terminal line and every reported duration writes the current time to the
+# stamp; the tick reads that stamp from a file because it runs in a subshell.
 function _updateActivityInit() {
 	if [[ -z ${update_activity_file:-} ]]; then
 		update_activity_file=$(mktemp "${TMPDIR:-/tmp}/qb-update-activity.XXXXXX" 2>/dev/null) || update_activity_file=""
@@ -396,10 +394,10 @@ function _updateActivityRead() {
 	printf '%s' "${value}"
 }
 
-# Progress ticks for one stage. The interval process is started in the
-# background and awaited, so a TERM from _updateHeartbeatStop is handled
-# immediately instead of after the current sleep finishes: a tick must never
-# outlive the stage that owns it or hold the updater's stdout open.
+# Progress ticks for one stage. The interval process runs in the background and
+# is awaited, so a TERM from _updateHeartbeatStop ends it during the current
+# sleep. A tick does not outlive the stage that owns it and does not hold the
+# updater's stdout open.
 function _updateHeartbeatLoop() {
 	local silence="$1" label="$2" sink="$3" start_ms="$4" ready_file="${5:-}"
 	local tick=1 now elapsed silent last stamp sleeper=""
@@ -416,8 +414,8 @@ function _updateHeartbeatLoop() {
 		now=$(_qbNowMs)
 		stamp=$(_updateActivityRead || true)
 		if [[ ! ${stamp} =~ ^[0-9]+$ ]]; then
-			# A writer may sit between truncate and write; one retry covers
-			# it, so a read race never turns into a false "still running".
+			# A writer can sit between truncate and write; the retry reads
+			# the stamp once more before the stage counts as silent.
 			stamp=$(_updateActivityRead || true)
 		fi
 		if [[ ${stamp} =~ ^[0-9]+$ ]] && (( stamp > last )); then
@@ -438,10 +436,9 @@ function _updateHeartbeatLoop() {
 }
 
 # Live progress for long stages. A stage that goes quiet for `silence` seconds
-# repeats how long it has been going, so a silent `npm ci` or apt step is
-# visibly alive instead of looking hung. A terminal keeps these lines to itself;
-# without one (the Dashboard launcher discards stdout) the same signal goes to
-# the shared log, which is what the Dashboard log view reads.
+# repeats how long it has been running. With a terminal these lines stay on the
+# terminal; without one (the Dashboard launcher discards stdout) they go to the
+# shared log the Dashboard log view reads.
 function _updateHeartbeatStart() {
 	local label="$1" start_ms="${2:-}" sink=log ready_file attempts
 	update_heartbeat_pid=""
@@ -455,8 +452,8 @@ function _updateHeartbeatStart() {
 	elif [[ ! -f ${OUTTO:-} || ! -w ${OUTTO:-} ]]; then
 		return 0
 	fi
-	# The child signals readiness after installing its signal trap. Without
-	# this handshake, a fast stage can send TERM before the trap is active.
+	# The child creates the ready file after installing its signal trap. The
+	# loop below waits for that file before the stage can stop the tick.
 	if [[ ${sink} == terminal ]]; then
 		(_updateHeartbeatLoop 15 "${label}" terminal "${start_ms}" "${ready_file}") 8>&- 9>&- &
 	else
@@ -533,12 +530,22 @@ function _printUpdateTiming() {
 	printf '  %-34s %8s\n' "total" "$(_qbFormatMs "${total}")"
 }
 
+# --child-progress runs the stage without a heartbeat. The child process the
+# stage starts prints progress to the same log; the stage still reports its
+# duration.
 function _updateStep() {
+	local heartbeat=1
+	if [[ $1 == --child-progress ]]; then
+		heartbeat=0
+		shift
+	fi
 	local stage="$1"
 	shift
 	local start_ms elapsed status
 	start_ms=$(_qbNowMs)
-	_updateHeartbeatStart "${stage}" "${start_ms}"
+	if (( heartbeat )); then
+		_updateHeartbeatStart "${stage}" "${start_ms}"
+	fi
 	"$@"
 	status=$?
 	_updateHeartbeatStop
@@ -720,8 +727,8 @@ if [[ ${from_checkout} -eq 1 && ${core} -eq 0 && ${QUICKBOX_UPDATE_HANDOFF:-} !=
 	printf 'Full checkout update requires a handoff\n' >&2
 	exit 2
 fi
-# The service stage is sourced into this shell, so the mode travels as an
-# exported flag rather than an argument the caller has to thread through.
+# The service stage is sourced into this shell; the mode travels as an exported
+# flag.
 QB_UPDATE_ONLY_CORE=${core}
 export QB_UPDATE_ONLY_CORE
 update_started_ms=$(_qbNowMs)
@@ -761,7 +768,7 @@ fi
 _preloadScript || _updateAbort "preload update scripts"
 if [[ ${from_checkout} -eq 0 ]]; then
 	_updateStep "repository" _updateRepo
-	_updateStep "target updater" _handoffUpdate
+	_updateStep --child-progress "target updater" _handoffUpdate
 	_updateStep "installed branch state" _commitInstalledBranch
 	if [[ ${legacy_handoff:-0} == 1 ]]; then
 		_printUpdateTiming
