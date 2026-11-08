@@ -1,0 +1,71 @@
+packages/system/update/qbUpdateLib
+  h_3705811fa4502c 8-9
+setup/dashboard/ws/dist/widgets.js
+  h_3705811fa4502c 17
+tests/lint/test_package_scripts_lint.py
+  h_3705811fa4502c 56-67,83
+scripts/lint-package-scripts.py
+  h_3705811fa4502c 16,18,25,31,62,65,113,139,143-149,194,199-200,296,299-306,373
+setup/dashboard/ws/src/handlers/exec.ts
+  h_3705811fa4502c 37-39,218-221,254-255,260
+e2e/playwright.config.ts
+  h_3705811fa4502c 14
+setup/dashboard/ws/package.json
+  s_42d20f62a4a36e::t_74bdb39e37686c 21,29,31,48,52-53,58,62
+  s_5f4238d90589d5::t_481f1ac0d6378a 41,63
+  h_3705811fa4502c 66,68-73
+e2e/tests/log-panel.spec.ts
+  h_3705811fa4502c 51-52,63,88-91
+packages/system/box
+  h_3705811fa4502c 69-71
+tests/dashboard/test_dashboard_update.py
+  h_3705811fa4502c 116-124,130-135,142-144,230
+  s_5f4238d90589d5::t_fed00e749470ae 283
+  s_5f4238d90589d5::t_bde19e8d8adec1 280-282
+  h_3705811fa4502c 19,125-129,229,231-235
+setup/dashboard/ws/package-lock.json
+  s_42d20f62a4a36e::t_49f3be74b7dded 12,20,22,39,43-44,49,53,1522-1524,1529-1532,1545,1551-1553,1561-1563,1567-1570,1586-1588,1592-1593,1608-1610,1614-1615,1626-1628,1643-1645,1649-1651,1668-1670,1682-1684,1688-1691,1749-1751,1756-1758,1773-1775,1779,1919-1921,1999-2001,2616-2618,2631,2652,3032-3034,3186-3188,3256-3258,4683-4685,5042-5044,5050,5073-5075,5279-5281,5285-5288,5474-5476
+  s_5f4238d90589d5::t_1e586f0ca83c7d 32,54,57,883-885,903-905,920-922,937-939,954-956,971-973,988-990,1005-1007,1025-1027,1045-1047,1065-1067,1085-1087,1105-1107,1125-1127,1142-1144,1159-1161,1408-1410,4437-4439,4621-4623,4627,4637-4651,5358-5360,5366-5367
+e2e/tests/dashboard-state.spec.ts
+  h_3705811fa4502c 156-177,183,203-207,211-213,234-235
+.github/workflows/linter.yml
+  h_3705811fa4502c 178-181,187
+packages/system/qbUpdate
+  h_3705811fa4502c 260-261,346,348-349
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 304-306,329
+  h_3705811fa4502c 73
+tests/deployment/service.py
+  h_3705811fa4502c 2
+tests/backups/test_update_config.py
+  h_3705811fa4502c 200-201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0073c4bea0293fbf587147b975a0c0327e3330fb",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_42d20f62a4a36e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16204-269b-7121-a4ac-d674ac3d69be",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    },
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
