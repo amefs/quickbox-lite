@@ -1,0 +1,42 @@
+.github/workflows/linter.yml
+  h_3705811fa4502c 178-181,187
+e2e/playwright.config.ts
+  h_3705811fa4502c 14
+e2e/tests/dashboard-state.spec.ts
+  h_3705811fa4502c 156-177,183,203-207,211-213,234-235
+e2e/tests/log-panel.spec.ts
+  h_3705811fa4502c 51-52,63,88-91
+packages/system/auxiliary/qbBackupPrune
+  h_3705811fa4502c 7
+packages/system/box
+  h_3705811fa4502c 69-71
+packages/system/qbUpdate
+  h_3705811fa4502c 260-261,346,348-349
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 62,65-66,288-290,313
+packages/system/update/qbUpdateLib
+  h_3705811fa4502c 8-9
+scripts/lint-package-scripts.py
+  h_3705811fa4502c 16,18,25,31,62,65,113,139,143-149,194,199-200,296,299-306,373
+setup/dashboard/ws/src/handlers/exec.ts
+  h_3705811fa4502c 37-39,218-221,254-255,260
+tests/backups/test_update_config.py
+  h_3705811fa4502c 200-201
+tests/dashboard/test_dashboard_update.py
+  h_3705811fa4502c 116-130,137-139,224
+tests/deployment/service.py
+  h_3705811fa4502c 2
+tests/lint/test_package_scripts_lint.py
+  h_3705811fa4502c 56-67,83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2406a1b0c28d745457d890d8737662b7b9e32334",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
