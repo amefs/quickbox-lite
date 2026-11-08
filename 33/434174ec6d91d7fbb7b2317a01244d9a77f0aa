@@ -1,0 +1,22 @@
+packages/system/qbUpdate
+  h_3705811fa4502c 113-114,373-375,397-400,417-418,439-441,455-456,533-535,537-541,546-548,730-731,771
+packages/system/update/qbUpdateLib
+  h_3705811fa4502c 7-8
+packages/system/update/qbUpdateStep
+  h_3705811fa4502c 7-8,10,27-29
+packages/system/update/qbUpdateTimer
+  h_3705811fa4502c 6-7,9,56-57,93,95-96
+tests/progress/test_update_timing.py
+  h_3705811fa4502c 109-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "33434174ec6d91d7fbb7b2317a01244d9a77f0aa",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
