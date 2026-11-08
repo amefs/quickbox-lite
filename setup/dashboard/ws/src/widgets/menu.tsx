@@ -109,7 +109,7 @@ export function DashboardMenu({ menuState }: { menuState: DashboardMenuState }) 
                 <li key={`menu-${entry.name}`}>
                     <a className="grayscale" href={resolveUsernameTemplate(entry.url)} target="_blank" rel="noopener noreferrer">
                         {entry.logo ? (
-                            <img src={entry.logo} className="brand-ico" alt="" aria-hidden="true" />
+                            <img src={entry.logo} className="brand-ico" width={18} height={18} alt="" aria-hidden="true" />
                         ) : null}
                         <span>{entry.name}</span>
                     </a>

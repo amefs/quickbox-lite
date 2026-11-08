@@ -69,6 +69,11 @@ export const dashboardBandwidthPages: DashboardBandwidthPage[] = [
 ];
 
 export function getDashboardBranch() {
+    try {
+        const branch = readFileSync("/install/.quickbox-branch", "utf8").split("\n")[0]?.trim();
+        if (branch) { return branch; }
+    } catch { /* Older installations use lock files. */ }
+    if (existsSync("/install/.legacy.lock")) { return "legacy"; }
     if (!existsSync("/install/.developer.lock")) {
         return "master";
     }
@@ -76,13 +81,25 @@ export function getDashboardBranch() {
         try {
             const branch = readFileSync("/install/.debug.lock", "utf8").split("\n")[0]?.trim();
             if (branch) {
-                return branch;
+                return branch.replace(/\([0-9a-f]+\)$/, "");
             }
         } catch {
             return "development";
         }
     }
     return "development";
+}
+
+function getDashboardCommit(): string | undefined {
+    try {
+        return readFileSync("/install/.quickbox-branch", "utf8").split("\n")[1]?.trim() || undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+export function dashboardAccountLabel(account: string, devServer: boolean, devLabel: string): string {
+    return account || (devServer ? devLabel : "");
 }
 
 export function dashboardConfig() {
@@ -95,6 +112,7 @@ export function dashboardConfig() {
         username,
         version,
         branch: getDashboardBranch(),
+        branchCommit: getDashboardCommit(),
         showDeveloper: existsSync("/install/.developer.lock"),
         hasVouchProxy,
         hasAuthelia,

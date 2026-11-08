@@ -13,9 +13,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-language='lang_zh-Hans-CN'
+# The marker name is the selector basename: package scripts and iotest check
+# /install/.lang_zh.lock for localized defaults and guidance.
+language='lang_zh'
 
-rm -f /install/.lang_*
-touch /install/.lang_zh.lock
-nginx -s reload >/dev/null 2>&1
+rm -f /install/.lang_* || exit 1
+touch /install/.${language}.lock || exit 1
+if ! nginx -s reload >/dev/null 2>&1; then
+	printf '⚠ nginx reload failed; the selected language is stored but may need a manual reload\n' >&2
+fi
 sleep 5
+exit 0

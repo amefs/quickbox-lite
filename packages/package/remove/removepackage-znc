@@ -2,15 +2,16 @@
 #
 # [QuickBox Lite ZNC Remover]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Maintainer:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Mischief, JMSolo
+# Maintainer:       Amefs
 # Current version:  v1.6.1
-# Author:           Mischief
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-#################################################################################
+################################################################################
+
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -60,16 +61,16 @@ function _error() {
 	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
 }
 
-#################################################################################
+################################################################################
 # APP VARIABLE
-#################################################################################
+################################################################################
 APP_TITLE="ZNC"
 APP_NAME="znc"
 APP_SERVICE="znc"
 APP_BASEDEPS="znc"
 
-APP_LOCK=.$APP_NAME.lock
-OUTTO=/srv/dashboard/db/output.log
+APP_LOCK=".${APP_NAME}.lock"
+OUTTO="/srv/dashboard/db/output.log"
 
 ################################################################################
 # SCRIPT FUNCTIONS
@@ -82,6 +83,7 @@ function _usage() {
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
+
 ################################################################################
 # REMOVE FUNCTIONS
 ################################################################################
@@ -98,9 +100,11 @@ function _lockCheck() {
 		exit 1
 	fi
 }
+
 function _setLock() {
 	echo "${APP_TITLE}" >/install/.install.lock
 }
+
 function _lockCleanup() {
 	rm -f /install/.install.lock
 }
@@ -151,20 +155,19 @@ function _removeAppLock() {
 	_success "${APP_TITLE} lock removed."
 }
 
-#################################################################################
+################################################################################
 # OPT GENERATOR
-#################################################################################
-if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
-then
-    _usage
-    exit 1
+################################################################################
+if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@"); then
+	_usage
+	exit 1
 fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
 	-h | --help)
 		_usage
-		exit 1
+		exit 0
 		;;
 	-l | --log)
 		OUTTO="$2"
@@ -178,9 +181,9 @@ while true; do
 	shift
 done
 
-#################################################################################
+################################################################################
 # MAIN PROCESS
-#################################################################################
+################################################################################
 _lockCheck
 _setLock
 _removeInfo

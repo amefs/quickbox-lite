@@ -10,7 +10,7 @@ import fr from "../../lang/lang_fr.json";
 import zh from "../../lang/lang_zh-Hans-CN.json";
 
 const translations = { da, de, en, es, fr, zh };
-const baseI18n = new I18n(translations);
+const baseI18n = new I18n(translations, { enableFallback: true });
 const i18nStorage = new AsyncLocalStorage<I18n>();
 const localeAliases: Record<string, string> = {
     "zh-cn": "zh",
@@ -23,7 +23,7 @@ function getActiveI18n(): I18n {
 }
 
 export function withLocale<T>(locale: string, callback: () => T | Promise<T>): T | Promise<T> {
-    const scopedI18n = new I18n(translations, { locale: normalizeLocale(locale) });
+    const scopedI18n = new I18n(translations, { locale: normalizeLocale(locale), enableFallback: true });
     return i18nStorage.run(scopedI18n, callback);
 }
 

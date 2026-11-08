@@ -8,6 +8,27 @@ import i18nHandler from "../../src/handlers/i18n";
 import Constant from "../../src/shared/constants";
 import { normalizeLocale, resolveRequestLocale, VALID_LOCALES } from "../../src/i18n";
 
+/**
+ * Collect the lines a handler writes through `console.log`.
+ *
+ * The connection log is the only observable output of the IP sanitizer, so the
+ * assertions have to read it instead of merely checking that no exception was
+ * thrown.
+ */
+function captureLogs(run: () => void): string[] {
+    const lines: string[] = [];
+    const original = console.log;
+    console.log = (...args: unknown[]) => {
+        lines.push(args.map((arg) => String(arg)).join(" "));
+    };
+    try {
+        run();
+    } finally {
+        console.log = original;
+    }
+    return lines;
+}
+
 describe("handlers/log", () => {
     it("registers disconnect event and calls next", () => {
         const registered: Record<string, () => void> = {};
@@ -34,7 +55,6 @@ describe("handlers/log", () => {
 
     // C4: IP sanitization tests
     it("should sanitize control characters from x-forwarded-for", () => {
-        const registered: Record<string, () => void> = {};
         const mockClient = {
             id: "client-c4",
             handshake: {
@@ -43,16 +63,20 @@ describe("handlers/log", () => {
                 },
                 address: "127.0.0.1",
             },
-            on(event: string, cb: () => void) {
-                registered[event] = cb;
-            },
+            on() { /* the handler only registers a listener here */ },
         };
-        // Should not throw even with control characters in header
-        expect(() => { logHandler(mockClient as never); }).to.not.throw();
+
+        const lines = captureLogs(() => { logHandler(mockClient as never); });
+
+        expect(lines).to.have.length(1);
+        // The address is kept, the line break is not: a raw CR/LF would let the
+        // header forge a second log line.
+        expect(lines[0]).to.equal("client-c4 connect from 10.0.0.1Injected-Line: malicious");
+        // eslint-disable-next-line no-control-regex
+        expect(lines[0]).to.not.match(/[\x00-\x1f\x7f]/);
     });
 
     it("should handle x-forwarded-for as array", () => {
-        const registered: Record<string, () => void> = {};
         const mockClient = {
             id: "client-c4-arr",
             handshake: {
@@ -61,11 +85,13 @@ describe("handlers/log", () => {
                 },
                 address: "127.0.0.1",
             },
-            on(event: string, cb: () => void) {
-                registered[event] = cb;
-            },
+            on() { /* the handler only registers a listener here */ },
         };
-        expect(() => { logHandler(mockClient as never); }).to.not.throw();
+
+        const lines = captureLogs(() => { logHandler(mockClient as never); });
+
+        expect(lines).to.have.length(1);
+        expect(lines[0]).to.equal("client-c4-arr connect from 10.0.0.1");
     });
 });
 

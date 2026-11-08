@@ -8,10 +8,15 @@ import hashlib
 import os.path
 import sys
 
-try:
-    input = raw_input
-except NameError:
-    pass
+if sys.version_info[0] < 3:
+    input = __import__('__builtin__').raw_input
+
+
+def as_bytes(value):
+    if isinstance(value, bytes):
+        return value
+    return value.encode('utf-8')
+
 
 if len(sys.argv) == 2:
     deluge_dir = os.path.expanduser(sys.argv[1])
@@ -24,8 +29,8 @@ if len(sys.argv) == 2:
         else:
             password = input("Enter new password: ")
             s = hashlib.sha1()
-            s.update(config['pwd_salt'])
-            s.update(password)
+            s.update(as_bytes(config['pwd_salt']))
+            s.update(as_bytes(password))
             config['pwd_sha1'] = s.hexdigest()
             try:
                 config.save()

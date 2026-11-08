@@ -2,16 +2,16 @@
 #
 # [QuickBox Lite ruTorrent Installer]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Author:   Amefs
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
 # Current version:  v1.6.1
-# URL:
 # Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-#################################################################################
+################################################################################
+
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -61,16 +61,16 @@ function _error() {
 	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
 }
 
-#################################################################################
+################################################################################
 # APP VARIABLE
-#################################################################################
+################################################################################
 APP_TITLE="ruTorrent"
 APP_NAME="rutorrent"
 APP_BASEDEPS="sox libsox-fmt-mp3 geoip-database mediainfo zip unzip p7zip-full"
 APP_PHPDEPS="php8.4-cli php8.4-fpm php8.4-curl php8.4-gd php8.4-mbstring php8.4-opcache php8.4-dom php8.4-sockets"
 
-APP_LOCK=.$APP_NAME.lock
-OUTTO=/srv/dashboard/db/output.log
+APP_LOCK=".${APP_NAME}.lock"
+OUTTO="/srv/dashboard/db/output.log"
 APP_AUTH_FILE="/etc/htpasswd"
 
 if [[ -f /root/.admin.info ]]; then
@@ -93,6 +93,7 @@ function _usage() {
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
+
 ################################################################################
 # INSTALL FUNCTIONS
 ################################################################################
@@ -113,9 +114,11 @@ function _lockCheck() {
 		exit 1
 	fi
 }
+
 function _setLock() {
 	echo "${APP_TITLE}" >/install/.install.lock
 }
+
 function _lockCleanup() {
 	echo "$APP_TITLE Install Complete!
 
@@ -555,20 +558,19 @@ EOF
 	_success "${APP_TITLE} started."
 }
 
-#################################################################################
+################################################################################
 # OPT GENERATOR
-#################################################################################
-if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
-then
-    _usage
-    exit 1
+################################################################################
+if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@"); then
+	_usage
+	exit 1
 fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
 	-h | --help)
 		_usage
-		exit 1
+		exit 0
 		;;
 	-l | --log)
 		OUTTO="$2"
@@ -582,9 +584,9 @@ while true; do
 	shift
 done
 
-#################################################################################
+################################################################################
 # MAIN PROCESS
-#################################################################################
+################################################################################
 _lockCheck
 _setLock
 _installInfo

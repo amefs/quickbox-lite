@@ -1,0 +1,119 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Private record of an update that has not completed.
+
+_qbRecoveryDir() {
+	printf '%s\n' "${QUICKBOX_RECOVERY_DIR:-/var/lib/quickbox/update-recovery}"
+}
+
+_qbRecoveryBegin() {
+	local dir parent owner mode
+	dir=$(_qbRecoveryDir)
+	parent=$(dirname "${dir}")
+	if [[ -e ${dir} || -L ${dir} ]]; then
+		printf 'An unfinished update record already exists: %s\n' "${dir}" >&2
+		return 1
+	fi
+	mkdir -p "${parent}" || return 1
+	if [[ $(id -u) == 0 ]]; then
+		[[ ! -L ${parent} ]] || return 1
+		owner=$(stat -c %u "${parent}") || return 1
+		mode=$(stat -c %a "${parent}") || return 1
+		[[ ${owner} == 0 ]] && (( (8#${mode} & 8#22) == 0 )) || return 1
+	fi
+	(umask 077; mkdir "${dir}") || return 1
+	chmod 0700 "${dir}" || return 1
+	QB_RECOVERY_ACTIVE=1
+	export QB_RECOVERY_ACTIVE
+}
+
+# Restore the previous Dashboard tree and configuration before retrying.
+_qbRecoveryResume() {
+	local dir backup="" stage="" lock owner mode
+	dir=$(_qbRecoveryDir)
+	[[ -e ${dir} || -L ${dir} ]] || return 0
+	if [[ ! -d ${dir} || -L ${dir} ]]; then
+		printf 'Invalid update recovery record: %s\n' "${dir}" >&2
+		return 1
+	fi
+	if [[ $(id -u) == 0 ]]; then
+		owner=$(stat -c %u "${dir}") || return 1
+		mode=$(stat -c %a "${dir}") || return 1
+		if [[ ${owner} != 0 ]] || (( (8#${mode} & 8#77) != 0 )); then
+			printf 'Update recovery record must be private and root-owned: %s\n' "${dir}" >&2
+			return 1
+		fi
+	fi
+	[[ -f ${dir}/backup && ! -L ${dir}/backup ]] && IFS= read -r backup <"${dir}/backup"
+	[[ -f ${dir}/stage && ! -L ${dir}/stage ]] && IFS= read -r stage <"${dir}/stage"
+	if [[ -n ${stage} && ! ${stage} =~ ^/srv/\.dashboard-stage\.[a-zA-Z0-9]+$ ]]; then
+		printf 'Invalid recorded Dashboard stage: %s\n' "${stage}" >&2
+		return 1
+	fi
+	if [[ -n ${stage} && -z ${backup} ]]; then
+		printf 'Dashboard staging record has no configuration backup: %s\n' "${dir}" >&2
+		return 1
+	fi
+	if [[ -n ${backup} && ! -f ${backup}/manifest.tsv ]]; then
+		printf 'Update backup is missing: %s\n' "${backup}" >&2
+		return 1
+	fi
+	if [[ -n ${stage} && -d ${stage}.previous ]]; then
+		if [[ -e /srv/dashboard ]]; then
+			if [[ -e ${stage} ]]; then
+				printf 'Dashboard and stage both exist; inspect %s\n' "${stage}" >&2
+				return 1
+			fi
+			mv /srv/dashboard "${stage}" || return 1
+		fi
+		mv "${stage}.previous" /srv/dashboard || return 1
+	fi
+	if [[ -n ${stage} && ! -d /srv/dashboard ]]; then
+		printf 'Dashboard directory is missing; inspect %s\n' "${stage}" >&2
+		return 1
+	fi
+	if [[ -n ${backup} ]]; then
+		_qbSourceLib qbUpdateBackup || return 1
+		_qbBackupRestoreAll "${backup}" || return 1
+	fi
+	lock="${QUICKBOX_INSTALL_DIR:-/install}/.install.lock"
+	if [[ -f ${lock} ]]; then
+		IFS= read -r owner <"${lock}" || return 1
+		if [[ ${owner} != QuickBox ]]; then
+			printf 'Another task owns %s\n' "${lock}" >&2
+			return 1
+		fi
+		rm -f -- "${lock}" || return 1
+	fi
+	if [[ -n ${stage} ]]; then
+		rm -rf -- "${stage}" || return 1
+	fi
+	rm -f -- "${dir}/stage" "${dir}/backup" || return 1
+	QB_RECOVERY_ACTIVE=1
+	export QB_RECOVERY_ACTIVE
+	printf 'Resumed interrupted update; continuing with the requested upgrade.\n' >&2
+}
+
+_qbRecoveryWrite() {
+	local key="$1" value="$2" dir tmp
+	[[ ${QB_RECOVERY_ACTIVE:-0} == 1 ]] || return 0
+	dir=$(_qbRecoveryDir)
+	[[ -d ${dir} && ! -L ${dir} ]] || return 1
+	tmp=$(mktemp "${dir}/.record.XXXXXX") || return 1
+	if ! printf '%s\n' "${value}" >"${tmp}" || ! mv -f "${tmp}" "${dir}/${key}"; then
+		rm -f "${tmp}"
+		return 1
+	fi
+}
+
+_qbRecoveryFinish() {
+	local dir stage
+	dir=$(_qbRecoveryDir)
+	stage=""
+	[[ -f ${dir}/stage ]] && IFS= read -r stage <"${dir}/stage"
+	# Clear the completed record before removing its retained staging trees.
+	rm -rf -- "${dir}" || return 1
+	if [[ ${stage} == /srv/.dashboard-stage.* && ${stage} != *$'\n'* ]]; then
+		rm -rf -- "${stage}" "${stage}.previous"
+	fi
+}

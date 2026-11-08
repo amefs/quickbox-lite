@@ -1,0 +1,580 @@
+#!/usr/bin/env python3
+"""Destructive-to-fixture Linux deployment acceptance. Disposable hosts ONLY."""
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import signal
+import socket
+import subprocess
+import sys
+import tempfile
+import time
+
+REPO = Path(__file__).resolve().parents[2]
+STATE = Path("/run/quickbox-test")
+ENV = dict(
+    os.environ,
+    TERM="xterm",
+    QUICKBOX_TEST_DISPOSABLE="1",
+    QUICKBOX_NGINX_SCHEME="http",
+    QUICKBOX_WS_HEALTH_PORT="18080",
+    npm_config_cache=os.environ.get("npm_config_cache", "/opt/quickbox-npm-cache"),
+    npm_config_offline="true",
+    npm_config_audit="false",
+    npm_config_fund="false",
+)
+SYSTEMD = False
+
+
+def run(command, **kwargs):
+    return subprocess.run(command, check=True, env=ENV, **kwargs)
+
+
+def wait_http():
+    for _ in range(100):
+        result = subprocess.run(
+            [
+                "curl",
+                "--noproxy",
+                "*",
+                "-s",
+                "-o",
+                "/dev/null",
+                "-w",
+                "%{http_code}",
+                "http://127.0.0.1:8575/node/dashboard_config",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if result.stdout in ["200", "401"]:
+            return
+        time.sleep(0.2)
+    raise AssertionError("Node did not become reachable")
+
+
+def control(action):
+    command = (
+        ["systemctl", action, "quickbox-ws.service"]
+        if SYSTEMD
+        else ["python3", str(REPO / "tests/deployment/service.py"), action, "quickbox-ws.service"]
+    )
+    run(command)
+
+
+def healthy():
+    wait_http()
+    run(["bash", "/usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck", "--expect-proxy"])
+
+
+def driver(fresh=False, failure=""):
+    if fresh:
+        text = (REPO / "setup.sh").read_text()
+        matched = re.search(r"^function _insdashboard\(\) \{\n.*?^\}", text, re.M | re.S)
+        assert matched is not None, "_insdashboard() is missing from setup.sh"
+        text = matched.group()
+        # Runtime packages and the console-independent nginx fixture are already
+        # installed. Execute the real Dashboard installation body after them.
+        text += "\n_insngx() { :; }; _insnodejs() { :; }; _webconsole() { :; }\n"
+        text += "_errorcolor() { :; }; _defaultcolor() { :; }\n"
+    else:
+        text = (REPO / "packages/system/update/qbUpdateDashboard").read_text()
+    text += """
+_norm= _cyan= _green= _tan= _red=
+OUTTO=/srv/dashboard/db/output.log
+local_setup_dashboard=/etc/QuickBox/setup/dashboard/
+local_setup_template=/etc/QuickBox/setup/templates/
+username=fixture
+dash_theme=smoked
+uilang=en
+npm() { [[ "$FAILURE" != npm ]] || return 23; command npm "$@"; }
+nginx() {
+  if [[ "$FAILURE" == nginx-test && "$1" == -t && ! -f /run/quickbox-test/injected ]] ||
+     [[ "$FAILURE" == nginx-reload && "$*" == '-s reload' && ! -f /run/quickbox-test/injected ]]; then
+    touch /run/quickbox-test/injected; return 24
+  fi
+  command nginx "$@"
+}
+bash() {
+  if [[ "$FAILURE" == health && "$1" == */qbWsHealthCheck ]]; then return 25; fi
+  command bash "$@"
+}
+systemctl() {
+  if [[ "$FAILURE" == restart && "$1" == restart && ! -f /run/quickbox-test/injected ]]; then
+    touch /run/quickbox-test/injected; return 26
+  fi
+"""
+    text += '  command systemctl "$@"\n' if SYSTEMD else (f'  python3 {REPO}/tests/deployment/service.py "$@"\n')
+    text += "}\nexport -f npm nginx bash systemctl\n"
+    text += "_insdashboard\n" if fresh else "_updatedashboard\n"
+    script = STATE / "driver.sh"
+    script.write_text(text)
+    (STATE / "injected").unlink(missing_ok=True)
+    environment = dict(
+        ENV,
+        FAILURE=failure,
+        QB_UPDATE_LIB_DIR="/usr/local/bin/quickbox/system/update",
+    )
+    with (STATE / f"{'install' if fresh else 'update'}-{failure or 'success'}.log").open("w") as log:
+        result = subprocess.run(["bash", str(script)], env=environment, stdout=log, stderr=subprocess.STDOUT)
+    assert (result.returncode != 0) if failure else (result.returncode == 0), script
+    return result.returncode
+
+
+def setup():
+    if Path("/srv/dashboard").exists():
+        raise RuntimeError("Refusing to overwrite an existing Dashboard: use a fresh disposable host")
+    STATE.mkdir(parents=True)
+    for directory in [
+        "/install",
+        "/etc/QuickBox",
+        "/etc/nginx/apps",
+        "/etc/nginx/snippets",
+        "/root/.ssh",
+        "/etc/htpasswd.d",
+        "/usr/local/bin/quickbox",
+        "/srv/dashboard/db",
+    ]:
+        Path(directory).mkdir(parents=True, exist_ok=True)
+    run(["rsync", "-a", "--exclude=node_modules", str(REPO) + "/", "/etc/QuickBox/"])
+    run(["rsync", "-a", str(REPO / "packages") + "/", "/usr/local/bin/quickbox/"])
+    run(["chown", "-R", "root:root", "/etc/QuickBox", "/usr/local/bin/quickbox"])
+    for path in Path("/usr/local/bin/quickbox").rglob("*"):
+        if path.is_file():
+            path.chmod(0o755)
+    Path("/root/.ssh/local_user").write_text("disposable-fixture-passphrase\n")
+    encoded = subprocess.check_output(
+        ["openssl", "enc", "-aes-128-ecb", "-pbkdf2", "-a", "-e", "-pass", "file:/root/.ssh/local_user", "-nosalt"],
+        input=b"fixture-password\n",
+    )
+    Path("/root/.admin.info").write_bytes(b"fixture:" + encoded)
+    hashed = subprocess.check_output(["openssl", "passwd", "-apr1", "fixture-password"]).decode().strip()
+    Path("/etc/htpasswd.d/htpasswd.fixture").write_text("fixture:" + hashed + "\n")
+    shutil.copy(REPO / "setup/templates/nginx/proxy.conf", "/etc/nginx/snippets/proxy.conf")
+    shutil.copy(REPO / "setup/templates/sudoers.template", "/etc/sudoers.d/quickbox-test")
+    Path("/etc/sudoers.d/quickbox-test").chmod(0o440)
+    run(["visudo", "-cf", "/etc/sudoers"])
+    run(
+        [
+            "openssl",
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-nodes",
+            "-days",
+            "1",
+            "-subj",
+            "/CN=dashboard.test",
+            "-keyout",
+            str(STATE / "tls.key"),
+            "-out",
+            str(STATE / "tls.crt"),
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    Path("/etc/nginx/nginx.conf").write_text("""
+user www-data;
+pid /run/nginx.pid;
+events {}
+http {
+  include /etc/nginx/mime.types;
+  include /etc/nginx/conf.d/*.conf;
+  access_log /var/log/nginx/access.log;
+  error_log /var/log/nginx/error.log info;
+  server {
+    listen 127.0.0.1:18080;
+    listen [::1]:18080;
+    listen 127.0.0.1:18443 ssl;
+    ssl_certificate /run/quickbox-test/tls.crt;
+    ssl_certificate_key /run/quickbox-test/tls.key;
+    server_name dashboard.test;
+    include /etc/nginx/apps/*.conf;
+  }
+}
+""")
+    if os.environ.get("QUICKBOX_TEST_EXTERNAL") == "1":
+        config = Path("/etc/nginx/nginx.conf")
+        text = config.read_text().replace("listen 127.0.0.1:18443 ssl;", "listen 0.0.0.0:18443 ssl;")
+        config.write_text(
+            text.replace("access_log /var/log/nginx/access.log;", "access_log /auth-fixtures/browser-access.log;")
+        )
+    run(["nginx", "-t"])
+    if SYSTEMD:
+        # Make the Type=simple readiness race deterministic: the main process
+        # starts immediately, then waits before exec'ing the real Node service.
+        dropin = Path("/etc/systemd/system/quickbox-ws.service.d")
+        dropin.mkdir(parents=True, exist_ok=True)
+        (dropin / "test-startup.conf").write_text(
+            "[Service]\nExecStart=\n"
+            'ExecStart=/bin/sh -c "sleep 1; exec /usr/bin/node /srv/dashboard/ws/dist/server.js"\n'
+        )
+        subprocess.run(["systemctl", "stop", "nginx"], env=ENV, check=False)
+        run(["systemctl", "start", "nginx"])
+    else:
+        run(["nginx"])
+
+
+def permissions():
+    if SYSTEMD:
+        pid = int(subprocess.check_output(["systemctl", "show", "quickbox-ws.service", "-p", "MainPID", "--value"]))
+    else:
+        pid = int((STATE / "node.pid").read_text())
+    identity = subprocess.check_output(["ps", "-o", "user=,group=", "-p", str(pid)], text=True).split()
+    assert identity == ["www-data", "www-data"], ("service identity", identity)
+    for filename, mode in [("/etc/quickbox/ws.secret", 0o640), ("/etc/nginx/snippets/quickbox-ws-gateway.conf", 0o600)]:
+        info = Path(filename).stat()
+        assert info.st_uid == 0 and info.st_mode & 0o777 == mode
+        result = subprocess.run(["runuser", "-u", "www-data", "--", "test", "-w", filename])
+        assert result.returncode != 0
+    run(["runuser", "-u", "www-data", "--", "test", "-r", "/etc/quickbox/ws.secret"])
+    for filename in [
+        "/srv/dashboard",
+        "/srv/dashboard/ws",
+        "/srv/dashboard/ws/config/commands.json",
+        "/etc/quickbox",
+        "/etc/nginx/snippets",
+    ]:
+        assert subprocess.run(["runuser", "-u", "www-data", "--", "test", "-w", filename]).returncode != 0
+    run(["runuser", "-u", "www-data", "--", "touch", "/srv/dashboard/db/permission-fixture"])
+    fixture = Path("/usr/local/bin/quickbox/system/test-fixture")
+    fixture.write_text("#!/bin/sh\ntouch /run/quickbox-test/sudo-authorized\n")
+    fixture.chmod(0o755)
+    run(["runuser", "-u", "www-data", "--", "sudo", "-n", "--", str(fixture)])
+    assert (STATE / "sudo-authorized").exists()
+    result = subprocess.run(
+        ["runuser", "-u", "www-data", "--", "sudo", "-n", "--", "/usr/bin/touch", "/run/quickbox-test/sudo-forbidden"],
+        capture_output=True,
+    )
+    assert result.returncode != 0 and not (STATE / "sudo-forbidden").exists()
+
+    page = run([
+        "curl", "--noproxy", "*", "-fsS", "-u", "fixture:fixture-password", "http://127.0.0.1:18080/",
+    ], capture_output=True, text=True).stdout
+    stylesheet = re.search(r'href="(/css/dashboard\.css\?v=[0-9a-f]{12})"', page)
+    assert stylesheet is not None, "Dashboard stylesheet URL is not versioned"
+    stylesheet_response = run([
+        "curl", "--noproxy", "*", "-fsS", "-u", "fixture:fixture-password",
+        "http://127.0.0.1:18080" + stylesheet.group(1),
+    ], capture_output=True).stdout
+    assert hashlib.sha256(stylesheet_response).hexdigest()[:12] == stylesheet.group(1).split("=")[-1]
+    assert b"#branchSwitch .branch-commit" in stylesheet_response
+
+    # The service runs as www-data while the checkout is owned by root.
+    # Preserve any checkout metadata already present on a real systemd runner.
+    repo = Path("/etc/QuickBox")
+    origin = STATE / "branch-origin.git"
+    git_dir = repo / ".git"
+    backup_dir = Path(tempfile.mkdtemp(prefix=".branch-test-", dir=repo))
+    saved_git = backup_dir / "original.git"
+    had_git = os.path.lexists(git_dir)
+    try:
+        if had_git:
+            git_dir.rename(saved_git)
+        run(["git", "init", "--bare", str(origin)], stdout=subprocess.DEVNULL)
+        run(["git", "-C", str(repo), "init", "-b", "master"], stdout=subprocess.DEVNULL)
+        run(["git", "-C", str(repo), "config", "user.name", "QuickBox test"])
+        run(["git", "-C", str(repo), "config", "user.email", "test@example.invalid"])
+        run(["git", "-C", str(repo), "commit", "--allow-empty", "-m", "fixture"], stdout=subprocess.DEVNULL)
+        run(["git", "-C", str(repo), "remote", "add", "origin", str(origin)])
+        run(["git", "-C", str(repo), "push", "origin", "master"], stdout=subprocess.DEVNULL)
+        run(["chown", "-R", "www-data:www-data", str(origin)])
+        response = run([
+            "curl", "--noproxy", "*", "-fsS", "-u", "fixture:fixture-password",
+            "http://127.0.0.1:18080/node/branches",
+        ], capture_output=True, text=True)
+        assert "master" in json.loads(response.stdout)["branches"], response.stdout
+    finally:
+        # Only remove the fixture checkout after a successful backup rename.
+        if not had_git or os.path.lexists(saved_git):
+            if git_dir.is_dir() and not git_dir.is_symlink():
+                shutil.rmtree(git_dir)
+            else:
+                git_dir.unlink(missing_ok=True)
+            if had_git:
+                saved_git.rename(git_dir)
+        shutil.rmtree(backup_dir)
+        shutil.rmtree(origin, ignore_errors=True)
+
+
+def transports():
+    for entry in ["/ws", "/ws/"]:
+        response = run(
+            ["curl", "--noproxy", "*", "-s", "-D", "-", "-o", "/dev/null", f"http://127.0.0.1:18080{entry}?locale=zh"],
+            capture_output=True,
+            text=True,
+        )
+        assert " 308 " in response.stdout and "\nLocation: /?locale=zh\n" in response.stdout, response.stdout
+        assert "www-authenticate:" not in response.stdout.lower(), response.stdout
+    for scheme, authority in [("http", "127.0.0.1:18080"), ("http", "[::1]:18080"), ("https", "127.0.0.1:18443")]:
+        for path in ["/socket.io/", "/ws/socket.io/"]:
+            for transport, expected in [("polling", "200"), ("websocket", "101")]:
+                args = [
+                    "curl",
+                    "--noproxy",
+                    "*",
+                    "-ks",
+                    "--max-time",
+                    "1",
+                    "-o",
+                    "/dev/null",
+                    "-w",
+                    "%{http_code}",
+                    "-u",
+                    "fixture:fixture-password",
+                    "-H",
+                    f"Origin: {scheme}://{authority}",
+                ]
+                if transport == "websocket":
+                    args += [
+                        "--http1.1",
+                        "-H",
+                        "Connection: Upgrade",
+                        "-H",
+                        "Upgrade: websocket",
+                        "-H",
+                        "Sec-WebSocket-Version: 13",
+                        "-H",
+                        "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==",
+                    ]
+                result = subprocess.run(
+                    args + [f"{scheme}://{authority}{path}?EIO=4&transport={transport}"], capture_output=True, text=True
+                )
+                assert result.stdout == expected, (scheme, authority, path, transport, result.stdout, result.stderr)
+    print("IPv4/IPv6, HTTP/TLS, polling/direct WebSocket: passed", flush=True)
+
+
+def legacy():
+    control("stop")
+    shutil.rmtree("/srv/dashboard")
+    baseline = Path(os.environ.get("QUICKBOX_TEST_BASELINE_DIR", "/opt/quickbox-baseline"))
+    run(["rsync", "-a", str(baseline / "setup/dashboard") + "/", "/srv/dashboard/"])
+    for filename, content in [
+        ("master.txt", "fixture\n"),
+        ("interface.txt", "eth0\n"),
+        ("output.log", "legacy-output\n"),
+    ]:
+        Path("/srv/dashboard/db", filename).write_text(content)
+    shutil.copy(
+        baseline / "setup/templates/systemd/quickbox-ws.service.template", "/etc/systemd/system/quickbox-ws.service"
+    )
+    shutil.copy(baseline / "setup/templates/nginx/proxy.conf.template", "/etc/nginx/snippets/proxy.conf")
+    Path("/etc/nginx/snippets/proxy.conf").open("a").write("\n# retained custom fixture\nproxy_buffer_size 8k;\n")
+    for filename in ["/etc/quickbox/ws.secret", "/etc/nginx/snippets/quickbox-ws-gateway.conf"]:
+        Path(filename).unlink(missing_ok=True)
+    # Use the actual old vhost as well as its runtime, dependencies and unit.
+    Path("/etc/nginx/apps/dashboard.conf").write_text(
+        (baseline / "setup/templates/nginx/dashboard.conf.template")
+        .read_text()
+        .replace("/etc/htpasswd", "/etc/htpasswd.d/htpasswd.fixture")
+    )
+    run(["nginx", "-s", "reload"])
+    if SYSTEMD:
+        run(["systemctl", "daemon-reload"])
+    control("start")
+    wait_http()
+    driver()
+    healthy()
+    assert "retained custom fixture" in Path("/etc/nginx/snippets/proxy.conf").read_text()
+    print("Pinned baseline first upgrade: passed", flush=True)
+
+
+def digest(filename):
+    return hashlib.sha256(Path(filename).read_bytes()).hexdigest()
+
+
+def lifecycle():
+    if not SYSTEMD:
+        print("systemd lifecycle: not claimed in container mode", flush=True)
+        return
+    fields = subprocess.check_output(
+        ["systemctl", "show", "quickbox-ws.service", "-p", "User", "-p", "PrivateTmp", "-p", "KillMode"], text=True
+    )
+    assert "User=www-data" in fields and "PrivateTmp=yes" in fields and "KillMode=process" in fields, fields
+    dropin = Path("/etc/systemd/system/quickbox-ws.service.d")
+    dropin.mkdir(exist_ok=True)
+    (dropin / "test-delay.conf").write_text("[Service]\nRestartSec=200ms\n")
+    run(["systemctl", "daemon-reload"])
+    pid = int(subprocess.check_output(["systemctl", "show", "quickbox-ws.service", "-p", "MainPID", "--value"]))
+    os.kill(pid, signal.SIGKILL)
+    time.sleep(1)
+    healthy()
+    new_pid = int(subprocess.check_output(["systemctl", "show", "quickbox-ws.service", "-p", "MainPID", "--value"]))
+    assert new_pid != pid
+    print("Real systemd automatic restart: passed", flush=True)
+    control("stop")
+    with socket.socket() as blocker:
+        blocker.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        blocker.bind(("127.0.0.1", 8575))
+        blocker.listen()
+        before = int(
+            subprocess.check_output(["systemctl", "show", "quickbox-ws.service", "-p", "NRestarts", "--value"])
+        )
+        control("start")
+        for _ in range(50):
+            current = int(
+                subprocess.check_output(["systemctl", "show", "quickbox-ws.service", "-p", "NRestarts", "--value"])
+            )
+            if current > before:
+                break
+            time.sleep(0.1)
+        else:
+            raise AssertionError("port collision did not trigger Restart=on-failure")
+    healthy()
+    print("Real port collision followed by systemd recovery: passed", flush=True)
+
+
+def update_mutex():
+    # Keep the production WS protocol, command policy, sudoers, detached runner
+    # and core lock; replace only the destructive update body with sleep.
+    definitions = (REPO / "packages/system/qbUpdate").read_text().split("# MAIN PROCESS")[0]
+    fixture = Path("/usr/local/bin/quickbox/system/qbUpdate")
+    fixture.write_text(
+        "#!/bin/bash\n"
+        + definitions
+        + """
+OUTTO=/srv/dashboard/db/output.log
+_updateLockCheck
+result=$?
+[[ "$result" == 0 ]] || exit "$result"
+_lockCheck
+_setLock || exit 1
+trap _releaseUpdateInstallLock EXIT
+_initializeUpdateLog || exit 1
+echo entered >>/run/quickbox-test/update-entered.log
+sleep 4
+touch /run/quickbox-test/update-finished
+"""
+    )
+    fixture.chmod(0o755)
+    command = ["node", str(REPO / "tests/deployment/ws-update.cjs")]
+    if SYSTEMD:
+        command.append("--systemd")
+    run(command)
+    healthy()
+
+
+def install():
+    setup()
+    driver(fresh=True)
+    healthy()
+    permissions()
+
+
+def upgrade():
+    legacy()
+    secret = digest("/etc/quickbox/ws.secret")
+    driver()
+    assert digest("/etc/quickbox/ws.secret") == secret
+    healthy()
+    print("Repeat upgrade and secret preservation: passed", flush=True)
+
+
+def recovery():
+    secret = digest("/etc/quickbox/ws.secret")
+    candidate = Path("/etc/QuickBox/setup/dashboard/ws/dist/server.js")
+    original_candidate = candidate.read_bytes()
+    try:
+        for failure in ["npm", "restart", "nginx-test", "nginx-reload", "health"]:
+            print(f"::group::Recovery after {failure}", flush=True)
+            try:
+                candidate.write_bytes(f"// candidate for {failure}\n".encode() + original_candidate)
+                vhost = Path("/etc/nginx/apps/dashboard.conf")
+                vhost.write_text(vhost.read_text() + f"\n# previous release before {failure}\n")
+                old_config = digest(vhost)
+                before = digest("/srv/dashboard/ws/dist/server.js")
+                driver(failure=failure)
+                assert digest("/srv/dashboard/ws/dist/server.js") == before
+                assert digest(vhost) == old_config, "rollback must restore the previous vhost bytes"
+                assert digest("/etc/quickbox/ws.secret") == secret
+                healthy()
+                print(f"Real deployment recovery after {failure}: passed", flush=True)
+            finally:
+                print("::endgroup::", flush=True)
+    finally:
+        candidate.write_bytes(original_candidate)
+
+
+def cleanup():
+    if not STATE.exists():
+        return
+    if SYSTEMD:
+        subprocess.run(["journalctl", "-u", "quickbox-ws.service", "--no-pager", "-n", "100"], check=False)
+    for filename in STATE.glob("*.log"):
+        print(f"--- {filename.name} ---\n{filename.read_text()[-6000:]}", flush=True)
+    for filename in ["/srv/dashboard/db/output.log", "/var/log/nginx/error.log"]:
+        if Path(filename).exists():
+            print(f"--- {filename} ---\n{Path(filename).read_text()[-10000:]}", flush=True)
+    subprocess.run(["nginx", "-s", "quit"], check=False)
+    try:
+        control("stop")
+    except subprocess.CalledProcessError:
+        pass
+
+
+LINUX_PHASES = ("install", "transports", "upgrade", "recovery", "mutex")
+SYSTEMD_PHASES = ("install", "lifecycle", "mutex")
+
+
+def execute_phase(phase):
+    prerequisite = "upgrade" if phase == "recovery" else "install"
+    if phase not in ("install", "cleanup") and not (STATE / f"{prerequisite}.passed").exists():
+        raise RuntimeError(f"Run the {prerequisite} phase successfully before {phase}")
+    actions = dict(
+        install=install,
+        transports=transports,
+        upgrade=upgrade,
+        recovery=recovery,
+        lifecycle=lifecycle,
+        mutex=update_mutex,
+        cleanup=cleanup,
+    )
+    if phase != "cleanup":
+        (STATE / f"{phase}.passed").unlink(missing_ok=True)
+    actions[phase]()
+    if phase != "cleanup":
+        (STATE / f"{phase}.passed").touch()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--systemd", action="store_true")
+    parser.add_argument("--only-mutex", action="store_true", help="focused real WS/CLI concurrency regression")
+    parser.add_argument(
+        "--phase",
+        choices=(*LINUX_PHASES, "lifecycle", "cleanup"),
+        help="run one phase, retaining services for the next CI step; always finish with cleanup",
+    )
+    arguments = parser.parse_args()
+    global SYSTEMD
+    SYSTEMD = arguments.systemd
+    if sys.platform != "linux" or os.geteuid() != 0 or os.environ.get("QUICKBOX_TEST_DISPOSABLE") != "1":
+        parser.error("Run only as root in a disposable Linux deployment-test host")
+    phases = SYSTEMD_PHASES if SYSTEMD else LINUX_PHASES
+    if arguments.phase and arguments.only_mutex:
+        parser.error("--phase and --only-mutex cannot be combined")
+    if arguments.phase and arguments.phase not in (*phases, "cleanup"):
+        parser.error("This phase is not part of the selected deployment environment")
+    if arguments.phase:
+        execute_phase(arguments.phase)
+        return
+    try:
+        for phase in ("install", "mutex") if arguments.only_mutex else phases:
+            print(f"::group::{phase}", flush=True)
+            try:
+                execute_phase(phase)
+            finally:
+                print("::endgroup::", flush=True)
+        print(json.dumps({"linux-deployment": "passed", "systemd": SYSTEMD}), flush=True)
+    finally:
+        cleanup()
+
+
+if __name__ == "__main__":
+    main()

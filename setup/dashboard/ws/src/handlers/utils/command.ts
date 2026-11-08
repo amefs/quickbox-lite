@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import Constant from "../../shared/constants";
+import Constant, { isSafeUsername } from "../../shared/constants";
 import { WatchedConfig } from "../../shared/watched-config";
 
 
@@ -21,6 +21,8 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
     if (!config) {
         throw new Error(`Invalid config with type '${Object.prototype.toString.call(config)}'`);
     }
+    const branchCommand = buildBranchCommand(payload);
+    if (branchCommand !== undefined) { return branchCommand; }
     let [command, operation, target] = payload.split(":");
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (command === undefined || operation === undefined || target === undefined) {
@@ -66,12 +68,7 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
     }
 
     // apply user info
-    if (template.includes(Constant.TEMPLATE_USERNAME)) {
-        if (typeof username !== "string" || username.trim() === "") {
-            throw new Error("Username not configured: /srv/dashboard/db/master.txt is missing or empty");
-        }
-        template = template.replaceAll(Constant.TEMPLATE_USERNAME, username);
-    }
+    template = applyUsername(template, username);
 
     // check template status, no place holder should exist
     if (template.includes(Constant.TEMPLATE_OPERATION) ||
@@ -80,4 +77,36 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
         throw new Error(`Invalid template '${template}'`);
     }
     return template;
+}
+
+function buildBranchCommand(payload: string): string | undefined {
+    const parts = payload.split(":");
+    if (parts[0] !== "box" || parts[1] !== "switch-branch") { return undefined; }
+    const branch = parts[2];
+    if (parts.length !== 3 || !branch || branch.startsWith("-") || hasInvalidBranchCharacters(branch)) {
+        throw new Error("Invalid branch name");
+    }
+    const quoted = `'${branch.replaceAll("'", "'\\''")}'`;
+    return `sudo -n -- /usr/local/bin/quickbox/system/box switch-branch ${quoted}`;
+}
+
+function hasInvalidBranchCharacters(branch: string): boolean {
+    for (const char of branch) {
+        const code = char.charCodeAt(0);
+        if (code <= 32 || code === 127 || char === ":") { return true; }
+    }
+    return false;
+}
+
+function applyUsername(template: string, username: string | undefined): string {
+    if (!template.includes(Constant.TEMPLATE_USERNAME)) {
+        return template;
+    }
+    if (typeof username !== "string" || username.trim() === "") {
+        throw new Error("Username not configured: /srv/dashboard/db/master.txt is missing or empty");
+    }
+    if (!isSafeUsername(username)) {
+        throw new Error("Username contains invalid characters");
+    }
+    return template.replaceAll(Constant.TEMPLATE_USERNAME, username);
 }

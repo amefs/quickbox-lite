@@ -102,12 +102,19 @@ export async function ramStats() {
             </div>
             <hr />
             <h3>{i18n.t("TOTAL_RAM")}</h3>
-            <h4 className="nomargin" dangerouslySetInnerHTML={{
-                __html:`${memTotal}
-                <button onclick="boxHandler(event)" data-package="mem" data-operation="clean" data-toggle="modal" data-target="#sysResponse" class="btn btn-xs btn-default pull-right">
-                    ${i18n.t("CLEAR_CACHE")}
-                </button>`,
-            }}>
+            <h4 className="nomargin">
+                {memTotal}
+                <button
+                    type="button"
+                    data-click-handler="boxHandler"
+                    data-package="mem"
+                    data-operation="clean"
+                    data-toggle="modal"
+                    data-target="#sysResponse"
+                    className="btn btn-xs btn-default pull-right"
+                >
+                    {i18n.t("CLEAR_CACHE")}
+                </button>
             </h4>
         </div>);
 }

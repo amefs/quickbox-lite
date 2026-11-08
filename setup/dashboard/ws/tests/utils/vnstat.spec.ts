@@ -189,7 +189,7 @@ describe("vnstat utils", () => {
         const iface = "testiface-future";
         const dumpPath = path.join(dumpsDir, `vnstat_dump_${iface}`);
         const now = new Date();
-        const futureHour = (now.getHours() + 2) % 24;
+        const future = new Date(now.getTime() + 2 * 60 * 60 * 1000);
         const fixture = {
             vnstatversion: "2.10",
             jsonversion: "2",
@@ -201,17 +201,20 @@ describe("vnstat utils", () => {
                         date: { year: now.getFullYear(), month: now.getMonth() + 1, day: 1 },
                         time: { hour: 0, minute: 0 },
                     },
+                    // buildHourEntries keeps only hours whose date matches updated.date,
+                    // so the fixture's update timestamp carries the same future date as
+                    // the hour entry and the entry survives the filter at any wall clock.
                     updated: {
-                        date: { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() },
-                        time: { hour: now.getHours(), minute: 0 },
+                        date: { year: future.getFullYear(), month: future.getMonth() + 1, day: future.getDate() },
+                        time: { hour: future.getHours(), minute: 0 },
                     },
                     traffic: {
                         total: { rx: 100000, tx: 50000 },
                         fiveminute: [],
                         hour: [{
                             id: 0,
-                            date: { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() },
-                            time: { hour: futureHour, minute: 0 },
+                            date: { year: future.getFullYear(), month: future.getMonth() + 1, day: future.getDate() },
+                            time: { hour: future.getHours(), minute: 0 },
                             rx: 3600,
                             tx: 1800,
                         }],
@@ -224,6 +227,7 @@ describe("vnstat utils", () => {
         };
         fs.writeFileSync(dumpPath, JSON.stringify(fixture), "utf8");
         const data = await getVnstatData(iface);
+        expect(data.hour).to.have.lengthOf(1);
         // avg values should be finite numbers, not Infinity or NaN
         for (const entry of data.hour) {
             expect(isFinite(entry.rx_avg)).to.equal(true, `rx_avg is not finite: ${entry.rx_avg}`);
@@ -236,7 +240,7 @@ describe("vnstat getIfaceConfig", () => {
     // B3: iface validation
     // We can't easily test getIfaceConfig directly since it reads a hardcoded path.
     // The validation logic is tested indirectly via getVnstatData with path-traversal iface names.
-    it("should return empty dataset for iface with path-traversal characters", async () => {
+    it("should reject an iface name with path-traversal characters before reading the filesystem", async () => {
         // This tests that even if an attacker provides a malicious iface name,
         // getVnstatData won't find a file at a traversal path (defense in depth)
         const data = await getVnstatData("../../etc/passwd");

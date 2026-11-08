@@ -13,6 +13,7 @@ export interface MockProcess {
     pid: number;
     cpu: number;
     mem: number;
+    params?: string;
 }
 
 export interface MockMemory {
@@ -50,6 +51,7 @@ export interface MockNetworkInterface {
 export interface MockProfile {
     name: string;
     username: string;
+    branch?: string;
     processes: MockProcess[];
     memory: MockMemory;
     disks: MockDisk[];
@@ -60,8 +62,14 @@ export interface MockProfile {
     cpuCount: number;
     /** Lock files that exist (e.g. "/install/.rtorrent.lock") */
     lockFiles: string[];
+    /** Title recorded in /install/.install.lock while an operation runs */
+    installLockTitle?: string;
+    /** Lifecycle script that would be running for that title, as seen in /proc */
+    installLockOperation?: "install" | "remove" | "update";
     /** Systemd enabled services (e.g. "rtorrent@testuser") */
     enabledServices: string[];
+    /** Active systemd units without a process entry, keyed by service id. */
+    activeServices?: string[];
     /** Torrent files per directory: { "/home/user/.sessions/": ["a.torrent", "b.torrent"] } */
     torrentDirs: Record<string, string[]>;
     /** vnstat dump data (JSON string), keyed by interface name */
@@ -152,6 +160,7 @@ export const allRunning: MockProfile = {
         "smbd",
         "vsftpd",
     ],
+    activeServices: ["authelia", "peerbanhelper", "vouch-proxy"],
     torrentDirs: {
         [`/home/${DEFAULT_USERNAME}/.sessions/`]: [
             "ubuntu-24.04.torrent",
@@ -213,6 +222,7 @@ export const allRunning: MockProfile = {
 export const partialRunning: MockProfile = {
     ...allRunning,
     name: "partial-running",
+    activeServices: [],
     processes: [
         { name: "transmission-daemon", user: DEFAULT_USERNAME, pid: 1101, cpu: 0.6, mem: 1.2 },
         { name: "qbittorrent-nox", user: DEFAULT_USERNAME, pid: 1102, cpu: 1.4, mem: 2.8 },
@@ -326,6 +336,7 @@ export const partialRunning: MockProfile = {
 export const emptySystem: MockProfile = {
     ...allRunning,
     name: "empty-system",
+    activeServices: [],
     processes: [],
     memory: {
         total: 4 * GB,
@@ -352,6 +363,19 @@ export const emptySystem: MockProfile = {
 };
 
 const profiles: Record<string, MockProfile> = {
+    "installing": {
+        ...partialRunning,
+        name: "installing",
+        lockFiles: [...partialRunning.lockFiles, "/install/.install.lock"],
+        installLockTitle: "Jellyfin Media Server",
+        installLockOperation: "install",
+    },
+    "long-branch": {
+        ...allRunning,
+        name: "long-branch",
+        branch: "fix/dashboard-review-findings-with-an-extremely-long-branch-name(dd47129)",
+        lockFiles: [...allRunning.lockFiles, "/install/.developer.lock", "/install/.debug.lock"],
+    },
     "all-running": allRunning,
     "partial-running": partialRunning,
     "empty-system": emptySystem,

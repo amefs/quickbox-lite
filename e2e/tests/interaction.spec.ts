@@ -1,25 +1,17 @@
-import { test, expect, type Page, type TestInfo } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
-const WS_BASE_URL = process.env.WS_BASE_URL || "http://127.0.0.1:8880/ws";
+import {
+    WS_BASE_URL,
+    expectFocusInside,
+    getRenderedWidgetText,
+    resetMockProfile,
+    setMockProfile,
+    snap,
+} from "./support/helpers";
 
-async function setMockProfile(page: Page, profile: string) {
-    const response = await page.request.post(`${WS_BASE_URL}/test/profile`, {
-        data: { profile },
-    });
-    expect(response.ok()).toBeTruthy();
-}
-
-async function snap(page: Page, testInfo: TestInfo, name: string) {
-    const screenshot = await page.screenshot({ fullPage: true });
-    await testInfo.attach(name, { body: screenshot, contentType: "image/png" });
-}
-
-async function getRenderedWidgetText(page: Page) {
-    return page.locator("#result-rendered").evaluate((el) => {
-        const host = el as HTMLElement;
-        return host.shadowRoot?.textContent ?? "";
-    });
-}
+test.beforeEach(async ({ page }) => {
+    await resetMockProfile(page);
+});
 
 // ── Language switching ──────────────────────────────────────
 
@@ -127,28 +119,34 @@ test.describe("Package Management Centre", () => {
         await snap(page, testInfo, "pmc-remove-buttons");
     });
 
-    test("should trigger confirmation dialog on package remove click", async ({ page }, testInfo) => {
+    test("should open and dismiss the removal confirmation dialog", async ({ page }, testInfo) => {
         await page.goto("/");
         const pmc = page.locator("#pmc_widget");
         await expect(pmc.locator("table")).toBeVisible({ timeout: 30_000 });
 
-        // Click the first remove button
-        const removeButtons = pmc.locator("[data-click-handler='packageRemove']");
-        if (await removeButtons.count() > 0) {
-            await removeButtons.first().click();
-            // SweetAlert2 confirmation dialog should appear
-            await page.waitForTimeout(1000);
-            // Check for SweetAlert modal or confirmation dialog
-            const sweetAlert = page.locator(".swal2-popup, .sweet-alert, .swal-overlay");
-            if (await sweetAlert.count() > 0) {
-                await snap(page, testInfo, "pmc-remove-confirmation-dialog");
-                // Dismiss the dialog
-                const cancelButton = page.locator(".swal2-cancel, .swal-button--cancel, [data-dismiss]");
-                if (await cancelButton.count() > 0) {
-                    await cancelButton.first().click();
-                }
-            }
-        }
+        // Installed packages render a success button whose data-target points at
+        // the removal modal rendered by `<RemovalModals>` on the dashboard page.
+        // The `packageRemove` handler lives inside that modal, not in the PMC
+        // widget, so the widget is only the entry point.
+        const installedButtons = pmc.locator("button.btn-success[data-target$='RemovalConfirm']");
+        await expect(installedButtons.first()).toBeVisible();
+        const target = await installedButtons.first().getAttribute("data-target");
+        expect(target).toMatch(/^#[A-Za-z0-9-]+RemovalConfirm$/);
+
+        const modal = page.locator(target as string);
+        await expect(modal).toBeHidden();
+
+        await installedButtons.first().click();
+        await expect(modal).toBeVisible();
+        await expect(modal).toHaveAttribute("aria-modal", "true");
+        await expect(modal.locator(".modal-title")).toContainText("Uninstall");
+        await expect(modal.locator("[data-click-handler='packageRemove']")).toBeVisible();
+        await snap(page, testInfo, "pmc-remove-confirmation-dialog");
+
+        // Cancelling closes the dialog and leaves the package installed.
+        await modal.locator(".modal-footer .btn-default").click();
+        await expect(modal).toBeHidden();
+        await expect(installedButtons.first()).toBeVisible();
     });
 
     test("should install a package via PMC without exec failure", async ({ page }, testInfo) => {
@@ -159,13 +157,28 @@ test.describe("Package Management Centre", () => {
 
         const autoDlInstall = pmc.locator("#autodlirssiInstall");
         await expect(autoDlInstall).toBeVisible();
-        await autoDlInstall.click();
+        const [execResponse] = await Promise.all([
+            page.evaluate(() => new Promise<{ success: boolean }>((resolve) => {
+                const socket = (window as unknown as {
+                    socket?: { once: (event: string, callback: (data: { success: boolean }) => void) => void };
+                }).socket;
+                if (!socket) {
+                    throw new Error("the dashboard socket is not available");
+                }
+                socket.once("exec", resolve);
+            })),
+            autoDlInstall.click(),
+        ]);
+        expect(execResponse).toMatchObject({ success: true });
 
         const sysResponse = page.locator("#sysResponse");
         await expect(sysResponse).toBeVisible({ timeout: 10_000 });
+        await expect(sysResponse).not.toHaveAttribute("aria-hidden", "true");
+        await expect(sysResponse).toHaveAttribute("aria-modal", "true");
+        await expectFocusInside(page, "#sysResponse");
         await expect(page.locator(".bootbox")).toHaveCount(0);
 
-        await page.waitForLoadState("networkidle");
+        await page.locator("#sysResponseCloseAction").click();
         await expect(pmc.locator("#autodlirssiInstall")).toHaveCount(0);
         await expect(pmc.locator("button.btn-success[data-target='#autodlirssiRemovalConfirm']")).toBeVisible();
         await snap(page, testInfo, "pmc-install-package-success");
@@ -236,5 +249,44 @@ test.describe("Full Page Interactions", () => {
         await expect(page.locator("#bw_tables")).not.toBeEmpty({ timeout: 15_000 });
 
         await snap(page, testInfo, "full-page-all-widgets");
+    });
+});
+
+test.describe("Command failure dialog", () => {
+    test("should show the Bootstrap alert modal and escape failed command output", async ({ page }, testInfo) => {
+        await setMockProfile(page, "partial-running");
+        await page.goto("/");
+
+        await expect.poll(() => page.evaluate(() => {
+            const socket = (window as unknown as { socket?: { connected?: boolean } }).socket;
+            return socket?.connected === true;
+        }), { timeout: 15_000 }).toBe(true);
+
+        // An invalid payload makes the server answer with success: false.
+        // The embedded markup verifies that showAlert escapes both the message
+        // and the echoed command instead of injecting it as HTML.
+        const payload = "bogus:<img src=x onerror=window.__qbXss=1>";
+        await page.evaluate((command) => {
+            (window as unknown as { socket: { emit: (event: string, data: string) => void } }).socket.emit("exec", command);
+        }, payload);
+
+        const modal = page.locator("#quickbox-alert-modal");
+        await expect(modal).toBeVisible({ timeout: 10_000 });
+        expect(await modal.getAttribute("aria-hidden")).toBeNull();
+        await expect(modal).toHaveAttribute("aria-modal", "true");
+        await expect(modal).toHaveAttribute("aria-labelledby", "quickbox-alert-title");
+        await expect(modal.locator("#quickbox-alert-title")).toHaveText("System Response");
+        await expect(modal.locator(".quickbox-modal-close")).toBeVisible();
+        await expect(modal.locator(".modal-footer .btn-primary")).toBeVisible();
+        await expectFocusInside(page, "#quickbox-alert-modal");
+        await expect(modal.locator(".modal-body")).toContainText("Invalid payload");
+        await expect(modal.locator(".modal-body code")).toContainText(payload);
+        await expect(modal.locator(".modal-body img")).toHaveCount(0);
+        expect(await page.evaluate(() => (window as unknown as { __qbXss?: number }).__qbXss)).toBeUndefined();
+        await expect(page.locator(".bootbox")).toHaveCount(0);
+        await snap(page, testInfo, "exec-failure-alert-modal");
+
+        await modal.locator(".quickbox-modal-close").click();
+        await expect(modal).toBeHidden({ timeout: 10_000 });
     });
 });
