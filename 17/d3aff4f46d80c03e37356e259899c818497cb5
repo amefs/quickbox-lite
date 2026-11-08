@@ -1,0 +1,24 @@
+tests/dashboard/test_language.py
+  h_3705811fa4502c 70-84
+packages/system/auxiliary/clean_log
+  h_3705811fa4502c 26
+packages/system/box
+  h_3705811fa4502c 90-94,97,284,287
+setup/dashboard/ws/tests/utils/vnstat.spec.ts
+  h_3705811fa4502c 204-206,208-209,230
+tests/operations/test_operation_lock.py
+  h_3705811fa4502c 10-11,27-45,68,89-123
+packages/system/lang/langSelect-lang_zh
+  h_3705811fa4502c 16-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "17d3aff4f46d80c03e37356e259899c818497cb5",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
