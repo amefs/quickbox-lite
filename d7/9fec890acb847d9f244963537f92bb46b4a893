@@ -1,0 +1,14 @@
+e2e/tests/dashboard-state.spec.ts
+  h_3705811fa4502c 11,350-354,357-361
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d79fec890acb847d9f244963537f92bb46b4a893",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
