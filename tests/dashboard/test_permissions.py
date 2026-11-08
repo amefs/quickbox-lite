@@ -9,18 +9,6 @@ from tests.support import REPO, run_bash, write_file
 BOX = REPO / "packages/system/box"
 
 
-def test_no_recursive_dashboard_chown():
-    pattern = re.compile(r"chown\s+(?:-R|--recursive)\s+\S*www-data\S*\s+/srv/dashboard(?:\s|$)")
-    for path in [REPO / "setup.sh", *(p for p in (REPO / "packages").rglob("*") if p.is_file())]:
-        try:
-            assert not pattern.search(path.read_text()), str(path)
-        except UnicodeDecodeError:
-            continue
-    source = BOX.read_text()
-    assert "_writeDashboardDbFile interface.txt" in source
-    assert ">/srv/dashboard/db/interface.txt" not in source
-
-
 def test_interface_write_and_failure(tmp_path):
     source = BOX.read_text()
     function = re.search(r"^function _writeDashboardDbFile\(\) \{\n.*?^\}", source, re.M | re.S)

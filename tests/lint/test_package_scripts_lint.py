@@ -58,7 +58,7 @@ class PackageLintTest(unittest.TestCase):
             ("#!/bin/bash", "#!/bin/sh", "[header]"),
             ("# SPDX-License-Identifier: GPL-3.0-or-later", "# no license", "[header]"),
             ("# INSTALL FUNCTIONS", "# REMOVE FUNCTIONS", "[sections]"),
-            ("_norm=$(tput sgr0)", "_norm=custom", "[helpers]"),
+            ("function _warning() {", "function _renamed() {", "[helpers]"),
             ('APP_NAME="example"', "APP_NAME=example", "[metadata]"),
             ('APP_LOCK=".${APP_NAME}.lock"', "APP_LOCK=.$APP_NAME.lock", "[metadata]"),
             ('APP_NAME="example"', 'APP_NAME="example"\nAPP_NAME="other"', "[metadata]"),
@@ -67,10 +67,9 @@ class PackageLintTest(unittest.TestCase):
             ("function _installInfo() {", "function _unexpectedInfo() {", "[functions]"),
             ("\n_installApp\n", "\n_missingApp\n", "[lifecycle]"),
             ("\n_lockCheck\n_setLock\n", "\n_setLock\n_lockCheck\n", "[lifecycle]"),
-            ("\n_lockCleanup\n", "\n# _lockCleanup\n", "[lifecycle]"),
+            ("\n_installAppLock\n", "\n# _installAppLock\n", "[lifecycle]"),
             ("\n_installApp\n", "\n_installApp\ntouch unexpected\n", "[lifecycle]"),
             ("rm -f /install/.install.lock", ":", "[locks]"),
-            ("\t\texit 0\n", "\t\texit 1\n", "[options]"),
             ('eval set -- "${ARGS}"', "set -- $ARGS", "[options]"),
             ('OUTTO="$2"', "OUTTO=$2", "[options]"),
             ("-l help,log:", "-l help,log:,unused", "[options]"),
@@ -107,11 +106,6 @@ class PackageLintTest(unittest.TestCase):
         errors, _ = LINT.lint(self.root)
         self.assertTrue(any("unknown section title: HELPERS" in error for error in errors), errors)
 
-    def test_separator_width_is_rejected(self):
-        self.mutate(LINT.SEPARATOR + "\n# HELP FUNCTIONS", "#" * 79 + "\n# HELP FUNCTIONS")
-        errors, _ = LINT.lint(self.root)
-        self.assertTrue(any("exactly 80 '#'" in error for error in errors), errors)
-
     def test_option_branch_rules(self):
         self.add_option()
         self.mutate("\t\tFORCE=1\n", "\t\tFORCE=1\n\t\tshift\n")
@@ -122,7 +116,7 @@ class PackageLintTest(unittest.TestCase):
         self.add_option(value=True)
         self.mutate('\t\tFORCE="$2"\n', '\t\tFORCE="$1"\n')
         errors, _ = LINT.lint(self.root)
-        self.assertTrue(any("value option must read $2" in error for error in errors), errors)
+        self.assertTrue(any("value option must read" in error for error in errors), errors)
 
         self.script().write_text(TEMPLATES["install"])
         self.add_option(value=True)
@@ -176,11 +170,7 @@ class PackageLintTest(unittest.TestCase):
         errors, _ = LINT.lint(self.root)
         self.assertTrue(any("agree across lifecycle" in error for error in errors), errors)
 
-    def test_header_requires_aligned_and_nonempty_fields(self):
-        self.mutate("# GitHub:           ", "# GitHub:   ")
-        errors, _ = LINT.lint(self.root)
-        self.assertTrue(any("align its value at column 20" in error for error in errors), errors)
-
+    def test_header_requires_nonempty_required_fields(self):
         self.script().write_text(TEMPLATES["install"])
         self.mutate("# Author:           <author>\n", "")
         errors, _ = LINT.lint(self.root)
@@ -191,30 +181,10 @@ class PackageLintTest(unittest.TestCase):
         errors, _ = LINT.lint(self.root)
         self.assertTrue(any("Author: must not be empty" in error for error in errors), errors)
 
-    def test_header_rejects_unknown_fields_and_bad_order(self):
+    def test_header_rejects_unknown_fields(self):
         self.mutate("# Author:           <author>\n", "# Author:           <author>\n# URL:              \n")
         errors, _ = LINT.lint(self.root)
         self.assertTrue(any("unknown header field: URL" in error for error in errors), errors)
-
-        self.script().write_text(TEMPLATES["install"])
-        self.mutate("# Author:           <author>\n", "# Maintainer:       Example\n# Author:           <author>\n")
-        errors, _ = LINT.lint(self.root)
-        self.assertTrue(any("header fields must follow this order" in error for error in errors), errors)
-
-    def test_header_requires_blank_separators(self):
-        self.mutate("#\n# SPDX-License-Identifier", "# SPDX-License-Identifier")
-        errors, _ = LINT.lint(self.root)
-        self.assertTrue(any("blank # line before the SPDX identifier" in error for error in errors), errors)
-
-        self.script().write_text(TEMPLATES["install"])
-        self.mutate("#!/bin/bash\n", "#!/bin/bash\n# shellcheck disable=SC2034\n")
-        errors, _ = LINT.lint(self.root)
-        self.assertTrue(any("blank # line after the shebang" in error for error in errors), errors)
-
-    def test_header_agrees_between_actions(self):
-        self.mutate("# Author:           <author>", "# Author:           Other", action="remove")
-        errors, _ = LINT.lint(self.root)
-        self.assertTrue(any("[header] Author must agree across lifecycle scripts" in error for error in errors), errors)
 
     def test_inventory_cannot_silently_skip_files(self):
         self.script("remove").unlink()

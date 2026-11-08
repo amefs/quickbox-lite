@@ -66,7 +66,9 @@ function _error() {
 # this one.
 #
 # The operation lock stays on descriptor 7 for the package script; contention
-# returns 75.
+# returns 75. When the lock file itself cannot be opened, package operations
+# are still serialized by the /install/.install.lock sentinel the scripts
+# check themselves, so this entry point only loses the advisory flock.
 function _startOperationLog() {
 	local lockfile="${QUICKBOX_OPERATION_LOCK:-/run/lock/quickbox-operation.lock}"
 	local prevApp

@@ -5,6 +5,7 @@ import subprocess
 from tests.support import REPO, run_bash
 
 HELPER = REPO / "packages/system/update/qbUpdateRepo"
+LIB = HELPER.parent
 
 
 def git(*args, cwd=None):
@@ -33,7 +34,7 @@ def test_switch_fetches_missing_branch_and_rejects_dirty_checkout(tmp_path):
     git("push", "origin", "feature/test", cwd=source)
 
     env = {"QUICKBOX_REPO_ROOT": str(checkout), "OUTTO": str(tmp_path / "out")}
-    script = 'source "$1"; update_target_branch="feature/test"; _updateRepo'
+    script = f'source "{LIB}/qbUpdateLib"; source "$1"; update_target_branch="feature/test"; _updateRepo'
     (checkout / "tracked").write_text("local changes\n")
     dirty = run_bash(script, HELPER, env=env)
     assert dirty.returncode != 0
@@ -46,7 +47,11 @@ def test_switch_fetches_missing_branch_and_rejects_dirty_checkout(tmp_path):
     assert git("branch", "--show-current", cwd=checkout) == "feature/test"
     assert (checkout / "tracked").read_text() == "feature\n"
 
-    missing = run_bash('source "$1"; update_target_branch=missing; _updateRepo', HELPER, env=env)
+    missing = run_bash(
+        f'source "{LIB}/qbUpdateLib"; source "$1"; update_target_branch=missing; _updateRepo',
+        HELPER,
+        env=env,
+    )
     assert missing.returncode != 0
     assert git("branch", "--show-current", cwd=checkout) == "feature/test"
 

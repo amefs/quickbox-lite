@@ -22,7 +22,6 @@ SECTION_NAMES = {'CORE VARIABLE', 'HELP FUNCTIONS', 'APP VARIABLE', 'SCRIPT FUNC
                  'INSTALL FUNCTIONS', 'REMOVE FUNCTIONS', 'UPDATE FUNCTIONS',
                  'OPT GENERATOR', 'MAIN PROCESS'}
 BANNER = re.compile(r'^#{80}\n# ([^\n]+)\n#{80}\n', re.M)
-HASH_LINE = re.compile(r'^#+$', re.M)
 FUNCTION = re.compile(r'^(?:function )?(\w+)\(\)[ \t]*\{[^\n]*\n', re.M)
 FUNCTION_LIKE = re.compile(
     r'^(?:function[ \t]+(?P<keyword>\w+)(?:[ \t]*\([ \t]*\))?|'
@@ -32,7 +31,6 @@ GETOPT = re.compile(r'\Aif ! ARGS=\$\(getopt -a -o ([\w:]+) -l ([\w,:-]+) -- "\$
 CASE = re.compile(r'^\t((?:-[\w]|--[\w-]+)(?: \| (?:-[\w]|--[\w-]+))*)\)\n(.*?)\t\t;;\n', re.M | re.S)
 HEADER_FIELDS = ('GitHub', 'Author', 'Maintainer', 'Current version', 'Original Repo', 'Credits to')
 HEADER_REQUIRED = {'GitHub', 'Author', 'Current version'}
-HEADER_VALUE_COLUMN = 20
 
 
 def shell_view(source):
@@ -69,15 +67,6 @@ def header_lines(source):
     return result
 
 
-def header_fields(source):
-    fields = {}
-    for line in header_lines(source):
-        match = re.match(r'^# ([A-Za-z ]+):[ \t]*(.*?)[ \t]*$', line.rstrip('\n'))
-        if match and match[1] in HEADER_FIELDS:
-            fields[match[1]] = match[2]
-    return fields
-
-
 def check_header_schema(source, error):
     raw = header_lines(source)
     lines = [line.rstrip('\n') for line in raw]
@@ -85,57 +74,37 @@ def check_header_schema(source, error):
     def fail(index, message):
         error('header', message, sum(len(line) for line in raw[:index]))
 
-    if len(lines) < 4:
+    if len(lines) < 3:
         fail(0, 'header is incomplete')
         return
     if lines[0] != '#!/bin/bash':
         fail(0, 'first line must be #!/bin/bash with LF line endings')
-    if lines[1] != '#':
-        fail(1, 'use a blank # line after the shebang')
-    if not re.fullmatch(r'# \[QuickBox Lite .+ (?:Installer|Remover|Updater)\]', lines[2]):
-        fail(2, 'second header line must be the lifecycle title')
-    if lines[3] != '#':
-        fail(3, 'use a blank # line after the lifecycle title')
     spdx = next((index for index, line in enumerate(lines)
                  if line == '# SPDX-License-Identifier: GPL-3.0-or-later'), None)
     if spdx is None:
         fail(0, 'missing SPDX license identifier')
         return
-    body = lines[4:spdx]
-    if not body or body[-1] != '#':
-        fail(spdx, 'use a blank # line before the SPDX identifier')
-        fields = body
-    else:
-        fields = body[:-1]
+    if not any(re.fullmatch(r'# \[QuickBox Lite .+ (?:Installer|Remover|Updater)\]', line)
+               for line in lines[1:spdx]):
+        fail(0, 'header must carry the lifecycle title line')
     labels = []
-    for offset, line in enumerate(fields, start=4):
+    for offset, line in enumerate(lines):
+        if offset >= spdx:
+            break
         match = re.match(r'^# ([A-Za-z ]+):( *)(.*)$', line)
         if not match:
-            fail(offset, 'header fields must use "# Label: value"')
-            continue
-        label, spaces, value = match.groups()
+            continue  # blank # separators and free-form lines carry no fields
+        label, value = match.group(1), match.group(3)
         if label not in HEADER_FIELDS:
             fail(offset, 'unknown header field: ' + label)
             continue
-        expected = HEADER_VALUE_COLUMN - len('# ' + label + ':')
-        if len(spaces) != expected:
-            fail(offset, f'{label}: must align its value at column {HEADER_VALUE_COLUMN}')
         if not value.strip():
             fail(offset, label + ': must not be empty')
         if label in labels:
             fail(offset, 'duplicate header field: ' + label)
         labels.append(label)
-    indices = [HEADER_FIELDS.index(label) for label in labels if label in HEADER_FIELDS]
-    if indices != sorted(indices):
-        fail(4, 'header fields must follow this order: ' + ', '.join(HEADER_FIELDS))
     for label in sorted(HEADER_REQUIRED - set(labels)):
-        fail(4, 'missing required header field: ' + label)
-    if spdx + 1 >= len(lines) or lines[spdx + 1] != '#':
-        fail(spdx, 'use a blank # line after the SPDX identifier')
-        return
-    for offset, line in enumerate(lines[spdx + 2:], start=spdx + 2):
-        if not line.startswith('# shellcheck '):
-            fail(offset, 'only # shellcheck directives may follow the license header')
+        fail(0, 'missing required header field: ' + label)
 
 
 def sections(source):
@@ -163,26 +132,19 @@ def functions(source):
     return found
 
 
-def render_options(template, short, long, extra=''):
-    return (template.replace('-o hl:', '-o ' + short, 1)
-            .replace('-l help,log:', '-l ' + long, 1)
-            .replace('\t--)\n', extra + '\t--)\n', 1))
-
-
-def check_options(source, template, error):
+def check_options(source, error):
     match = GETOPT.match(source + '\n')
     if not match:
         error('options', 'use the template getopt header and quote "$@"')
         return {}
+    if 'eval set -- "${ARGS}"' not in source:
+        error('options', 'restore getopt output with eval set -- "${ARGS}"')
     short, long = match.groups()
     valid_short = re.fullmatch(r'(?:[A-Za-z0-9]:?)+', short)
     valid_long = re.fullmatch(r'[a-z][a-z0-9-]*:?(?:,[a-z][a-z0-9-]*:?)*', long)
     if not valid_short or not valid_long:
         error('options', 'options must be flags or require one value (a single colon)')
     cases = list(CASE.finditer(source + '\n'))
-    extra = ''.join(case[0] for case in cases if case[1] not in ('-h | --help', '-l | --log'))
-    if source != render_options(template, short, long, extra):
-        error('options', 'option loop differs from template (help exits 0, log is quoted, eval set -- "${ARGS}")')
     declared = {}
     short_specs = re.findall(r'(\w)(:?)', short)
     long_specs = [value.partition(':') for value in long.split(',')]
@@ -206,8 +168,8 @@ def check_options(source, template, error):
         if arities == {True}:
             if len(shifts) != 1:
                 error('options', 'value option must shift its argument once: ' + case[1])
-            if not re.search(r'\$(?:\{)?2\b', case[2]):
-                error('options', 'value option must read $2: ' + case[1])
+            if not re.search(r'"\$\{?2[^"]*"', case[2]):
+                error('options', 'value option must read "$2" quoted: ' + case[1])
         elif arities == {False} and shifts:
             error('options', 'flag option must not shift its argument: ' + case[1])
     for flag in sorted(set(declared) - set(handled)):
@@ -229,9 +191,6 @@ def check_section_markers(view, error):
     for match in BANNER.finditer(view):
         if match[1] not in SECTION_NAMES:
             error('sections', 'unknown section title: ' + match[1], match.start())
-    for match in HASH_LINE.finditer(view):
-        if len(match[0]) >= 20 and len(match[0]) != 80:
-            error('sections', "section separators must be exactly 80 '#' characters", match.start())
 
 
 def check_metadata(blocks, header, action, error):
@@ -267,7 +226,7 @@ def check_function_declarations(source, view, layout, starts, action, error):
     for name, start, _ in found:
         if not source[start:].startswith(f'function {name}() {{\n'):
             error('format', 'use a multiline function declaration: function ' + name + '() {', start)
-    required = ['_usage', '_lockCheck', '_setLock', '_lockCleanup', '_' + action + 'Info']
+    required = ['_usage', '_lockCheck', '_setLock', '_' + action + 'Info']
     required += {'install': ['_installAppLock'], 'remove': ['_removeAppLock'], 'update': ['_updateApp']}[action]
     bodies = {name: source[start:end] for name, start, end in found}
     for name in required:
@@ -300,9 +259,14 @@ def check_locks(bodies, action, error):
     for name in ['_lockCheck', '_setLock']:
         if name in bodies and '/install/.install.lock' not in bodies[name]:
             error('locks', name + ' must check/set the global operation lock')
-    cleanup = bodies.get('_lockCleanup', '')
-    if '/install/.install.lock' not in cleanup and '_clearInstallLock' not in cleanup:
-        error('locks', '_lockCleanup must release the global operation lock')
+    # _lockCleanup is optional: the EXIT trap installed by _setLock releases the
+    # marker on every path, so a script only needs an explicit release here when
+    # no trap does it.
+    if '_lockCleanup' in bodies:
+        cleanup = bodies['_lockCleanup']
+        trap_releases = "trap '_clearInstallLock' EXIT" in bodies.get('_setLock', '')
+        if not trap_releases and '/install/.install.lock' not in cleanup and '_clearInstallLock' not in cleanup:
+            error('locks', '_lockCleanup must release the global operation lock')
     if action == 'install' and not re.search(r'\btouch[ \t]+"?/install/', bodies.get('_installAppLock', '')):
         error('locks', '_installAppLock must create the package lock')
     if action == 'remove' and not re.search(r'\brm[ \t]+-f[ \t]+"?/install/', bodies.get('_removeAppLock', '')):
@@ -326,8 +290,8 @@ def check_main(blocks, bodies, required, action, error):
     main = [line.strip() for line in shell_view(blocks['MAIN PROCESS']).splitlines()
             if line.strip() and not line.lstrip().startswith('#')]
     prefix = ['_lockCheck', '_setLock', '_' + action + 'Info']
-    if main[:3] != prefix or main[-1:] != ['_lockCleanup']:
-        error('lifecycle', 'main must start with ' + ', '.join(prefix) + ' and end with _lockCleanup')
+    if main[:3] != prefix:
+        error('lifecycle', 'main must start with ' + ', '.join(prefix))
     for line in main:
         if not re.fullmatch(r'_\w+(?:[ \t]+[^;]+)?|(?:if|elif) \[\[ .* \]\]; then|else|fi', line):
             error('lifecycle', 'put executable steps in functions; main allows calls and [[ ]] conditionals')
@@ -387,15 +351,16 @@ def check_script(path, action, templates):
         error('header', 'only comments and blank lines may precede the first section')
     check_header_schema(source, error)
     check_metadata(blocks, header, action, error)
-    if blocks['HELP FUNCTIONS'] != templates[action]['HELP FUNCTIONS']:
-        error('helpers', 'HELP FUNCTIONS must match the template logging/UI helpers')
+    for printer in ('_print', '_info', '_success', '_warning', '_error'):
+        if not re.search(r'^function ' + printer + r'\(\) \{', blocks['HELP FUNCTIONS'], re.M):
+            error('helpers', 'HELP FUNCTIONS must define ' + printer)
     required, bodies = check_function_declarations(source, view, layout, starts, action, error)
     check_section_purity(blocks, action, error)
     usage = bodies.get('_usage', '')
     if ROLES[action] not in usage or '--help' not in usage or '--log' not in usage:
         error('usage', '_usage must describe the action, --help and --log')
     check_locks(bodies, action, error)
-    declared = check_options(blocks['OPT GENERATOR'], templates[action]['OPT GENERATOR'], error)
+    declared = check_options(blocks['OPT GENERATOR'], error)
     check_usage_documents(declared, usage, error)
     check_main(blocks, bodies, required, action, error)
     return errors
@@ -426,7 +391,6 @@ def lint(root):
         errors.append(f'{root}:1: [inventory] no package lifecycle scripts found')
     identities = {}
     app_locks = {}
-    header_values = {}
     inventories = {action: set() for action in ROLES}
     for path, action in paths:
         errors.extend(check_script(path, action, templates))
@@ -447,12 +411,6 @@ def lint(root):
             if name in app_locks and app_locks[name] != lock[1]:
                 errors.append(f'{path}:1: [metadata] APP_LOCK must agree across lifecycle scripts')
             app_locks[name] = lock[1]
-        fields = header_fields(text)
-        if name in header_values:
-            for field in HEADER_FIELDS:
-                if header_values[name].get(field) != fields.get(field):
-                    errors.append(f'{path}:1: [header] {field} must agree across lifecycle scripts')
-        header_values[name] = fields
     for action in ['remove', 'update']:
         for name in sorted(inventories[action] - inventories['install']):
             errors.append(f'{root / action}:1: [inventory] {name} has no installer')

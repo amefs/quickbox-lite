@@ -3,9 +3,10 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-import re
 import subprocess
 import tempfile
+
+from tests.support import bash_function
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -21,10 +22,7 @@ SANDBOX_SPEC.loader.exec_module(SANDBOX_MODULE)
 
 
 def function(name):
-    pattern = r"^function " + re.escape(name) + r"\(\) \{\n.*?^\}"
-    match = re.search(pattern, SOURCE, re.M | re.S)
-    assert match, name
-    return match.group(0)
+    return bash_function(SOURCE, name)
 
 
 FUNCTION_NAMES = (

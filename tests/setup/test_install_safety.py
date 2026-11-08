@@ -1,9 +1,10 @@
 """Exercise install failure propagation and swap safety with isolated stubs."""
 import os
 from pathlib import Path
-import re
 import subprocess
 import tempfile
+
+from tests.support import bash_function
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -11,10 +12,7 @@ SOURCE = (REPO / "setup.sh").read_text()
 
 
 def function(name):
-    pattern = r"^function " + re.escape(name) + r"\(\) \{\n.*?^\}"
-    match = re.search(pattern, SOURCE, re.M | re.S)
-    assert match, name
-    return match.group(0)
+    return bash_function(SOURCE, name)
 
 
 def run_bash(source, env=None):
@@ -185,12 +183,12 @@ def test_selected_app_child_failure_does_not_report_done():
             "OUTTO=/dev/null; INFO_TEXT_INSTALLAPP_5=Mktorrent; "
             "INFO_TEXT_DONE=Done; INFO_TEXT_SKIP=Skip; cdn=github",
             function("_insapps"),
-            "_insapps",
+            "_insapps; __rc=$?; printf 'failed=%s\\n' \"$INSTALL_FAILED_APPS\" >&2; (exit $__rc)",
         ])
         result = run_bash(source, {"SCRIPTS": scripts})
         assert result.returncode != 0
         assert "Done" not in result.stdout
-        assert "mktorrent" in result.stderr
+        assert "failed=mktorrent" in result.stderr
 
 
 def test_independent_app_failure_does_not_skip_the_next_app():
@@ -205,12 +203,12 @@ def test_independent_app_failure_does_not_skip_the_next_app():
             "app_list='mktorrent ffmpeg'; local_setup_script=\"$SCRIPTS/\"; "
             "OUTTO=/dev/null; INFO_TEXT_DONE=Done; INFO_TEXT_SKIP=Skip; cdn=github",
             function("_insapps"),
-            "_insapps",
+            "_insapps; __rc=$?; printf 'failed=%s\\n' \"$INSTALL_FAILED_APPS\" >&2; (exit $__rc)",
         ])
         result = run_bash(script, {"SCRIPTS": scripts, "EVENTS": events})
         assert result.returncode != 0
         assert events.read_text().strip() == "ffmpeg"
-        assert "mktorrent" in result.stderr
+        assert "failed=mktorrent" in result.stderr
 
 
 def test_existing_system_marker_is_not_removed_by_another_install():
@@ -525,12 +523,37 @@ mkswap(){ echo unexpected-mkswap >>"$EVENTS"; return 1; }
                 assert swap.read_text() == "existing swap payload"
 
 
-def test_php_lock_recovery_and_auth_override_are_restored():
-    php = function("_addPHP")
-    assert "--allow-unauthenticated" in php
-    assert "/var/lib/dpkg/updates/0*" in php
-    assert "dpkg --configure -a" in php
-    assert "apt-get install -f" in php
+def test_php_lock_recovery_restores_dpkg_and_retries_upgrade():
+    script = "\n".join([
+        "DISTRO=Test; OUTTO=/dev/null; INFO_TEXT_PROGRESS_Extra_1=php",
+        "whiptail(){ :; }; wget(){ :; }; lsb_release(){ echo test; }",
+        '''
+find() { :; }
+rm() { printf 'rm %s\\n' "$*" >>"$EVENTS"; command rm "$@"; }
+dpkg() { printf 'dpkg %s\\n' "$*" >>"$EVENTS"; }
+apt-get() {
+    printf 'apt %s\\n' "$*" >>"$EVENTS"
+    if [[ " $* " == *" upgrade --allow-unauthenticated "* && ! -f "$LOCK_FLAG" ]]; then
+        touch "$LOCK_FLAG"
+        return 2
+    fi
+    return 0
+}
+''' + function("_addPHP") + "\n_addPHP",
+    ])
+    with tempfile.TemporaryDirectory(prefix="quickbox-php-lock-") as root:
+        env = {"EVENTS": str(Path(root) / "events"), "LOCK_FLAG": str(Path(root) / "lock-flag")}
+        result = run_bash(script, env)
+        assert result.returncode == 0, result.stderr
+        calls = (Path(root) / "events").read_text().splitlines()
+        assert any("upgrade --allow-unauthenticated" in call for call in calls)
+        assert "rm -f /var/lib/dpkg/updates/0*" in calls
+        assert "dpkg --configure -a" in calls
+        # The recovery update runs, then a plain upgrade retry, and apt-get check
+        # confirms the package database before the function returns.
+        assert any(" update" in call for call in calls)
+        assert any(" upgrade" in call and "--allow-unauthenticated" not in call for call in calls)
+        assert any("check" in call for call in calls)
 
 
 def test_kernel_locale_and_account_failures_stop_their_steps():

@@ -141,9 +141,6 @@ export function shouldEnforceOrigin(): boolean {
 }
 
 export function hasValidGateway(headers: IncomingHttpHeaders, secret = getGatewaySecret()): boolean {
-    if (secret === "") {
-        return false;
-    }
     return secretsEqual(headerValue(headers, GATEWAY_HEADER), secret);
 }
 
@@ -268,7 +265,7 @@ function matchesAllowedOrigin(parsed: URL): boolean {
     );
 }
 
-export function isAllowedOrigin(origin: string | undefined, hostHeader: string | undefined, protocol = "http"): boolean {
+export function isAllowedOrigin(origin: string | undefined, hostHeader: string | undefined, protocol: "http" | "https" = "http"): boolean {
     if (origin === undefined || origin === "") {
         return true;
     }
@@ -276,10 +273,7 @@ export function isAllowedOrigin(origin: string | undefined, hostHeader: string |
     if (!parsed) {
         return false;
     }
-    const expectedProtocol = normalizeProtocol(protocol);
-    if (expectedProtocol === null) {
-        return false;
-    }
+    const expectedProtocol = `${protocol}:`;
     const requestUrl = parseAuthority(hostHeader ?? "", expectedProtocol);
     if (normalizeProtocol(parsed.protocol) === expectedProtocol && requestUrl !== null &&
         parsed.hostname.toLowerCase() === requestUrl.hostname.toLowerCase() &&
@@ -294,7 +288,7 @@ export function isAllowedOrigin(origin: string | undefined, hostHeader: string |
  * when the request comes from the loopback proxy, which is the only thing that
  * can reach the Node port by default.
  */
-export function requestProtocol(req: IncomingMessage): string {
+export function requestProtocol(req: IncomingMessage): "http" | "https" {
     const socket = req.socket as (IncomingMessage["socket"] & { encrypted?: boolean }) | undefined;
     const direct = socket?.encrypted === true ? "https" : "http";
     const remote = socket?.remoteAddress ?? "";

@@ -32,7 +32,6 @@ _dim=$(tput dim 2>/dev/null || true)
 OUTTO=/srv/dashboard/db/output.log
 update_backup_dir=""
 update_backup_ready=0
-update_backup_available=0
 update_config_committed=0
 update_service_started=0
 core=0
@@ -208,10 +207,8 @@ function _saveRepoState() {
 		_warning "Cannot record the current repository commit; no HEAD in ${repo}"
 		return 0
 	}
-	if [[ -e "${root}/repo-state.env" && ! -f "${root}/repo-state.env" ]]; then
-		_error "Repository state path is not a regular file: ${root}/repo-state.env"
-		return 1
-	fi
+	# A failed same-directory mv leaves any previous file in place and reports
+	# its own error; the rename replaces a stale entry without following it.
 	ts=$(date +%Y%m%d-%H%M%S)
 	# Pin the commit with local refs so git gc cannot collect it after a
 	# branch switch or hard reset.
@@ -261,22 +258,20 @@ function _saveRepoState() {
 }
 
 # The helper is shipped by the repository that _updateRepo just refreshed, so it
-# is loaded after the repository stage.
+# is loaded after the repository stage. Without it there is no snapshot to roll
+# back to, so a missing helper aborts before anything is rewritten.
 function _loadBackupHelper() {
 	local helper="${local_prefix}packages/system/update/qbUpdateBackup"
 	if [[ ! -f "${helper}" ]]; then
-		_warning "Update backup helper is missing; continuing without the managed configuration snapshot: ${helper}"
-		update_backup_available=0
-		return 0
+		_error "Update backup helper is missing: ${helper}"
+		return 1
 	fi
 	# shellcheck source=packages/system/update/qbUpdateBackup
 	# shellcheck disable=SC1090,SC1091
 	if ! source "${helper}"; then
-		_warning "Update backup helper could not be loaded; continuing without the managed configuration snapshot: ${helper}"
-		update_backup_available=0
-		return 0
+		_error "Cannot load the update backup helper: ${helper}"
+		return 1
 	fi
-	update_backup_available=1
 	return 0
 }
 
@@ -328,10 +323,6 @@ function _managedUpdatePaths() {
 function _backupUpdateConfig() {
 	local root backup_dir path
 	local -a paths=()
-	if [[ ${update_backup_available:-0} -ne 1 ]]; then
-		_warning "Managed configuration backup is unavailable; skipping"
-		return 0
-	fi
 	root=$(_qbBackupRoot) || return 1
 	backup_dir=$(_qbBackupUniqueDir "${root}/$(date +%Y%m%d-%H%M%S)-update")
 	while IFS= read -r path; do
@@ -353,6 +344,11 @@ function _backupUpdateConfig() {
 	return 0
 }
 
+# Rollback restores the full managed set, then re-activates. The dashboard
+# stage may already have reloaded its own seven files, but the service stage
+# writes /etc/nginx/sites-enabled/default, the per-user app confs and the ttyd
+# unit, and those are only put back here — the reload has to follow this
+# restore or the running configuration keeps the failed update's version.
 function _restoreUpdateConfig() {
 	[[ ${update_backup_ready:-0} -eq 1 && -n ${update_backup_dir:-} ]] || return 0
 	local rc=0
@@ -361,15 +357,11 @@ function _restoreUpdateConfig() {
 	if [[ ${rc} -ne 0 ]]; then
 		_warning "Skipping service activation because managed files were not fully restored"
 	elif [[ ${update_service_started:-0} -eq 1 ]]; then
-		if command -v systemctl >/dev/null 2>&1; then
-			_qbRunHelper "Managed rollback: systemctl daemon-reload failed" systemctl daemon-reload || rc=1
-		fi
-		if command -v nginx >/dev/null 2>&1; then
-			if _qbRunHelper "Managed rollback: nginx configuration test failed" nginx -t; then
-				_qbRunHelper "Managed rollback: nginx reload failed" nginx -s reload || rc=1
-			else
-				rc=1
-			fi
+		_qbRunHelper "Managed rollback: systemctl daemon-reload failed" systemctl daemon-reload || rc=1
+		if _qbRunHelper "Managed rollback: nginx configuration test failed" nginx -t; then
+			_qbRunHelper "Managed rollback: nginx reload failed" nginx -s reload || rc=1
+		else
+			rc=1
 		fi
 	fi
 	if [[ ${rc} -eq 0 ]]; then
@@ -412,43 +404,29 @@ function _updateActivityRead() {
 # outlive the stage that owns it or hold the updater's stdout open.
 function _updateHeartbeatLoop() {
 	local silence="$1" label="$2" sink="$3" start_ms="$4" ready_file="${5:-}"
-	local tick=1 waited=0 now elapsed silent last stamp sleeper=""
+	local tick=1 now elapsed silent last stamp sleeper=""
 	trap 'kill "${sleeper:-}" 2>/dev/null; exit 0' TERM INT
 	if [[ -n ${ready_file} ]]; then
 		: >"${ready_file}" || exit 1
 	fi
-	# A stage can arrive with an unusable start (the clock was missing when
-	# _updateStep measured it). Anchor to the first tick instead of reporting an
-	# instant "still running" line against a zero baseline.
 	now=$(_qbNowMs)
-	if (( now > 0 )) && (( start_ms <= 0 )); then
-		start_ms=${now}
-	fi
-	last=${start_ms}
+	last=$(( start_ms > 0 ? start_ms : now ))
 	while :; do
 		sleep "${tick}" &
 		sleeper=$!
 		wait "${sleeper}"
-		waited=$(( waited + tick ))
 		now=$(_qbNowMs)
-		if [[ ${now} =~ ^[0-9]+$ ]] && (( now > 0 )); then
+		stamp=$(_updateActivityRead || true)
+		if [[ ! ${stamp} =~ ^[0-9]+$ ]]; then
+			# A writer may sit between truncate and write; one retry covers
+			# it, so a read race never turns into a false "still running".
 			stamp=$(_updateActivityRead || true)
-			if [[ ! ${stamp} =~ ^[0-9]+$ ]]; then
-				# A writer may sit between truncate and write; one retry covers
-				# it, so a read race never turns into a false "still running".
-				stamp=$(_updateActivityRead || true)
-			fi
-			if [[ ${stamp} =~ ^[0-9]+$ ]] && (( stamp > last )); then
-				last=${stamp}
-			fi
-			silent=$(( now - last ))
-			elapsed=$(( now - start_ms ))
-		else
-			# Without a working clock the tick counter is all there is; a
-			# missing timing helper must not silence progress entirely.
-			silent=$(( silent + tick * 1000 ))
-			elapsed=$(( waited * 1000 ))
 		fi
+		if [[ ${stamp} =~ ^[0-9]+$ ]] && (( stamp > last )); then
+			last=${stamp}
+		fi
+		silent=$(( now - last ))
+		elapsed=$(( now - start_ms ))
 		(( silent >= silence * 1000 )) || continue
 		if [[ ${sink} == log ]]; then
 			printf '>> Timing: %s still running (no output for %s, %s elapsed)\n' \
@@ -457,11 +435,7 @@ function _updateHeartbeatLoop() {
 			printf '%s   … %s still running (no output for %s, %s elapsed)%s\n' \
 				"${_dim}" "${label}" "$(_qbFormatMs "${silent}")" "$(_qbFormatMs "${elapsed}")" "${_norm}"
 		fi
-		if (( now > 0 )); then
-			last=${now}
-		else
-			silent=0
-		fi
+		last=${now}
 	done
 }
 

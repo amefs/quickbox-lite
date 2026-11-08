@@ -135,8 +135,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                 <link rel="stylesheet" href="/lib/lobipanel/css/lobipanel.min.css" />
                 <link rel="stylesheet" href="/skins/quick.css" />
                 {/* Page-level rules live in setup/dashboard/css/dashboard.css: a
-                    real stylesheet, so the browser caches it, editors lint it as
-                    CSS and the HTML response no longer carries ~8KB of rules. */}
+                    real stylesheet the browser caches and editors lint as CSS. */}
                 <link rel="stylesheet" href={dashboardAssetUrl("/css/dashboard.css", assetVersions.css)} />
                 <script src="/lib/jquery/jquery.min.js"></script>
                 <script dangerouslySetInnerHTML={{ __html: `window.quickboxRuntime = ${serializeJsonForScript(runtimeConfig)};` }} />

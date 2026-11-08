@@ -150,8 +150,6 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
       - run: uv sync --locked
-      - name: Check Docker availability
-        run: docker info > /dev/null
       - name: Run system tests
         run: uv run --locked pytest -v ${{ matrix.paths }}
 
@@ -182,7 +180,7 @@ jobs:
             packages/package/install/installpackage-authelia \
             packages/package/install/installpackage-vouchproxy \
             packages/package/install/installpackage-flood \
-            tests e2e \
+            tests ':(exclude)tests/lint' e2e \
             .github/workflows/deployment.yml .github/workflows/linter.yml \
             > "$RUNNER_TEMP/dashboard-changes.txt"
           if [[ -s "$RUNNER_TEMP/dashboard-changes.txt" ]]; then

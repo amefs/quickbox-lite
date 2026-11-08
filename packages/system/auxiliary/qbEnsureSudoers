@@ -107,8 +107,6 @@ if [[ -f "${TARGET}" ]]; then
 		exit 1
 	}
 	_info "previous sudoers backup: ${BACKUP_DIR}/dashboard"
-else
-	printf '%s\n' "${TARGET}" >"${BACKUP_DIR}/.absent" || exit 1
 fi
 
 mv -f "${TMP}" "${TARGET}" || {

@@ -1,9 +1,10 @@
 """Exercise the existing APT overrides and lock-recovery paths with stubs."""
 import os
 from pathlib import Path
-import re
 import subprocess
 import tempfile
+
+from tests.support import bash_function
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -15,10 +16,7 @@ NAMES = (
 
 
 def extract(source, name):
-    pattern = r"^function " + re.escape(name) + r"\(\) \{\n.*?^\}"
-    result = re.search(pattern, source, re.M | re.S)
-    assert result, name
-    return result.group(0)
+    return bash_function(source, name)
 
 
 def run(script, events, **overrides):

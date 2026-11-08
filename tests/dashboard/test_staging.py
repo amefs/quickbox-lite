@@ -94,7 +94,7 @@ def test_repo_helpers_propagate_failures(tmp_path):
         "PATH": str(tmp_path / "bin") + os.pathsep + os.environ["PATH"],
     }
     for function in ("_setPerm", "_updateskel"):
-        result = run_bash(f'source "$1/qbUpdateRepo"; {function}', UPDATE, env=env)
+        result = run_bash(f'source "$1/qbUpdateLib"; source "$1/qbUpdateRepo"; {function}', UPDATE, env=env)
         assert result.returncode != 0
 
 

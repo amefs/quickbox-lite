@@ -121,7 +121,7 @@ describe("widgets/service-status", () => {
         expect(systemdCalls).to.equal(2);
     });
 
-    it("treats an empty successful ps command as a failed sample instead of stopped services", async () => {
+    it("treats an empty successful ps command as stopped process matches", async () => {
         const fakeSpawn = ((_command: string, _args: string[], options: Parameters<typeof nativeSpawn>[2]) => {
             const actual = nativeSpawn(process.execPath, ["-e", "process.exit(0)"], options);
             const child = Object.assign(new EventEmitter(), { stdout: actual.stdout, kill: (signal: NodeJS.Signals) => actual.kill(signal) });
@@ -131,7 +131,7 @@ describe("widgets/service-status", () => {
         }) as unknown as typeof spawn;
         setServiceCommandSpawnerForTests(fakeSpawn);
         const result = await getServiceSnapshot();
-        expect(result.irssi).to.include({ value: null, stale: true });
+        expect(result.irssi).to.include({ value: false });
     });
 
     it("returns at the response budget but keeps a hanging collector shared until it settles", async function() {

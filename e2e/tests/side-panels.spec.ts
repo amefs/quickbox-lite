@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // The right column is only a quarter of the content area, so its cards are
-// narrow even on a desktop viewport. These panels used to squeeze the text
-// column with a fixed-size icon column, which clipped the mount point and
-// broke disk metrics in the middle of a value.
+// narrow even on a desktop viewport; the panels must wrap instead of
+// clipping the mount point and disk metrics.
 
 import { test, expect, type Page } from "@playwright/test";
 import path from "node:path";

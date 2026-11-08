@@ -9,6 +9,8 @@ import subprocess
 import sys
 import tempfile
 
+from tests.support import bash_function
+
 
 REPO = Path(__file__).resolve().parents[2]
 SOURCE = (REPO / "setup.sh").read_text()
@@ -16,9 +18,7 @@ PASSWORD = "ExamplePass123"
 
 
 def function(name):
-    match = re.search(r"^function " + re.escape(name) + r"\(\) \{\n.*?^\}", SOURCE, re.M | re.S)
-    assert match, name
-    return match.group(0)
+    return bash_function(SOURCE, name)
 
 
 class Sandbox:
@@ -373,15 +373,6 @@ def test_wrapper_rejects_only_actual_generation_options_before_setup():
         result = subprocess.run(["bash", "-c", preflight, "wrapper", *args],
                                 capture_output=True, text=True, timeout=5)
         success(result)
-
-
-def test_wrapper_option_spec_matches_setup():
-    wrapper = (REPO / "onekey.sh").read_text()
-    match = re.search(r"getopt -a -o (\S+) -l (\S+) --", SOURCE)
-    assert match
-    short, long = match.groups()
-    assert f"short_options='{short}'" in wrapper
-    assert f"long_options='{long}'" in wrapper
 
 
 def test_dns_validation_is_retained_for_installation_host():

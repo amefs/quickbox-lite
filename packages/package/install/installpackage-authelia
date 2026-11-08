@@ -130,7 +130,7 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	if ! echo "${APP_TITLE}" >/install/.install.lock; then
+	if ! (set -o noclobber; echo "${APP_TITLE}" >/install/.install.lock); then
 		_error "Cannot take the installation lock."
 		exit 1
 	fi
@@ -146,17 +146,10 @@ function _clearInstallLock() {
 
 function _lockCleanup() {
   echo "$APP_TITLE Install Complete!" >>"${OUTTO}" 2>&1
-  _clearInstallLock
 }
 
 function _abort() {
   _error "$1"
-  _clearInstallLock
-  exit 1
-}
-
-function _validationExit() {
-  _clearInstallLock
   exit 1
 }
 function _validateRequired() {
@@ -164,7 +157,7 @@ function _validateRequired() {
   if [[ -z "$LOGIN_DOMAIN" ]]; then
     _error "Missing required --domain argument."
     _usage
-    _validationExit
+    exit 1
   fi
 
   normalized_domain="${LOGIN_DOMAIN#http://}"
@@ -174,12 +167,12 @@ function _validateRequired() {
 
   if [[ -z "$normalized_domain" ]]; then
     _error "Invalid --domain value."
-    _validationExit
+    exit 1
   fi
 
   if [[ "$normalized_domain" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
     _error "Authelia login domain cannot be a raw IP address."
-    _validationExit
+    exit 1
   fi
 
   if [[ -z "$AUTH_MODE" ]]; then
@@ -227,14 +220,14 @@ function _validateRequired() {
 
   if [[ -n "$AUTH_MODE" ]] && [[ "$AUTH_MODE" != "password" ]] && [[ "$AUTH_MODE" != "mfa" ]] && [[ "$AUTH_MODE" != "passwordless" ]]; then
     _error "Invalid --auth-mode value. Use password, mfa, or passwordless."
-    _validationExit
+    exit 1
   fi
 
   # Passwordless requires full email/SMTP configuration.
   if [[ "$AUTH_MODE" == "passwordless" ]]; then
     if [[ -z "$ADMIN_EMAIL" || -z "$SMTP_HOST" || -z "$SMTP_USERNAME" || -z "$SMTP_PASSWORD" || -z "$SMTP_SENDER" ]]; then
       _error "passwordless mode requires --admin-email, --smtp-host, --smtp-username, --smtp-password and --smtp-sender."
-      _validationExit
+      exit 1
     fi
   fi
 
@@ -243,24 +236,24 @@ function _validateRequired() {
     if [[ -n "$ADMIN_EMAIL$SMTP_HOST$SMTP_USERNAME$SMTP_PASSWORD$SMTP_SENDER" ]]; then
       if [[ -z "$ADMIN_EMAIL" || -z "$SMTP_HOST" || -z "$SMTP_USERNAME" || -z "$SMTP_PASSWORD" || -z "$SMTP_SENDER" ]]; then
         _error "When setting email in mfa mode, provide full SMTP config: --admin-email, --smtp-host, --smtp-username, --smtp-password and --smtp-sender."
-        _validationExit
+        exit 1
       fi
     fi
   fi
 
   if [[ -n "$ADMIN_EMAIL" ]] && [[ ! "$ADMIN_EMAIL" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then
     _error "Invalid --admin-email value."
-    _validationExit
+    exit 1
   fi
 
   if [[ -n "$SMTP_SENDER" ]] && [[ ! "$SMTP_SENDER" =~ ^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$ ]]; then
     _error "Invalid --smtp-sender value."
-    _validationExit
+    exit 1
   fi
 
   if [[ -n "$SMTP_PORT" ]] && [[ ! "$SMTP_PORT" =~ ^[0-9]+$ ]]; then
     _error "Invalid --smtp-port value."
-    _validationExit
+    exit 1
   fi
 
   LOGIN_DOMAIN="$normalized_domain"

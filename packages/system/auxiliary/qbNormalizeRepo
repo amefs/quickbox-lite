@@ -80,8 +80,7 @@ function _qbNormalizeGitTree() {
 	return 0
 }
 
-# Scoped fallback for deployable paths. This is deliberately narrower than the
-# historical `find ${root} -type f` pass: it never enters .git or node_modules,
+# Scoped fallback for deployable paths. It never enters .git or node_modules,
 # never touches setup/dashboard/fileshare or runtime state, and preserves file
 # names with spaces because every walk is NUL-delimited.
 function _qbNormalizeScopedTree() {
@@ -138,8 +137,7 @@ function qbNormalizeRepo() {
 		git -C "${root}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 		_qbNormalizeGitTree "${root}" || failed=1
 	fi
-	# Always run the scoped pass as a fallback. It also repairs untracked files
-	# that Git cannot know about, without widening the old blanket find scope.
+	# The scoped pass also repairs untracked files that Git cannot know about.
 	_qbNormalizeScopedTree "${root}" || failed=1
 	return "${failed}"
 }

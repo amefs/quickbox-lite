@@ -936,8 +936,8 @@ function _apply_swap() {
 	[[ $memory_mb =~ ^[0-9]+$ ]] || { _error "Invalid system memory value: $memory_mb"; return 1; }
 	((memory_mb <= 2048)) || return 0
 	swap_path=${swap_path:-/root/.swapfile}
-	if [[ $swap_path != /* || $swap_path =~ [[:space:]] || $swap_path == *:* || $swap_path == *..* || $swap_path == / ]]; then
-		_error "Swap path must be an absolute path without whitespace or traversal: $swap_path"
+	if [[ $swap_path != /* || $swap_path =~ [[:space:]] || $swap_path == / ]]; then
+		_error "Swap path must be an absolute path without whitespace: $swap_path"
 		return 1
 	fi
 	swap_dir=$(dirname -- "$swap_path") || return 1
@@ -1003,10 +1003,6 @@ function _apply_swap() {
 		fi
 	fi
 	if ((active)); then
-		if [[ ! -f $swap_path || -L $swap_path ]]; then
-			_error "Active swap path is not a regular file: $swap_path"
-			return 1
-		fi
 		((fstab_has_entry)) || printf '%s swap swap defaults 0 0\n' "$swap_path" >>"$fstab_file" || return 1
 		return 0
 	fi
@@ -1453,7 +1449,6 @@ function _insapps() {
 			echo -e "XXX\n36\n$INFO_TEXT_INSTALLAPP_1$INFO_TEXT_DONE\nXXX"
 		else
 			failed_apps+=("rtorrent")
-			printf 'Application installation failed: %s\n' "rtorrent" >&2
 		fi
 	else
 		echo -e "XXX\n36\n$INFO_TEXT_INSTALLAPP_1$INFO_TEXT_SKIP\nXXX"
@@ -1467,7 +1462,6 @@ function _insapps() {
 			echo -e "XXX\n41\n$INFO_TEXT_INSTALLAPP_2$INFO_TEXT_DONE\nXXX"
 		else
 			failed_apps+=("transmission")
-			printf 'Application installation failed: %s\n' "transmission" >&2
 		fi
 	else
 		echo -e "XXX\n41\n$INFO_TEXT_INSTALLAPP_2$INFO_TEXT_SKIP\nXXX"
@@ -1481,7 +1475,6 @@ function _insapps() {
 			echo -e "XXX\n47\n$INFO_TEXT_INSTALLAPP_3$INFO_TEXT_DONE\nXXX"
 		else
 			failed_apps+=("qbittorrent")
-			printf 'Application installation failed: %s\n' "qbittorrent" >&2
 		fi
 	else
 		echo -e "XXX\n47\n$INFO_TEXT_INSTALLAPP_3$INFO_TEXT_SKIP\nXXX"
@@ -1495,7 +1488,6 @@ function _insapps() {
 			echo -e "XXX\n52\n$INFO_TEXT_INSTALLAPP_4$INFO_TEXT_DONE\nXXX"
 		else
 			failed_apps+=("deluge")
-			printf 'Application installation failed: %s\n' "deluge" >&2
 		fi
 	else
 		echo -e "XXX\n52\n$INFO_TEXT_INSTALLAPP_4$INFO_TEXT_SKIP\nXXX"
@@ -1507,7 +1499,6 @@ function _insapps() {
 			echo -e "XXX\n58\n$INFO_TEXT_INSTALLAPP_5$INFO_TEXT_DONE\nXXX"
 		else
 			failed_apps+=("mktorrent")
-			printf 'Application installation failed: %s\n' "mktorrent" >&2
 		fi
 	else
 		echo -e "XXX\n58\n$INFO_TEXT_INSTALLAPP_5$INFO_TEXT_SKIP\nXXX"
@@ -1519,7 +1510,6 @@ function _insapps() {
 			echo -e "XXX\n63\n$INFO_TEXT_INSTALLAPP_6$INFO_TEXT_DONE\nXXX"
 		else
 			failed_apps+=("ffmpeg")
-			printf 'Application installation failed: %s\n' "ffmpeg" >&2
 		fi
 	else
 		echo -e "XXX\n63\n$INFO_TEXT_INSTALLAPP_6$INFO_TEXT_SKIP\nXXX"
@@ -1531,7 +1521,6 @@ function _insapps() {
 			echo -e "XXX\n69\n$INFO_TEXT_INSTALLAPP_7$INFO_TEXT_DONE\nXXX"
 		else
 			failed_apps+=("filebrowser")
-			printf 'Application installation failed: %s\n' "filebrowser" >&2
 		fi
 	else
 		echo -e "XXX\n69\n$INFO_TEXT_INSTALLAPP_7$INFO_TEXT_SKIP\nXXX"
@@ -1543,7 +1532,6 @@ function _insapps() {
 			echo -e "XXX\n74\n$INFO_TEXT_INSTALLAPP_8$INFO_TEXT_DONE\nXXX"
 		else
 			failed_apps+=("linuxrar")
-			printf 'Application installation failed: %s\n' "linuxrar" >&2
 		fi
 	else
 		echo -e "XXX\n74\n$INFO_TEXT_INSTALLAPP_8$INFO_TEXT_SKIP\nXXX"
@@ -1574,7 +1562,6 @@ function _insapps() {
 			echo -e "XXX\n80\n$INFO_TEXT_INSTALLAPP_9$INFO_TEXT_DONE\nXXX"
 		else
 			failed_apps+=("authelia")
-			printf 'Application installation failed: %s\n' "authelia" >&2
 		fi
 	elif [[ "$app_list" =~ "vouchproxy" ]]; then
 		local auth_install_domain="$domain"
@@ -1608,7 +1595,6 @@ function _insapps() {
 			echo -e "XXX\n80\n$INFO_TEXT_INSTALLAPP_10$INFO_TEXT_DONE\nXXX"
 		else
 			failed_apps+=("vouchproxy")
-			printf 'Application installation failed: %s\n' "vouchproxy" >&2
 		fi
 	fi
 	sleep 1
@@ -1909,12 +1895,9 @@ $(if [[ $enable_bbr == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_18}\n"; fi)\
 $(if [[ $autoreboot == 1 ]]; then echo -e "\n${INFO_TEXT_SUMMARY_17}\n"; fi)\
 " --yes-button "$confirm_button" --no-button "$BUTTON_CANCLE" 28 72); then
 		# Check if we're in config generation mode
-		# Skip locale regeneration if in generate config mode
 		if [[ $config_gen_mode -eq 1 ]]; then
 			_generate_config
 		else
-			# call installation function
-			# Excute installation
 			_startinstall
 		fi
 	elif (whiptail --title "$INFO" --yesno "$INFO_TEXT_ABORT" --yes-button "$BUTTON_EDIT" --no-button "$BUTTON_ABORT" 8 72); then

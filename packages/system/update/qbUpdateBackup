@@ -5,7 +5,6 @@
 #
 # A backup set is a private directory containing:
 #   manifest.tsv   one record per path: kind, path, mode, uid, gid, sha256
-#   .absent        newline list of paths that did not exist (compatibility)
 #   <flattened>    one copy per existing path, named by replacing / with _
 #
 # The helper is sourced, not executed. Callers must provide _error/_warning or
@@ -156,14 +155,12 @@ _qbBackupCreate() {
 	(umask 077; mkdir -p "${backup_dir}") || return 1
 	chmod 0700 "${backup_dir}" || return 1
 	: >"${manifest_tmp}" || return 1
-	: >"${backup_dir}/.absent" || return 1
 
 	for path in "$@"; do
 		[[ -n "${path}" ]] || continue
 		flattened=$(printf '%s' "${path}" | sed -e 's#/#_#g')
 		target="${backup_dir}/${flattened}"
 		if [[ ! -e "${path}" ]]; then
-			printf '%s\n' "${path}" >>"${backup_dir}/.absent" || return 1
 			printf 'absent\t%s\n' "${path}" >>"${manifest_tmp}" || return 1
 			continue
 		fi
@@ -183,76 +180,56 @@ _qbBackupCreate() {
 # _qbBackupHasPath <backup_dir> <path>
 _qbBackupHasPath() {
 	local backup_dir="$1" path="$2"
-	local manifest="${backup_dir}/manifest.tsv"
-	if [[ -f "${manifest}" ]]; then
-		awk -F '\t' -v wanted="${path}" '$2 == wanted { found = 1 } END { exit !found }' "${manifest}"
-		return
-	fi
-	[[ -f "${backup_dir}/$(printf '%s' "${path}" | sed -e 's#/#_#g')" ]] && return 0
-	[[ -f "${backup_dir}/.absent" ]] && grep -Fxq "${path}" "${backup_dir}/.absent"
+	awk -F '\t' -v wanted="${path}" '$2 == wanted { found = 1 } END { exit !found }' "${backup_dir}/manifest.tsv"
 }
 
-# Restore one path from a set. New manifests are checksum-verified; old sets
-# that only contain .absent or a flattened copy still work.
+# Restore one path from a set. Manifest records are checksum-verified.
 _qbBackupRestorePath() {
 	local backup_dir="$1" original="$2"
 	local manifest="${backup_dir}/manifest.tsv"
 	local line kind path mode uid gid expected source actual
 
-	if [[ -f "${manifest}" ]]; then
-		line=$(awk -F '\t' -v wanted="${original}" '$2 == wanted { print; exit }' "${manifest}")
-		if [[ -n "${line}" ]]; then
-			IFS=$'\t' read -r kind path mode uid gid expected <<<"${line}"
-			if [[ "${kind}" == "absent" ]]; then
-				_qbBackupCommand "Cannot remove newly created ${original}" rm -f "${original}" && {
-					_qbBackupWarning "Removed newly created ${original}"
-					return 0
-				}
-				return 1
-			fi
-			source="${backup_dir}/$(printf '%s' "${original}" | sed -e 's#/#_#g')"
-			if [[ ! -f "${source}" ]]; then
-				_qbBackupError "Backup copy is missing for ${original}"
-				return 1
-			fi
-			if [[ "${expected}" != "-" ]]; then
-				actual=$(_qbBackupHash "${source}") || {
-					_qbBackupError "Cannot verify the backup copy for ${original}"
-					return 1
-				}
-				if [[ "${actual}" != "${expected}" ]]; then
-					_qbBackupError "Backup checksum mismatch for ${original}"
-					return 1
-				fi
-			fi
-			if [[ -L "${original}" ]]; then
-				# Older manifests recorded the link's mode/owner, while cp -p
-				# correctly preserved the target's metadata in the backup copy.
-				_qbBackupInstallFile "${source}" "${original}" || return 1
-			else
-				_qbBackupInstallFile "${source}" "${original}" "${mode}" "${uid}" "${gid}" || return 1
-			fi
-			_qbBackupWarning "Restored ${original}"
-			return 0
-		fi
+	if [[ ! -f "${manifest}" ]]; then
+		_qbBackupError "Backup manifest is missing: ${manifest}"
+		return 1
 	fi
-
-	# Compatibility with backup sets created before manifest.tsv existed.
-	source="${backup_dir}/$(printf '%s' "${original}" | sed -e 's#/#_#g')"
-	if [[ -f "${source}" ]]; then
-		_qbBackupInstallFile "${source}" "${original}" || return 1
-		_qbBackupWarning "Restored ${original}"
-		return 0
+	line=$(awk -F '\t' -v wanted="${original}" '$2 == wanted { print; exit }' "${manifest}")
+	if [[ -z "${line}" ]]; then
+		_qbBackupError "No rollback record available for ${original}"
+		return 1
 	fi
-	if [[ -f "${backup_dir}/.absent" ]] && grep -Fxq "${original}" "${backup_dir}/.absent"; then
+	IFS=$'\t' read -r kind path mode uid gid expected <<<"${line}"
+	if [[ "${kind}" == "absent" ]]; then
 		_qbBackupCommand "Cannot remove newly created ${original}" rm -f "${original}" && {
 			_qbBackupWarning "Removed newly created ${original}"
 			return 0
 		}
 		return 1
 	fi
-	_qbBackupError "No rollback record available for ${original}"
-	return 1
+	source="${backup_dir}/$(printf '%s' "${original}" | sed -e 's#/#_#g')"
+	if [[ ! -f "${source}" ]]; then
+		_qbBackupError "Backup copy is missing for ${original}"
+		return 1
+	fi
+	if [[ "${expected}" != "-" ]]; then
+		actual=$(_qbBackupHash "${source}") || {
+			_qbBackupError "Cannot verify the backup copy for ${original}"
+			return 1
+		}
+		if [[ "${actual}" != "${expected}" ]]; then
+			_qbBackupError "Backup checksum mismatch for ${original}"
+			return 1
+		fi
+	fi
+	if [[ -L "${original}" ]]; then
+		# Older manifests recorded the link's mode/owner, while cp -p
+		# correctly preserved the target's metadata in the backup copy.
+		_qbBackupInstallFile "${source}" "${original}" || return 1
+	else
+		_qbBackupInstallFile "${source}" "${original}" "${mode}" "${uid}" "${gid}" || return 1
+	fi
+	_qbBackupWarning "Restored ${original}"
+	return 0
 }
 
 # _qbBackupRestoreAll <backup_dir>

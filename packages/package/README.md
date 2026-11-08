@@ -129,8 +129,7 @@ may be assigned twice.
 The global operation lock is `/install/.install.lock`; package install markers
 keep their current granularity. When declared, `APP_LOCK` is either
 `".${APP_NAME}.lock"` or `".${username}.${APP_NAME}.lock"`. Scripts that already
-use a user-level marker path may keep it — never change lock granularity for the
-sake of uniformity.
+use a user-level marker path keep it.
 
 `HELP FUNCTIONS` provides `_execute`, `_print`, `_info`, `_success`, `_warning`
 and `_error`. Log output is appended to `OUTTO` by default; `-l` / `--log`

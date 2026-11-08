@@ -118,18 +118,7 @@
   window.quickboxResetWidgetState = resetWidgetWriteState;
 
   let runtime = window.quickboxRuntime || {};
-  let fallbackServiceKeys = [
-    "authelia", "resilio-sync", "smbd", "deluged", "deluge-web", "denyhosts",
-    "emby-server", "fail2ban", "filebrowser", "filebrowser-ee", "flexget", "flood",
-    "jellyfin", "irssi", "netdata", "nfs-server", "tightvnc", "openvpn",
-    "peerbanhelper", "plexmediaserver", "rclone-web", "rtorrent", "sabnzbd",
-    "syncthing", "transmission", "qbittorrent", "qbittorrent-clientblocker",
-    "webdav", "vsftpd", "vouch-proxy", "ttyd", "x2go", "znc"
-  ];
-  let serviceStatusItems = (Array.isArray(runtime.serviceKeys) && runtime.serviceKeys.length > 0
-    ? runtime.serviceKeys
-    : fallbackServiceKeys
-  ).map(function (service) {
+  let serviceStatusItems = (runtime.serviceKeys || []).map(function (service) {
     return { service, id: "#appstat_" + service };
   });
   let lastServiceStatusResponse = {};
@@ -202,7 +191,7 @@
       ensureServiceStatusPlaceholders();
       return;
     }
-    let badges = response.badges && typeof response.badges === "object" ? response.badges : response;
+    let badges = response.badges;
     Object.keys(badges).forEach(function (service) {
       if (pendingServiceActionByService[service]) return;
       if (badges[service] !== undefined && badges[service] !== "") {
@@ -877,7 +866,6 @@
     let request = serviceActionRequests[response.requestId];
     if (!request || request.service !== response.service) return;
     if (response.phase === "action-complete") {
-      request.actionComplete = true;
       markServiceStatusesStale(request.service);
       if (response.success === false) {
         request.failureShown = true;
@@ -1203,8 +1191,7 @@
 
   // Two close affordances, one decision each, both taken on the spot: the footer
   // button hides the panel and reloads the page; the header X (and Escape) only
-  // hides it. Nothing is remembered for later — there is no mode and no pending
-  // reload, so a command finishing in the background can never move the page.
+  // hides it.
   let sysResponseClosing = false;
 
   function isSysResponseVisible() {

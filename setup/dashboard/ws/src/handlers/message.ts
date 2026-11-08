@@ -29,11 +29,7 @@ interface LocaleSocketData {
 }
 
 function localeData(client: Socket): LocaleSocketData {
-    const withData = client as unknown as { data?: LocaleSocketData };
-    if (withData.data === undefined) {
-        withData.data = {};
-    }
-    return withData.data;
+    return client.data as LocaleSocketData;
 }
 
 export const parseUrl = (url: string) => {

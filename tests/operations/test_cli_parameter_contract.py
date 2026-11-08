@@ -1,7 +1,9 @@
 """Portable checks for box update argument forwarding."""
 
+import os
 import re
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -24,8 +26,28 @@ class UpdateDispatcherContract(unittest.TestCase):
         return result.returncode, result.stdout
 
     def test_box_forwards_updater_arguments(self):
-        box = (REPO / "packages/system/box").read_text()
-        self.assertIn('bash /usr/local/bin/quickbox/system/qbUpdate "${@:3}"', box)
+        with tempfile.TemporaryDirectory(prefix="quickbox-box-forward-") as root:
+            root_path = Path(root)
+            quickbox = root_path / "usr/local/bin/quickbox/system"
+            quickbox.mkdir(parents=True)
+            (quickbox / "auxiliary").mkdir()
+            forwarded = root_path / "forwarded.txt"
+            updater = quickbox / "qbUpdate"
+            updater.write_text(f'printf "%s\\n" "$@" >>"{forwarded}"\n')
+            updater.chmod(0o755)
+            source = (REPO / "packages/system/box").read_text()
+            source = source.replace("/usr/local/bin/quickbox", str(quickbox.parent))
+            driver = root_path / "box.sh"
+            driver.write_text(source)
+            driver.chmod(0o755)
+            result = subprocess.run(
+                ["bash", str(driver), "update", "quickbox", "--only-core", "--verbose"],
+                capture_output=True,
+                text=True,
+                env=dict(os.environ, QUICKBOX_OPERATION_LOCK=str(root_path / "op.lock")),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(forwarded.read_text().splitlines(), ["--only-core", "--verbose"])
 
     def test_documented_options_are_consumed(self):
         cases = {
@@ -46,7 +68,10 @@ class UpdateDispatcherContract(unittest.TestCase):
         self.assertIn("status=2", output)
 
     def test_usage_lists_the_forwarded_options(self):
-        source = (REPO / "packages/system/qbUpdate").read_text()
-        for flag in ("--only-core", "--from-checkout", "--verbose"):
+        source = (REPO / "packages/system/box").read_text()
+        block = re.search(r"^function _help\(\) \{\n.*?^\}\n", source, re.S | re.M)
+        assert block is not None, "box no longer defines _help"
+        result = subprocess.run(["bash", "-c", block.group(0) + "\n_help"], capture_output=True, text=True)
+        for flag in ("--only-core", "--branch", "--verbose"):
             with self.subTest(flag=flag):
-                self.assertIn(flag, source)
+                self.assertIn(flag, result.stdout + result.stderr)

@@ -117,10 +117,6 @@ function _clearInstallLock() {
 	fi
 }
 
-function _lockCleanup() {
-	_clearInstallLock
-}
-
 function _updateInfo() {
 	_print "
 $APP_TITLE will now be updated.
@@ -173,7 +169,6 @@ function _updateFail() {
 	else
 		_error "Automatic restore failed; inspect ${UPDATE_BACKUP_DIR} and the update log."
 	fi
-	_clearInstallLock
 	exit 1
 }
 
@@ -321,4 +316,3 @@ _lockCheck
 _setLock
 _updateInfo
 _updateApp
-_lockCleanup

@@ -59,7 +59,7 @@ function _dashboardPrepareStage() {
 function _updatedashboard() {
 	_info "Updating QuickBox dashboard..."
 
-	local backup_root backup_dir required lap
+	local backup_root backup_dir lap
 	local -a backup_paths=(
 		/etc/nginx/apps/dashboard.conf
 		/etc/nginx/snippets/proxy.conf
@@ -72,14 +72,7 @@ function _updatedashboard() {
 
 	# qbUpdate passes one complete set; standalone runs fall back to a local copy.
 	backup_dir="${update_backup_dir:-}"
-	if [[ -n "${backup_dir}" ]]; then
-		for required in "${backup_paths[@]}"; do
-			if ! _qbBackupHasPath "${backup_dir}" "${required}"; then
-				_error "Shared update backup misses ${required}: ${backup_dir}"
-				return 1
-			fi
-		done
-	else
+	if [[ -z "${backup_dir}" ]]; then
 		backup_root=$(_qbBackupRoot) || return 1
 		backup_dir=$(_qbBackupUniqueDir "${backup_root}/$(date +%Y%m%d-%H%M%S)-dashboard")
 		if ! _qbBackupCreate "${backup_dir}" "${backup_paths[@]}"; then
@@ -303,21 +296,20 @@ PYEOF
 	# Probe backend HTTP, Socket.IO and nginx readiness. Individual probes only
 	# print when they fail or --verbose is set.
 	lap=$(_qbNowMs)
-	local health_output health_deadline=$((SECONDS + 5)) transport_retry=0
+	local health_output health_deadline=$((SECONDS + 5))
 	local -a health_args=(--expect-proxy)
 	if _qbIsVerbose; then
 		health_args+=(--verbose)
 	fi
-	# Allow a short activation retry window for the service and nginx readiness.
-	while ! health_output=$(bash /usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck "${health_args[@]}" 2>&1); do
+	# A round already waits ~20s inside the helper for the backend listener, so
+	# repeating a failed round would only repeat that wait. The window only
+	# covers a fast failure: nginx worker transitions and transient probe
+	# timeouts right after the reload, which settle within seconds.
+	while true; do
+		if health_output=$(bash /usr/local/bin/quickbox/system/auxiliary/qbWsHealthCheck "${health_args[@]}" 2>&1); then
+			break
+		fi
 		if (( SECONDS >= health_deadline )); then
-			# A timed-out local connection can consume the entire retry window.
-			# Give the service one more full probe before rolling back.
-			if [[ ${transport_retry} -eq 0 && "${health_output}" == *"failed: 000"* ]]; then
-				transport_retry=1
-				sleep 1
-				continue
-			fi
 			printf '%s\n' "${health_output}" >>"${OUTTO}"
 			printf '%s\n' "${health_output}" >&2
 			_error "Dashboard health check failed"

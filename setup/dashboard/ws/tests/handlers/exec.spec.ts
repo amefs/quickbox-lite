@@ -13,10 +13,6 @@ import execHandler, {
     decodeExecOutput,
     getWebLauncherLockPath,
     interpretLaunchStatus,
-    isPidAlive,
-    isUpdateInProgress,
-    probeWebLauncherLock,
-    readUpdatePid,
     releaseExecSlot,
     resetExecSlotsForTests,
     tryAcquireExecSlot,
@@ -131,33 +127,6 @@ describe("handlers/exec", () => {
             expect(tryAcquireExecSlot(socket, 1, 8)).to.equal(true);
             releaseExecSlot(socket);
         });
-
-        it("should treat a live pid file as an in-progress update", () => {
-            const pidPath = path.join(os.tmpdir(), `quickbox-update-test-${process.pid}.pid`);
-            fs.writeFileSync(pidPath, `${process.pid}\n`);
-            try {
-                expect(isUpdateInProgress(pidPath)).to.equal(true);
-            } finally {
-                fs.unlinkSync(pidPath);
-            }
-        });
-
-        it("should ignore a stale pid file", () => {
-            const pidPath = path.join(os.tmpdir(), `quickbox-update-stale-${process.pid}.pid`);
-            fs.writeFileSync(pidPath, "99999999\n");
-            try {
-                expect(isPidAlive(99999999)).to.equal(false);
-                expect(isUpdateInProgress(pidPath)).to.equal(false);
-                expect(readUpdatePid(pidPath)).to.equal(99999999);
-            } finally {
-                fs.unlinkSync(pidPath);
-            }
-        });
-
-        it("should treat an unreadable pid file as no update in progress", () => {
-            expect(isUpdateInProgress(path.join(os.tmpdir(), `quickbox-missing-${process.pid}.pid`))).to.equal(false);
-            expect(readUpdatePid(path.join(os.tmpdir(), `quickbox-missing-${process.pid}.pid`))).to.equal(null);
-        });
     });
 
     describe("update launch verdict", () => {
@@ -238,33 +207,6 @@ describe("handlers/exec", () => {
             expect(getWebLauncherLockPath().startsWith("/srv/dashboard")).to.equal(false);
         });
 
-        it("should report a free lock when nothing holds it", function() {
-            if (!hasFlock) {
-                this.skip();
-            }
-            expect(probeWebLauncherLock(lockPath)).to.equal("free");
-        });
-
-        it("should report busy while another holder keeps the lock", async function() {
-            if (!hasFlock) {
-                this.skip();
-            }
-            const holder = spawn("/bin/bash", ["-c", `exec 9>"${lockPath}"; flock -n 9 || exit 1; sleep 5`], {
-                stdio: "ignore",
-            });
-            try {
-                const deadline = Date.now() + 3000;
-                let state = probeWebLauncherLock(lockPath);
-                while (state !== "busy" && Date.now() < deadline) {
-                    await new Promise((resolve) => setTimeout(resolve, 50));
-                    state = probeWebLauncherLock(lockPath);
-                }
-                expect(state).to.equal("busy");
-            } finally {
-                holder.kill("SIGKILL");
-            }
-        });
-
         it("should let only one runner enter the critical section", async function() {
             if (!hasFlock) {
                 this.skip();
@@ -309,7 +251,10 @@ describe("handlers/exec", () => {
             });
             try {
                 const deadline = Date.now() + 3000;
-                while (probeWebLauncherLock(lockPath) !== "busy" && Date.now() < deadline) {
+                // Wait until the holder actually owns the lock, observed with a
+                // plain non-blocking flock from this test process.
+                while (Date.now() < deadline &&
+                       spawnSync("flock", ["-n", lockPath, "true"]).status === 0) {
                     await new Promise((resolve) => setTimeout(resolve, 50));
                 }
                 const statusPath = path.join(sandbox, "status-busy");

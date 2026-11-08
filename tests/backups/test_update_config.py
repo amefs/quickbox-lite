@@ -156,6 +156,55 @@ _restoreUpdateConfig
     assert not activation.exists()
 
 
+def test_config_rollback_reactivates_after_dashboard_rollback(tmp_path):
+    managed = write_file(tmp_path / "managed.conf", "before\n")
+    output = tmp_path / "output.log"
+    definitions = functions_before_main("packages/system/qbUpdate").replace("/srv/dashboard/db/output.log", str(output))
+    calls = tmp_path / "activation"
+    env = {
+        "QB_UPDATE_LIB_DIR": str(LIB),
+        "OUTTO": str(output),
+        "QUICKBOX_BACKUP_DIR": str(tmp_path / "backups"),
+        "QUICKBOX_REPO_ROOT": str(REPO),
+        "MANAGED": str(managed),
+        "ACT": str(calls),
+    }
+    prelude = (
+        definitions
+        + """
+_loadBackupHelper
+_managedUpdatePaths() { printf '%s\\n' "$MANAGED"; }
+_backupUpdateConfig || exit 1
+printf 'BACKUP=%s\\n' "$update_backup_dir"
+"""
+    )
+    result = run_bash(prelude, env=env)
+    assert result.returncode == 0, result.stderr
+    backup = Path(result.stdout.split("BACKUP=")[-1].strip())
+    managed.write_text("after\n")
+    restore = (
+        definitions
+        + """
+_loadBackupHelper
+update_backup_ready=1
+update_backup_dir="$1"
+update_service_started=1
+systemctl() { printf 'systemctl %s\\n' "$*" >>"$ACT"; }
+nginx() { printf 'nginx %s\\n' "$*" >>"$ACT"; }
+_restoreUpdateConfig
+"""
+    )
+    result = run_bash(restore, backup, env=env)
+    assert result.returncode == 0, result.stderr
+    assert managed.read_text() == "before\n"
+    # The service stage writes nginx and systemd files that only this restore
+    # puts back, so the activation has to follow it.
+    activated = calls.read_text().splitlines()
+    assert "systemctl daemon-reload" in activated
+    assert "nginx -s reload" in activated
+    assert "Configuration rollback succeeded" in output.read_text()
+
+
 def test_shared_backup_root_keeps_permissions_and_warns(tmp_path):
     root = tmp_path / "shared"
     root.mkdir(mode=0o777)

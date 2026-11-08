@@ -143,19 +143,15 @@ def test_unknown_argument_is_rejected(driver):
     assert run_bash('source "$1"; _parseUpdateArgs --nope', path, env=env).returncode != 0
 
 
-def test_missing_timer_helper_is_nonfatal(driver, tmp_path):
+def test_missing_timer_helper_stops_the_update(driver, tmp_path):
     path, env = driver
     broken = tmp_path / "broken"
     (broken / "update").mkdir(parents=True)
     shutil.copy(path, broken / "qbUpdate")
     shutil.copy(path.parent / "update/qbUpdateLib", broken / "update/qbUpdateLib")
-    result = run_bash(
-        'source "$1"; _qbNowMs; _qbFormatMs 5000; _qbReportLap "no helper" 10; _qbTouchActivity',
-        broken / "qbUpdate",
-        env=env,
-    )
-    assert result.returncode == 0
-    assert result.stdout.splitlines()[:2] == ["0", "5.0s"]
+    result = run_bash('source "$1"', broken / "qbUpdate", env=env)
+    assert result.returncode != 0
+    assert "qbUpdateTimer" in result.stderr
 
 
 @pytest.mark.parametrize("terminal", ["dumb", ""])

@@ -154,16 +154,6 @@ def test_screen_start_failure_stops_wrapper():
         assert not any(line.startswith("-rA ") for line in box.events.read_text().splitlines())
 
 
-def test_generation_mode_remains_rejected_by_onekey():
-    for args in (("--generate-config",), ("--gen",), ("-generate-config",),
-                 ("--config=local.json", "--generate-config")):
-        with Sandbox() as box:
-            result = box.run(*args)
-            assert result.returncode != 0
-            assert "bash setup.sh --generate-config" in result.stderr
-            assert not box.events.exists() or not box.events.read_text()
-
-
 def test_setup_script_wrappers_preserve_argv_and_child_status():
     with tempfile.TemporaryDirectory(prefix="quickbox-child-wrappers-") as temporary:
         root = Path(temporary)

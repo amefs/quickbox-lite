@@ -47,37 +47,30 @@ including tests and Playwright configuration, select acceptance.
 
 ## External dependencies
 
-Network access is allowed during preparation: pulling the Node 24 and provider
-images, installing system packages, downloading locked npm dependencies, and
-installing Chromium. Docker build layers and Chromium/npm downloads are cached.
-The shared image includes current and fixed baseline production dependencies,
-plus a minimal locked Socket.IO test client in `tests/deployment/package.json`.
-It uses the committed bundle, so it does not install the WS development toolchain
-or repeat the bundle build. The parallel WS check rebuilds the bundle and fails if
-the committed file is stale.
-CI transfers the image as an artifact rather than rebuilding it in each consumer.
+Preparation uses network access: pulling the Node 24 and provider images,
+installing system packages, downloading locked npm dependencies and Chromium;
+Docker layers and Chromium/npm downloads are cached. The shared image includes
+current and fixed baseline production dependencies plus a minimal locked
+Socket.IO test client in `tests/deployment/package.json`; it uses the committed
+bundle and installs no WS development toolchain. CI transfers the image as an
+artifact instead of rebuilding it in each consumer.
 
-Application installation and upgrade still run the real production `npm ci`.
-The test environment sets `npm_config_offline=true`, disables audit/fund requests,
-and uses the cache prepared earlier. A missing package fails the check; there is
-no online fallback. The image build proves that current production dependencies
-can be installed offline. Native systemd preparation installs only the small
-test-client dependency tree from the transferred cache. The actual application installation then installs its
-production dependencies offline. Neither step repeats the bundle build or fetches
-baseline dependencies that systemd does not use.
+Application installation and upgrade run the real production `npm ci` with
+`npm_config_offline=true` against the prepared cache; a missing package fails
+the check, with no online fallback. Native systemd preparation installs only
+the test-client tree from the transferred cache; the actual application
+installation then installs its production dependencies offline.
 
 Linux acceptance runs with Docker `--network=none`; loopback nginx/Node traffic
-continues to work. Authentication services share a fixture network namespace,
-with only fixture TLS port 18443 published on host loopback. The authentication
-fixture disables Authelia's external NTP startup probe. Authentication and the VM
-enforce npm's offline mode but do not block all networking. Dependency lifecycle scripts
-are not disabled; offline npm alone does not sandbox arbitrary lifecycle scripts.
+continues to work. Authentication services share a fixture network namespace
+with only fixture TLS port 18443 published on host loopback; the fixture
+disables Authelia's external NTP startup probe. Authentication and the VM
+enforce npm's offline mode without blocking all networking.
 
-No acceptance phase runs a full OS `apt upgrade`, downloads ttyd, or fetches a
-live QuickBox repository. Node package-manager/download decisions are tested with
-sandbox command fixtures. The production Dashboard install body is executed
-with nginx, Node and webconsole prerequisites already prepared. A full Seedbox
-installation, distribution package upgrades and reboot remain outside this suite.
+Out of scope: OS package upgrades, the ttyd download, live QuickBox repository
+fetches and full Seedbox installation. Node package-manager/download decisions
+are tested with sandbox command fixtures; the production Dashboard install body
+runs with nginx, Node and webconsole prerequisites already prepared.
 
 ## Local Linux acceptance
 
@@ -95,7 +88,7 @@ npm ci --prefix setup/dashboard/ws
 npm run build --prefix setup/dashboard/ws
 ```
 
-The CI CI checks that the committed bundle matches the sources. No ports are
+CI checks that the committed bundle matches the sources. No ports are
 published. Set `QUICKBOX_TEST_BASELINE` to test a different available commit.
 
 For subsequent runs with unchanged dependency locks:
@@ -109,9 +102,8 @@ locks against the image, and copies current code and the selected baseline into
 the container. It uses the locally built bundle without reinstalling development
 tools. Lock changes fail and require an image rebuild. Set
 `QUICKBOX_DEPLOYMENT_USE_IMAGE=1` instead to run the prepared image as-is, as CI
-does; this deliberately tests the sources already included in that image. Reusing
-that image does not export a baseline or require the old commit in the checkout;
-the prepared image already contains it.
+does; this tests the sources already included in that image, which already
+contains the baseline commit.
 
 To expose separate phases while keeping one container:
 
@@ -142,29 +134,26 @@ The phases check:
 
 The container adapter starts real Node directly under the unit's configured user
 and group, without a `runuser` intermediary. Acceptance verifies the running
-process identity in both the container and native systemd environments. It does
-not emulate systemd or claim systemd lifecycle coverage. `--only-mutex` remains
-available for a focused install-and-concurrency run.
+process identity in both the container and native systemd environments.
+`--only-mutex` remains available for a focused install-and-concurrency run.
 
 ## Probe and theme completion
 
 WebSocket health probes read and validate the Upgrade response, including the
-server's `Sec-WebSocket-Accept`, then close immediately. Successful open sockets
-no longer consume the five-second deadline. The deadline remains enforced for a
-stalled handshake. A transient HTTP 400 during nginx reload is retried within the
-same deadline; authentication rejection and invalid Upgrade headers fail immediately.
-Host/Origin, Basic credentials, provider cookies, TLS and both
-Socket.IO paths remain checked. Session cookies with expiry zero remain usable;
-expired cookies are rejected.
+server's `Sec-WebSocket-Accept`, then close immediately; a stalled handshake
+consumes the five-second deadline. A transient HTTP 400 during nginx reload is
+retried within the same deadline; authentication rejection and invalid Upgrade
+headers fail immediately. Host/Origin, Basic credentials, provider cookies, TLS
+and both Socket.IO paths are checked. Session cookies with expiry zero are
+usable; expired cookies are rejected.
 
-Theme selection returns after the synchronous file copy, marker update and nginx
-reload succeed, without a fixed five-second pause. Deployment callers still run
-the full post-activation health check. Sandbox tests cover both themes, reload
-failure, handshake rejection, delayed/stalled responses and cookie selection.
-After an upgrade, the updater permits retries of the complete health check within
-a five-second activation window while nginx replaces its workers. A persistent
-failure still rolls back; standalone health probes retain immediate authentication
-failure verdicts.
+Theme selection returns after the synchronous file copy, marker update and
+nginx reload succeed. Deployment callers run the full post-activation health
+check. Sandbox tests cover both themes, reload failure, handshake rejection,
+delayed/stalled responses and cookie selection. After an upgrade, the updater
+retries the complete health check within a five-second activation window while
+nginx replaces its workers; a persistent failure rolls back, and standalone
+health probes report authentication failures immediately.
 
 ## Native systemd acceptance
 
@@ -236,7 +225,7 @@ python3 tests/run.py
 ```
 
 Python tooling (`flake8`, `pyright`, `prettytable` for the benchmark helpers) is
-managed by uv; `Pipfile` is gone and `uv.lock` replaces `Pipfile.lock`:
+managed by uv:
 
 ```sh
 uv sync                 # create .venv from uv.lock
@@ -249,18 +238,13 @@ uv run flake8 tests/    # narrow to one subtree when iterating
 repository tooling in `scripts/` and `tests/`. Scripts under `packages/system`
 run on the target host instead: `installpackage-deluge` calls the same file with
 `python2` or `python3` depending on the Deluge version, and `setup.sh` only
-guarantees whichever single interpreter the distro ships. They are still part of
-the type-check: the Python 2/3 shim uses a `sys.version_info` branch instead of
-an undefined name, and `typings/deluge/config.pyi` declares the module the host
-provides, so pyright covers these files without any suppression.
+guarantees whichever single interpreter the distro ships. They are part of the
+type check: the Python 2/3 shim uses a `sys.version_info` branch and
+`typings/deluge/config.pyi` declares the module the host provides.
 
-`.flake8` owns the lint scope: it excludes `.venv`, `node_modules`, `vendor`,
-build outputs and tool caches, so a bare `uv run flake8` lints only project
-sources and is what the `python-linter` job runs. The config carries no
-`ignore`, no `per-file-ignores` and no `# noqa` markers — a new warning is
-fixed at the source instead of being suppressed. `pyrightconfig.json` does the
-same for type checking — Pylance reads that file too, so the editor and CI
-cannot drift apart.
+`.flake8` excludes `.venv`, `node_modules`, vendor, build outputs and tool
+caches, so a bare `uv run flake8` lints only project sources; that is what the
+`python-linter` job runs. `pyrightconfig.json` drives both pyright and Pylance.
 
 System tests use pytest and are grouped by responsibility under `tests`.
 Python tests follow the repository-wide `.flake8` configuration, including the

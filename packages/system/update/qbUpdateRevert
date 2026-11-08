@@ -224,12 +224,6 @@ if [[ -f "${repo}/.gitmodules" ]]; then
 	git -C "${repo}" submodule update --init --recursive || exit 1
 fi
 
-new_sha=$(git -C "${repo}" rev-parse --verify HEAD 2>/dev/null || true)
-if [[ "${new_sha}" != "${resolved}" ]]; then
-	_error "Repository verification failed after reset (expected ${resolved}, found ${new_sha:-unknown})"
-	exit 1
-fi
-
 _success "Repository restored to ${branch}@${resolved}"
 _info "Reinstalling QuickBox from ${resolved}"
 if QUICKBOX_REPO_ROOT="${repo}" QUICKBOX_UPDATE_CORE_LOCK_INHERITED="${_qb_update_lock}" \

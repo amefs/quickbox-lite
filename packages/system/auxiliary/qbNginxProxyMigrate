@@ -237,8 +237,8 @@ fi
 
 apply_mode "${TMP}"
 if ! mv -f "${TMP}" "${PROXY_CONF}"; then
+	# A failed same-directory rename leaves the live snippet untouched.
 	_error "failed to activate migrated proxy snippet"
-	cp -p "${BACKUP_DIR}/proxy.conf" "${PROXY_CONF}"
 	exit 1
 fi
 

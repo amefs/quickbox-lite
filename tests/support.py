@@ -2,9 +2,17 @@
 
 import os
 from pathlib import Path
+import re
 import subprocess
 
 REPO = Path(__file__).resolve().parents[1]
+
+
+def bash_function(source, name):
+    """Return the complete ``function name() { ... }`` definition from a script."""
+    match = re.search(r"^function " + re.escape(name) + r"\(\) \{\n.*?^\}", source, re.M | re.S)
+    assert match, name
+    return match.group(0)
 
 
 def write_file(path, text, executable=False):

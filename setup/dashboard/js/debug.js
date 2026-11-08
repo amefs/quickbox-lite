@@ -227,9 +227,8 @@
                     resultRawCode.textContent = logState.content;
                 } else if (result.type === "json") {
                     var formatted = JSON.stringify(result.data, null, 2);
-                    var highlighted = highlightJson(formatted);
-                    widgetContent.innerHTML = "<pre class=\"debug-data debug-json\">" + highlighted + "</pre>";
-                    resultRawCode.innerHTML = highlighted;
+                    widgetContent.innerHTML = "<pre class=\"debug-data debug-json\">" + escapeHtml(formatted) + "</pre>";
+                    resultRawCode.textContent = formatted;
                     pushHistory({
                         time: new Date().toLocaleTimeString(),
                         url: requestUrl,
@@ -284,20 +283,6 @@
         var div = document.createElement("div");
         div.appendChild(document.createTextNode(text));
         return div.innerHTML;
-    }
-
-    function highlightJson(text) {
-        var tokenPattern = /("(?:\\.|[^"\\])*")(?=\s*:)|("(?:\\.|[^"\\])*")|(-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b/g;
-        var highlighted = "";
-        var lastIndex = 0;
-        var token;
-        while ((token = tokenPattern.exec(text)) !== null) {
-            highlighted += escapeHtml(text.slice(lastIndex, token.index));
-            var tokenType = token[1] ? "key" : token[2] ? "string" : token[3] ? "number" : token[4] === "null" ? "null" : "boolean";
-            highlighted += "<span class=\"json-" + tokenType + "\">" + escapeHtml(token[0]) + "</span>";
-            lastIndex = tokenPattern.lastIndex;
-        }
-        return highlighted + escapeHtml(text.slice(lastIndex));
     }
 
     function updateRawView() {

@@ -93,7 +93,6 @@ export function DebugPage() {
                                         data-url={ep.url}
                                         data-name={ep.name}
                                         title={ep.description}
-                                        style={{ animationDelay: `${i * 40}ms` }}
                                     >
                                         <span className="btn-name">{ep.name}</span>
                                         <span className="btn-url">{ep.url}</span>
@@ -110,7 +109,6 @@ export function DebugPage() {
                                         data-url={ep.url}
                                         data-name={ep.name}
                                         title={ep.description}
-                                        style={{ animationDelay: `${(widgetEndpoints.length + i) * 40}ms` }}
                                     >
                                         <span className="btn-name">{ep.name.replace("Service: ", "")}</span>
                                     </button>
@@ -119,14 +117,13 @@ export function DebugPage() {
 
                             <h2>Management</h2>
                             <div className="endpoint-group">
-                                {managementEndpoints.map((ep, i) => (
+                                {managementEndpoints.map((ep) => (
                                     <button
                                         key={ep.url}
                                         className="endpoint-btn"
                                         data-url={ep.url}
                                         data-name={ep.name}
                                         title={ep.description}
-                                        style={{ animationDelay: `${(widgetEndpoints.length + serviceEndpoints.length + i) * 40}ms` }}
                                     >
                                         <span className="btn-name">{ep.name}</span>
                                         <span className="btn-url">{ep.url}</span>

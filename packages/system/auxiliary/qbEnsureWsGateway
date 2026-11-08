@@ -199,17 +199,7 @@ else
 	_success "gateway snippet installed"
 fi
 
-# 4. Verify the result before anyone reloads nginx.
-if [[ ! -s "${SECRET_FILE}" ]]; then
-	_error "${SECRET_FILE} is empty after installation"
-	exit 1
-fi
-if ! grep -qF 'X-Quickbox-Gateway' "${SNIPPET_FILE}"; then
-	_error "${SNIPPET_FILE} does not inject the gateway header"
-	exit 1
-fi
-
-# 5. Optional cleanup of the legacy in-dashboard copies. Only runs once the new
+# 4. Optional cleanup of the legacy in-dashboard copies. Only runs once the new
 #    locations are in place, so the proxy never loses its configuration.
 if [[ ${CLEANUP_LEGACY} -eq 1 ]]; then
 	if [[ -s "${SECRET_FILE}" && -s "${SNIPPET_FILE}" ]]; then

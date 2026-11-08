@@ -28,6 +28,14 @@ def test_target_updater_continues_under_original_locks(tmp_path, target_kind, fa
     install.mkdir()
     log = tmp_path / "output.log"
     events = tmp_path / "events"
+    # The updater backs up and restores the host paths it manages. Give the
+    # sandbox its own set so an aborted run never writes to the host's /etc.
+    managed = tmp_path / "managed"
+    write_file(managed / "profile", "profile before\n")
+    write_file(managed / "site", "site before\n")
+    bins = tmp_path / "bin"
+    for command in ("systemctl", "nginx"):
+        write_file(bins / command, "#!/bin/sh\nexit 0\n", executable=True)
     system = source / "packages/system"
     update = system / "update"
     update.mkdir(parents=True)
@@ -42,6 +50,15 @@ def test_target_updater_continues_under_original_locks(tmp_path, target_kind, fa
     driver = driver.replace(
         '_parseUpdateArgs "$@" || exit $?',
         '_parseUpdateArgs "$@" || exit $?\nprintf "DRIVER_LABEL\\n" >>"$TEST_EVENTS"',
+    )
+    managed_head, managed_body = driver.split("function _managedUpdatePaths() {", 1)
+    driver = (
+        managed_head
+        + "function _managedUpdatePaths() {\n"
+        + "\tprintf '%s\\n' \"$TEST_MANAGED_PROFILE\" \"$TEST_MANAGED_SITE\"\n"
+        + "}\n"
+        + "function _backupUpdateConfig() {"
+        + managed_body.split("\nfunction _backupUpdateConfig() {", 1)[1]
     )
     repo_helper = (REPO / "packages/system/update/qbUpdateRepo").read_text()
     repo_helper = repo_helper.replace("/install/", str(install) + "/")
@@ -63,7 +80,7 @@ _updateservice() {
 _updatedashboard() { printf 'dashboard TARGET_LABEL\\n' >>"$TEST_EVENTS"; }
 _updatelanguage() { :; }
 ''')
-    for name in ("qbUpdateLib", "qbUpdateTimer", "qbUpdateStep", "qbUpdateRecovery"):
+    for name in ("qbUpdateLib", "qbUpdateTimer", "qbUpdateStep", "qbUpdateRecovery", "qbUpdateBackup"):
         shutil.copy(REPO / "packages/system/update" / name, update / name)
     write_file(system / "qbUpdate", driver.replace("DRIVER_LABEL", "driver master"))
     git(source, "add", ".")
@@ -119,6 +136,8 @@ printf 'dashboard feature\n' >>"$TEST_EVENTS"
                QUICKBOX_INSTALL_DIR=str(install),
                QUICKBOX_UPDATE_CORE_LOCK=str(tmp_path / "core.lock"),
                QUICKBOX_OPERATION_LOCK=str(tmp_path / "operation.lock"), TEST_EVENTS=str(events),
+               TEST_MANAGED_PROFILE=str(managed / "profile"), TEST_MANAGED_SITE=str(managed / "site"),
+               PATH=f"{bins}:{os.environ['PATH']}",
                TEST_LOG=str(log), TEST_INSTALL=str(install), TEST_FAIL_TARGET="1" if fail else "0")
     args = ["bash", str(installed / "qbUpdate")]
     if not full:

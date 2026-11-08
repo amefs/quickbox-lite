@@ -13,7 +13,11 @@ def test_package_operation_lock(tmp_path):
     install = tmp_path / "install"
     install.mkdir()
     quickbox = tmp_path / "quickbox"
-    write_file(quickbox / "system/update/qbUpdateLib", (REPO / "packages/system/update/qbUpdateLib").read_text())
+    for helper in ("qbUpdateLib", "qbUpdateTimer", "qbUpdateStep"):
+        write_file(
+            quickbox / f"system/update/{helper}",
+            (REPO / f"packages/system/update/{helper}").read_text(),
+        )
     clean = (REPO / "packages/system/auxiliary/clean_log").read_text().replace("/srv/dashboard/db/output.log", str(log))
     write_file(quickbox / "system/auxiliary/clean_log", clean)
     box = (REPO / "packages/system/box").read_text().replace("/install/.", str(install) + "/.")

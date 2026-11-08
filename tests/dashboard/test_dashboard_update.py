@@ -98,8 +98,8 @@ if [[ "$FAIL_STAGE" == health-transient || "$FAIL_STAGE" == health-slow-transien
     count=$((count + 1))
     printf '%s\\n' "$count" >"$SANDBOX/health-attempts"
     if [[ "$FAIL_STAGE" == health-slow-transient && "$count" -eq 1 ]]; then
-        sleep 5
-        printf 'backend WebSocket Upgrade /socket.io failed: 000\\n' >&2
+        sleep 3
+        printf 'backend WebSocket Upgrade /socket.io failed: 000\n' >&2
         exit 1
     fi
     [[ "$FAIL_STAGE" == health-slow-transient || "$count" -ge 3 ]]
@@ -176,9 +176,6 @@ exit "$result"
                 SANDBOX=str(root),
                 FAIL_STAGE=stage,
                 QB_UPDATE_LIB_DIR=str(REPO / "packages/system/update"),
-                QB_UPDATE_BACKUP_LIB=str(REPO / "packages/system/update/qbUpdateBackup"),
-                QB_UPDATE_STEP_LIB=str(REPO / "packages/system/update/qbUpdateStep"),
-                QB_UPDATE_TIMER_LIB=str(REPO / "packages/system/update/qbUpdateTimer"),
             ),
             capture_output=True,
             text=True,

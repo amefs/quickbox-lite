@@ -45,7 +45,25 @@ def test_selector_persists_language_and_reports_failures(tmp_path, selector):
     assert run().returncode != 0
 
 
-def test_all_language_aliases_are_available():
-    box = (REPO / "packages/system/box").read_text()
-    for alias in ("da", "de", "en", "es", "fr", "zh"):
-        assert f'"{alias}"' in box
+@pytest.mark.parametrize(
+    ("alias", "script"),
+    [
+        ("da", "lang_da"), ("dansk", "lang_da"), ("danish", "lang_da"),
+        ("de", "lang_de"), ("en", "lang_en"), ("en-us", "lang_en"),
+        ("es", "lang_es"), ("fr", "lang_fr"),
+        ("zh", "lang_zh"), ("zh-cn", "lang_zh"),
+    ],
+)
+def test_box_language_alias_selects_the_matching_script(tmp_path, alias, script):
+    lang_dir = tmp_path / "lang"
+    lang_dir.mkdir()
+    for name in ("lang_da", "lang_de", "lang_en", "lang_es", "lang_fr", "lang_zh"):
+        status = 0 if name == script else 7
+        write_file(lang_dir / f"langSelect-{name}", f"#!/bin/sh\nexit {status}\n", executable=True)
+    box = (
+        (REPO / "packages/system/box")
+        .read_text()
+        .replace("/usr/local/bin/quickbox/system/lang/", str(lang_dir) + "/")
+    )
+    result = run_bash(box, "lang", alias)
+    assert result.returncode == 0

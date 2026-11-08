@@ -120,7 +120,6 @@ async function collectProcesses() {
         const match = line.trim().match(/^(\S+)\s+(.*)$/);
         return match ? { user: match[1], args: match[2] } : null;
     }).filter((x): x is { user: string; args: string } => x !== null);
-    if (entries.length === 0) {throw new Error("ps-empty");}
     const result = new Map<string, boolean>();
     for (const [key, detail] of serviceMap) {if (!detail.systemdUnit && detail.process) {result.set(key, processMatches(entries, detail.process, detail.username, detail.params));}}
     debug(`[service-status] process collection ${Date.now() - startedAt}ms`);

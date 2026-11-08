@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { exec, spawn, spawnSync, type ExecOptionsWithBufferEncoding } from "child_process";
+import { exec, spawn, type ExecOptionsWithBufferEncoding } from "child_process";
 import { randomUUID } from "crypto";
 import fs from "fs";
 import os from "os";
@@ -110,41 +110,6 @@ export function isPidAlive(pid: number): boolean {
         // A downgraded service user cannot signal another user's process. That is
         // a permission problem, not evidence that the process exited.
         return (error as NodeJS.ErrnoException).code === "EPERM";
-    }
-}
-
-export function readUpdatePid(pidPath = updatePidPath()): number | null {
-    try {
-        if (!fs.existsSync(pidPath)) {
-            return null;
-        }
-        const pid = parseInt(fs.readFileSync(pidPath, "utf8").trim(), 10);
-        return Number.isFinite(pid) && pid > 0 ? pid : null;
-    } catch {
-        return null;
-    }
-}
-
-export function isUpdateInProgress(pidPath = updatePidPath()): boolean {
-    const pid = readUpdatePid(pidPath);
-    return pid !== null && isPidAlive(pid);
-}
-
-export function probeWebLauncherLock(lockPath = getWebLauncherLockPath()): "free" | "busy" | "unknown" {
-    try {
-        const result = spawnSync("flock", ["-n", "-E", "75", lockPath, "true"], { timeout: 5000 });
-        if (result.error) {
-            return "unknown";
-        }
-        if (result.status === 0) {
-            return "free";
-        }
-        if (result.status === 75) {
-            return "busy";
-        }
-        return "unknown";
-    } catch {
-        return "unknown";
     }
 }
 
@@ -258,9 +223,8 @@ export interface UpdateLaunchResult {
 // disk) can delay the acknowledgement without preventing the update.
 //
 // Past the window the decision rests on whether the runner is still alive, not
-// on the clock. A live runner means the update is starting; treating a missed
-// acknowledgement as a launch failure is what produced "Failed to start
-// detached update" next to an update that was in fact running.
+// on the clock: a live runner means the update is starting, so a missed
+// acknowledgement must not be reported as a launch failure.
 export const UPDATE_ACK_TIMEOUT_MS = 9000;
 
 export interface LaunchObservation {
@@ -293,10 +257,9 @@ export function interpretLaunchStatus({ observed, childAlive }: LaunchObservatio
 }
 
 export async function launchPersistentUpdate(command: string): Promise<UpdateLaunchResult> {
-    if (probeWebLauncherLock() === "busy") {
-        return { state: "busy", detail: "Update already in progress" };
-    }
-
+    // Lock contention is detected by the runner's own flock, which acks "busy"
+    // through the status file; probing the lock here would only duplicate that
+    // verdict with a result that is stale the moment it returns.
     const statusPath = path.join(os.tmpdir(), `quickbox-update-${process.pid}-${Date.now()}-${randomUUID()}.status`);
     const script = buildUpdateRunnerScript(command, statusPath);
     let childPid: number | undefined;
@@ -462,24 +425,19 @@ async function serviceActionHandler(payload: unknown, client: Socket) {
     }
 
     serviceActionsInFlight.add(response.service);
-    try {
-        response.success = true;
-        response.message = "Service action completed";
-        for (const operation of operations) {
-            const result = await executeServiceCommand(`systemctl:${operation}:${response.service}`);
-            response.stdout += result.stdout;
-            response.stderr += result.stderr;
-            if (!result.success) {
-                response.success = false;
-                response.failedOperation = operation;
-                response.message = result.message || `systemctl ${operation} failed`;
-                break;
-            }
-            response.completedOperations.push(operation);
+    response.success = true;
+    response.message = "Service action completed";
+    for (const operation of operations) {
+        const result = await executeServiceCommand(`systemctl:${operation}:${response.service}`);
+        response.stdout += result.stdout;
+        response.stderr += result.stderr;
+        if (!result.success) {
+            response.success = false;
+            response.failedOperation = operation;
+            response.message = result.message || `systemctl ${operation} failed`;
+            break;
         }
-    } catch (error) {
-        response.success = false;
-        response.message = error instanceof Error ? error.message : "Service action failed";
+        response.completedOperations.push(operation);
     }
 
     response.phase = "action-complete";

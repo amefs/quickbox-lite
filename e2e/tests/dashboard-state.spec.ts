@@ -4,7 +4,7 @@
 //
 // These tests drive the dashboard served by the mock server and deliver payloads
 // through the real socket "message" handler, so the assertions cover the actual
-// replacement path instead of a helper function.
+// replacement path.
 
 import { test, expect, type Page } from "@playwright/test";
 
@@ -177,6 +177,9 @@ test.describe("service status recovery", () => {
         });
 
         await deliverSocketMessage(page, { key: "SERVICE_STATUS_ALL", success: false, message: "fixture failure" });
+        // Backoff is 5000·2^(n-1) ms with the jitter pinned to 0 by the
+        // Math.random stub above, so the first retry lands at 5s and the second
+        // at 10s; the waits bracket those boundaries deterministically.
         await page.waitForTimeout(4500);
         expect(await page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length)).toBe(0);
         await page.waitForTimeout(1000);
@@ -436,10 +439,15 @@ test.describe("PMC widget state", () => {
                 expect(Math.abs(afterResetPageLength - initialTop)).toBeLessThanOrEqual(1);
 
                 await page.setViewportSize({ width: 1440, height: 900 });
-                await expect.poll(async () => page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
-                    const rect = element.getBoundingClientRect();
-                    return rect.top + window.scrollY;
-                })).toBe(84);
+                // At desktop width the right column's top must align with the
+                // main column's top — a layout relation, not a theme constant.
+                await expect.poll(async () => page.evaluate(() => {
+                    const top = (element: Element | null) =>
+                        element ? element.getBoundingClientRect().top + window.scrollY : null;
+                    const right = top(document.querySelector('[data-inner-id="right-panel-container"]'));
+                    const left = top(document.querySelector("#pmc_widget")?.parentElement ?? null);
+                    return right !== null && left !== null ? Math.abs(right - left) : null;
+                })).toBeLessThanOrEqual(1);
                 await page.setViewportSize({ width: 853, height: 900 });
                 await expect.poll(async () => page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
                     const rect = element.getBoundingClientRect();

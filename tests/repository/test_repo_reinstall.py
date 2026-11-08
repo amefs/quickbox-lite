@@ -88,9 +88,20 @@ def test_revert_reinstalls_selected_checkout():
             '_parseUpdateArgs "$@" || exit $?',
             '_parseUpdateArgs "$@" || exit $?\nprintf "driver-A\\n" >>"$TEST_EVENTS"',
         )
+        # The updater backs up and restores the host paths it manages. Point that
+        # set at the sandbox so an aborted reinstall never writes to /etc.
+        managed_head, managed_body = driver.split("function _managedUpdatePaths() {", 1)
+        driver = (
+            managed_head
+            + "function _managedUpdatePaths() {\n"
+            + "\tprintf '%s\\n' \"$TEST_MANAGED_PROFILE\" \"$TEST_MANAGED_SITE\"\n"
+            + "}\n"
+            + "function _backupUpdateConfig() {"
+            + managed_body.split("\nfunction _backupUpdateConfig() {", 1)[1]
+        )
         write(system / "qbUpdate", driver)
         write(system / "update/qbUpdateRevert", (REPO / "packages/system/update/qbUpdateRevert").read_text())
-        for shared in ("qbUpdateLib", "qbUpdateTimer", "qbUpdateStep", "qbUpdateRecovery"):
+        for shared in ("qbUpdateLib", "qbUpdateTimer", "qbUpdateStep", "qbUpdateRecovery", "qbUpdateBackup"):
             shutil.copy(REPO / "packages/system/update" / shared, system / "update" / shared)
         box = (
             (REPO / "packages/system/box").read_text().replace("/usr/local/bin/quickbox/", str(work / "packages") + "/")
@@ -111,6 +122,13 @@ def test_revert_reinstalls_selected_checkout():
         bin_dir = root / "bin"
         write(bin_dir / "lsb_release", '#!/bin/sh\nprintf "jammy\\n"\n')
         (bin_dir / "lsb_release").chmod(0o755)
+        # The rollback re-activates the services it just restored.
+        for command in ("systemctl", "nginx"):
+            write(bin_dir / command, "#!/bin/sh\nexit 0\n")
+            (bin_dir / command).chmod(0o755)
+        managed = root / "managed"
+        write(managed / "profile", "profile before\n")
+        write(managed / "site", "site before\n")
         if not shutil.which("flock"):
             write(
                 bin_dir / "flock",
@@ -151,6 +169,8 @@ except BlockingIOError:
             TMPDIR=str(root),
             TEST_EVENTS=str(events),
             TEST_DEPLOYED=str(deployed),
+            TEST_MANAGED_PROFILE=str(managed / "profile"),
+            TEST_MANAGED_SITE=str(managed / "site"),
         )
 
         def reset():
