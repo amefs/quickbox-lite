@@ -1,0 +1,126 @@
+setup/dashboard/js/debug.js
+  h_3705811fa4502c 230-231
+setup/dashboard/ws/dist/server.js
+  h_3705811fa4502c 4-9,11-18
+setup/dashboard/ws/src/handlers/exec.ts
+  h_3705811fa4502c 3,226-227,260-262,428-438,440
+tests/setup/test_config_semantics.py
+  h_3705811fa4502c 9-10,25
+packages/system/box
+  h_3705811fa4502c 69-71
+setup/dashboard/ws/src/dashboard-page.tsx
+  h_3705811fa4502c 138
+packages/package/README.md
+  h_3705811fa4502c 132
+setup/dashboard/ws/src/debug.tsx
+  h_3705811fa4502c 120
+tests/dashboard/test_language.py
+  h_3705811fa4502c 48-69
+packages/package/remove/removepackage-vouchproxy
+  h_3705811fa4502c 132,140,147,152
+tests/backups/test_update_config.py
+  h_3705811fa4502c 159-207
+tests/support.py
+  h_3705811fa4502c 5,11-17
+tests/dashboard/test_staging.py
+  s_5f4238d90589d5::t_294a5cbe261b0d 97
+packages/package/install/installpackage-vouchproxy
+  h_3705811fa4502c 135,165,171,183,220,226,231
+setup/dashboard/ws/tests/handlers/exec.spec.ts
+  h_3705811fa4502c 254-257
+tests/repository/test_repo_reinstall.py
+  s_5f4238d90589d5::t_aef4432cb2ae50 104
+  h_3705811fa4502c 91-101,125-131,172-173
+tests/operations/test_operation_lock.py
+  s_5f4238d90589d5::t_ee65fb95eb70b5 17-20
+  s_5f4238d90589d5::t_b7f5e641514939 16
+packages/system/qbUpdate
+  s_5f4238d90589d5::t_0e28c28eceb45e 428-429
+  s_5f4238d90589d5::t_f82ab008bf76d9 210-211,261-262,266-267,272-273,363-364,407,413,419-422,425-427
+  h_3705811fa4502c 347-351,438
+  s_5f4238d90589d5::t_99c4506aca7c1d 360-362
+packages/package/install/installpackage-authelia
+  h_3705811fa4502c 133,160,170,175,223,230,239,246,251,256
+scripts/lint-package-scripts.py
+  h_3705811fa4502c 77,87-89,91-93,96-97,107,135,140-141,171-172,229,262-269,293-294,354-356,363
+tests/dashboard/test_dashboard_update.py
+  h_3705811fa4502c 101-102
+packages/system/auxiliary/qbNginxProxyMigrate
+  h_3705811fa4502c 240
+setup/dashboard/ws/src/auth.ts
+  h_3705811fa4502c 268,276,291
+tests/dashboard/test_branch_switch.py
+  h_3705811fa4502c 8
+  s_5f4238d90589d5::t_8d22de8a74ec3e 37,50-54
+e2e/tests/side-panels.spec.ts
+  h_3705811fa4502c 4-5
+packages/system/auxiliary/qbEnsureWsGateway
+  h_3705811fa4502c 202
+tests/deployment/README.md
+  h_3705811fa4502c 50-62,65-73,91,105-106,137-138,143-156,228,241-247
+setup/dashboard/js/dashboard.js
+  h_3705811fa4502c 121,194,1194
+setup/dashboard/ws/dist/widgets.js
+  h_3705811fa4502c 17
+setup.sh
+  h_3705811fa4502c 939-940
+tests/repository/test_update_handoff.py
+  s_5f4238d90589d5::t_b5279e4753b23c 83
+  h_3705811fa4502c 31-38,54-62,139-140
+packages/system/update/qbUpdateDashboard
+  h_3705811fa4502c 62,75,299,304-311
+packages/system/update/qbUpdateRepo
+  h_3705811fa4502c 3-5
+tests/progress/test_update_timing.py
+  s_5f4238d90589d5::t_d922992273a9d3 146,152-154
+tests/setup/test_install_safety.py
+  h_3705811fa4502c 7-8,15,186,191,206,211,526-556
+packages/system/update/qbUpdateBackup
+  h_3705811fa4502c 183,186,192-194,196-199,201-202,209-232
+tests/operations/test_cli_parameter_contract.py
+  h_3705811fa4502c 3,6,29-50,71-75,77
+setup/dashboard/ws/src/handlers/message.ts
+  h_3705811fa4502c 32
+packages/system/update/qbUpdateLib
+  s_5f4238d90589d5::t_194db9ba9b2e3e 28-29
+  s_5f4238d90589d5::t_4df692f68ee0df 7-10,12,14-15,17,23-27
+setup/dashboard/ws/tests/widgets/service-status.spec.ts
+  h_3705811fa4502c 124,134
+e2e/tests/log-panel.spec.ts
+  h_3705811fa4502c 50-54,64,67,74,76-90,95-98,100,109
+e2e/tests/dashboard-state.spec.ts
+  h_3705811fa4502c 7,180-182,442-450
+.github/workflows/linter.yml
+  h_3705811fa4502c 183
+tests/lint/test_package_scripts_lint.py
+  h_3705811fa4502c 61,70,119,173,184
+tests/setup/test_config.py
+  h_3705811fa4502c 12-13,21
+tests/setup/test_package_apt.py
+  h_3705811fa4502c 7-8,19
+packages/system/auxiliary/qbNormalizeRepo
+  h_3705811fa4502c 83,140
+packages/package/remove/removepackage-authelia
+  h_3705811fa4502c 132,140,147,152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2ae45c98ef21bfe0375368149f3077f76e708c73",
+  "prompts": {},
+  "humans": {
+    "h_3705811fa4502c": {
+      "author": "TautCony <i@tautcony.xyz>"
+    }
+  },
+  "sessions": {
+    "s_5f4238d90589d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d17-5f89-7ea1-a2ca-903420a34f47",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "TautCony <i@tautcony.xyz>"
+    }
+  }
+}
