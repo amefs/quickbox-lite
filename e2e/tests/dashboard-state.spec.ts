@@ -8,7 +8,7 @@
 
 import { test, expect, type Page } from "@playwright/test";
 
-import { WS_BASE_URL, resetMockProfile } from "./support/helpers";
+import { WS_BASE_URL, resetMockProfile, setMockProfile } from "./support/helpers";
 
 test.beforeEach(async ({ page }) => {
     await resetMockProfile(page);
@@ -347,19 +347,18 @@ test.describe("PMC widget state", () => {
         expect((await readPackageTableState(page))?.page).toBe(1);
 
         const html = await requestWidgetViaSocket(page, "PMC", "/node/pmc");
-        const refreshedHtml = html.replace(
-            'data-inner-id="panel-server-package-management"',
-            'data-inner-id="panel-server-package-management" data-r7-refresh="changed"',
-        );
+        // The mock profile decides whether /install/.install.lock exists, which
+        // is what adds the clear-lock block to the widget, so the next payload
+        // differs from the one the widget already holds.
+        await setMockProfile(page, "installing");
+        const refreshedHtml = await requestWidgetViaSocket(page, "PMC", "/node/pmc");
         expect(refreshedHtml).not.toBe(html);
-        expect(await deliverSocketMessage(page, {
-            key: "PMC",
-            success: true,
-            response: refreshedHtml,
-            locale: "en",
-        })).toBeGreaterThan(0);
 
-        await expect(page.locator('[data-r7-refresh="changed"]')).toHaveCount(1);
+        // The reply resolved by the request above is the payload the widget
+        // handler wrote, so the clear-lock block has to be on screen. It sits
+        // outside the paged table, so it does not depend on which page is shown.
+        await expect(page.locator("#pmc_widget button", { hasText: "Clear Lock" })).toHaveCount(1);
+
         expect((await readPackageTableState(page))?.page).toBe(1);
         await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
     });
