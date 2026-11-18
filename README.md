@@ -157,6 +157,28 @@ bash <(wget -qO- https://git.io/qbox-lite -o /dev/null) -u demouser -p demo12345
 
 It means: The username being set to demouser, password is demo123456, use 1234 as ssh port, install BBR, deluge, mktorrent, linuxrar. The mirror for deb package in Cloudflare will be used for installation. Change the hostname to vmserver. The server will be automaticly restart after installation.
 
+## Restore a previous QuickBox version
+
+Updates record the current `/etc/QuickBox` branch and commit before replacing
+the checkout. As root, list recovery points or restore a version with:
+
+```bash
+box revert --list
+box revert --yes          # restore the latest recorded pre-update commit
+box revert --yes COMMIT   # restore a specific local commit
+```
+
+Revert is supported between versions that include this feature; older targets
+are rejected before changing the checkout. It reinstalls the core files and
+Dashboard from that version. The general system package upgrade is skipped.
+If installation fails, the command returns an error and leaves
+the repository at the selected commit. Recovery points describe committed Git
+content; uncommitted edits are discarded by the reset.
+
+To retry installation from the current checkout, use
+`box update quickbox --from-checkout`. `box update revert` accepts the same
+arguments as `box revert`.
+
 ## Have trouble with QuickBox Lite
 
 If you still have questions about the QuickBox Lite or need to report bugs, be sure to read the [Wiki](https://wiki.ptbox.dev) first. When you still have trouble with it, please assign an issue [here](https://github.com/amefs/quickbox-lite/issues/new), I will try my best to help you.
