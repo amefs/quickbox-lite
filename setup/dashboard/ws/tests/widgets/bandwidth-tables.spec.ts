@@ -96,28 +96,34 @@ describe("widgets/bandwidth-tables", () => {
     it("should render summary and hourly table by default", async () => {
         const result = await bwTables(testIface, undefined);
         expect(result).to.be.a("string");
-        expect(result).to.include("table");
+        expect(result).to.include("<table");
+        // The caption identifies which dataset was rendered; asserting only
+        // "<table" would pass for every page value.
+        expect(result).to.include("Recent hours");
     });
 
     it("should render hourly data table (page=h)", async () => {
         const result = await bwTables(testIface, "h");
-        expect(result).to.include("table");
+        expect(result).to.include("Recent hours");
         expect(result).to.include("PM");
     });
 
     it("should render daily data table (page=d)", async () => {
         const result = await bwTables(testIface, "d");
-        expect(result).to.include("table");
+        expect(result).to.include("Last 30 days");
+        expect(result).to.not.include("Recent hours");
     });
 
     it("should render monthly data table (page=m)", async () => {
         const result = await bwTables(testIface, "m");
-        expect(result).to.include("table");
+        expect(result).to.include("Last 12 months");
+        expect(result).to.not.include("Last 30 days");
     });
 
     it("should render top days data table (page=t)", async () => {
         const result = await bwTables(testIface, "t");
-        expect(result).to.include("table");
+        expect(result).to.include("Top 10 days");
+        expect(result).to.not.include("Last 12 months");
     });
 
     it("should handle missing interface data", async () => {
@@ -126,7 +132,9 @@ describe("widgets/bandwidth-tables", () => {
         }
         const result = await bwTables("nonexistent-iface-bwtable", undefined);
         expect(result).to.be.a("string");
-        expect(result).to.include("table");
+        // The blank dataset still renders the shell, but without any data rows.
+        expect(result).to.include("<table");
+        expect(result).to.not.include("label_even");
     });
 
     it("should include formatted sizes in output", async () => {

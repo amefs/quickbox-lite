@@ -58,15 +58,15 @@ function renderFileSystem(data: FsSizeData) {
     const diskclass = getDiskClass(data.use);
     return (
         <div key={data.mount}>
-            <div className="row">
-                <div className="col-sm-8">
+            <div className="row qb-panel-split">
+                <div className="col-sm-8 qb-panel-main">
                     <h4>{i18n.t("MOUNT_POINT")}</h4>
-                    <p style={{color:"#eb4549", fontWeight:"normal", fontSize: "14px"}}>{data.mount}</p>
+                    <p className="qb-mount-point">{data.mount}</p>
                     <h4>{i18n.t("DISK_SPACE")}</h4>
-                    <p className="nomargin" style={{fontSize: "14px"}}>
-                        {i18n.t("FREE")}: {formatSize(data.available)}&nbsp;丨&nbsp;
-                        {i18n.t("USED")}: {formatSize(data.used)}&nbsp;丨&nbsp;
-                        {i18n.t("SIZE")}: {formatSize(data.size)}
+                    <p className="nomargin qb-disk-metrics">
+                        <span className="qb-disk-metric">{i18n.t("FREE")}: {formatSize(data.available)}</span>
+                        <span className="qb-disk-metric">{i18n.t("USED")}: {formatSize(data.used)}</span>
+                        <span className="qb-disk-metric">{i18n.t("SIZE")}: {formatSize(data.size)}</span>
                     </p>
                     <br/>
                     <div className="progress">
@@ -76,8 +76,8 @@ function renderFileSystem(data: FsSizeData) {
                     </div>
                     <p style={{fontSize: "10px"}}>{i18n.t("PERCENTAGE_TXT", {used: data.use})}</p>
                 </div>
-                <div className="col-sm-4 text-right">
-                    <i className={`fa fa-hdd-o ${diskclass}`} style={{fontSize: "90px"}}></i>
+                <div className="col-sm-4 text-right qb-panel-icon">
+                    <i className={`fa fa-hdd-o ${diskclass}`}></i>
                 </div>
             </div>
             <hr/>

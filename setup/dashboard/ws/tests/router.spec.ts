@@ -5,7 +5,8 @@ import "mocha";
 import { expect } from "chai";
 import express from "express";
 import path from "path";
-import { readFileSync } from "fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import os from "os";
 import request from "supertest";
 import childProcess from "child_process";
 
@@ -53,7 +54,7 @@ function createExecFileRecorder() {
     const calls: unknown[][] = [];
     const execFile = ((...args: unknown[]) => {
         calls.push(args);
-        const callback = args.find((arg): arg is (error: childProcess.ExecFileException | null, stdout: string, stderr: string) => void => typeof arg === "function");
+        const callback = args.find((arg): arg is (error: childProcess.ExecException | null, stdout: string, stderr: string) => void => typeof arg === "function");
         if (callback) {
             callback(null, "", "");
         }
@@ -76,7 +77,7 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.include("window.quickboxRuntime");
             expect(res.text).to.include('"basePath":""');
             expect(res.text).to.include('"locale":"en"');
-            expect(res.text).to.include("/js/dashboard.js");
+            expect(res.text).to.match(/src="\/js\/dashboard\.js\?v=[0-9a-f]{12}"/);
             expect(res.text).to.include("/lib/socket.io/socket.io.min.js");
             expect(res.text).to.include("id=\"bw_tables_loading\"");
             expect(res.text).to.include("box fix dpkg");
@@ -85,10 +86,34 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.include("/lib/datatables/js/jquery.dataTables.min.js");
             expect(res.text).to.include("/lib/perfect-scrollbar/js/perfect-scrollbar.min.js");
             expect(res.text).to.include("/js/quick.js");
+            // Page-level rules are a real stylesheet: linked from /css so the
+            // browser caches it instead of re-parsing it out of every response.
+            expect(res.text).to.match(/href="\/css\/dashboard\.css\?v=[0-9a-f]{12}"/);
+            expect(res.text).to.not.include(".headerbar .headermenu > li {");
             expect(res.text).to.not.include('fetchJson("/node/menu")');
             expect(res.text).to.not.include('fetchText("/node/removal_modals")');
             expect(res.text).to.not.include("panel.app_status.ws.js");
             expect(res.text).to.not.include("panel.app_service.ws.js");
+        });
+
+        it("changes the asset URL when the deployed stylesheet changes", async () => {
+            const dir = mkdtempSync(path.join(os.tmpdir(), "quickbox-assets-"));
+            try {
+                mkdirSync(path.join(dir, "css"));
+                mkdirSync(path.join(dir, "js"));
+                writeFileSync(path.join(dir, "css", "dashboard.css"), "first");
+                writeFileSync(path.join(dir, "js", "dashboard.js"), "script");
+                const testApp = express().use(createAppRouter({ dashboardDir: dir }));
+                const first = await request(testApp).get("/");
+                writeFileSync(path.join(dir, "css", "dashboard.css"), "second");
+                const second = await request(testApp).get("/");
+                const firstVersion = first.text.match(/dashboard\.css\?v=([0-9a-f]{12})/)?.[1];
+                const secondVersion = second.text.match(/dashboard\.css\?v=([0-9a-f]{12})/)?.[1];
+                expect(firstVersion).to.be.a("string");
+                expect(secondVersion).to.be.a("string").and.not.equal(firstVersion);
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
         });
 
         it("should render the dashboard shell with request-local locale", async () => {
@@ -105,13 +130,11 @@ describe("router — HTTP routes", () => {
             expect(zh.text).to.include("服务控制中心");
             expect(zh.text).to.include("关闭 &amp; 刷新");
             expect(zh.text).to.not.include("关闭 &amp;amp; 刷新");
-            expect(zh.text).to.include("切换到 <code>development</code> 分支");
-            expect(zh.text).to.not.include("切换到 &lt;code&gt;development&lt;/code&gt; 分支");
+            expect(zh.text).to.include("切换分支并更新");
             expect(en.text).to.include("Service Control Center");
             expect(en.text).to.include("Close &amp; Refresh");
             expect(en.text).to.not.include("Close &amp;amp; Refresh");
-            expect(en.text).to.include("Switch to <code>development</code>");
-            expect(en.text).to.not.include("Switch to &lt;code&gt;development&lt;/code&gt;");
+            expect(en.text).to.include("Switch branch and update");
         });
 
         it("should render the dashboard shell from browser locale cookie", async () => {
@@ -158,6 +181,29 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.include("window.quickboxRuntime");
             expect(res.text).to.include("\"basePath\":\"/ws\"");
             expect(res.text).to.include("\"locale\":\"zh\"");
+        });
+    });
+
+    // ── Page stylesheet (/css) ────────────────────────────────────────────────
+
+    describe("GET /css/dashboard.css", () => {
+        it("should serve the page-level rules as a stylesheet", async () => {
+            const res = await request(app).get("/css/dashboard.css");
+
+            expect(res.status).to.equal(200);
+            expect(res.headers["content-type"]).to.include("text/css");
+            // Child combinators and attribute selectors have to arrive intact:
+            // an escaped `&gt;` or `&quot;` would silently kill half the file.
+            expect(res.text).to.include(".headerbar .headermenu > li {");
+            expect(res.text).to.include('.qb-panel-split > [class*="col-sm-"] {');
+            // A validator lets the browser revalidate instead of re-downloading.
+            expect(res.headers.etag).to.be.a("string");
+        });
+
+        it("should not expose files outside the css directory", async () => {
+            const res = await request(app).get("/css/../js/dashboard.js");
+
+            expect(res.status).to.not.equal(200);
         });
     });
 
@@ -415,7 +461,7 @@ describe("router — HTTP routes", () => {
     });
 
     // ── Debug endpoints (/debug*) ─────────────────────────────────────────────
-    // NODE_ENV=test → debug endpoints enabled; NODE_ENV=production → disabled
+    // NODE_ENV=test → debug endpoints enabled; production requires QUICKBOX_WS_DEBUG=1
 
     describe("GET /debug", () => {
         it("should return 200 with an HTML page", async () => {

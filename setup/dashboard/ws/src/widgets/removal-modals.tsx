@@ -28,13 +28,13 @@ export function RemovalModals() {
                     id={`${pkg.packageLowercase}RemovalConfirm`}
                     tabIndex={-1}
                     role="dialog"
+                    aria-modal="true"
                     aria-labelledby={`${pkg.packageUppercase}RemovalConfirm`}
-                    aria-hidden="true"
                 >
                     <div className="modal-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
-                                <button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                                <button type="button" className="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                                 <h4 className="modal-title" id={`${pkg.packageUppercase}RemovalConfirm`}>
                                     {i18n.t("UNINSTALL_TITLE")} {pkg.name}?
                                 </h4>

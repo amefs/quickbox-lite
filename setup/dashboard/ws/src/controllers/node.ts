@@ -4,7 +4,7 @@ import type { Request, Response } from "express";
 import * as childProcess from "child_process";
 
 import { applyDashboardThemeWithExecFile, dashboardConfig } from "../dashboard-config";
-import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAction } from "../plugins";
+import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins } from "../plugins";
 import { systemStaticInfoWithProviders } from "../system-static";
 import { dashboardMenu } from "../widgets/menu";
 import { removalModals } from "../widgets/removal-modals";
@@ -24,11 +24,7 @@ export const getSystemStatic = async (req: Request, res: Response) => {
 };
 
 export const applyTheme = (execFile: typeof childProcess.execFile) => async (req: Request, res: Response) => {
-    const { theme } = req.body as { theme?: unknown };
-    if (typeof theme !== "string") {
-        res.status(400).json({ error: "theme field required" });
-        return;
-    }
+    const theme = (req.body as { theme?: unknown } | undefined)?.theme;
     try {
         await applyDashboardThemeWithExecFile(theme, execFile);
         res.json({ ok: true, theme });
@@ -43,11 +39,9 @@ export const getPlugins = (_req: Request, res: Response) => {
 };
 
 export const applyPlugin = (execFile: typeof childProcess.execFile) => async (req: Request, res: Response) => {
-    const { plugin, action } = req.body as { plugin?: unknown; action?: unknown };
-    if (typeof plugin !== "string" || !isPluginAction(action)) {
-        res.status(400).json({ error: "plugin and action fields required" });
-        return;
-    }
+    const body = req.body as { plugin?: unknown; action?: unknown } | undefined;
+    const plugin = body?.plugin;
+    const action = body?.action;
     try {
         await applyRutorrentPluginActionWithExecFile(plugin, action, execFile);
         res.json({ ok: true, plugin, action });
