@@ -1,9 +1,5 @@
 import globals from "globals";
 import pluginJs from "@eslint/js";
-// import standard from "eslint-config-standard";
-import pluginN from "eslint-plugin-n";
-import pluginPromise from "eslint-plugin-promise";
-import pluginImport from "eslint-plugin-import";
 
 export default [{
   files: ["**/*.js"],
@@ -16,13 +12,6 @@ export default [{
   }
 },
 pluginJs.configs.recommended,
-{
-  plugins: {
-    n: pluginN,
-    import: pluginImport,
-    promise: pluginPromise
-  },
-},
 {
   rules: {
     semi: ["error", "always"],

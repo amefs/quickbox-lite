@@ -7230,117 +7230,6 @@ a.text-danger:focus {
   margin: 0;
   transform: translate(-50%, -50%);
 }
-/***** SELECT2 *****/
-.select2-results__option {
-  padding: 0px 8px;
-  border-radius: 2px;
-  margin-bottom: 1px;
-  font-size: 12px;
-}
-.select2-container--default .select2-selection--single {
-  background-color: #fcfcfd;
-  border-color: #bdc3d1;
-  border-radius: 2px;
-  height: 28px;
-  outline: none;
-}
-.select2-container--default .select2-selection--single .select2-selection__rendered {
-  color: #262b36;
-  line-height: 28px;
-  padding-left: 12px;
-}
-.select2-container--default .select2-selection--single .select2-selection__placeholder {
-  color: #9fa8bc;
-}
-.select2-container--default .select2-selection--single .select2-selection__arrow {
-  width: 30px;
-  height: 28px;
-  line-height: 28px;
-}
-.select2-container--default .select2-selection--multiple {
-  background-color: #fcfcfd;
-  border-color: #bdc3d1;
-  border-radius: 2px;
-  min-height: 28px;
-  outline: none;
-}
-.select2-container--default .select2-selection--multiple .select2-selection__rendered {
-  padding: 0 4px;
-}
-.select2-container--default .select2-selection--multiple .select2-selection__choice {
-  margin-top: 4px;
-  margin-right: 4px;
-  padding: 4px 10px 4px 5px;
-  border-color: transparent;
-  border-radius: 2px;
-  background-color: #259dab;
-  color: #fff;
-}
-.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-  color: #fff;
-  margin-right: 6px;
-  opacity: .75;
-  font-size: 12px;
-}
-.select2-container--default.select2-container--focus .select2-selection--multiple {
-  border-color: #9fa8bc;
-}
-.select2-container--default .select2-search--dropdown .select2-search__field {
-  border-color: #9fa8bc;
-  border-radius: 2px;
-}
-.select2-container--default .select2-results__option[aria-selected="true"] {
-  background-color: #e7e9ee;
-}
-.select2-container--default .select2-results__option--highlighted[aria-selected] {
-  background-color: #259dab;
-}
-.select2-container--default .select2-results > .select2-results__options {
-  margin: 4px;
-}
-.select2-container--default .select2-search--inline .select2-search__field {
-  margin-top: 4px;
-  line-height: 25px;
-  padding-left: 7px;
-}
-.select2-container--default.select2-container--disabled .select2-selection--single {
-  background-color: #e7e9ee;
-}
-.select2-container--open .select2-selection--single,
-.select2-container--open .select2-selection--multiple {
-  background-color: #fff;
-  border-color: #9fa8bc;
-}
-.select2-container--open .select2-dropdown--above {
-  border-top-right-radius: 2px;
-  border-top-left-radius: 2px;
-}
-.select2-container--open .select2-dropdown--below {
-  border-bottom-right-radius: 2px;
-  border-bottom-left-radius: 2px;
-}
-.select2-dropdown {
-  border-color: #9fa8bc;
-  z-index: 200;
-}
-.select2-search--dropdown {
-  padding-bottom: 0;
-}
-.select2-dropdown {
-  background-color: #e7e9ee;
-  border: 1px solid #aaa;
-  border-radius: 4px;
-  box-sizing: border-box;
-  display: block;
-  left: -100000px;
-  position: absolute;
-  width: 100%;
-  z-index: 1051;
-}
-.has-error .select2-selection--single,
-.has-error .select2-selection--multiple {
-  border-color: #d9534f;
-}
 /***** TOGGLES *****/
 .toggle-wrapper {
   width: 100px;
@@ -9057,6 +8946,37 @@ blockquote {
   /*top: 14px;*/
   width: 20px;
   z-index: 1;
+}
+
+.badge.badge-service-unknown-dot {
+  background-color: #9aa0a6;
+  border: 2px solid #9aa0a6;
+  border-radius: 50%;
+  display: inline-block;
+  height: 10px;
+  opacity: 0.8;
+  padding: 1px;
+  position: relative;
+  width: 10px;
+}
+
+.badge.badge-service-unknown-pulse {
+  background: transparent;
+  border: 2px solid #9aa0a6;
+  border-radius: 50%;
+  display: inline-block;
+  height: 20px;
+  margin-left: -15px;
+  opacity: 0;
+  position: relative;
+  width: 20px;
+}
+
+.badge-service-stale {
+  -webkit-animation: none !important;
+  -moz-animation: none !important;
+  animation: none !important;
+  opacity: 0.55;
 }
 
 @keyframes pulse {
@@ -12618,6 +12538,7 @@ img.grayscale:hover {
 .brand-ico {
   vertical-align: top;
   width: 18px;
+  height: 18px;
   margin-right: 9px;
   border-radius: 50%;
 }
