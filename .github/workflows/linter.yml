@@ -88,3 +88,6 @@ jobs:
       - name: Test repository lint rules
         if: ${{ !cancelled() }}
         run: uv run --locked pytest -q tests/lint
+      - name: Check all package lifecycle scripts and templates
+        if: ${{ !cancelled() }}
+        run: python3 scripts/lint-package-scripts.py
