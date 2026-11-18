@@ -1,0 +1,150 @@
+#!/bin/bash
+#
+# [QuickBox Lite Abort Running Task]
+#
+# Stops the package operation that owns /install/.install.lock, so the
+# Dashboard can offer "Terminate" next to a stuck or unwanted run.
+#
+# The lock only records the display title, never a pid, so the owner is located
+# by matching the installed script paths. Children are terminated before their
+# parent: a signal to the script alone would leave apt-get and dpkg running with
+# the lock already removed, and the next operation would collide with them.
+#
+# GitHub:           https://github.com/amefs/quickbox-lite
+# Author:           Amefs
+# Current version:  v1.6.1
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+################################################################################
+
+################################################################################
+# HELP FUNCTIONS
+################################################################################
+_norm=$(tput sgr0 2>/dev/null || true)
+_red=$(tput setaf 1 2>/dev/null || true)
+_green=$(tput setaf 2 2>/dev/null || true)
+_tan=$(tput setaf 3 2>/dev/null || true)
+_cyan=$(tput setaf 6 2>/dev/null || true)
+OUTTO=/srv/dashboard/db/output.log
+INSTALL_LOCK=/install/.install.lock
+
+function _info() {
+	printf "${_cyan}➜ %s${_norm}\n" "$@"
+	printf ">> Info: %s\n" "$@" >>"${OUTTO}"
+}
+function _success() {
+	printf "${_green}✓ %s${_norm}\n" "$@"
+	printf ">> Success: %s\n" "$@" >>"${OUTTO}"
+}
+function _warning() {
+	printf "${_tan}⚠ %s${_norm}\n" "$@"
+	printf ">> Warning: %s\n" "$@" >>"${OUTTO}"
+}
+function _error() {
+	printf "${_red}✗ %s${_norm}\n" "$@"
+	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
+}
+
+################################################################################
+# PROCESS FUNCTIONS
+################################################################################
+# Prints the tree rooted at $1 with the deepest descendants first, which is the
+# order the signals have to be sent in.
+function _tree() {
+	local pid="$1" child
+	for child in $(pgrep -P "${pid}" 2>/dev/null); do
+		_tree "${child}"
+	done
+	printf '%s\n' "${pid}"
+}
+
+# Identify task owners from root-owned lifecycle processes.
+function _owners() {
+	local pid uid
+	while read -r pid; do
+		uid=$(ps -o uid= -p "${pid}" 2>/dev/null | tr -d ' ')
+		[[ ${uid} == 0 ]] || continue
+		if tr '\0' '\n' <"/proc/${pid}/cmdline" 2>/dev/null |
+			grep -Eq '^/usr/local/bin/quickbox/(package/(install|remove|update)/[^/]+|system/qbUpdate)$'; then
+			printf '%s\n' "${pid}"
+		fi
+	done < <(pgrep -f '/usr/local/bin/quickbox/package/(install|remove|update)/|/usr/local/bin/quickbox/system/qbUpdate' 2>/dev/null)
+}
+
+function _isAlive() {
+	[[ -n "$1" ]] && kill -0 "$1" 2>/dev/null
+}
+
+function _startTime() {
+	local stat
+	stat=$(cat "/proc/$1/stat" 2>/dev/null) || return 1
+	stat=${stat##*) }
+	awk '{print $20}' <<<"${stat}"
+}
+
+################################################################################
+# MAIN PROCESS
+################################################################################
+if [[ ! -f ${INSTALL_LOCK} ]]; then
+	_error "No task is running"
+	exit 1
+fi
+
+task=$(head -n 1 "${INSTALL_LOCK}" 2>/dev/null | tr -d '\r')
+task=${task:-QuickBox}
+_info "Stopping ${task}..."
+
+declare -a victims=()
+declare -a start_times=()
+seen=" "
+while read -r pid; do
+	if [[ ! ${pid} =~ ^[0-9]+$ ]] || [[ ${pid} == "$$" ]] || [[ ${pid} == "${PPID}" ]]; then
+		continue
+	fi
+	while read -r member; do
+		[[ ${member} =~ ^[0-9]+$ ]] || continue
+		case "${seen}" in
+		*" ${member} "*) continue ;;
+		esac
+		seen+="${member} "
+		start=$(_startTime "${member}") || continue
+		[[ -n ${start} ]] || continue
+		victims+=("${member}")
+		start_times+=("${start}")
+	done < <(_tree "${pid}")
+done < <(_owners)
+
+for index in "${!victims[@]}"; do
+	pid=${victims[index]}
+	[[ $(_startTime "${pid}") == "${start_times[index]}" ]] && kill -TERM "${pid}" 2>/dev/null
+done
+# Give every process a chance to run its own cleanup before forcing the rest.
+for _ in 1 2 3 4 5; do
+	running=0
+	for pid in "${victims[@]}"; do
+		_isAlive "${pid}" && running=1
+	done
+	(( running )) || break
+	sleep 1
+done
+for index in "${!victims[@]}"; do
+	pid=${victims[index]}
+	[[ $(_startTime "${pid}") == "${start_times[index]}" ]] && kill -KILL "${pid}" 2>/dev/null
+done
+
+# Clear the install marker while holding the operation lock.
+operation_lock="${QUICKBOX_OPERATION_LOCK:-/run/lock/quickbox-operation.lock}"
+if ! { exec 7>"${operation_lock}"; } 2>/dev/null || ! flock -n 7; then
+	_error "The operation lock is still held; the install marker was retained"
+	exit 1
+fi
+rm -f "${INSTALL_LOCK}"
+
+if [[ ${#victims[@]} -gt 0 ]]; then
+	_success "${task} stopped"
+	_info "Terminated ${#victims[@]} process(es) and cleared ${INSTALL_LOCK}"
+else
+	_warning "No running process belongs to ${task}"
+	_info "Removed the stale install lock ${INSTALL_LOCK}"
+fi
