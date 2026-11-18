@@ -102,7 +102,7 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	if ! echo "${APP_TITLE}" >/install/.install.lock; then
+	if ! (set -o noclobber; echo "${APP_TITLE}" >/install/.install.lock) 2>/dev/null; then
 		_error "Cannot take the installation lock."
 		exit 1
 	fi

@@ -157,18 +157,8 @@ if [[ ! -d "${repo}/.git" ]]; then
 	_error "The recorded repository is not a git checkout: ${repo}"
 	exit 1
 fi
-if [[ ! "${recorded_sha}" =~ ^[0-9a-fA-F]{7,64}$ ]]; then
-	_error "The recorded commit is invalid: ${recorded_sha}"
-	exit 1
-fi
 
 branch="${recorded_branch:-detached}"
-if [[ "${branch}" != "detached" ]]; then
-	if [[ "${branch}" == -* ]] || ! git check-ref-format --branch "${branch}" >/dev/null 2>&1; then
-		_error "The recorded branch is invalid: ${branch}"
-		exit 1
-	fi
-fi
 
 # An explicit commit may be a full SHA or another commit-ish. Resolve it before
 # touching the working tree so a typo cannot trigger a partial reset.
@@ -238,19 +228,31 @@ else
 	exit 1
 fi
 
+install_dir="${QUICKBOX_INSTALL_DIR:-/install}"
 # Older target updaters may predate the installed-branch marker.
-state_tmp=$(mktemp "${QUICKBOX_INSTALL_DIR:-/install}/.quickbox-branch.XXXXXX") || exit 1
-if ! printf '%s\n%s\n' "${branch}" "${resolved}" >"${state_tmp}" ||
-	! chmod 0644 "${state_tmp}" || ! mv -f "${state_tmp}" "${QUICKBOX_INSTALL_DIR:-/install}/.quickbox-branch"; then
-	rm -f "${state_tmp}"
-	_error "Reinstallation succeeded, but the installed branch state could not be saved"
-	exit 1
-fi
-if [[ ${branch} == master || ${branch} == legacy || ${branch} == detached ]]; then
-	rm -f "${QUICKBOX_INSTALL_DIR:-/install}/.developer.lock" "${QUICKBOX_INSTALL_DIR:-/install}/.debug.lock"
-else
-	touch "${QUICKBOX_INSTALL_DIR:-/install}/.developer.lock" || exit 1
-	rm -f "${QUICKBOX_INSTALL_DIR:-/install}/.debug.lock"
+if [[ $(sed -n '2p' "${install_dir}/.quickbox-branch" 2>/dev/null) != "${resolved}" ]]; then
+	state_tmp=$(mktemp "${install_dir}/.quickbox-branch.XXXXXX") || exit 1
+	if ! printf '%s\n%s\n' "${branch}" "${resolved}" >"${state_tmp}" ||
+		! chmod 0644 "${state_tmp}" || ! mv -f "${state_tmp}" "${install_dir}/.quickbox-branch"; then
+		rm -f "${state_tmp}"
+		_error "Reinstallation succeeded, but the installed branch state could not be saved"
+		exit 1
+	fi
+	if [[ ${branch} == legacy ]]; then
+		touch "${install_dir}/.legacy.lock" || exit 1
+	else
+		rm -f "${install_dir}/.legacy.lock"
+	fi
+	if [[ ${branch} == master || ${branch} == legacy || ${branch} == detached ]]; then
+		rm -f "${install_dir}/.developer.lock" "${install_dir}/.debug.lock"
+	else
+		touch "${install_dir}/.developer.lock" || exit 1
+		if [[ ${branch} == development ]]; then
+			rm -f "${install_dir}/.debug.lock"
+		else
+			printf '%s(%s)\n' "${branch}" "${resolved:0:7}" >"${install_dir}/.debug.lock" || exit 1
+		fi
+	fi
 fi
 
 _success "QuickBox restored and reinstalled from ${resolved}"

@@ -131,52 +131,58 @@ AUTHORITY_HEADERS = (
 )
 
 changed = False
-legacy_host = False
 output = []
 
 with open(path, encoding="utf-8") as handle:
-    for line in handle:
-        stripped = line.strip()
-        if re.match(r"\s*proxy_set_header\s+Host\s+\\?\$host\s*;", line, re.IGNORECASE):
-            legacy_host = True
-        if "\\$" in line and not stripped.startswith("#"):
-            keyword = stripped.split(None, 1)[0] if stripped else ""
-            header = ""
-            if keyword == "proxy_set_header":
-                parts = stripped.split(None, 2)
-                header = parts[1].lower() if len(parts) > 1 else ""
-            candidate = keyword in AUTHORITY_DIRECTIVES and (
-                keyword != "proxy_set_header" or header in AUTHORITY_HEADERS
-            )
-            if candidate:
-                repaired = line.replace("\\$", "$")
-                if repaired != line:
-                    changed = True
-                    line = repaired
+    lines = handle.readlines()
 
-        # Host must carry the port and IPv6 brackets of the client request, so a
-        # bare $host value is upgraded to $http_host.
-        repaired_host, replaced = re.subn(
-            r"^(\s*proxy_set_header\s+Host\s+)\$host(\s*;)",
-            r"\1$http_host\2",
+legacy_host = any(
+    re.match(r"\s*proxy_set_header\s+Host\s+\\?\$host\s*;", ln, re.IGNORECASE)
+    for ln in lines
+)
+
+for line in lines:
+    stripped = line.strip()
+    if "\\$" in line and not stripped.startswith("#"):
+        keyword = stripped.split(None, 1)[0] if stripped else ""
+        header = ""
+        if keyword == "proxy_set_header":
+            parts = stripped.split(None, 2)
+            header = parts[1].lower() if len(parts) > 1 else ""
+        candidate = keyword in AUTHORITY_DIRECTIVES and (
+            keyword != "proxy_set_header" or header in AUTHORITY_HEADERS
+        )
+        if candidate:
+            repaired = line.replace("\\$", "$")
+            if repaired != line:
+                changed = True
+                line = repaired
+
+    # Host must carry the port and IPv6 brackets of the client request, so a
+    # bare $host value is upgraded to $http_host.
+    repaired_host, replaced = re.subn(
+        r"^(\s*proxy_set_header\s+Host\s+)\$host(\s*;)",
+        r"\1$http_host\2",
+        line,
+        flags=re.IGNORECASE,
+    )
+    if replaced:
+        line = repaired_host
+        changed = True
+
+    # The shipped legacy snippet also hardcoded HTTPS. Repair that exact
+    # default only when this file contained the legacy Host directive;
+    # keep an independently customized proxy's protocol policy intact.
+    if legacy_host:
+        line, replaced = re.subn(
+            r"^(\s*proxy_set_header\s+X-Forwarded-Proto\s+)https(\s*;)",
+            r"\1$scheme\2",
             line,
             flags=re.IGNORECASE,
         )
-        if replaced:
-            line = repaired_host
-            changed = True
+        changed = changed or bool(replaced)
 
-        # The shipped legacy snippet also hardcoded HTTPS. Repair that exact
-        # default only when this file contained the legacy Host directive;
-        # keep an independently customized proxy's protocol policy intact.
-        if legacy_host:
-            line, replaced = re.subn(
-                r"^(\s*proxy_set_header\s+X-Forwarded-Proto\s+)https(\s*;)",
-                r"\1$scheme\2", line, flags=re.IGNORECASE,
-            )
-            changed = changed or bool(replaced)
-
-        output.append(line)
+    output.append(line)
 
 if changed:
     with open(path, "w", encoding="utf-8") as handle:
@@ -219,7 +225,6 @@ if [[ -e "${BACKUP_ROOT}" && ! -d "${BACKUP_ROOT}" ]]; then
 fi
 if [[ ! -e "${BACKUP_ROOT}" ]]; then
 	(umask 077; mkdir -p "${BACKUP_ROOT}") || exit 1
-	chmod 0700 "${BACKUP_ROOT}" 2>/dev/null || _warning "cannot restrict ${BACKUP_ROOT} to mode 0700"
 fi
 # Never reuse a directory from an earlier run in the same second.
 BACKUP_DIR="${BACKUP_ROOT}/${TS}"
@@ -229,7 +234,6 @@ while [[ -e "${BACKUP_DIR}" || -L "${BACKUP_DIR}" ]]; do
 	suffix=$((suffix + 1))
 done
 (umask 077; mkdir -p "${BACKUP_DIR}") || exit 1
-chmod 0700 "${BACKUP_DIR}" || exit 1
 if ! cp -p "${PROXY_CONF}" "${BACKUP_DIR}/proxy.conf"; then
 	_error "failed to back up ${PROXY_CONF}"
 	exit 1

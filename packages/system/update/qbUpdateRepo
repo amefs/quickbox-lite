@@ -73,23 +73,6 @@ function _setPerm() {
 		normalize_script=$(sed 's/\r$//' "${normalize_helper}") || return 1
 		QB_NORMALIZE_BOOTSTRAP=1 QB_NORMALIZE_RUN=1 \
 			bash -c "${normalize_script}" _ "${repo_root}" || return 1
-	elif [[ -f /install/.legacy.lock ]]; then
-		# The legacy branch predates the normalizer. Keep that migration path
-		# alive, but scope the repair to packages/ and never chmod data files.
-		_warning "Legacy branch has no repository normalizer; using scoped legacy repair"
-		local file line
-		while IFS= read -r -d '' file; do
-			if grep -Iq $'\r' "${file}" 2>/dev/null; then
-				dos2unix "${file}" >/dev/null 2>&1 || return 1
-			fi
-			line=""
-			IFS= read -r -n 2 line <"${file}" 2>/dev/null || true
-			if [[ "${line}" == '#!' ]]; then
-				chmod 0755 "${file}" || return 1
-			fi
-		done < <(find "${repo_root}/packages" \
-			\( -name .git -o -name node_modules \) -prune -o \
-			-type f -print0 2>/dev/null)
 	else
 		_error "Repository normalizer is missing or empty: ${normalize_helper}"
 		return 1

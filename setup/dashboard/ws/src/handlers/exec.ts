@@ -15,7 +15,7 @@ import { runMockCommand } from "../testing/mock-adapter";
 import { serviceMap } from "../info";
 import { isServiceEnabled } from "../widgets/panels";
 import { serviceStatusAll } from "../widgets/service-status";
-import { VALID_LOCALES, withLocale } from "../i18n";
+import { withLocale } from "../i18n";
 
 let baseDir = __dirname;
 let configPath = "";
@@ -70,7 +70,7 @@ function isServiceAction(value: string): value is keyof typeof serviceActionOper
 
 const DEFAULT_MAX_PER_SOCKET = 2;
 const DEFAULT_MAX_GLOBAL = 8;
-const inflightBySocket = new WeakMap<Socket, number>();
+let inflightBySocket = new WeakMap<Socket, number>();
 let inflightGlobal = 0;
 
 export function getDashboardDbDir() {
@@ -264,7 +264,7 @@ export async function launchPersistentUpdate(command: string): Promise<UpdateLau
             env: execOption.env,
         });
         child.unref();
-        childPid = child.pid ?? undefined;
+        childPid = child.pid;
     } catch (error) {
         fs.rmSync(statusPath, { force: true });
         return { state: "failed", detail: error instanceof Error ? error.message : String(error) };
@@ -309,13 +309,10 @@ export function releaseExecSlot(socket: Socket): void {
 
 export function resetExecSlotsForTests(): void {
     inflightGlobal = 0;
+    inflightBySocket = new WeakMap<Socket, number>();
 }
 
-export function decodeExecOutput(raw: Buffer | string) {
-    if (typeof raw === "string") {
-        return raw;
-    }
-
+export function decodeExecOutput(raw: Buffer) {
     const utf8 = raw.toString("utf8");
     if (!utf8.includes("\uFFFD")) {
         return utf8;
@@ -417,36 +414,38 @@ async function serviceActionHandler(payload: unknown, client: Socket) {
     }
 
     serviceActionsInFlight.add(response.service);
-    response.success = true;
-    response.message = "Service action completed";
-    for (const operation of operations) {
-        const result = await executeServiceCommand(`systemctl:${operation}:${response.service}`);
-        response.stdout += result.stdout;
-        response.stderr += result.stderr;
-        if (!result.success) {
-            response.success = false;
-            response.failedOperation = operation;
-            response.message = result.message || `systemctl ${operation} failed`;
-            break;
-        }
-        response.completedOperations.push(operation);
-    }
-
-    response.phase = "action-complete";
-    client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
-
-    response.phase = "status-confirmed";
     try {
-        await refreshServiceState();
-        const detail = serviceMap.get(response.service);
-        if (detail) {
-            response.enabled = isServiceEnabled(response.service, detail.username);
+        response.success = true;
+        response.message = "Service action completed";
+        for (const operation of operations) {
+            const result = await executeServiceCommand(`systemctl:${operation}:${response.service}`);
+            response.stdout += result.stdout;
+            response.stderr += result.stderr;
+            if (!result.success) {
+                response.success = false;
+                response.failedOperation = operation;
+                response.message = result.message || `systemctl ${operation} failed`;
+                break;
+            }
+            response.completedOperations.push(operation);
         }
-        const locale = typeof request.locale === "string" && VALID_LOCALES.includes(request.locale) ? request.locale : "en";
-        response.status = await withLocale(locale, async () => await serviceStatusAll());
-    } catch (error) {
-        response.statusError = error instanceof Error ? error.message : "Service status refresh failed";
-        console.error(`[quickbox-ws] failed to refresh service state after ${response.action}:${response.service}`, error);
+
+        response.phase = "action-complete";
+        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
+
+        response.phase = "status-confirmed";
+        try {
+            await refreshServiceState();
+            const detail = serviceMap.get(response.service);
+            if (detail) {
+                response.enabled = isServiceEnabled(response.service, detail.username);
+            }
+            const locale = typeof request.locale === "string" ? request.locale : "en";
+            response.status = await withLocale(locale, async () => await serviceStatusAll());
+        } catch (error) {
+            response.statusError = error instanceof Error ? error.message : "Service status refresh failed";
+            console.error(`[quickbox-ws] failed to refresh service state after ${response.action}:${response.service}`, error);
+        }
     } finally {
         serviceActionsInFlight.delete(response.service);
         releaseExecSlot(client);

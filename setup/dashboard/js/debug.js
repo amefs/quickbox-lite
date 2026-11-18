@@ -10,7 +10,7 @@
         content: "",
         end: -1,
         size: 0,
-        epoch: ""
+        epoch: null
     };
 
     var buttons = document.querySelectorAll(".endpoint-btn");
@@ -81,15 +81,18 @@
         if (forceReload || logState.end < 0) {
             return "/db/output.log";
         }
-        return "/db/output.log?offset=" + encodeURIComponent(logState.end)
-            + "&epoch=" + encodeURIComponent(logState.epoch);
+        var urlWithOffset = "/db/output.log?offset=" + encodeURIComponent(logState.end);
+        if (logState.epoch !== null) {
+            urlWithOffset += "&epoch=" + encodeURIComponent(logState.epoch);
+        }
+        return urlWithOffset;
     }
 
     function resetLogState() {
         logState.content = "";
         logState.end = -1;
         logState.size = 0;
-        logState.epoch = "";
+        logState.epoch = null;
     }
 
     function pushHistory(entry) {
@@ -140,7 +143,7 @@
     }
 
     function updateLogState(data, forceReload) {
-        var epochChanged = logState.epoch && data.epoch && data.epoch !== logState.epoch;
+        var epochChanged = typeof data.epoch === "string" && logState.epoch !== null && data.epoch !== logState.epoch;
         var changed = forceReload || epochChanged || logState.end < 0 || data.end < logState.end
             || (typeof data.content === "string" && data.content.length > 0)
             || (typeof data.size === "number" && data.size !== logState.size);
@@ -257,12 +260,13 @@
                 updateRawView();
             })
             .catch(function(err) {
-                if (requestId !== requestSequence || err.name === "AbortError") return;
+                if (requestId !== requestSequence) return;
+                resultRendered.classList.remove("is-loading");
+                btnRefresh.classList.remove("is-spinning");
+                if (err.name === "AbortError") return;
                 var elapsed = (performance.now() - startTime).toFixed(0);
                 resultTime.textContent = elapsed + "ms";
                 setStatus("error", "error");
-                resultRendered.classList.remove("is-loading");
-                btnRefresh.classList.remove("is-spinning");
                 widgetContent.innerHTML = "<p class=\"debug-preview-error\">" + escapeHtml(err.message) + "</p>";
                 resultRawCode.textContent = "Error: " + err.message;
                 pushHistory({

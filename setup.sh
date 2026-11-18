@@ -1,7 +1,7 @@
 #!/bin/bash
 # File-level ShellCheck directives must precede the CRLF bootstrap.
 # shellcheck disable=SC2046,SC1090,SC2181,SC2059
-if [ "${QB_SETUP_BOOTSTRAP:-0}" != 1 ] && [ "${BASH_SOURCE[0]:-}" = "$0" ] && grep -q $'\r' "$0" 2>/dev/null; then sed 's/\r$//' "$0" >"${0}.$$.tmp" && mv "${0}.$$.tmp" "$0" || exit 1; QB_SETUP_BOOTSTRAP=1 exec bash "$0" "$@" ; fi #
+if [ "${QB_SETUP_BOOTSTRAP:-0}" != 1 ] && [ "${BASH_SOURCE[0]:-}" = "$0" ] && [ -f "$0" ] && grep -q $'\r' "$0" 2>/dev/null; then sed 's/\r$//' "$0" >"${0}.$$.tmp" && mv "${0}.$$.tmp" "$0" || exit 1; QB_SETUP_BOOTSTRAP=1 exec bash "$0" "$@" ; fi #
 #
 # [QuickBox Lite Installation Guide Script]
 #
@@ -150,9 +150,6 @@ function _init() {
 	export LANG="en_US.UTF-8" >/dev/null 2>&1
 	export LC_ALL="en_US.UTF-8" >/dev/null 2>&1
 	export LANGUAGE="en_US.UTF-8" >/dev/null 2>&1
-	if (! export | grep -q sbin); then
-		export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
-	fi
 	local normalize_helper="${local_prefix}packages/system/auxiliary/qbNormalizeRepo"
 	if [[ ! -s "${normalize_helper}" ]]; then
 		_error "Repository normalizer is missing or empty: ${normalize_helper}"
@@ -1646,7 +1643,6 @@ function _fixbcm() {
 }
 
 function _startinstall() {
-	_validate_loaded_config || return 1
 	# The legacy no-log value is an option, not a filename or shell redirection.
 	if [[ $OUTTO == '/dev/null 2>&1' ]]; then
 		OUTTO=/dev/null
@@ -1671,7 +1667,23 @@ function _startinstall() {
 	system_lock_owned=0
 	if (set -o noclobber; printf '%s\n' "$$" >/install/.system.lock) 2>/dev/null; then
 		system_lock_owned=1
-	elif [[ ! -f /install/.system.lock ]]; then
+	elif [[ -f /install/.system.lock ]]; then
+		local _system_lock_pid=""
+		IFS= read -r _system_lock_pid </install/.system.lock 2>/dev/null || _system_lock_pid=""
+		if [[ "$_system_lock_pid" =~ ^[0-9]+$ ]] && ! kill -0 "$_system_lock_pid" 2>/dev/null; then
+			_warning "Removing stale system installation lock (PID $_system_lock_pid)."
+			rm -f /install/.system.lock
+			if (set -o noclobber; printf '%s\n' "$$" >/install/.system.lock) 2>/dev/null; then
+				system_lock_owned=1
+			else
+				_error "Could not create /install/.system.lock."
+				return 1
+			fi
+		else
+			_error "Another system installation is running (/install/.system.lock exists)."
+			return 1
+		fi
+	else
 		_error "Could not create /install/.system.lock."
 		return 1
 	fi
@@ -2550,10 +2562,6 @@ function _generate_config() {
 		_error "Failed to generate valid JSON config"
 		exit 1
 	fi
-	if ! printf '%s\n' "$config_json" | jq -e 'type == "object"' >/dev/null; then
-		_error "Failed to generate a JSON object"
-		exit 1
-	fi
 	if [[ -d $config_output_file ]] || ! config_output_temp_file=$(mktemp "$(dirname -- "$config_output_file")/.quickbox-config.XXXXXX"); then
 		_error "Cannot create config output: $config_output_file"
 		exit 1
@@ -2585,6 +2593,7 @@ while true; do
 		onekey=1
 		domain="$2"
 		lecert_domain="$2"
+		_cli_override[domain]="$2"
 		_cli_override[lecert_domain]="$2"
 		shift
 		;;	
@@ -2760,7 +2769,6 @@ _load_language || exit 1
 [[ -n $ftp_ip ]] || ftp_ip=$(_local_ip)
 
 if [[ $onekey == 1 ]]; then
-	_validate_loaded_config
 	_summary
 else
 	_selectlang || exit 1

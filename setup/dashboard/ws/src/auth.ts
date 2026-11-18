@@ -144,7 +144,7 @@ export function hasValidGateway(headers: IncomingHttpHeaders, secret = getGatewa
     return secretsEqual(headerValue(headers, GATEWAY_HEADER), secret);
 }
 
-function normalizeProtocol(protocol: string | undefined): string | null {
+function normalizeProtocol(protocol: string | undefined): "http:" | "https:" | null {
     const value = (protocol ?? "").trim().toLowerCase();
     if (value === "https" || value === "https:") {
         return "https:";
@@ -155,19 +155,15 @@ function normalizeProtocol(protocol: string | undefined): string | null {
     return value === "" ? "http:" : null;
 }
 
-function defaultPort(protocol: string): string {
-    return protocol === "https:" ? "443" : "80";
-}
-
 /** URL.port is empty for the protocol default, so normalize to compare. */
 function effectivePort(url: URL): string {
-    return url.port !== "" ? url.port : defaultPort(normalizeProtocol(url.protocol) ?? "http:");
+    return url.port !== "" ? url.port : (url.protocol === "https:" ? "443" : "80");
 }
 
 /** Characters that would let a crafted Host header smuggle in a different host. */
 const FORBIDDEN_AUTHORITY_CHARS = /[/\\?#@]/;
 
-function parseAuthority(authority: string, protocol: string): URL | null {
+function parseAuthority(authority: string, protocol: "http:" | "https:"): URL | null {
     const trimmed = authority.trim();
     if (trimmed === "") {
         return null;
@@ -177,7 +173,7 @@ function parseAuthority(authority: string, protocol: string): URL | null {
     }
     try {
         // Supports "host", "host:port", "[::1]:port" and keeps IPv6 brackets.
-        const parsed = new URL(`${normalizeProtocol(protocol) ?? "http:"}//${trimmed}`);
+        const parsed = new URL(`${protocol}//${trimmed}`);
         return parsed;
     } catch {
         return null;
@@ -217,16 +213,13 @@ function warnHostOnlyEntry(entry: string): void {
 }
 
 interface OriginParts {
-    protocol: string;
+    protocol: "http:" | "https:";
     host: string;
     port: string;
 }
 
-function describeOrigin(parsed: URL): OriginParts | null {
-    const protocol = normalizeProtocol(parsed.protocol);
-    if (protocol === null) {
-        return null;
-    }
+function describeOrigin(parsed: URL): OriginParts {
+    const protocol: "http:" | "https:" = parsed.protocol === "https:" ? "https:" : "http:";
     return { protocol, host: parsed.hostname.toLowerCase(), port: effectivePort(parsed) };
 }
 
@@ -255,9 +248,6 @@ function matchesLegacyHostOnlyEntry(entry: string, origin: OriginParts): boolean
 
 function matchesAllowedOrigin(parsed: URL): boolean {
     const origin = describeOrigin(parsed);
-    if (origin === null) {
-        return false;
-    }
     return parseAllowedOrigins().some((entry) =>
         entry.includes("://")
             ? matchesFullOriginEntry(entry, origin)
@@ -273,7 +263,7 @@ export function isAllowedOrigin(origin: string | undefined, hostHeader: string |
     if (!parsed) {
         return false;
     }
-    const expectedProtocol = `${protocol}:`;
+    const expectedProtocol: "http:" | "https:" = `${protocol}:`;
     const requestUrl = parseAuthority(hostHeader ?? "", expectedProtocol);
     if (normalizeProtocol(parsed.protocol) === expectedProtocol && requestUrl !== null &&
         parsed.hostname.toLowerCase() === requestUrl.hostname.toLowerCase() &&
@@ -318,7 +308,7 @@ export function authorizeHandshake(req: IncomingMessage): HandshakeAuthResult {
     if (shouldEnforceOrigin()) {
         const origin = headerValue(req.headers, "origin");
         const host = headerValue(req.headers, "host");
-        if (!isAllowedOrigin(origin === "" ? undefined : origin, host === "" ? undefined : host, requestProtocol(req))) {
+        if (!isAllowedOrigin(origin, host, requestProtocol(req))) {
             return { ok: false, error: "origin not allowed" };
         }
     }

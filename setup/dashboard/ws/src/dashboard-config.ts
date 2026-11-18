@@ -42,11 +42,11 @@ export function isDashboardTheme(theme: unknown): theme is string {
     return typeof theme === "string" && dashboardThemes.some((entry) => entry.file === theme);
 }
 
-export function applyDashboardTheme(theme: string) {
+export function applyDashboardTheme(theme: unknown) {
     return applyDashboardThemeWithExecFile(theme);
 }
 
-export function applyDashboardThemeWithExecFile(theme: string, runExecFile: typeof execFile = execFile) {
+export function applyDashboardThemeWithExecFile(theme: unknown, runExecFile: typeof execFile = execFile) {
     if (!isDashboardTheme(theme)) {
         return Promise.reject(new Error("Invalid theme"));
     }

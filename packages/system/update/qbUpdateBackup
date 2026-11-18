@@ -46,11 +46,10 @@ _qbBackupInstallFile() {
 	local source="$1" original="$2" mode="${3:--}" uid="${4:--}" gid="${5:--}"
 	local destination="${original}" temporary directory failed=0
 	if [[ -L "${original}" ]]; then
-		destination=$(readlink -f "${original}" 2>/dev/null) ||
-			destination=$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "${original}" 2>/dev/null) || {
-				_qbBackupError "Cannot resolve rollback destination ${original}"
-				return 1
-			}
+		destination=$(readlink -f "${original}" 2>/dev/null) || {
+			_qbBackupError "Cannot resolve rollback destination ${original}"
+			return 1
+		}
 	fi
 	if [[ -d "${destination}" ]]; then
 		_qbBackupError "Rollback destination is a directory: ${original}"
@@ -123,10 +122,6 @@ _qbBackupRoot() {
 			_qbBackupRootMessage "✗ cannot create backup root: ${root}"
 			return 1
 		}
-		chmod 0700 "${root}" || {
-			_qbBackupRootMessage "✗ cannot restrict backup root to mode 0700: ${root}"
-			return 1
-		}
 	fi
 	printf '%s\n' "${root}"
 }
@@ -153,7 +148,6 @@ _qbBackupCreate() {
 	local manifest_tmp="${backup_dir}/.manifest.tmp"
 
 	(umask 077; mkdir -p "${backup_dir}") || return 1
-	chmod 0700 "${backup_dir}" || return 1
 	: >"${manifest_tmp}" || return 1
 
 	for path in "$@"; do
@@ -177,22 +171,10 @@ _qbBackupCreate() {
 	return 0
 }
 
-# Restore one path from a set. Manifest records are checksum-verified.
-_qbBackupRestorePath() {
-	local backup_dir="$1" original="$2"
-	local manifest="${backup_dir}/manifest.tsv"
-	local line kind path mode uid gid expected source actual
+_qbBackupRestoreRecord() {
+	local backup_dir="$1" kind="$2" original="$3" mode="$4" uid="$5" gid="$6" expected="$7"
+	local source actual
 
-	if [[ ! -f "${manifest}" ]]; then
-		_qbBackupError "Backup manifest is missing: ${manifest}"
-		return 1
-	fi
-	line=$(awk -F '\t' -v wanted="${original}" '$2 == wanted { print; exit }' "${manifest}")
-	if [[ -z "${line}" ]]; then
-		_qbBackupError "No rollback record available for ${original}"
-		return 1
-	fi
-	IFS=$'\t' read -r kind path mode uid gid expected <<<"${line}"
 	if [[ "${kind}" == "absent" ]]; then
 		_qbBackupCommand "Cannot remove newly created ${original}" rm -f "${original}" && {
 			_qbBackupWarning "Removed newly created ${original}"
@@ -215,15 +197,28 @@ _qbBackupRestorePath() {
 			return 1
 		fi
 	fi
-	if [[ -L "${original}" ]]; then
-		# Older manifests recorded the link's mode/owner, while cp -p
-		# correctly preserved the target's metadata in the backup copy.
-		_qbBackupInstallFile "${source}" "${original}" || return 1
-	else
-		_qbBackupInstallFile "${source}" "${original}" "${mode}" "${uid}" "${gid}" || return 1
-	fi
+	_qbBackupInstallFile "${source}" "${original}" "${mode}" "${uid}" "${gid}" || return 1
 	_qbBackupWarning "Restored ${original}"
 	return 0
+}
+
+# Restore one path from a set. Manifest records are checksum-verified.
+_qbBackupRestorePath() {
+	local backup_dir="$1" original="$2"
+	local manifest="${backup_dir}/manifest.tsv"
+	local line kind path mode uid gid expected
+
+	if [[ ! -f "${manifest}" ]]; then
+		_qbBackupError "Backup manifest is missing: ${manifest}"
+		return 1
+	fi
+	line=$(awk -F '\t' -v wanted="${original}" '$2 == wanted { print; exit }' "${manifest}")
+	if [[ -z "${line}" ]]; then
+		_qbBackupError "No rollback record available for ${original}"
+		return 1
+	fi
+	IFS=$'\t' read -r kind path mode uid gid expected <<<"${line}"
+	_qbBackupRestoreRecord "${backup_dir}" "${kind}" "${path}" "${mode}" "${uid}" "${gid}" "${expected}"
 }
 
 # _qbBackupRestoreAll <backup_dir>
@@ -238,7 +233,7 @@ _qbBackupRestoreAll() {
 	fi
 	while IFS=$'\t' read -r kind path mode uid gid expected; do
 		[[ -n "${path}" ]] || continue
-		_qbBackupRestorePath "${backup_dir}" "${path}" || rc=1
+		_qbBackupRestoreRecord "${backup_dir}" "${kind}" "${path}" "${mode}" "${uid}" "${gid}" "${expected}" || rc=1
 	done <"${manifest}"
 	return "${rc}"
 }

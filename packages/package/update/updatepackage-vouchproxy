@@ -102,7 +102,7 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	if ! echo "${APP_TITLE}" >/install/.install.lock; then
+	if ! (set -o noclobber; echo "${APP_TITLE}" >/install/.install.lock) 2>/dev/null; then
 		_error "Cannot take the installation lock."
 		exit 1
 	fi
@@ -199,9 +199,8 @@ insert_lines = "\n  post_logout_redirect_uris:\n    - /\n"
 if login_domain:
   insert_lines += f"    - https://{login_domain}/\n"
 
-if 'post_logout_redirect_uris:' not in text:
-  text = text.replace('oauth:\n', insert_lines + 'oauth:\n', 1)
-  path.write_text(text)
+text = text.replace('oauth:\n', insert_lines + 'oauth:\n', 1)
+path.write_text(text)
 PYEOF
 	fi
 
@@ -265,7 +264,7 @@ insert = '''location = /logout {
 '''
 
 marker = 'location = /auth/vouch/callback {'
-if marker in content and 'location = /logout' not in content:
+if marker in content:
     content = content.replace(marker, insert + marker, 1)
     path.write_text(content)
 PYEOF

@@ -214,11 +214,7 @@ function _validateRequired() {
     AUTH_MODE="password"
   fi
 
-  if [[ "$AUTH_MODE" == "passwordless" ]]; then
-    AUTH_MODE="passwordless"
-  fi
-
-  if [[ -n "$AUTH_MODE" ]] && [[ "$AUTH_MODE" != "password" ]] && [[ "$AUTH_MODE" != "mfa" ]] && [[ "$AUTH_MODE" != "passwordless" ]]; then
+  if [[ "$AUTH_MODE" != "password" ]] && [[ "$AUTH_MODE" != "mfa" ]] && [[ "$AUTH_MODE" != "passwordless" ]]; then
     _error "Invalid --auth-mode value. Use password, mfa, or passwordless."
     exit 1
   fi
@@ -339,7 +335,7 @@ function _installApp() {
   authelia_uid=$(id -u www-data) || _abort "The www-data user is missing."
   authelia_gid=$(id -g www-data) || _abort "The www-data group is missing."
 
-  if ! admin_hash="$(_generatePasswordHash "$admin_pass")" || [[ -z "$admin_hash" ]]; then
+  if ! admin_hash="$(_generatePasswordHash "$admin_pass")"; then
     _abort "Failed to generate the ${APP_TITLE} password hash."
   fi
 

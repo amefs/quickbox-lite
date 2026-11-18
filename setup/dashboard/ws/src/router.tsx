@@ -4,7 +4,7 @@
 import express, { Router, type Request, type Response } from "express";
 import * as childProcess from "child_process";
 import { createHash } from "crypto";
-import { readFileSync } from "fs";
+import { readFileSync, statSync } from "fs";
 import path from "path";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
@@ -24,7 +24,7 @@ import { upTime } from "./widgets/up";
 import { diskData } from "./widgets/disk-data";
 import { ramStats } from "./widgets/memory-stats";
 import { widgetsLoad } from "./widgets/load";
-import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAction } from "./plugins";
+import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins } from "./plugins";
 import { systemStaticInfoWithProviders } from "./system-static";
 import { readOutputLog } from "./widgets/output-log";
 import { shouldUpgradeDashboardSocket } from "./auth";
@@ -53,20 +53,6 @@ export function createAppRouter(options: AppRouterOptions): Router {
     const runExecFile = options.execFile ?? childProcess.execFile;
     const skinsDir = options.skinsDir ?? path.join(options.dashboardDir, "skins");
     const debugEnabled = process.env.NODE_ENV !== "production" || process.env.QUICKBOX_WS_DEBUG === "1";
-    const parseThemeBody = (body: unknown): string | undefined => {
-        if (body === null || typeof body !== "object" || !("theme" in body)) {
-            return undefined;
-        }
-        const theme = (body as { theme?: unknown }).theme;
-        return typeof theme === "string" ? theme : undefined;
-    };
-    const parsePluginBody = (body: unknown): { plugin?: unknown; action?: unknown } => {
-        if (body === null || typeof body !== "object") {
-            return {};
-        }
-        const record = body as { plugin?: unknown; action?: unknown };
-        return { plugin: record.plugin, action: record.action };
-    };
     const renderWithLocale = async <T,>(req: Request, callback: () => T | Promise<T>): Promise<T> => {
         return await withLocale(resolveRequestLocale(req), callback);
     };
@@ -79,9 +65,18 @@ export function createAppRouter(options: AppRouterOptions): Router {
     router.use("/js", express.static(path.join(options.dashboardDir, "js")));
     router.use("/lang", express.static(path.join(options.dashboardDir, "lang")));
 
+    const assetVersionCache = new Map<string, { mtimeMs: number; size: number; hash: string }>();
     const assetVersion = (relativePath: string): string => {
         try {
-            return createHash("sha256").update(readFileSync(path.join(options.dashboardDir, relativePath))).digest("hex").slice(0, 12);
+            const fullPath = path.join(options.dashboardDir, relativePath);
+            const stat = statSync(fullPath);
+            const cached = assetVersionCache.get(relativePath);
+            if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+                return cached.hash;
+            }
+            const hash = createHash("sha256").update(readFileSync(fullPath)).digest("hex").slice(0, 12);
+            assetVersionCache.set(relativePath, { mtimeMs: stat.mtimeMs, size: stat.size, hash });
+            return hash;
         } catch {
             return "";
         }
@@ -192,11 +187,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
     });
 
     router.post("/node/theme", express.json(), async (req: Request, res: Response) => {
-        const theme = parseThemeBody(req.body);
-        if (theme === undefined) {
-            res.status(400).json({ error: "theme field required" });
-            return;
-        }
+        const theme = (req.body as { theme?: unknown } | undefined)?.theme;
         try {
             await applyDashboardThemeWithExecFile(theme, runExecFile);
             res.json({ ok: true, theme });
@@ -211,11 +202,9 @@ export function createAppRouter(options: AppRouterOptions): Router {
     });
 
     router.post("/node/plugin", express.json(), async (req: Request, res: Response) => {
-        const { plugin, action } = parsePluginBody(req.body);
-        if (typeof plugin !== "string" || !isPluginAction(action)) {
-            res.status(400).json({ error: "plugin and action fields required" });
-            return;
-        }
+        const body = req.body as { plugin?: unknown; action?: unknown } | undefined;
+        const plugin = body?.plugin;
+        const action = body?.action;
         try {
             await applyRutorrentPluginActionWithExecFile(plugin, action, runExecFile);
             res.json({ ok: true, plugin, action });

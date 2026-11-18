@@ -41,9 +41,6 @@ function _qbNowMs() {
 # Formats a millisecond count as 0.4s, 12.6s, 2m05s or 1h02m.
 function _qbFormatMs() {
 	local ms=${1:-0}
-	if [[ ! ${ms} =~ ^[0-9]+$ ]]; then
-		ms=0
-	fi
 	if (( ms < 60000 )); then
 		printf '%d.%ds' $(( ms / 1000 )) $(( (ms % 1000) / 100 ))
 	elif (( ms < 3600000 )); then
@@ -81,9 +78,6 @@ function _qbLogTiming() {
 # never initialize them.
 function _qbReportMs() {
 	local label="$1" elapsed=${2:-0}
-	if [[ ! ${elapsed} =~ ^[0-9]+$ ]]; then
-		elapsed=0
-	fi
 	printf '%s   ⏱ %s: %s%s\n' "${_dim:-}" "${label}" "$(_qbFormatMs "${elapsed}")" "${_norm:-}"
 	_qbLogTiming "${label}" "${elapsed}"
 	return 0
@@ -96,9 +90,7 @@ function _qbReportMs() {
 # _qbReportMs and always print.
 function _qbReportLap() {
 	local label="$1" start_ms="${2:-}" elapsed
-	if [[ ! ${start_ms} =~ ^[0-9]+$ ]]; then
-		return 0
-	fi
+	[[ -n ${start_ms} ]] || return 0
 	elapsed=$(( $(_qbNowMs) - start_ms ))
 	if (( elapsed < 0 )); then
 		elapsed=0

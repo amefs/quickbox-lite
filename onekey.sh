@@ -1,5 +1,5 @@
 #!/bin/bash
-if [ "${QB_ONEKEY_BOOTSTRAP:-0}" != 1 ] && [ "${BASH_SOURCE[0]:-}" = "$0" ] && grep -q $'\r' "$0" 2>/dev/null; then sed 's/\r$//' "$0" >"${0}.$$.tmp" && mv "${0}.$$.tmp" "$0" || exit 1; QB_ONEKEY_BOOTSTRAP=1 exec bash "$0" "$@" ; fi #
+if [ "${QB_ONEKEY_BOOTSTRAP:-0}" != 1 ] && [ "${BASH_SOURCE[0]:-}" = "$0" ] && [ -f "$0" ] && grep -q $'\r' "$0" 2>/dev/null; then sed 's/\r$//' "$0" >"${0}.$$.tmp" && mv "${0}.$$.tmp" "$0" || exit 1; QB_ONEKEY_BOOTSTRAP=1 exec bash "$0" "$@" ; fi #
 #
 # [QuickBox Lite One Key Installation wrapper]
 #
@@ -127,7 +127,6 @@ if [[ -d /etc/QuickBox ]]; then
     rm -rf /etc/QuickBox
 fi
 URL="https://github.com/amefs/quickbox-lite.git"
-# shellcheck disable=SC2086
 git clone --recursive "${branch_args[@]}" "${URL}" /etc/QuickBox || exit 1
 # Restore executable bits and LF endings before the installer reads any tracked
 # file. Older branches without this helper still get the setup.sh conversion.

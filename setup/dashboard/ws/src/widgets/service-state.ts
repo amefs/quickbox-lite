@@ -44,7 +44,6 @@ function run(file: string, args: string[], max = maxOutput): Promise<{ stdout: s
         let killTimer: NodeJS.Timeout | undefined;
         const finishError = (error: Error) => { if (!settled) { settled = true; reject(error); } };
         const timeout = setTimeout(() => {
-            clearTimeout(timeout);
             child.kill("SIGTERM");
             if (killTimer) {clearTimeout(killTimer);}
             killTimer = setTimeout(() => child.kill("SIGKILL"), 250);

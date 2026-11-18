@@ -22,7 +22,6 @@ _qbRecoveryBegin() {
 		[[ ${owner} == 0 ]] && (( (8#${mode} & 8#22) == 0 )) || return 1
 	fi
 	(umask 077; mkdir "${dir}") || return 1
-	chmod 0700 "${dir}" || return 1
 	QB_RECOVERY_ACTIVE=1
 	export QB_RECOVERY_ACTIVE
 }
@@ -113,7 +112,7 @@ _qbRecoveryFinish() {
 	[[ -f ${dir}/stage ]] && IFS= read -r stage <"${dir}/stage"
 	# Clear the completed record before removing its retained staging trees.
 	rm -rf -- "${dir}" || return 1
-	if [[ ${stage} == /srv/.dashboard-stage.* && ${stage} != *$'\n'* ]]; then
+	if [[ ${stage} == /srv/.dashboard-stage.* ]]; then
 		rm -rf -- "${stage}" "${stage}.previous"
 	fi
 }

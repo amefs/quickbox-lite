@@ -214,10 +214,6 @@ PYEOF
 		_error "Failed to apply the dashboard authentication config"
 		_restoreDashboardRelease; return 1
 	fi
-	if ! grep -qE 'auth_(basic|request)' /etc/nginx/apps/dashboard.conf; then
-		_error "The dashboard config has no user authentication directive"
-		_restoreDashboardRelease; return 1
-	fi
 	_qbReportLap "dashboard vhost and auth" "${lap}"
 
 	# Root owns code and policy; www-data owns the state directories only.

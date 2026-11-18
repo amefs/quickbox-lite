@@ -23,14 +23,13 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
     }
     const branchCommand = buildBranchCommand(payload);
     if (branchCommand !== undefined) { return branchCommand; }
-    let [command, operation, target] = payload.split(":");
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (command === undefined || operation === undefined || target === undefined) {
+    const parts = payload.split(":");
+    if (parts.length < 3) {
         throw new Error(`Invalid payload '${payload}'`);
     }
-    command = command.trim();
-    operation = operation.trim();
-    target = target.trim();
+    const command = parts[0].trim();
+    const operation = parts[1].trim();
+    const target = parts[2].trim();
 
     // check command
     const commandConfig = config instanceof WatchedConfig ? config.Value[command] : config[command];
@@ -68,15 +67,7 @@ export function buildCommand(payload: string | undefined, config: CommandType | 
     }
 
     // apply user info
-    template = applyUsername(template, username);
-
-    // check template status, no place holder should exist
-    if (template.includes(Constant.TEMPLATE_OPERATION) ||
-        template.includes(Constant.TEMPLATE_TARGET) ||
-        template.includes(Constant.TEMPLATE_USERNAME)) {
-        throw new Error(`Invalid template '${template}'`);
-    }
-    return template;
+    return applyUsername(template, username);
 }
 
 function buildBranchCommand(payload: string): string | undefined {

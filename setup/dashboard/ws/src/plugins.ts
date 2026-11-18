@@ -76,13 +76,13 @@ export function getRutorrentPlugins() {
     }));
 }
 
-export function applyRutorrentPluginAction(plugin: string, action: PluginAction) {
+export function applyRutorrentPluginAction(plugin: unknown, action: unknown) {
     return applyRutorrentPluginActionWithExecFile(plugin, action);
 }
 
 export function applyRutorrentPluginActionWithExecFile(
-    plugin: string,
-    action: PluginAction,
+    plugin: unknown,
+    action: unknown,
     runExecFile: typeof execFile = execFile,
 ) {
     if (!isRutorrentPlugin(plugin)) {

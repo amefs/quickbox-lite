@@ -372,12 +372,14 @@ if [[ $resolver == "enable-dev" || $resolver == "disable-dev" || $resolver == "s
 	case "$resolver" in
 		enable-dev) branch=development ;;
 		disable-dev) branch=master ;;
-		*) branch=${2:-} ;;
+		*)
+			branch=${2:-}
+			if [[ -z ${branch} || ${branch} == -* ]] || ! git check-ref-format --branch "${branch}" >/dev/null 2>&1; then
+				_error "Invalid branch name"
+				exit 2
+			fi
+			;;
 	esac
-	if [[ -z ${branch} || ${branch} == -* ]] || ! git check-ref-format --branch "${branch}" >/dev/null 2>&1; then
-		_error "Invalid branch name"
-		exit 2
-	fi
 	/usr/local/bin/quickbox/system/box update quickbox --only-core --branch "${branch}"
 	exit $?
 fi

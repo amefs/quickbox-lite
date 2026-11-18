@@ -95,7 +95,11 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	echo "${APP_TITLE}" >/install/.install.lock
+	if ! (set -o noclobber && echo "${APP_TITLE}" >/install/.install.lock) 2>/dev/null; then
+		_error "Another package process is running."
+		exit 1
+	fi
+	trap '_lockCleanup' EXIT
 }
 
 function _lockCleanup() {
@@ -150,4 +154,3 @@ _lockCheck
 _setLock
 _updateInfo
 _updateApp
-_lockCleanup

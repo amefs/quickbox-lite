@@ -54,8 +54,8 @@ function _release_major() {
 }
 
 function _is_supported() {
-	local version="$1" major
-	major=$(_release_major "${version}") || return 1
+	local version="$1" major="${2:-}"
+	[[ -n ${major} ]] || major=$(_release_major "${version}") || return 1
 	if (( major > 24 )); then
 		return 0
 	fi
@@ -114,9 +114,11 @@ current_version=$(_installed_version || true)
 current_major=0
 sourcelist=""
 supported=0
-if [[ -n ${current_version} ]] && _is_supported "${current_version}"; then
-	supported=1
+if [[ -n ${current_version} ]]; then
 	current_major=$(_release_major "${current_version}" || printf '0\n')
+	if _is_supported "${current_version}" "${current_major}"; then
+		supported=1
+	fi
 fi
 
 if [[ ${current_major} -gt 24 ]]; then

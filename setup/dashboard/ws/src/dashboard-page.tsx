@@ -42,9 +42,6 @@ export interface DashboardPageProps {
 }
 
 function normalizeBasePath(basePath: string | undefined) {
-    if (typeof basePath !== "string" || basePath === "") {
-        return "";
-    }
     return basePath === "/ws" ? "/ws" : "";
 }
 

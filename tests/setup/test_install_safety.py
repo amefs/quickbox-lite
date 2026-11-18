@@ -41,6 +41,7 @@ def startinstall_probe(failing_step="", gauge_rc=0):
         stubs.append(f"function {name}() {{ [[ $FAIL_AT != {name} ]]; }}")
     return "\n".join([
         "_error() { printf 'ERROR:%s\\n' \"$*\"; }",
+        "_warning() { printf 'WARNING:%s\\n' \"$*\" >&2; }",
         function("_optional_failure"),
         "sleep() { :; }",
         "lsb_release() { [[ $1 == -is ]] && echo Debian || echo bookworm; }",
@@ -221,6 +222,20 @@ def test_existing_system_marker_is_not_removed_by_another_install():
         result = run_bash(script, {"EVENTS": Path(root) / "events", "LOGFILE": Path(root) / "log"})
         assert result.returncode != 0
         assert marker.read_text() == "another installation"
+
+
+def test_stale_system_lock_pid_is_recovered():
+    with tempfile.TemporaryDirectory(prefix="quickbox-stale-lock-") as root:
+        install_dir = Path(root) / "install"
+        install_dir.mkdir()
+        marker = install_dir / ".system.lock"
+        marker.write_text("999999\n")
+        events = Path(root) / "events"
+        script = startinstall_probe().replace("/install", str(install_dir))
+        result = run_bash(script, {"EVENTS": events, "LOGFILE": Path(root) / "log"})
+        assert result.returncode == 0, result.stderr
+        assert not marker.exists()
+        assert "Removing stale system installation lock (PID 999999)" in result.stderr
 
 
 def test_failed_application_still_allows_ftp_and_reports_incomplete_install():

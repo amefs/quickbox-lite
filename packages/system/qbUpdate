@@ -34,6 +34,7 @@ update_backup_dir=""
 update_backup_ready=0
 update_config_committed=0
 update_service_started=0
+handoff_child_managed=0
 core=0
 from_checkout=0
 update_target_branch=""
@@ -135,10 +136,10 @@ function _updateAbort() {
 	local stage="$1"
 	printf '[QuickBox] Update aborted at stage: %s (%s)\n' "${stage}" "$(date -Is)" >>"${OUTTO}"
 	if [[ ${update_config_committed:-0} -ne 1 ]]; then
-		if [[ ${update_backup_ready:-0} -ne 1 ]]; then
-			_warning "Configuration rollback unavailable: this run took no configuration backup"
-		else
+		if [[ ${update_backup_ready:-0} -eq 1 ]]; then
 			_restoreUpdateConfig || _error "Automatic configuration rollback failed; inspect ${update_backup_dir:-the update log}"
+		elif [[ ${handoff_child_managed:-0} -ne 1 ]]; then
+			_warning "Configuration rollback unavailable: this run took no configuration backup"
 		fi
 	else
 		_warning "Configuration rollback skipped: the dashboard release was already committed"
@@ -230,10 +231,6 @@ function _saveRepoState() {
 		rm -f "${state_tmp}"
 		return 1
 	fi
-	chmod 0600 "${state_tmp}" || {
-		rm -f "${state_tmp}"
-		return 1
-	}
 	mv -f "${state_tmp}" "${root}/repo-state.env" || {
 		rm -f "${state_tmp}"
 		return 1
@@ -327,10 +324,6 @@ function _backupUpdateConfig() {
 	while IFS= read -r path; do
 		[[ -n "${path}" ]] && paths+=("${path}")
 	done < <(_managedUpdatePaths)
-	if [[ ${#paths[@]} -eq 0 ]]; then
-		_error "No managed configuration paths to back up"
-		return 1
-	fi
 	if ! _qbBackupCreate "${backup_dir}" "${paths[@]}"; then
 		rm -rf "${backup_dir}"
 		_error "Failed to create the update configuration backup"
@@ -487,10 +480,7 @@ function _updateRecordStage() {
 
 function _updateTimingRow() {
 	local label="$1" ms="${2:-0}" total="${3:-0}" pct=0 cells bar=""
-	if [[ ! ${ms} =~ ^[0-9]+$ ]]; then
-		ms=0
-	fi
-	if [[ ${total} =~ ^[0-9]+$ ]] && (( total > 0 )); then
+	if (( total > 0 )); then
 		pct=$(( ms * 100 / total ))
 	fi
 	# A rounded or residual measurement may exceed the wall clock; the bar has
@@ -508,7 +498,7 @@ function _updateTimingRow() {
 
 function _printUpdateTiming() {
 	local total accounted=0 residual=0 i
-	if [[ ! ${update_started_ms:-0} =~ ^[0-9]+$ ]] || (( update_started_ms <= 0 )); then
+	if (( ${update_started_ms:-0} <= 0 )); then
 		return 0
 	fi
 	total=$(( $(_qbNowMs) - update_started_ms ))
@@ -589,27 +579,27 @@ function _reloadScript() {
 }
 
 function _commitInstalledBranch() {
-	local branch sha tmp
+	local branch sha tmp install_dir="${QUICKBOX_INSTALL_DIR:-/install}"
 	branch=$(git -C "${local_prefix}" symbolic-ref --short -q HEAD) || branch=detached
 	sha=$(git -C "${local_prefix}" rev-parse --verify HEAD) || return 1
-	tmp=$(mktemp /install/.quickbox-branch.XXXXXX) || return 1
-	if ! printf '%s\n%s\n' "${branch}" "${sha}" >"${tmp}" || ! chmod 0644 "${tmp}" || ! mv -f "${tmp}" /install/.quickbox-branch; then
+	tmp=$(mktemp "${install_dir}/.quickbox-branch.XXXXXX") || return 1
+	if ! printf '%s\n%s\n' "${branch}" "${sha}" >"${tmp}" || ! chmod 0644 "${tmp}" || ! mv -f "${tmp}" "${install_dir}/.quickbox-branch"; then
 		rm -f "${tmp}"
 		return 1
 	fi
 	if [[ ${branch} == legacy ]]; then
-		touch /install/.legacy.lock || return 1
+		touch "${install_dir}/.legacy.lock" || return 1
 	else
-		rm -f /install/.legacy.lock
+		rm -f "${install_dir}/.legacy.lock"
 	fi
 	if [[ ${branch} == master || ${branch} == legacy || ${branch} == detached ]]; then
-		rm -f /install/.developer.lock /install/.debug.lock
+		rm -f "${install_dir}/.developer.lock" "${install_dir}/.debug.lock"
 	else
-		touch /install/.developer.lock || return 1
+		touch "${install_dir}/.developer.lock" || return 1
 		if [[ ${branch} == development ]]; then
-			rm -f /install/.debug.lock
+			rm -f "${install_dir}/.debug.lock"
 		else
-			printf '%s(%s)\n' "${branch}" "${sha:0:7}" >/install/.debug.lock || return 1
+			printf '%s(%s)\n' "${branch}" "${sha:0:7}" >"${install_dir}/.debug.lock" || return 1
 		fi
 	fi
 }
@@ -625,6 +615,7 @@ function _handoffUpdate() {
 	_info "Continuing with the target checkout's updater"
 	if grep -qF 'QB_UPDATE_HANDOFF_PROTOCOL=1' "${target_updater}"; then
 		[[ ${core} -eq 0 ]] && handoff_args+=(--handoff-full)
+		handoff_child_managed=1
 		QUICKBOX_UPDATE_HANDOFF=1 \
 			QUICKBOX_UPDATE_CORE_LOCK_INHERITED="${handoff_core_lock}" \
 			QUICKBOX_UPDATE_OPERATION_LOCK_INHERITED="${QUICKBOX_OPERATION_LOCK:-/run/lock/quickbox-operation.lock}" \
@@ -769,8 +760,8 @@ _preloadScript || _updateAbort "preload update scripts"
 if [[ ${from_checkout} -eq 0 ]]; then
 	_updateStep "repository" _updateRepo
 	_updateStep --child-progress "target updater" _handoffUpdate
-	_updateStep "installed branch state" _commitInstalledBranch
 	if [[ ${legacy_handoff:-0} == 1 ]]; then
+		_updateStep "installed branch state" _commitInstalledBranch
 		_printUpdateTiming
 		_lockCleanup
 	else

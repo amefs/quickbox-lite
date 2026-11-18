@@ -3,7 +3,7 @@
 import { Socket } from "socket.io";
 
 import Constant from "../shared/constants";
-import { parseLocale, VALID_LOCALES, withLocale } from "../i18n";
+import { parseLocale, withLocale } from "../i18n";
 import { widgetsLoad } from "../widgets/load";
 import { netStatus } from "../widgets/network-status";
 import { upTime } from "../widgets/up";
@@ -71,8 +71,7 @@ function parseOptionalInt(raw: string | undefined): number | undefined {
     return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-export const resolveWidget = async (url: string): Promise<string|object> => {
-    const req = parseUrl(url);
+const resolveParsedWidget = async (req: ReturnType<typeof parseUrl>): Promise<string|object> => {
     switch (req.pathname) {
         case "/node/load":
             return await widgetsLoad();
@@ -110,6 +109,8 @@ export const resolveWidget = async (url: string): Promise<string|object> => {
     }
 };
 
+export const resolveWidget = async (url: string): Promise<string|object> => resolveParsedWidget(parseUrl(url));
+
 const isValidPayload = (payload: unknown): payload is Payload => {
     return payload !== null && typeof payload === "object" &&
         "key" in payload && typeof (payload as Payload).key === "string" &&
@@ -123,10 +124,7 @@ const resolvePayloadLocale = (payload: Payload, client: Socket) => {
         data.locale = payloadLocale;
         return payloadLocale;
     }
-    const clientLocale = data.locale;
-    return typeof clientLocale === "string" && VALID_LOCALES.includes(clientLocale)
-        ? clientLocale
-        : "en";
+    return data.locale ?? "en";
 };
 
 const messageHandler = async (payload: unknown, client: Socket) => {
@@ -152,9 +150,9 @@ const messageHandler = async (payload: unknown, client: Socket) => {
         response: "",
     };
     try {
-        ret.pathName = parseUrl(payload.url).pathname;
-        const locale: string = resolvePayloadLocale(payload, client);
-        ret.response = await withLocale(locale, async () => await resolveWidget(payload.url));
+        const parsed = parseUrl(payload.url);
+        ret.pathName = parsed.pathname;
+        ret.response = await withLocale(resolvePayloadLocale(payload, client), async () => await resolveParsedWidget(parsed));
     } catch (error) {
         console.error("[quickbox-ws] widget render failed", payload.url, error);
         ret.message = "Widget render failed";

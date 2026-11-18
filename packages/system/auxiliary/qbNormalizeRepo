@@ -42,10 +42,6 @@ function _qbNormalizeGitTree() {
 	local root="$1"
 	local record meta path line
 
-	if ! git -C "${root}" ls-files -z >/dev/null 2>&1; then
-		return 1
-	fi
-
 	# Repair line endings first: an in-place text rewrite may replace the file
 	# and reset its mode, so the mode pass must run last.
 	while IFS= read -r -d '' record; do

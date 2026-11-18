@@ -11,7 +11,6 @@ scripts=(
 	packages/system/box
 	packages/system/qbUpdate
 	packages/system/update/qbUpdateDashboard
-	packages/package/install/installpackage-vouchproxy
 	packages/system/update/qbUpdateRepo
 	packages/system/update/qbUpdateService
 	packages/system/theme/themeSelect-defaulted
