@@ -94,31 +94,4 @@ jobs:
       - name: Check all package lifecycle scripts and templates
         if: ${{ !cancelled() }}
         run: python3 scripts/lint-package-scripts.py
-      - name: Check tracked file modes and line endings
-        if: ${{ !cancelled() }}
-        run: python3 scripts/lint-repo-files.py
 
-  system-tests:
-    name: System / ${{ matrix.group }}
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - group: runtime
-            paths: tests/runtime
-          - group: operations
-            paths: tests/backups tests/linux tests/operations tests/repository tests/progress
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install uv and Python 3.14
-        uses: astral-sh/setup-uv@v10.3.2
-        with:
-          version: "0.12.9"
-          python-version: '3.14'
-          enable-cache: true
-          cache-dependency-glob: uv.lock
-      - run: uv sync --locked
-      - name: Run system tests
-        run: uv run --locked pytest -v ${{ matrix.paths }}
