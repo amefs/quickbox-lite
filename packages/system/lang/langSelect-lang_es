@@ -15,7 +15,10 @@
 
 language='lang_es'
 
-rm -f /install/.lang_*
-touch /install/.${language}.lock
-nginx -s reload >/dev/null 2>&1
+rm -f /install/.lang_* || exit 1
+touch /install/.${language}.lock || exit 1
+if ! nginx -s reload >/dev/null 2>&1; then
+	printf '⚠ nginx reload failed; the selected language is stored but may need a manual reload\n' >&2
+fi
 sleep 5
+exit 0

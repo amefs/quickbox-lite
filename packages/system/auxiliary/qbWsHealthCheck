@@ -1,0 +1,236 @@
+#!/bin/bash
+#
+# Post-deployment health check for the dashboard WebSocket service.
+#
+# Checks the backend HTTP endpoint and both Socket.IO transports directly on
+# loopback, using the internal gateway secret needed to reach the service.
+# --expect-proxy also checks nginx's static /qb-healthz endpoint. User login,
+# cookies, redirects and authentication providers do not affect the verdict.
+#
+# Author: TautCony
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Usage: qbWsHealthCheck [--expect-proxy] [--verbose]
+#
+# The default output is one verdict line. Individual checks are printed on
+# failure or with --verbose.
+
+set -uo pipefail
+
+SECRET_FILE="${QUICKBOX_WS_SECRET_FILE:-/etc/quickbox/ws.secret}"
+PORT="${QUICKBOX_WS_PORT:-8575}"
+NGINX_SCHEME="${QUICKBOX_NGINX_SCHEME:-auto}"
+NGINX_PORT="${QUICKBOX_WS_HEALTH_PORT:-}"
+NGINX_SITE="${QUICKBOX_WS_HEALTH_NGINX_SITE:-/etc/nginx/sites-enabled/default}"
+CHECK_SCHEME=""
+EXPECT_PROXY=0
+VERBOSE=0
+
+_success() { printf '✓ %s\n' "$@" >&2; }
+_error() { printf '✗ %s\n' "$@" >&2; }
+
+# Results are collected instead of printed: a passing run reports one line, a
+# failing run replays the sequence so the first broken check is obvious.
+CHECK_TOTAL=0
+CHECK_FAILED=0
+CHECK_RESULTS=()
+
+function _check_pass() {
+	CHECK_TOTAL=$(( CHECK_TOTAL + 1 ))
+	CHECK_RESULTS[${#CHECK_RESULTS[@]}]="✓ $1"
+	[[ ${VERBOSE} -eq 0 ]] || _success "$1"
+}
+
+function _check_fail() {
+	CHECK_TOTAL=$(( CHECK_TOTAL + 1 ))
+	CHECK_FAILED=$(( CHECK_FAILED + 1 ))
+	CHECK_RESULTS[${#CHECK_RESULTS[@]}]="✗ $1"
+	[[ ${VERBOSE} -eq 0 ]] || _error "$1"
+}
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	--expect-proxy)
+		EXPECT_PROXY=1
+		shift
+		;;
+	--verbose)
+		VERBOSE=1
+		shift
+		;;
+	-h | --help)
+		echo "Usage: qbWsHealthCheck [--expect-proxy] [--verbose]"
+		exit 0
+		;;
+	*)
+		_error "Unknown option: $1"
+		exit 2
+		;;
+	esac
+done
+
+_http_code() {
+	# Never route local probes through an environment proxy.
+	curl -q --noproxy '*' -k -s -o /dev/null -m 8 -w '%{http_code}' "$@" 2>/dev/null
+}
+
+# A successful upgrade keeps the connection open; stop after validating its headers.
+_websocket_code() {
+	QB_HEALTH_URL="$1" QB_HEALTH_GATEWAY="${SECRET}" python3 - <<'PYEOF'
+import base64
+import hashlib
+import hmac
+import http.client
+import os
+import signal
+from urllib.parse import urlsplit
+
+
+def deadline(*_):
+    raise TimeoutError('WebSocket handshake deadline exceeded')
+
+
+connection = None
+signal.signal(signal.SIGALRM, deadline)
+signal.setitimer(signal.ITIMER_REAL, 5)
+try:
+    target = urlsplit(os.environ['QB_HEALTH_URL'])
+    path = target.path + ('?' + target.query if target.query else '')
+    key = base64.b64encode(os.urandom(16)).decode('ascii')
+    headers = {'Host': target.netloc, 'Origin': f'http://{target.netloc}',
+               'X-Quickbox-Gateway': os.environ['QB_HEALTH_GATEWAY'],
+               'Connection': 'Upgrade', 'Upgrade': 'websocket',
+               'Sec-WebSocket-Version': '13', 'Sec-WebSocket-Key': key}
+    connection = http.client.HTTPConnection(target.hostname, target.port, timeout=5)
+    connection.request('GET', path, headers=headers)
+    response = connection.getresponse()
+    code = str(response.status)
+    if response.status == 101:
+        expected = base64.b64encode(hashlib.sha1((key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest())
+        accepted = response.getheader('Sec-WebSocket-Accept', '').encode('latin-1')
+        tokens = [token.strip().lower() for token in response.getheader('Connection', '').split(',')]
+        if (response.getheader('Upgrade', '').lower() != 'websocket'
+                or 'upgrade' not in tokens or not hmac.compare_digest(accepted, expected)):
+            code = '000'
+    print(code)
+except (TimeoutError, OSError, ValueError, http.client.HTTPException):
+    print('000')
+finally:
+    signal.setitimer(signal.ITIMER_REAL, 0)
+    if connection is not None:
+        connection.close()
+PYEOF
+}
+
+if [[ ! -s "${SECRET_FILE}" ]]; then
+	_error "gateway secret is missing: ${SECRET_FILE}"
+	exit 1
+fi
+SECRET=$(tr -d '[:space:]' <"${SECRET_FILE}")
+if [[ -z "${SECRET}" ]]; then
+	_error "gateway secret is empty: ${SECRET_FILE}"
+	exit 1
+fi
+
+BASE="http://127.0.0.1:${PORT}"
+
+# 1. Wait for the backend HTTP listener and require a successful response.
+# Type=simple reports the service started before Node has opened its listener.
+# Wait only for transport availability, with at most 20 one-second probes and
+# 19 one-second pauses. An HTTP response must still pass every check below;
+# failed HTTP responses must not be hidden by retries.
+for ATTEMPT in {1..20}; do
+	CODE=$(_http_code -m 1 -H "X-Quickbox-Gateway: ${SECRET}" "${BASE}/node/dashboard_config")
+	[[ "${CODE}" == "000" && ${ATTEMPT} -lt 20 ]] || break
+	sleep 1
+done
+if [[ "${CODE}" == "200" ]]; then
+	_check_pass "backend HTTP request: ${CODE}"
+else
+	_check_fail "backend HTTP request failed: ${CODE}"
+fi
+
+# 2. Exercise both backend Socket.IO paths without going through user login.
+for SOCKET_PATH in /socket.io /ws/socket.io; do
+	POLL_CODE=$(_http_code -H "X-Quickbox-Gateway: ${SECRET}" -H "Origin: ${BASE}" "${BASE}${SOCKET_PATH}/?EIO=4&transport=polling")
+	if [[ "${POLL_CODE}" == 200 ]]; then
+		_check_pass "backend polling ${SOCKET_PATH}: 200"
+	else
+		_check_fail "backend polling ${SOCKET_PATH} failed: ${POLL_CODE}"
+	fi
+	WS_CODE=$(_websocket_code "${BASE}${SOCKET_PATH}/?EIO=4&transport=websocket")
+	if [[ "${WS_CODE}" == 101 ]]; then
+		_check_pass "backend WebSocket Upgrade ${SOCKET_PATH}: 101"
+	else
+		_check_fail "backend WebSocket Upgrade ${SOCKET_PATH} failed: ${WS_CODE}"
+	fi
+done
+
+# 3. Optionally check nginx readiness on its static endpoint outside user auth.
+if [[ ${EXPECT_PROXY} -eq 1 ]]; then
+	HOST_HEADER="${QUICKBOX_WS_HEALTH_HOST:-}"
+	if [[ -z "${HOST_HEADER}" && -r "${NGINX_SITE}" ]]; then
+		# Select the configured virtual host for the static nginx readiness probe.
+		HOST_HEADER=$(awk '$1 == "server_name" {
+			for (i = 2; i <= NF; i++) {
+				name = $i; sub(/;.*/, "", name)
+				if (name ~ /^[[:alnum:]][[:alnum:].-]*$/) { print name; exit }
+				if ($i ~ /;/) break
+			}
+		}' "${NGINX_SITE}")
+	fi
+	HOST_HEADER="${HOST_HEADER:-127.0.0.1}"
+	if [[ "${NGINX_SCHEME}" == "auto" ]]; then
+		NGINX_SCHEME=""
+		for candidate in https http; do
+			candidate_port="${NGINX_PORT}"
+			if [[ -z "${candidate_port}" ]]; then [[ "${candidate}" == "https" ]] && candidate_port=443 || candidate_port=80; fi
+			probe=$(_http_code -H "Host: ${HOST_HEADER}" "${candidate}://127.0.0.1:${candidate_port}/qb-healthz")
+			if [[ -n "${probe}" && "${probe}" != "000" ]]; then NGINX_SCHEME="${candidate}"; NGINX_PORT="${candidate_port}"; break; fi
+		done
+	fi
+	if [[ "${NGINX_SCHEME}" != "http" && "${NGINX_SCHEME}" != "https" ]]; then
+		_error "Could not determine the local nginx scheme"; exit 1
+	fi
+	CHECK_SCHEME="${NGINX_SCHEME}"
+	if [[ -z "${NGINX_PORT}" ]]; then [[ "${CHECK_SCHEME}" == "https" ]] && NGINX_PORT=443 || NGINX_PORT=80; fi
+	if [[ "${HOST_HEADER}" =~ ^\[.*\]$ ]]; then
+		:
+	elif [[ "${HOST_HEADER}" == *:* ]]; then
+		HOST_HEADER="[${HOST_HEADER}]"
+	fi
+	HOST_HEADER="${HOST_HEADER}:${NGINX_PORT}"
+	PROXY_URL="${CHECK_SCHEME}://127.0.0.1:${NGINX_PORT}"
+	[[ ${VERBOSE} -eq 0 ]] || printf 'Nginx probe: %s/qb-healthz (Host: %s)\n' "${PROXY_URL}" "${HOST_HEADER}" >&2
+	proxy_code() {
+		local path="$1"
+		_http_code -H "Host: ${HOST_HEADER}" "${PROXY_URL}${path}"
+	}
+	HEALTH_CODE=$(proxy_code "/qb-healthz")
+	if [[ "${HEALTH_CODE}" == "200" ]]; then
+		_check_pass "nginx health endpoint: 200"
+	else
+		_check_fail "nginx health endpoint failed: ${HEALTH_CODE}"
+	fi
+fi
+
+if [[ ${CHECK_FAILED} -ne 0 ]]; then
+	if [[ ${EXPECT_PROXY} -eq 1 && ${VERBOSE} -eq 0 ]]; then
+		printf 'Nginx probe: %s/qb-healthz (Host: %s)\n' "${PROXY_URL}" "${HOST_HEADER}" >&2
+	fi
+	# A quiet run held every line back; replay the sequence so the log shows
+	# which check broke and what it answered.
+	if [[ ${VERBOSE} -eq 0 ]]; then
+		for CHECK_RESULT in ${CHECK_RESULTS[@]+"${CHECK_RESULTS[@]}"}; do
+			printf '%s\n' "${CHECK_RESULT}" >&2
+		done
+	fi
+	_error "dashboard health check failed (${CHECK_FAILED} of ${CHECK_TOTAL} checks)"
+	exit 1
+fi
+
+if [[ ${VERBOSE} -eq 0 ]]; then
+	_success "dashboard health check passed (${CHECK_TOTAL} checks)"
+fi
+exit 0
