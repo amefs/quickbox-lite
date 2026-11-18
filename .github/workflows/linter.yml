@@ -1,6 +1,7 @@
-name: Linter
+name: CI
 
 on:
+  workflow_dispatch:
   push:
   pull_request:
     paths-ignore:
@@ -8,16 +9,17 @@ on:
 
 jobs:
   es-linter-for-ts:
+    name: Dashboard TS
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install nodejs
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v5
       with:
         node-version: 20
-  
+
     - name: Install dependencies
       run: |
         cd setup/dashboard/ws || exit 1
@@ -29,16 +31,17 @@ jobs:
           npm run lint
 
   es-linter-for-js:
+    name: Dashboard JS
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install nodejs
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v5
       with:
         node-version: 20
-  
+
     - name: Install dependencies
       run: |
         cd setup/dashboard || exit 1
@@ -50,43 +53,38 @@ jobs:
           npm run lint
 
   shell-linter:
+    name: Shell
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Run linter
       uses: azohra/shell-linter@latest
       with:
         # todo: scripts in packages
-        path: "onekey.sh,setup.sh,bump-version.sh"
+        path: "onekey.sh,setup.sh,scripts/bump-version.sh"
 
   python-linter:
+    name: Python & packages
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v5
+      - name: Install uv and Python 3.14
+        uses: astral-sh/setup-uv@v10.3.2
         with:
-          python-version: '3.10'
-      - name: Install pipenv
-        run: |
-          python -m pip install --upgrade pipenv wheel
-      - id: env-version
-        run: |
-          echo "python=$(python -c 'import platform;print(platform.python_version())')" >> $GITHUB_OUTPUT
-          echo "ubuntu=$(lsb_release -cs)" >> $GITHUB_OUTPUT
-      - id: cache-pipenv
-        uses: actions/cache@v3
-        with:
-          path: ~/.local/share/virtualenvs
-          key: ${{ steps.env-version.outputs.ubuntu }}-${{ steps.env-version.outputs.python }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
+          version: "0.12.9"
+          python-version: '3.14'
+          enable-cache: true
+          cache-dependency-glob: uv.lock
       - name: Install dependencies
-        if: steps.cache-pipenv.outputs.cache-hit != 'true'
-        run: |
-          pipenv install --deploy --dev
+        run: uv sync --locked
       - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          pipenv run flake8
+        run: uv run --locked flake8
+      - name: Type-check with pyright
+        if: ${{ !cancelled() }}
+        run: uv run --locked pyright
+      - name: Test repository lint rules
+        if: ${{ !cancelled() }}
+        run: uv run --locked pytest -q tests/lint
