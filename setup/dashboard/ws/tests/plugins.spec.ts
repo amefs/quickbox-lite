@@ -11,7 +11,7 @@ describe("plugins", () => {
         const calls: unknown[][] = [];
         const execFileStub = ((...args: unknown[]) => {
             calls.push(args);
-            const callback = args.find((arg): arg is (error: childProcess.ExecFileException | null, stdout: string, stderr: string) => void => typeof arg === "function");
+            const callback = args.find((arg): arg is (error: childProcess.ExecException | null, stdout: string, stderr: string) => void => typeof arg === "function");
             if (callback) {
                 callback(null, "", "");
             }

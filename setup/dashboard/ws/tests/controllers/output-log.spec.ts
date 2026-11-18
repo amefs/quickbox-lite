@@ -11,6 +11,7 @@ interface OutputLogResponse {
     start: number;
     end: number;
     size: number;
+    epoch: string;
 }
 
 describe("controllers/output-log", () => {
@@ -19,10 +20,11 @@ describe("controllers/output-log", () => {
         const body = res.body as OutputLogResponse;
 
         expect(res.status).to.equal(200);
-        expect(body).to.have.keys(["content", "start", "end", "size"]);
+        expect(body).to.have.keys(["content", "start", "end", "size", "epoch"]);
         expect(body.content).to.be.a("string");
         expect(body.start).to.be.a("number");
         expect(body.end).to.be.a("number");
         expect(body.size).to.be.a("number");
+        expect(body.epoch).to.be.a("string");
     });
 });
