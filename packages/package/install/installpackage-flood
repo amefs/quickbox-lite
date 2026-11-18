@@ -1,16 +1,18 @@
 #!/bin/bash
 #
-# [QuickBox Lite Flood Installer]
+# [QuickBox Lite Flood rTorrent Web UI Installer]
 #
-# GitHub:   https://github.com/amefs/quickbox-lite
-# Maintainer:   Amefs
-# Current version:  v1.6.1
+# GitHub:           https://github.com/amefs/quickbox-lite
 # Author:           Mischief
+# Maintainer:       Amefs
+# Current version:  v1.6.1
+# Original Repo:    https://github.com/QuickBox/QB
 # Credits to:       QuickBox.io
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-#################################################################################
+################################################################################
+
 ################################################################################
 # HELP FUNCTIONS
 ################################################################################
@@ -60,21 +62,20 @@ function _error() {
 	printf ">> Error: %s\n" "$@" >>"${OUTTO}"
 }
 
-#################################################################################
+################################################################################
 # APP VARIABLE
-#################################################################################
+################################################################################
 APP_TITLE="Flood rTorrent Web UI"
 APP_NAME="flood"
 APP_SERVICE="flood"
-APP_LOCK="flood_lock"
 APP_BASEDEPS="nodejs"
 
 # RANDOM PORT
 APP_WEB_PORT_LOW="15051"
 APP_WEB_PORT_HIGH="15100"
 
-APP_LOCK=.$APP_NAME.lock
-OUTTO=/srv/dashboard/db/output.log
+APP_LOCK=".${APP_NAME}.lock"
+OUTTO="/srv/dashboard/db/output.log"
 
 ################################################################################
 # SCRIPT FUNCTIONS
@@ -87,6 +88,7 @@ function _usage() {
 	echo ""
 	echo "-h, --help                display this help and exit"
 }
+
 ################################################################################
 # INSTALL FUNCTIONS
 ################################################################################
@@ -107,9 +109,11 @@ function _lockCheck() {
 		exit 1
 	fi
 }
+
 function _setLock() {
 	echo "${APP_TITLE}" >/install/.install.lock
 }
+
 function _lockCleanup() {
 	echo "$APP_TITLE Install Complete!
 
@@ -175,10 +179,9 @@ function _installApp() {
 	_info "Building ${APP_TITLE}..."
 	mkdir -p /tmp/quickbox
 	cd /tmp/quickbox || exit 1
-	if [[ ! $(which npm) ]] || [[ $(node --version) =~ "v6" ]]; then
-		_execute "curl -sL --retry 3 --retry-max-time 60 https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh"
-		_execute "sudo bash nodesource_setup.sh"
-		_execute "apt-get install -y --force-reinstall true nodejs"
+	if ! _execute "bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureNodejs"; then
+		_error "Could not install or update Node.js 24."
+		exit 1
 	fi
 
 	_execute "npm install -g npm-check-updates"
@@ -260,20 +263,19 @@ function _installAppStart() {
 	_success "${APP_TITLE} started."
 }
 
-#################################################################################
+################################################################################
 # OPT GENERATOR
-#################################################################################
-if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@")
-then
-    _usage
-    exit 1
+################################################################################
+if ! ARGS=$(getopt -a -o hl: -l help,log: -- "$@"); then
+	_usage
+	exit 1
 fi
 eval set -- "${ARGS}"
 while true; do
 	case "$1" in
 	-h | --help)
 		_usage
-		exit 1
+		exit 0
 		;;
 	-l | --log)
 		OUTTO="$2"
@@ -287,9 +289,9 @@ while true; do
 	shift
 done
 
-#################################################################################
+################################################################################
 # MAIN PROCESS
-#################################################################################
+################################################################################
 _lockCheck
 _setLock
 _installInfo
