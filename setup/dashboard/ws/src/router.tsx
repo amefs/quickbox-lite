@@ -33,7 +33,7 @@ import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAc
 import { systemStaticInfoWithProviders } from "./system-static";
 import { readOutputLog } from "./widgets/output-log";
 import { resolveDashboardClientBundle } from "./utils/client-assets";
-import { runningTask } from "./widgets/running-task";
+import { runningTaskData } from "./widgets/running-task";
 import { shouldUpgradeDashboardSocket } from "./auth";
 
 export interface AppRouterOptions {
@@ -61,8 +61,16 @@ export function createAppRouter(options: AppRouterOptions): Router {
     const skinsDir = options.skinsDir ?? path.join(options.dashboardDir, "skins");
     const debugEnabled = process.env.NODE_ENV !== "production" || process.env.QUICKBOX_WS_DEBUG === "1";
     const reactClientBundlePath = resolveDashboardClientBundle(options.dashboardDir);
-    const readDashboardTheme = (): ServiceControlTheme =>
-        existsSync(path.join(options.dashboardDir, "db", ".smoked.lock")) ? "smoked" : "defaulted";
+    const readDashboardTheme = (req?: Request): ServiceControlTheme => {
+        const cookieHeader = req?.headers.cookie;
+        if (typeof cookieHeader === "string") {
+            const match = /(?:^|;\s*)quickbox_theme=(smoked|defaulted)(?:;|$)/.exec(cookieHeader);
+            if (match?.[1] === "smoked" || match?.[1] === "defaulted") {
+                return match[1];
+            }
+        }
+        return existsSync(path.join(options.dashboardDir, "db", ".smoked.lock")) ? "smoked" : "defaulted";
+    };
     const parseThemeBody = (body: unknown): string | undefined => {
         if (body === null || typeof body !== "object" || !("theme" in body)) {
             return undefined;
@@ -82,7 +90,6 @@ export function createAppRouter(options: AppRouterOptions): Router {
     };
 
     router.use("/skins", express.static(skinsDir));
-    router.use("/lib", express.static(path.join(options.dashboardDir, "lib")));
     router.use("/fonts", express.static(path.join(options.dashboardDir, "fonts")));
     router.use("/img", express.static(path.join(options.dashboardDir, "img")));
     router.use("/js", express.static(path.join(options.dashboardDir, "js")));
@@ -116,7 +123,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         const locale = resolveRequestLocale(req);
         const html = await withLocale(locale, async () => {
             const menuState = await resolveDashboardMenuState();
-            const dashboardTheme = readDashboardTheme();
+            const dashboardTheme = readDashboardTheme(req);
             const packageManagementData = getPackageManagementData();
             const packageManagementLabels = getPackageManagementLabels();
             const packageManagementIsland = renderPackageManagementIsland(packageManagementData, packageManagementLabels, dashboardTheme);
@@ -142,7 +149,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
                 serviceControlLabels,
                 serviceControlTheme,
                 packageManagementCenterHtml: packageManagementIsland.html,
-                runningTaskHtml: await runningTask(),
+                runningTask: runningTaskData(),
                 packageManagementRuntime: { data: packageManagementData, labels: packageManagementLabels, theme: dashboardTheme },
                 uptimeHtml: "",
                 uptimeParts,
@@ -163,7 +170,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
                         ssrFragments={ssrFragments}
                         reactClientBundlePath={reactClientBundlePath}
                         theme={dashboardTheme}
-                        assetVersions={{ css: assetVersion("css/dashboard.css"), js: assetVersion("js/dashboard.js") }}
+                        assetVersions={{ css: assetVersion("css/dashboard.css"), js: "" }}
                     />
                 </StyleProvider>,
             );
@@ -233,7 +240,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.json(await renderWithLocale(req, async () => await systemStaticInfoWithProviders()));
     });
 
-    router.get("/node/migration/system_static", async (req: Request, res: Response) => {
+    router.get("/node/data/system_static", async (req: Request, res: Response) => {
         res.json(await renderWithLocale(req, async () => await systemStaticInfoWithProviders()));
     });
 
@@ -241,7 +248,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.send(await renderWithLocale(req, async () => await widgetsLoad()));
     });
 
-    router.get("/node/migration/system_load", async (req: Request, res: Response) => {
+    router.get("/node/data/system_load", async (req: Request, res: Response) => {
         res.json(await renderWithLocale(req, async () => await systemLoadData()));
     });
 
@@ -249,7 +256,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.send(await renderWithLocale(req, async () => await diskData()));
     });
 
-    router.get("/node/migration/disk_data", async (req: Request, res: Response) => {
+    router.get("/node/data/disk_data", async (req: Request, res: Response) => {
         res.json(await renderWithLocale(req, async () => await diskDataData()));
     });
 
@@ -257,7 +264,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.send(await renderWithLocale(req, async () => await ramStats()));
     });
 
-    router.get("/node/migration/ram_stats", async (req: Request, res: Response) => {
+    router.get("/node/data/ram_stats", async (req: Request, res: Response) => {
         res.json(await renderWithLocale(req, async () => await ramStatsData()));
     });
 
@@ -300,7 +307,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.send(result);
     });
 
-    router.get("/node/migration/pmc", async (req: Request, res: Response) => {
+    router.get("/node/data/pmc", async (req: Request, res: Response) => {
         res.json(await renderWithLocale(req, () => getPackageManagementData()));
     });
 
@@ -324,7 +331,6 @@ export function createAppRouter(options: AppRouterOptions): Router {
 
     if (debugEnabled) {
         router.use("/debug/assets/skins", express.static(skinsDir));
-        router.use("/debug/assets/lib", express.static(path.join(options.dashboardDir, "lib")));
         router.use("/debug/assets/fonts", express.static(path.join(options.dashboardDir, "fonts")));
         router.use("/debug/assets/css", express.static(path.join(options.dashboardDir, "css")));
 

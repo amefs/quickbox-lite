@@ -18,6 +18,10 @@
   "author": "TautCony",
   "license": "GPL-3.0-or-later",
   "dependencies": {
+    "@ant-design/cssinjs": "2.1.2",
+    "@ant-design/icons": "^6.3.4",
+    "ansi_up": "^6.0.6",
+    "antd": "6.6.6",
     "axios": "^1.21.0",
     "bignumber.js": "^11.1.5",
     "express": "^5.3.0",
@@ -28,9 +32,7 @@
     "socket.io": "^4.8.4",
     "systeminformation": "^5.33.19",
     "which": "^7.0.0",
-    "ws": "^8.22.1",
-    "@ant-design/cssinjs": "2.1.2",
-    "antd": "6.6.6"
+    "ws": "^8.22.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",

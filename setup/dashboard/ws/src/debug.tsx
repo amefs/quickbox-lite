@@ -708,11 +708,6 @@ const CLIENT_SCRIPT = `
     themeCss.href = withDebugBase('/debug/assets/css/dashboard-theme-' + debugTheme + '.css');
     shadow.appendChild(themeCss);
 
-    var faCss = document.createElement('link');
-    faCss.rel = 'stylesheet';
-    faCss.href = withDebugBase('/debug/assets/lib/font-awesome/css/font-awesome.min.css');
-    shadow.appendChild(faCss);
-
     var scopeStyle = document.createElement('style');
     scopeStyle.textContent = ':host { display: block; } '
         + '.widget-content { background: #f6f8fa; color: #333; padding: 14px; border-radius: 8px; min-height: 100px; '

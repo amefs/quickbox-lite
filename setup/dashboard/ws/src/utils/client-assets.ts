@@ -9,7 +9,7 @@ interface DashboardClientManifest {
 }
 
 export function resolveDashboardClientBundle(dashboardDir: string): string | undefined {
-    const manifestPath = path.join(dashboardDir, "js", "migration", "dashboard-client-manifest.json");
+    const manifestPath = path.join(dashboardDir, "js", "client", "dashboard-client-manifest.json");
     if (!existsSync(manifestPath)) {
         return undefined;
     }
@@ -17,7 +17,7 @@ export function resolveDashboardClientBundle(dashboardDir: string): string | und
         const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as DashboardClientManifest;
         const assetPath = manifest.dashboardClient;
         if (manifest.version !== 1 || typeof assetPath !== "string" ||
-            !/^\/js\/migration\/dashboard-client\.[A-Za-z0-9_-]{8}\.js$/.test(assetPath)) {
+            !/^\/js\/client\/dashboard-client\.[A-Za-z0-9_-]{8}\.js$/.test(assetPath)) {
             return undefined;
         }
         const assetFile = path.join(dashboardDir, "js", assetPath.slice("/js/".length));

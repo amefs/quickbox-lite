@@ -21,8 +21,10 @@ import type { CpuStatusBridge } from "../shared/cpu-status-contract";
 import type { MemoryStatsBridge } from "../shared/memory-stats-contract";
 import type { DiskDataBridge } from "../shared/disk-data-contract";
 import type { PackageManagementRuntime } from "../shared/package-management-contract";
+import type { RunningTaskData } from "../shared/running-task-contract";
 import type { DashboardChromeProps } from "../widgets/dashboard-chrome";
 import { ServiceControlIsland, type ServiceControlLabels } from "../widgets/service-control-island";
+import { useDashboardTheme } from "./theme-store";
 import "./system-summary-client";
 import "./network-status-client";
 import "./bandwidth-tables-client";
@@ -32,6 +34,8 @@ import "./disk-data-client";
 import "./package-management-client";
 import "./system-response-client";
 import "./dashboard-chrome-client";
+import "./running-task-client";
+import { initDashboardRuntime } from "./dashboard-runtime-client";
 
 interface DashboardRuntime {
     locale: string;
@@ -43,6 +47,7 @@ interface DashboardRuntime {
     networkInterfaces: string[];
     networkInterfacesLoaded: boolean;
     packageManagement?: PackageManagementRuntime;
+    runningTask?: RunningTaskData;
     chrome: DashboardChromeProps;
 }
 
@@ -561,11 +566,12 @@ if (runtime) {
     if (mount) {
         function ClientServiceControl() {
             const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
+            const activeTheme = useDashboardTheme(clientRuntime.serviceTheme);
             return (
                 <ServiceControlIsland
                     rows={snapshot.rows}
                     labels={clientRuntime.messages}
-                    theme={clientRuntime.serviceTheme}
+                    theme={activeTheme}
                     statusById={snapshot.statusById}
                     pendingById={snapshot.pendingById}
                     onRefresh={store.executeRefresh}
@@ -581,4 +587,5 @@ if (runtime) {
             </StyleProvider>,
         );
     }
+    initDashboardRuntime();
 }

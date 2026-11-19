@@ -529,7 +529,7 @@ test.describe("prefetch ordering", () => {
                 const response = await fetch(...args);
                 const input = args[0];
                 const url = input instanceof Request ? input.url : String(input);
-                if (!new URL(url, location.href).pathname.endsWith("/node/migration/system_load")) {
+                if (!new URL(url, location.href).pathname.endsWith("/node/data/system_load")) {
                     return response;
                 }
 
@@ -559,7 +559,7 @@ test.describe("prefetch ordering", () => {
             releasePrefetch = resolve;
         });
 
-        await page.route("**/node/migration/system_load*", async (route) => {
+        await page.route("**/node/data/system_load*", async (route) => {
             await prefetchGate;
             await route.fulfill({
                 status: 200,

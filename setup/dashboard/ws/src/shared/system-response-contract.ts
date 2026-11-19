@@ -8,6 +8,7 @@ export interface SystemResponseBridge {
     onMessage: (value: unknown) => boolean;
     showAlert: (message: string) => void;
     closeAlert: () => void;
+    notifyWarning: (title: string, description: string) => void;
 }
 
 export interface SystemResponseLabels {

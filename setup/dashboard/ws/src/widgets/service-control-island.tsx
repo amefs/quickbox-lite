@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React from "react";
+import { InfoCircleOutlined, SyncOutlined, UsbOutlined } from "@ant-design/icons";
 import { Button, ConfigProvider, Switch, Tooltip } from "antd";
 import { createCache, extractStyle, StyleProvider } from "@ant-design/cssinjs";
 import ReactDOMServer from "react-dom/server";
 
 import type { ServiceRow, ServiceState } from "../shared/service-control-contract";
+import { getAntdThemeConfig, type DashboardTheme } from "../shared/theme";
 
 export interface ServiceControlLabels {
     title: string;
@@ -20,7 +22,7 @@ export interface ServiceControlLabels {
     serviceStatusLastConfirmedTemplate: string;
 }
 
-export type ServiceControlTheme = "defaulted" | "smoked";
+export type ServiceControlTheme = DashboardTheme;
 
 export interface ServiceControlIslandProps {
     rows: ServiceRow[];
@@ -31,14 +33,6 @@ export interface ServiceControlIslandProps {
     onRefresh?: (serviceId: string) => void;
     onEnabledChange?: (serviceId: string, enabled: boolean) => void;
 }
-
-const serviceControlTheme = {
-    token: {
-        colorPrimary: "#2574ab",
-        fontFamily: '"Open Sans", sans-serif',
-        borderRadius: 3,
-    },
-};
 
 function ServiceBadge({ status, labels }: { status: ServiceState | undefined; labels: ServiceControlLabels }) {
     const current = status ?? { value: null, observedAt: null, stale: true };
@@ -57,7 +51,7 @@ function ServiceBadge({ status, labels }: { status: ServiceState | undefined; la
 
 export function ServiceControlIsland({ rows, labels, theme, statusById, pendingById = {}, onRefresh, onEnabledChange }: ServiceControlIslandProps) {
     return (
-        <ConfigProvider theme={serviceControlTheme}>
+        <ConfigProvider theme={getAntdThemeConfig(theme, { borderRadius: 2, fontFamily: "inherit" })}>
             <div className={`panel panel-inverse qb-service-control qb-service-control--${theme}`} data-inner-id="panel-server-service-control">
                 <div className="panel-heading">
                     <h4 className="panel-title">{labels.title}</h4>
@@ -88,7 +82,7 @@ export function ServiceControlIsland({ rows, labels, theme, statusById, pendingB
                                                         classNames={{ root: "qb-service-tooltip-popup" }}
                                                     >
                                                         <span className="qb-service-tooltip" data-placement="right">
-                                                            <i className={`fa ${row.tooltipIcon ?? ""}`} aria-hidden="true"></i>
+                                                            {row.tooltipIcon === "fa-usb" ? <UsbOutlined aria-hidden="true" /> : <InfoCircleOutlined aria-hidden="true" />}
                                                         </span>
                                                     </Tooltip>
                                                 </>
@@ -102,7 +96,7 @@ export function ServiceControlIsland({ rows, labels, theme, statusById, pendingB
                                                 disabled={pendingById[row.id]}
                                                 onClick={() => onRefresh?.(row.id)}
                                             >
-                                                <i className="fa fa-refresh text-info" aria-hidden="true"></i> {labels.refresh}
+                                                <SyncOutlined className="text-info" aria-hidden="true" /> {labels.refresh}
                                             </Button>
                                         </td>
                                         <td className="text-center">

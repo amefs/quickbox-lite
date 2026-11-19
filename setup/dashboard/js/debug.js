@@ -50,11 +50,6 @@
     quickCss.href = withDebugBase("/debug/assets/skins/quick.css");
     shadow.appendChild(quickCss);
 
-    var faCss = document.createElement("link");
-    faCss.rel = "stylesheet";
-    faCss.href = withDebugBase("/debug/assets/lib/font-awesome/css/font-awesome.min.css");
-    shadow.appendChild(faCss);
-
     var debugCss = document.createElement("link");
     debugCss.rel = "stylesheet";
     debugCss.href = withDebugBase("/css/debug.css");

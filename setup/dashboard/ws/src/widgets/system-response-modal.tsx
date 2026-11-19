@@ -4,6 +4,7 @@ import React from "react";
 import { Button, ConfigProvider, Modal } from "antd";
 
 import type { SystemResponseLabels } from "../shared/system-response-contract";
+import { getAntdThemeConfig, type DashboardTheme } from "../shared/theme";
 
 const ALERT_TAGS = new Set(["BR", "CODE", "HR", "DIV", "SPAN"]);
 
@@ -72,12 +73,13 @@ export interface SystemResponseSnapshot {
 export interface SystemResponseModalProps {
     snapshot: SystemResponseSnapshot;
     labels: SystemResponseLabels;
+    theme?: DashboardTheme;
     onClose: () => void;
     onCloseRefresh: () => void;
     onCloseAlert: () => void;
 }
 
-export function SystemResponseModal({ snapshot, labels, onClose, onCloseRefresh, onCloseAlert }: SystemResponseModalProps) {
+export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onClose, onCloseRefresh, onCloseAlert }: SystemResponseModalProps) {
     const outputRef = React.useRef<HTMLDivElement>(null);
     const outputScroll = React.useRef({ top: 0, height: 0, clientHeight: 0 });
     const previousOutput = React.useRef("");
@@ -99,12 +101,13 @@ export function SystemResponseModal({ snapshot, labels, onClose, onCloseRefresh,
     }, [snapshot.outputHtml, snapshot.open]);
 
     return (
-        <ConfigProvider theme={{ token: { colorPrimary: "#337ab7", borderRadius: 4, fontFamily: '"Open Sans", sans-serif' } }}>
+        <ConfigProvider theme={getAntdThemeConfig(theme, { borderRadius: 4 })}>
             <Modal
                 open={snapshot.open}
                 title={labels.title}
                 width={600}
                 zIndex={1050}
+                transitionName=""
                 closable
                 closeIcon={<span id="sysResponseDismiss" aria-label={labels.close}>&times;</span>}
                 keyboard
@@ -112,7 +115,7 @@ export function SystemResponseModal({ snapshot, labels, onClose, onCloseRefresh,
                 onCancel={onClose}
                 wrapProps={{ id: "sysResponse" }}
                 classNames={{
-                    wrapper: "qb-system-response-wrap animate__bounceIn animate__animated",
+                    wrapper: "qb-system-response-wrap",
                     container: "qb-system-response-content",
                     header: "modal-header qb-system-response-header",
                     title: "modal-title qb-system-response-title",

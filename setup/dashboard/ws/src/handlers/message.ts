@@ -13,7 +13,7 @@ import { getIfaceConfig } from "../utils/vnstat";
 import { bandwidthTablesData, bwTables } from "../widgets/bandwidth-tables";
 import { serviceStatus, serviceStatusAll, serviceStatusAllData } from "../widgets/service-status";
 import { readOutputLog } from "../widgets/output-log";
-import { runningTask } from "../widgets/running-task";
+import { runningTask, runningTaskData } from "../widgets/running-task";
 import { getServiceControlRows, serviceControl } from "../widgets/service-control";
 import { getPackageManagementData, packageManagementCenter } from "../widgets/package-management-center";
 import { parseServiceRequestV2, type ServiceRequestV2 } from "../shared/service-control-contract";
@@ -82,20 +82,21 @@ const widgetHandlers: Partial<Record<string, WidgetHandler>> = {
     [SYSTEM_LOAD_DATA_URL]: () => systemLoadData(),
     [SYSTEM_UPTIME_DATA_URL]: () => getUptimeParts(),
     "/node/disk_data": () => diskData(),
-    "/node/migration/disk_data": () => diskDataData(),
+    "/node/data/disk_data": () => diskDataData(),
     "/node/ram_stats": () => ramStats(),
-    "/node/migration/ram_stats": () => ramStatsData(),
+    "/node/data/ram_stats": () => ramStatsData(),
     "/node/bw_tables": (args) => bwTables(getIfaceConfig(), parseBandwidthPage(args)),
-    "/node/migration/bandwidth": (args) => bandwidthTablesData(getIfaceConfig(), parseBandwidthPage(args)),
+    "/node/data/bandwidth": (args) => bandwidthTablesData(getIfaceConfig(), parseBandwidthPage(args)),
     "/node/service_status": (args) => serviceStatus(args["service"]),
     "/widgets/service_status": (args) => serviceStatus(args["service"]),
     "/node/service_status_all": () => serviceStatusAll(),
     "/node/task_status": () => runningTask(),
+    "/node/data/task_status": () => Promise.resolve(runningTaskData()),
     "/node/service_control": () => serviceControl(true),
     "/widgets/service_control": () => serviceControl(true),
     "/node/pmc": () => packageManagementCenter(),
     "/widgets/pmc": () => packageManagementCenter(),
-    "/node/migration/pmc": () => getPackageManagementData(),
+    "/node/data/pmc": () => getPackageManagementData(),
     "/db/output.log": (args) => readOutputLog(
         parseLogPosition(args["offset"]),
         parseLogPosition(args["length"]),

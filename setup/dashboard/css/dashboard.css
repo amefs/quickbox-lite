@@ -116,8 +116,10 @@
     margin-left: 0;
     margin-right: 0;
 }
-.qb-panel-split > [class*="col-sm-"] {
+.qb-panel-split > :is([class*="col-sm-"], .ant-col) {
+    flex: 0 0 auto;
     float: none;
+    max-width: none;
     width: auto;
     padding-left: 0;
     padding-right: 0;
@@ -129,12 +131,38 @@
 .qb-panel-split > .qb-panel-icon {
     flex: 0 0 auto;
     line-height: 1;
+    min-width: 90px;
+    text-align: center;
 }
-[data-inner-id="panel-server-load"] .qb-panel-icon i {
+[data-inner-id="panel-server-load"] .qb-panel-icon :is(i, .anticon) {
     font-size: 70px;
 }
-[data-inner-id="panel-server-disk"] .qb-panel-icon i {
+[data-inner-id="panel-server-load"] .qb-panel-icon .anticon.text-danger {
+    color: #d9534f;
+    filter: drop-shadow(0 0 8px rgba(217, 83, 79, 0.4))
+        drop-shadow(0 0 20px rgba(217, 83, 79, 0.28))
+        drop-shadow(0 0 40px rgba(217, 83, 79, 0.18));
+}
+[data-inner-id="panel-server-disk"] .qb-panel-icon :is(i, .anticon) {
     font-size: 90px;
+}
+[data-inner-id="panel-server-disk"] .qb-panel-icon .anticon.disk-good {
+    color: #66cc99;
+    filter: drop-shadow(0 0 8px rgba(102, 204, 153, 0.45))
+        drop-shadow(0 0 20px rgba(102, 204, 153, 0.3))
+        drop-shadow(0 0 40px rgba(102, 204, 153, 0.2));
+}
+[data-inner-id="panel-server-disk"] .qb-panel-icon .anticon.disk-warning {
+    color: #e6ad5c;
+    filter: drop-shadow(0 0 8px rgba(230, 173, 92, 0.45))
+        drop-shadow(0 0 20px rgba(230, 173, 92, 0.3))
+        drop-shadow(0 0 40px rgba(230, 173, 92, 0.2));
+}
+[data-inner-id="panel-server-disk"] .qb-panel-icon .anticon.disk-danger {
+    color: #e55869;
+    filter: drop-shadow(0 0 8px rgba(229, 88, 105, 0.45))
+        drop-shadow(0 0 20px rgba(229, 88, 105, 0.3))
+        drop-shadow(0 0 40px rgba(229, 88, 105, 0.2));
 }
 [data-inner-id="panel-server-load"], [data-inner-id="panel-server-disk"] {
     container-type: inline-size;
@@ -142,28 +170,104 @@
 /* Tie the decorative icon to the panel width instead of the viewport, so a
    narrow right column keeps the text column readable. */
 @container (max-width: 560px) {
-    [data-inner-id="panel-server-load"] .qb-panel-icon i {
+    .qb-panel-split > .qb-panel-icon {
+        min-width: 72px;
+    }
+    [data-inner-id="panel-server-load"] .qb-panel-icon :is(i, .anticon) {
         font-size: 60px;
     }
-    [data-inner-id="panel-server-disk"] .qb-panel-icon i {
+    [data-inner-id="panel-server-disk"] .qb-panel-icon :is(i, .anticon) {
         font-size: 72px;
     }
 }
 @container (max-width: 420px) {
-    [data-inner-id="panel-server-load"] .qb-panel-icon i {
+    .qb-panel-split > .qb-panel-icon {
+        min-width: 64px;
+    }
+    [data-inner-id="panel-server-load"] .qb-panel-icon :is(i, .anticon) {
         font-size: 52px;
     }
-    [data-inner-id="panel-server-disk"] .qb-panel-icon i {
+    [data-inner-id="panel-server-disk"] .qb-panel-icon :is(i, .anticon) {
         font-size: 64px;
     }
 }
 @container (max-width: 320px) {
-    [data-inner-id="panel-server-load"] .qb-panel-icon i {
+    .qb-panel-split > .qb-panel-icon {
+        min-width: 52px;
+    }
+    [data-inner-id="panel-server-load"] .qb-panel-icon :is(i, .anticon) {
         font-size: 44px;
     }
-    [data-inner-id="panel-server-disk"] .qb-panel-icon i {
+    [data-inner-id="panel-server-disk"] .qb-panel-icon :is(i, .anticon) {
         font-size: 52px;
     }
+}
+
+/* Keep Ant Design Card layout panels aligned with QuickBox panel theme tokens. */
+.panel.ant-card {
+    background-color: #fff;
+    border: 0 none;
+    border-radius: 2px;
+    box-shadow: none;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    margin-bottom: 20px;
+}
+body[data-theme="smoked"] .panel.ant-card {
+    background-color: #222;
+}
+.panel.ant-card > .ant-card-head.panel-heading {
+    background-color: transparent;
+    border-bottom: 0;
+    border-radius: 2px 2px 0 0;
+    color: inherit;
+    font-weight: inherit;
+    min-height: 0;
+    padding: 15px 20px;
+}
+.panel.ant-card > .ant-card-head.panel-heading .ant-card-head-title {
+    padding: 0;
+    white-space: normal;
+}
+.panel.ant-card > .ant-card-body.panel-body {
+    padding: 20px;
+}
+.panel.ant-card > .ant-card-body.panel-footer {
+    border-radius: 0 0 2px 2px;
+    border-top: 0;
+    padding: 5px;
+}
+
+/* Align Ant Design icon elements with legacy header and sidebar icon rules. */
+.menutoggle .anticon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -11px;
+    margin-left: -10px;
+}
+.headermenu > li > .btn-group > .btn-logged + .dropdown-menu > li > a > .anticon {
+    width: 16px;
+    margin-right: 5px;
+}
+.nav-quirk > li > a > .anticon {
+    width: 16px;
+    font-size: 21px;
+    text-align: center;
+    margin-right: 7px;
+    color: #909090;
+    vertical-align: top;
+    margin-top: 1.5555px;
+    transition: all 0.2s ease-out 0s;
+}
+.nav-quirk > li > a:hover > .anticon,
+.nav-quirk > li.active > a > .anticon {
+    color: #4daf7c;
+}
+.nav-sidebar.nav-justified > li > a .anticon {
+    position: relative;
 }
 .qb-uptime {
     overflow-wrap: anywhere;

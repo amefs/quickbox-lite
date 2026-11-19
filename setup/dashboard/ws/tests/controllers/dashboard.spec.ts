@@ -43,7 +43,7 @@ describe("controllers/dashboard", () => {
         expect(res.text).to.include('"serviceKeys"');
         expect(res.text).to.include("id=\"bw_tables_loading\"");
         expect(res.text).to.include("qb-package-management__table");
-        expect(res.text).to.include("/js/migration/dashboard-client.");
+        expect(res.text).to.include("/js/client/dashboard-client.");
         expect(res.text).to.not.include('data-click-handler="packageRemove"');
     });
 
