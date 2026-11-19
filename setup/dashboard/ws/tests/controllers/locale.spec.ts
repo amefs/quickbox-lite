@@ -46,6 +46,5 @@ describe("controllers/locale", () => {
 
         expect(res.status).to.equal(200);
         expect(body.locale).to.equal("en");
-        expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
     });
 });

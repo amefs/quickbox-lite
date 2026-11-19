@@ -80,16 +80,6 @@ function hasOnlyKnownServiceIds(response: ServiceResponseV2, knownServiceIds: Se
     return Object.keys(response.data.states).every((serviceId) => knownServiceIds.has(serviceId));
 }
 
-function escapeHtml(value: string) {
-    return value.replace(/[&<>"']/g, (character) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-    })[character] ?? character);
-}
-
 function matchesPendingRequest(
     response: ServiceResponseV2,
     pending: PendingRequest,
@@ -306,12 +296,15 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
 
     const showActionFailure = (payload: Record<string, unknown>) => {
         const responseMessage = typeof payload.message === "string" ? payload.message : "Service action failed";
-        const failedOperation = typeof payload.failedOperation === "string" ? `\n\nsystemctl ${payload.failedOperation}` : "";
+        const failedOperation = typeof payload.failedOperation === "string" ? `systemctl ${payload.failedOperation}` : "";
         const output = typeof payload.stderr === "string" && payload.stderr !== ""
             ? payload.stderr
             : typeof payload.stdout === "string" ? payload.stdout : "";
-        const html = `${escapeHtml(responseMessage + failedOperation)}${output ? `<hr><pre>${escapeHtml(output)}</pre>` : ""}`;
-        window.quickboxSystemResponseIsland?.showAlert(html);
+        window.quickboxSystemResponseIsland?.showAlert({
+            message: responseMessage,
+            ...(failedOperation ? { command: failedOperation } : {}),
+            ...(output ? { output } : {}),
+        });
     };
 
     const completeAction = (
@@ -372,7 +365,10 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         if (response.success === false && !request.failureShown) {
             showActionFailure(response);
         } else if (typeof response.statusError === "string" && response.statusError !== "") {
-            window.quickboxSystemResponseIsland?.showAlert(`${escapeHtml("Service action completed, but its current status could not be confirmed.")}<br>${escapeHtml(response.statusError)}`);
+            window.quickboxSystemResponseIsland?.showAlert({
+                message: "Service action completed, but its current status could not be confirmed.",
+                output: response.statusError,
+            });
         }
         const statusData = response.statusData;
         const confirmedStatus = statusData !== null && typeof statusData === "object" && !Array.isArray(statusData)

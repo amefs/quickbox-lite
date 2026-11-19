@@ -67,6 +67,7 @@
     min-height: 48px;
     margin: 0;
     padding: 8px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 #quickbox-alert-modal .qb-alert-modal-title {
@@ -75,10 +76,66 @@
     line-height: 32px;
 }
 
-#quickbox-alert-modal .modal-footer {
-    padding: 12px 20px;
+#quickbox-alert-modal .ant-modal-body {
+    padding: 16px 20px;
+    max-height: min(460px, calc(100vh - 220px));
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
-#quickbox-alert-modal .modal-footer .ant-btn {
+#quickbox-alert-modal .qb-alert-message {
+    display: block;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+#quickbox-alert-modal .qb-alert-command {
+    display: inline-block;
+    max-width: 100%;
+    margin-top: 8px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.05);
+    color: #c7254e;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+#quickbox-alert-modal .qb-alert-divider {
+    margin: 12px 0;
+    border: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+#quickbox-alert-modal .qb-alert-output,
+#quickbox-alert-modal pre {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    max-height: 260px;
+    margin: 0;
+    padding: 10px 12px;
+    overflow: auto;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+    background: #f5f5f5;
+    color: #333;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+#quickbox-alert-modal .ant-modal-footer {
+    padding: 12px 20px;
+    margin-top: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+#quickbox-alert-modal .ant-modal-footer .ant-btn {
     min-width: 88px;
 }

@@ -19,7 +19,7 @@ import type { DashboardBootstrapPayload } from "../src/shared/bootstrap-contract
 
 interface SystemStaticResponse {
     cpu: {
-        modelHtml: string;
+        model: string;
         count: unknown;
     };
     interfaces: string[];
@@ -89,7 +89,7 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.not.include("/js/quick.js");
         });
 
-        it("should return bootstrap payload with request-local locale and i18n keys", async () => {
+        it("should return bootstrap payload with request-local locale and pure data", async () => {
             const zh = await request(app).get("/node/bootstrap?locale=zh");
             const en = await request(app).get("/node/bootstrap?locale=en");
             const zhBody = zh.body as DashboardBootstrapPayload;
@@ -99,14 +99,10 @@ describe("router — HTTP routes", () => {
             expect(en.status).to.equal(200);
             expect(zhBody.basePath).to.equal("");
             expect(zhBody.locale).to.equal("zh");
-            expect(zhBody.messages.enabled).to.equal("ENABLED");
-            expect(zhBody.messages.disabled).to.equal("DISABLED");
-            expect(zhBody.messages.title).to.equal("SERVICE_CONTROL_CENTER");
-            expect(zhBody.messages.closeRefresh).to.equal("CLOSE_REFRESH");
-            expect(zhBody.chrome.labels.switchDev).to.equal("SWITCH_DEV");
-            expect(enBody.messages.title).to.equal("SERVICE_CONTROL_CENTER");
-            expect(enBody.messages.closeRefresh).to.equal("CLOSE_REFRESH");
-            expect(enBody.chrome.labels.switchDev).to.equal("SWITCH_DEV");
+            expect(enBody.locale).to.equal("en");
+            expect(zhBody.serviceRows).to.be.an("array");
+            expect(zhBody.packageManagement.data.rows).to.be.an("array");
+            expect(zhBody.chrome.config).to.be.an("object");
         });
 
         it("fails closed when the web bundle is absent", async () => {
@@ -129,7 +125,6 @@ describe("router — HTTP routes", () => {
 
             expect(res.status).to.equal(200);
             expect(body.locale).to.equal("zh");
-            expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
         });
 
         it("should return bootstrap payload from Accept-Language when no explicit locale is set", async () => {
@@ -140,7 +135,6 @@ describe("router — HTTP routes", () => {
 
             expect(res.status).to.equal(200);
             expect(body.locale).to.equal("fr");
-            expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
         });
 
         it("should return bootstrap payload from a browser locale region without a base fallback", async () => {
@@ -151,7 +145,6 @@ describe("router — HTTP routes", () => {
 
             expect(res.status).to.equal(200);
             expect(body.locale).to.equal("de");
-            expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
         });
 
         it("should return bootstrap payload under the legacy /ws base path", async () => {
@@ -161,7 +154,6 @@ describe("router — HTTP routes", () => {
             expect(res.status).to.equal(200);
             expect(body.basePath).to.equal("/ws");
             expect(body.locale).to.equal("zh");
-            expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
         });
     });
 
@@ -215,7 +207,6 @@ describe("router — HTTP routes", () => {
 
             expect(res.status).to.equal(200);
             expect(body.locale).to.equal("en");
-            expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
         });
     });
 
@@ -311,7 +302,7 @@ describe("router — HTTP routes", () => {
 
             expect(res.status).to.equal(200);
             expect(body).to.have.property("cpu").that.is.an("object");
-            expect(body.cpu).to.have.property("modelHtml").that.is.a("string");
+            expect(body.cpu).to.have.property("model").that.is.a("string");
             expect(body.cpu).to.have.property("count");
             expect(body).to.have.property("interfaces").that.is.an("array");
         });

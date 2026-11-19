@@ -400,6 +400,19 @@ test.describe("service action confirmation", () => {
         await expect(toggle).toHaveAttribute("aria-checked", "true");
         await toggle.click();
         await expect(toggle).toBeDisabled();
+        await expect(toggle).toHaveClass(/ant-switch-loading/);
+        const spinnerOffset = await toggle.evaluate((el) => {
+            const handle = el.querySelector(".ant-switch-handle")?.getBoundingClientRect();
+            const icon = el.querySelector(".ant-switch-loading-icon")?.getBoundingClientRect();
+            if (!handle || !icon) {return null;}
+            return {
+                dx: Math.abs((handle.left + handle.width / 2) - (icon.left + icon.width / 2)),
+                dy: Math.abs((handle.top + handle.height / 2) - (icon.top + icon.height / 2)),
+            };
+        });
+        expect(spinnerOffset).not.toBeNull();
+        expect(spinnerOffset!.dx).toBeLessThan(1.5);
+        expect(spinnerOffset!.dy).toBeLessThan(1.5);
         await expect.poll(() => page.evaluate(() => (window as any).__serviceActionRequests.length)).toBe(1);
         const action = await page.evaluate(() => (window as any).__serviceActionRequests[0] as Record<string, unknown>);
 

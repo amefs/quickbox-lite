@@ -13,7 +13,6 @@ const CPU_INFO_TIMEOUT_MS = 5000;
 const NETWORK_INTERFACES_TIMEOUT_MS = 5000;
 const CPU_INFO_CACHE_TTL_MS = 5 * 60 * 1000;
 const UNKNOWN_CPU: CpuStaticInfo = {
-    modelHtml: "<h4>Unknown</h4>",
     model: "Unknown",
     count: "-",
 };
@@ -35,15 +34,6 @@ async function withTimeout<T>(task: Promise<T>, fallback: T, timeoutMs = SYSTEM_
             clearTimeout(timer);
         }
     }
-}
-
-function escapeHtml(value: string) {
-    return value
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
 }
 
 async function readCpuCache() {
@@ -71,17 +61,9 @@ export async function getCpuStaticInfo(): Promise<CpuStaticInfo> {
             return UNKNOWN_CPU;
         }
         const model = cpu.brand || cpu.manufacturer || cpu.vendor || "Unknown";
-        const frequency = cpu.speed ? `${cpu.speed}` : undefined;
-        const parts = [`<h4>${escapeHtml(model)}</h4>`];
-        if (frequency) {
-            parts.push(` <span style="color:#999;font-weight:600">Frequency:</span> ${escapeHtml(frequency)}`);
-        }
-        if (cache) {
-            parts.push(`<br/> <span style="color:#999;font-weight:600">Secondary cache:</span> ${escapeHtml(cache)}`);
-        }
+        const frequency = cpu.speed ? `${cpu.speed} GHz` : undefined;
 
         const cpuInfo = {
-            modelHtml: parts.join(""),
             model,
             count: cpu.cores || os.cpus().length || "-",
             frequency,

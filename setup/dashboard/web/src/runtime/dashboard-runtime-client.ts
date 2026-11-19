@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { AnsiUp } from "ansi_up";
 import { io, type Socket } from "socket.io-client";
 
 import type { DashboardBootstrapPayload } from "../../../ws/src/shared/bootstrap-contract";
@@ -48,7 +47,6 @@ interface RuntimeGlobals {
     basePath?: string;
     locale?: string;
     locales?: string[];
-    messages?: Record<string, string>;
     socketUpgrade?: boolean;
 }
 
@@ -57,7 +55,6 @@ declare global {
         quickboxRuntime?: DashboardBootstrapPayload;
         quickboxApiBase?: string;
         quickboxLocale?: string;
-        quickboxMessages?: Record<string, string>;
         quickboxSetLocale?: (locale: string) => void;
         quickboxWidgetUrl?: (url: string) => string;
         quickboxResetWidgetState?: () => void;
@@ -76,15 +73,6 @@ const LOCALE_ALIASES: Record<string, string> = {
     "zh-cn": "zh",
     "zh-hans-cn": "zh",
 };
-
-function escapeHtml(value: string): string {
-    return value
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-}
 
 export function scheduleVisibilityInterval(visibleMs: number, hiddenMs: number, callback: () => void) {
     let timerId: ReturnType<typeof setTimeout> | undefined;
@@ -166,13 +154,6 @@ export function initDashboardRuntime() {
     const basePath = runtime.basePath ?? "";
     window.quickboxApiBase = basePath;
     window.quickboxLocale = normalizeLocale(runtime.locale);
-    window.quickboxMessages = {
-        enabled: "Enabled",
-        disabled: "Disabled",
-        refresh: "Refresh",
-        systemResponse: "System Response",
-        ...(runtime.messages ?? {}),
-    };
     persistLocale(window.quickboxLocale);
 
     window.quickboxWidgetUrl = (url: string) => {
@@ -566,8 +547,8 @@ export function initDashboardRuntime() {
         firstRequest = false;
     }
 
-    function showAlert(message: string) {
-        window.quickboxSystemResponseIsland?.showAlert(message);
+    function showAlert(alert: Parameters<NonNullable<typeof window.quickboxSystemResponseIsland>["showAlert"]>[0]) {
+        window.quickboxSystemResponseIsland?.showAlert(alert);
     }
 
     let inflightExecCount = 0;
@@ -582,14 +563,12 @@ export function initDashboardRuntime() {
     socket.on("exec", (response: ExecResponse | undefined) => {
         inflightExecCount = Math.max(0, inflightExecCount - 1);
         if (response && response.success === false) {
-            let message = escapeHtml(response.message || "");
             const rawOutput = response.stdout || response.stderr || "";
-            const output = rawOutput ? new AnsiUp().ansi_to_html(rawOutput) : "";
-            message += `<br><code>${escapeHtml(response.cmd || "")}</code>`;
-            if (output) {
-                message += `<hr><div class='exec-output' style='display: inline-grid'>${output}</div>`;
-            }
-            showAlert(message);
+            showAlert({
+                message: response.message || "",
+                command: response.cmd || "",
+                ...(rawOutput ? { output: rawOutput, outputIsAnsi: true } : {}),
+            });
             maybeReloadAfterExec();
             return;
         }

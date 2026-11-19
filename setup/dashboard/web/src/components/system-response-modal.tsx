@@ -3,72 +3,18 @@
 import React from "react";
 import { Button, ConfigProvider, Modal } from "antd";
 
-import type { SystemResponseLabels } from "../../../ws/src/shared/system-response-contract";
+import type { SystemResponseAlert, SystemResponseLabels } from "../../../ws/src/shared/system-response-contract";
 import type { DashboardTheme } from "../../../ws/src/shared/theme";
 import { getAntdThemeConfig } from "../runtime/theme-store";
 
-const ALERT_TAGS = new Set(["BR", "CODE", "HR", "DIV", "SPAN"]);
-
-function parseSafeAlertStyle(styleText: string | null): React.CSSProperties | undefined {
-    if (styleText === null) {
-        return undefined;
-    }
-    const style: React.CSSProperties = {};
-    for (const declaration of styleText.split(";")) {
-        const separator = declaration.indexOf(":");
-        if (separator < 0) {
-            continue;
-        }
-        const property = declaration.slice(0, separator).trim().toLowerCase();
-        const value = declaration.slice(separator + 1).trim();
-        if (["color", "background-color"].includes(property) && /^(#[\da-f]{3,8}|rgba?\([\d\s.,%]+\)|[a-z]{1,24})$/i.test(value)) {
-            if (property === "color") {
-                style.color = value;
-            } else {
-                style.backgroundColor = value;
-            }
-        } else if (property === "font-weight" && /^(normal|bold|[1-9]00)$/.test(value)) {
-            style.fontWeight = value;
-        } else if (property === "font-style" && /^(normal|italic|oblique)$/.test(value)) {
-            style.fontStyle = value;
-        } else if (property === "text-decoration" && /^(none|underline|line-through)$/.test(value)) {
-            style.textDecoration = value;
-        }
-    }
-    return Object.keys(style).length > 0 ? style : undefined;
-}
-
-function renderAlertNode(node: Node, key: string): React.ReactNode {
-    if (node.nodeType === Node.TEXT_NODE) {
-        return node.textContent ?? "";
-    }
-    if (!(node instanceof Element)) {
-        return null;
-    }
-    const children = Array.from(node.childNodes).map((child, index) => renderAlertNode(child, `${key}-${index}`));
-    const tag = node.tagName.toUpperCase();
-    if (!ALERT_TAGS.has(tag)) {
-        return <React.Fragment key={key}>{children}</React.Fragment>;
-    }
-    const props: { key: string; className?: string; style?: React.CSSProperties } = { key };
-    if (tag === "DIV" && node.classList.contains("exec-output")) {
-        props.className = "exec-output";
-    }
-    if (tag === "SPAN") {
-        props.style = parseSafeAlertStyle(node.getAttribute("style"));
-    }
-    return React.createElement(tag.toLowerCase(), props, ...children);
-}
-
-function parseAlertMarkup(markup: string): React.ReactNode[] {
-    const documentNode = new DOMParser().parseFromString(markup, "text/html");
-    return Array.from(documentNode.body.childNodes).map((node, index) => renderAlertNode(node, `alert-${index}`));
+export interface SystemResponseAlertView extends SystemResponseAlert {
+    outputHtml?: string;
 }
 
 export interface SystemResponseSnapshot {
     open: boolean;
     outputHtml: string;
-    alertHtml: string | null;
+    alert: SystemResponseAlertView | null;
 }
 
 export interface SystemResponseModalProps {
@@ -108,7 +54,7 @@ export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onC
                 title={labels.title}
                 width={600}
                 centered
-                zIndex={1050}
+                zIndex={2200}
                 transitionName=""
                 closable
                 closeIcon={<span id="sysResponseDismiss" aria-label={labels.close}>&times;</span>}
@@ -143,7 +89,7 @@ export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onC
                     </Button>
                 )}
             >
-                <div id="sysPre" ref={outputRef} className="qb-system-response-output" style={{ maxHeight: "min(600px, calc(100vh - 220px))", overflowY: "auto" }} onScroll={(event) => {
+                <div id="sysPre" ref={outputRef} className="qb-system-response-output" style={{ height: "min(600px, calc(100vh - 220px))", overflowY: "auto" }} onScroll={(event) => {
                     const output = event.currentTarget;
                     outputScroll.current = { top: output.scrollTop, height: output.scrollHeight, clientHeight: output.clientHeight };
                 }}>
@@ -151,11 +97,11 @@ export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onC
                 </div>
             </Modal>
             <Modal
-                open={snapshot.alertHtml !== null}
+                open={snapshot.alert !== null}
                 title={labels.title}
                 width={600}
                 centered
-                zIndex={1060}
+                zIndex={2210}
                 onCancel={onCloseAlert}
                 onOk={onCloseAlert}
                 wrapProps={{ id: "quickbox-alert-modal" }}
@@ -167,7 +113,24 @@ export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onC
                 }}
                 footer={<Button type="primary" onClick={onCloseAlert}>{labels.ok}</Button>}
             >
-                {parseAlertMarkup(snapshot.alertHtml ?? "")}
+                {snapshot.alert ? (
+                    <>
+                        <p className="qb-alert-message">{snapshot.alert.message}</p>
+                        {snapshot.alert.command ? (
+                            <code className="qb-alert-command">{snapshot.alert.command}</code>
+                        ) : null}
+                        {snapshot.alert.outputHtml || snapshot.alert.output ? (
+                            <>
+                                <hr className="qb-alert-divider" />
+                                {snapshot.alert.outputHtml ? (
+                                    <div className="exec-output qb-alert-output" dangerouslySetInnerHTML={{ __html: snapshot.alert.outputHtml }} />
+                                ) : (
+                                    <pre className="qb-alert-output">{snapshot.alert.output}</pre>
+                                )}
+                            </>
+                        ) : null}
+                    </>
+                ) : null}
             </Modal>
         </ConfigProvider>
     );

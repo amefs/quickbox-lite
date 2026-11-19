@@ -7,7 +7,7 @@ import { existsSync } from "fs";
 import path from "path";
 
 import { resolveWidget } from "./handlers/message";
-import i18n, { normalizeLocale, resolveRequestLocale, VALID_LOCALES, withLocale } from "./i18n";
+import { normalizeLocale, resolveRequestLocale, VALID_LOCALES, withLocale } from "./i18n";
 import { getDebugMeta } from "./debug-meta";
 import { applyDashboardThemeWithExecFile, dashboardConfig } from "./dashboard-config";
 import { isTestMode, setActiveProfile } from "./testing";
@@ -15,7 +15,7 @@ import { dashboardMenu, resolveDashboardMenuState } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
 import {
     getPackageManagementData,
-    getPackageManagementLabels,
+    getPackageManagementStateData,
 } from "./widgets/package-management-center";
 import { getServiceControlRows } from "./widgets/service-control";
 import { getUptimeParts } from "./widgets/up";
@@ -31,9 +31,7 @@ import { serviceMap } from "./info";
 import type {
     DashboardBootstrapPayload,
     DashboardChromeData,
-    DashboardPageLabels,
 } from "./shared/bootstrap-contract";
-import type { ServiceControlLabels } from "./shared/service-control-contract";
 import { isDashboardTheme, type DashboardTheme } from "./shared/theme";
 
 export interface AppRouterOptions {
@@ -106,140 +104,48 @@ export function createAppRouter(options: AppRouterOptions): Router {
 
     const buildBootstrapPayload = async (req: Request, basePath = ""): Promise<DashboardBootstrapPayload> => {
         const locale = resolveRequestLocale(req);
-        return await withLocale(locale, async () => {
-            const config = dashboardConfig();
-            const menuState = await resolveDashboardMenuState();
-            const dashboardTheme = readDashboardTheme(req);
-            const packageManagementData = getPackageManagementData();
-            const packageManagementLabels = getPackageManagementLabels();
-            const serviceControlRows = getServiceControlRows();
-            const serviceControlLabels: ServiceControlLabels = {
-                title: i18n.t("SERVICE_CONTROL_CENTER"),
-                status: i18n.t("SERVICE_STATUS"),
-                restart: i18n.t("RESTART_SERVICES"),
-                enableDisable: i18n.t("ENABLE_DISABLE_SERVICES"),
-                refresh: i18n.t("REFRESH"),
-                enabled: i18n.t("ENABLED"),
-                disabled: i18n.t("DISABLED"),
-                serviceStatusUnconfirmed: i18n.t("SERVICE_STATUS_UNCONFIRMED"),
-                serviceStatusStale: i18n.t("SERVICE_STATUS_STALE"),
-                serviceStatusLastConfirmedTemplate: i18n.t("SERVICE_STATUS_LAST_CONFIRMED", { time: "__SERVICE_STATUS_TIME__" }),
-            };
-            const uptimeParts = getUptimeParts();
-            const chrome: DashboardChromeData = {
-                locale,
-                config: {
-                    username: config.username,
-                    version: config.version,
-                    branch: config.branch,
-                    branchCommit: config.branchCommit,
-                    developerLabel: i18n.t("DEV_REPO_TXT", { branch: config.branch }),
-                    showDeveloper: config.showDeveloper,
-                    hasExternalAuth: config.hasExternalAuth,
-                    ssoLogoutUrl: config.ssoLogoutUrl,
-                    languages: config.languages,
-                    themes: config.themes,
-                    bwPages: config.bwPages,
-                },
-                menuState,
-                labels: {
-                    language: i18n.t("LANG_SELECT"),
-                    theme: i18n.t("THEME_SELECT"),
-                    bandwidth: i18n.t("BW_SELECT"),
-                    panelConfig: i18n.t("PANEL_CONFIG"),
-                    panelReset: i18n.t("PANEL_RESET"),
-                    themeChange: i18n.t("THEME_CHANGE_TXT"),
-                    cancel: i18n.t("CANCEL"),
-                    agree: i18n.t("AGREE"),
-                    mainMenu: i18n.t("MAIN_MENU"),
-                    pluginMenu: i18n.t("RPLUGIN_MENU"),
-                    helpCommands: i18n.t("HELP_COMMANDS"),
-                    downloads: i18n.t("DOWNLOADS"),
-                    webConsole: i18n.t("WEB_CONSOLE"),
-                    quickSystemTips: i18n.t("QUICK_SYSTEM_TIPS"),
-                    seedboxCommands: i18n.t("SEEDBOX_COMMANDS"),
-                    essentialUserCommands: i18n.t("ESSENTIAL_USER_COMMANDS"),
-                    systemUpgrade: i18n.t("SYS_UPGRADE_TXT"),
-                    setLanguage: i18n.t("SET_LANG_TXT"),
-                    changeInterface: i18n.t("CHANGEINTERFACE_TXT"),
-                    cleanMemory: i18n.t("CLEAN_MEM_TXT"),
-                    cleanLog: i18n.t("CLEAN_LOG_TXT"),
-                    diskTest: i18n.t("DISKTEST_TXT"),
-                    appInstall: i18n.t("APP_INSTALL_TXT"),
-                    appUninstall: i18n.t("APP_UNINSTALL_TXT"),
-                    appUpgrade: i18n.t("APP_UPGRADE_TXT"),
-                    changePassword: i18n.t("CHANGEUSERPASS_TXT"),
-                    fixDpkg: i18n.t("FIX_DPKG_TXT"),
-                    troubleshoot: i18n.t("TROUBLESHOOT_TXT"),
-                    restartRtorrent: i18n.t("SCREEN_RTORRNENT_TXT"),
-                    switchDev: i18n.t("SWITCH_DEV"),
-                    switchMaster: i18n.t("SWITCH_MASTER"),
-                    branchOther: i18n.t("BRANCH_OTHER"),
-                    branchSwitch: i18n.t("BRANCH_SWITCH"),
-                    branchCurrent: i18n.t("BRANCH_CURRENT"),
-                    branchTarget: i18n.t("BRANCH_TARGET"),
-                    branchLoading: i18n.t("BRANCH_LOADING"),
-                    branchListError: i18n.t("BRANCH_LIST_ERROR"),
-                    branchWarning: i18n.t("BRANCH_WARNING"),
-                    branchLoadFailed: i18n.t("BRANCH_LOAD_FAILED"),
-                    branchSelect: i18n.t("BRANCH_SELECT"),
-                    branchRetry: i18n.t("BRANCH_RETRY"),
-                    branchUpdate: i18n.t("BRANCH_UPDATE"),
-                    branchSwitchAction: i18n.t("BRANCH_SWITCH_ACTION"),
-                    ssoLogout: i18n.t("SSO_LOGOUT_TXT"),
-                    issueReport: i18n.t("ISSUE_REPORT_TXT"),
-                },
-            };
-            const pageLabels: DashboardPageLabels = {
-                bandwidthData: i18n.t("BANDWIDTH_DATA"),
-                network: i18n.t("NETWORK"),
-                upload: i18n.t("UPLOAD"),
-                download: i18n.t("DOWNLOAD"),
-                bandwidthDetails: i18n.t("VIEW_ADDITIONAL_BANDWIDTH_DETAILS"),
-                serverLoad: i18n.t("SERVER_LOAD"),
-                serverLoadText: i18n.t("SL_TXT"),
-                uptime: i18n.t("UPTIME"),
-                cpuStatus: i18n.t("CPU_STATUS"),
-                diskStatus: i18n.t("YOUR_DISK_STATUS"),
-                ramStatus: i18n.t("SYSTEM_RAM_STATUS"),
-                recentUpdates: i18n.t("RECENT_UPDATES"),
-                changelogTitle: i18n.t("CURRENT_VERSIONS_CHANGELOG"),
-                update: i18n.t("UPDATE"),
-            };
-            return {
-                basePath: basePath === "/ws" ? "/ws" : "",
-                locale,
-                locales: VALID_LOCALES,
-                serviceKeys: [...serviceMap.keys()],
-                messages: {
-                    systemResponse: i18n.t("SYSTEM_RESPONSE_TITLE"),
-                    closeRefresh: i18n.t("CLOSE_REFRESH"),
-                    close: i18n.t("CLOSE"),
-                    ...serviceControlLabels,
-                },
-                socketUpgrade: shouldUpgradeDashboardSocket(req.headers),
-                serviceTheme: dashboardTheme,
-                serviceRows: serviceControlRows,
-                systemSummary: {
-                    uptime: uptimeParts,
-                    labels: {
-                        days: i18n.t("DAYS_L"),
-                        hours: i18n.t("HOURS_L"),
-                        minutes: i18n.t("MINUTES_L"),
-                    },
-                },
-                networkInterfaces: [],
-                networkInterfacesLoaded: false,
-                runningTask: runningTaskData(),
-                packageManagement: {
-                    data: packageManagementData,
-                    labels: packageManagementLabels,
-                    theme: dashboardTheme,
-                },
-                chrome,
-                pageLabels,
-            };
-        });
+        const config = dashboardConfig();
+        const menuState = await resolveDashboardMenuState();
+        const dashboardTheme = readDashboardTheme(req);
+        const packageManagementData = getPackageManagementData();
+        const serviceControlRows = getServiceControlRows();
+        const uptimeParts = getUptimeParts();
+        const chrome: DashboardChromeData = {
+            locale,
+            config: {
+                username: config.username,
+                version: config.version,
+                branch: config.branch,
+                branchCommit: config.branchCommit,
+                showDeveloper: config.showDeveloper,
+                hasExternalAuth: config.hasExternalAuth,
+                ssoLogoutUrl: config.ssoLogoutUrl,
+                languages: config.languages,
+                themes: config.themes,
+                bwPages: config.bwPages,
+            },
+            menuState,
+        };
+        return {
+            basePath: basePath === "/ws" ? "/ws" : "",
+            locale,
+            locales: VALID_LOCALES,
+            serviceKeys: [...serviceMap.keys()],
+            socketUpgrade: shouldUpgradeDashboardSocket(req.headers),
+            serviceTheme: dashboardTheme,
+            serviceRows: serviceControlRows,
+            systemSummary: {
+                uptime: uptimeParts,
+            },
+            networkInterfaces: [],
+            networkInterfacesLoaded: false,
+            runningTask: runningTaskData(),
+            packageManagement: {
+                data: packageManagementData,
+                theme: dashboardTheme,
+            },
+            chrome,
+        };
     };
 
     router.get("/", serveDashboardIndex);
@@ -366,8 +272,8 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.send(result);
     });
 
-    router.get("/node/data/pmc", async (req: Request, res: Response) => {
-        res.json(await renderWithLocale(req, () => getPackageManagementData()));
+    router.get("/node/data/pmc", (_req: Request, res: Response) => {
+        res.json(getPackageManagementStateData());
     });
 
     router.get("/db/output.log", (req: Request, res: Response) => {

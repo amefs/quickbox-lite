@@ -55,7 +55,7 @@ function DiskDataView({ data }: { data: DiskDataData }) {
                 {data.torrents.map((torrent) => (
                     <div key={torrent.key}>
                         <h4>{torrent.title}</h4>
-                        <p className="nomargin" dangerouslySetInnerHTML={{ __html: torrent.loadedHtml }}></p>
+                        <p className="nomargin">There are <b>{torrent.loaded}</b> torrents loaded</p>
                     </div>
                 ))}
             </div>

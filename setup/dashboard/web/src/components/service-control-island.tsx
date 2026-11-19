@@ -95,7 +95,7 @@ export function ServiceControlIsland({ rows, labels, theme, statusById, pendingB
                                                 disabled={pendingById[row.id]}
                                                 onClick={() => onRefresh?.(row.id)}
                                             >
-                                                <SyncOutlined className="text-info" aria-hidden="true" /> {labels.refresh}
+                                                <SyncOutlined className="text-info" spin={Boolean(pendingById[row.id])} aria-hidden="true" /> {labels.refresh}
                                             </Button>
                                         </td>
                                         <td className="text-center">
@@ -106,6 +106,7 @@ export function ServiceControlIsland({ rows, labels, theme, statusById, pendingB
                                                     checkedChildren={labels.enabled}
                                                     unCheckedChildren={labels.disabled}
                                                     aria-label={row.name}
+                                                    loading={Boolean(pendingById[row.id])}
                                                     disabled={pendingById[row.id]}
                                                     onChange={(enabled) => onEnabledChange?.(row.id, enabled)}
                                                 />

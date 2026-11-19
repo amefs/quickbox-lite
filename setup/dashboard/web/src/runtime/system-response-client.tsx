@@ -39,7 +39,7 @@ function parseOutputChunk(value: unknown): OutputChunk | null {
 }
 
 function createStore() {
-    let snapshot: SystemResponseSnapshot = { open: false, outputHtml: "", alertHtml: null };
+    let snapshot: SystemResponseSnapshot = { open: false, outputHtml: "", alert: null };
     let rawContent = "";
     let endOffset = -1;
     let epoch: string | undefined;
@@ -109,7 +109,7 @@ function createStore() {
     const bridge: SystemResponseBridge = {
         open: () => {
             resetOutput();
-            snapshot = { ...snapshot, open: true, outputHtml, alertHtml: null };
+            snapshot = { ...snapshot, open: true, outputHtml, alert: null };
             publish();
         },
         close: () => {
@@ -121,13 +121,21 @@ function createStore() {
         isOpen: () => snapshot.open,
         getOutputCursor: () => ({ end: endOffset, ...(epoch === undefined ? {} : { epoch }) }),
         onMessage,
-        showAlert: (message) => {
-            snapshot = { ...snapshot, alertHtml: message };
+        showAlert: (alertInput) => {
+            const alert = typeof alertInput === "string"
+                ? { message: alertInput }
+                : {
+                    ...alertInput,
+                    ...(alertInput.outputIsAnsi && alertInput.output
+                        ? { outputHtml: new AnsiUp().ansi_to_html(alertInput.output) }
+                        : {}),
+                };
+            snapshot = { ...snapshot, alert };
             publish();
         },
         closeAlert: () => {
-            if (snapshot.alertHtml === null) {return;}
-            snapshot = { ...snapshot, alertHtml: null };
+            if (snapshot.alert === null) {return;}
+            snapshot = { ...snapshot, alert: null };
             publish();
         },
         notifyWarning: (title, description) => {

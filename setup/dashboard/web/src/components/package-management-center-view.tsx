@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React from "react";
+import { Trans, useTranslation } from "react-i18next";
+import Markdown from "react-markdown";
 import { Button, ConfigProvider, Input, Modal, Table, Tooltip, type TableProps } from "antd";
 
 import type {
@@ -10,6 +12,15 @@ import type {
     PackageManagementTheme,
 } from "../../../ws/src/shared/package-management-contract";
 import { getAntdThemeConfig } from "../runtime/theme-store";
+
+const INLINE_MARKDOWN_COMPONENTS = {
+    p: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
+        <a href={href} target="_blank" rel="noopener noreferrer">
+            {children}
+        </a>
+    ),
+};
 
 export interface PackageManagementCenterProps {
     data: PackageManagementData;
@@ -54,14 +65,12 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
             const sizingFont = /[\u3400-\u9fff]/.test(labels.name) ? "sans-serif" : "serif";
             for (const row of data.rows) {
                 const tr = document.createElement("tr");
-                [row.name, row.descriptionHtml, row.installed ? labels.installed : row.boxOnly ? labels.box : labels.install].forEach((content, index) => {
+                [row.name, row.descriptionText ?? "", row.installed ? labels.installed : row.boxOnly ? labels.box : labels.install].forEach((content, index) => {
                     const cell = document.createElement("td");
                     cell.className = "ant-table-cell";
                     if (coldStartup) {cell.style.fontFamily = sizingFont;}
                     tr.appendChild(cell);
-                    if (index === 1) {
-                        cell.innerHTML = content;
-                    } else if (index === 2) {
+                    if (index === 2) {
                         const button = document.createElement("button");
                         button.className = "ant-btn package-action-btn";
                         button.textContent = content;
@@ -149,14 +158,15 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
     const sortedRows = [...filteredRows].sort((left, right) => {
         const leftValue = sortKey === "availability"
             ? (left.installed ? labels.installed : left.boxOnly ? labels.box : labels.install)
-            : left[sortKey];
+            : (left[sortKey] ?? "");
         const rightValue = sortKey === "availability"
             ? (right.installed ? labels.installed : right.boxOnly ? labels.box : labels.install)
-            : right[sortKey];
+            : (right[sortKey] ?? "");
         const comparison = leftValue.localeCompare(rightValue, undefined, { sensitivity: "base" });
         return sortOrder === "ascend" ? comparison : -comparison;
     });
     const pageRows = sortedRows.slice((page - 1) * pageSize, page * pageSize);
+    const { t } = useTranslation();
     const pageCount = Math.ceil(filteredRows.length / pageSize);
     const rangeStart = filteredRows.length === 0 ? 0 : (page - 1) * pageSize + 1;
     const rangeEnd = Math.min(page * pageSize, filteredRows.length);
@@ -177,7 +187,15 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
             width: columnWidths[1] ?? "70.367%",
             sorter: true,
             sortOrder: sortKey === "descriptionText" ? sortOrder : null,
-            render: (_value, row) => <span dangerouslySetInnerHTML={{ __html: row.descriptionHtml }} />,
+            render: (_value, row) => (
+                <span>
+                    {row.descriptionKey ? (
+                        <Markdown components={INLINE_MARKDOWN_COMPONENTS}>{t(row.descriptionKey)}</Markdown>
+                    ) : (
+                        row.descriptionText
+                    )}
+                </span>
+            ),
         },
         {
             title: labels.availability,
@@ -187,7 +205,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
             sortOrder: sortKey === "availability" ? sortOrder : null,
             render: (_value, row) => {
                 if (row.installed) {
-                    const canRemove = !row.boxOnly && Boolean(row.uninstallHtml);
+                    const canRemove = !row.boxOnly && Boolean(row.uninstallKey);
                     return (
                         <Button
                             size="small"
@@ -242,7 +260,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                     {noticeVisible ? (
                         <div className="alert alert-danger">
                             <button type="button" className="close" aria-label="Close" onClick={() => { setNoticeVisible(false); }}><span aria-hidden="true">&times;</span></button>
-                            <div style={{ textAlign: "center" }} dangerouslySetInnerHTML={{ __html: labels.noticeHtml }} />
+                            <div style={{ textAlign: "center" }}><Trans i18nKey="PMC_NOTICE_TXT" defaults={labels.notice} /></div>
                         </div>
                     ) : null}
                     <div ref={tableViewport} className="table-responsive ps">
@@ -321,7 +339,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                     {data.installLockExists ? (
                         <div className="qb-package-management__lock">
                             <hr />
-                            <span dangerouslySetInnerHTML={{ __html: labels.clearLockHtml }} />&nbsp; &nbsp; &nbsp; &nbsp;
+                            <span><Trans i18nKey="CLEAR_LOCK_TXT" defaults={labels.clearLockText} /></span>&nbsp; &nbsp; &nbsp; &nbsp;
                             <Button
                                 size="small"
                                 className="btn btn-xs btn-default"
@@ -340,6 +358,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                 <Modal
                     open={confirmRow !== null}
                     centered
+                    zIndex={2200}
                     title={confirmRow ? `${labels.uninstallTitle} ${confirmRow.name}?` : ""}
                     onCancel={() => { setConfirmRow(null); }}
                     wrapProps={{ onKeyDownCapture: containConfirmTab }}
@@ -353,7 +372,9 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                     ]}
                     destroyOnHidden
                 >
-                    {confirmRow?.uninstallHtml ? <div dangerouslySetInnerHTML={{ __html: confirmRow.uninstallHtml }} /> : null}
+                    {confirmRow?.uninstallKey ? (
+                        <div><Trans i18nKey={confirmRow.uninstallKey} /></div>
+                    ) : null}
                 </Modal>
             </div>
         </ConfigProvider>

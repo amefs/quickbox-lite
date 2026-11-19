@@ -6,20 +6,16 @@ import { getVisiblePackages, isPackageInstalled } from "./panels";
 import type {
     PackageManagementData,
     PackageManagementLabels,
+    PackageManagementStateData,
 } from "../shared/package-management-contract";
 
 export function getPackageManagementData(): PackageManagementData {
     return {
         rows: getVisiblePackages().map((pkg) => {
             const packageName = pkg.package.toLowerCase();
-            const descriptionHtml = pkg.description ? i18n.t(pkg.description) : "";
             return {
                 package: packageName,
                 name: pkg.name,
-                descriptionHtml,
-                descriptionText: descriptionHtml.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
-                installTooltip: pkg.install ? i18n.t(pkg.install) : "",
-                ...(pkg.uninstall ? { uninstallHtml: i18n.t(pkg.uninstall) } : {}),
                 ...(pkg.description ? { descriptionKey: pkg.description } : {}),
                 ...(pkg.install ? { installTooltipKey: pkg.install } : {}),
                 ...(pkg.uninstall ? { uninstallKey: pkg.uninstall } : {}),
@@ -27,6 +23,17 @@ export function getPackageManagementData(): PackageManagementData {
                 boxOnly: pkg.boxonly === true,
             };
         }),
+        installLockExists: isPackageInstalled({ lockfile: "/install/.install.lock" }),
+    };
+}
+
+export function getPackageManagementStateData(): PackageManagementStateData {
+    const installedByPackage: Record<string, boolean> = {};
+    for (const pkg of getVisiblePackages()) {
+        installedByPackage[pkg.package.toLowerCase()] = isPackageInstalled(pkg);
+    }
+    return {
+        installedByPackage,
         installLockExists: isPackageInstalled({ lockfile: "/install/.install.lock" }),
     };
 }
@@ -40,8 +47,8 @@ export function getPackageManagementLabels(): PackageManagementLabels {
         installed: i18n.t("INSTALLED"),
         install: i18n.t("INSTALL"),
         box: i18n.t("BOX"),
-        noticeHtml: i18n.t("PMC_NOTICE_TXT"),
-        clearLockHtml: i18n.t("CLEAR_LOCK_TXT"),
+        notice: i18n.t("PMC_NOTICE_TXT"),
+        clearLockText: i18n.t("CLEAR_LOCK_TXT"),
         clearLock: i18n.t("CLEAR_LOCK"),
         viewLog: i18n.t("VIEW_LOG"),
         uninstallTitle: i18n.t("UNINSTALL_TITLE"),
