@@ -18,7 +18,7 @@ describe("widgets/running-task", () => {
 
         it("should name the running package and offer the log and abort actions", async () => {
             const html = await runningTask(() => "Jellyfin Media Server", () => "install");
-            expect(html).to.contain("Jellyfin Media Server");
+            expect(html).to.contain("TASK_INSTALL_TXT");
             expect(html).to.contain('data-qb-system-response=""');
             expect(html).to.not.contain("data-sysresponse-mode");
             expect(html).to.contain("data-task-abort");
@@ -29,16 +29,16 @@ describe("widgets/running-task", () => {
 
         it("should say what the operation does to the package", async () => {
             expect(await runningTask(() => "Jellyfin Media Server", () => "install"))
-                .to.contain("Installing Jellyfin Media Server");
+                .to.contain("TASK_INSTALL_TXT");
             expect(await runningTask(() => "Jellyfin Media Server", () => "remove"))
-                .to.contain("Removing Jellyfin Media Server");
+                .to.contain("TASK_UNINSTALL_TXT");
             expect(await runningTask(() => "Jellyfin Media Server", () => "update"))
-                .to.contain("Updating Jellyfin Media Server");
+                .to.contain("TASK_UPGRADE_TXT");
         });
 
         it("should fall back to a generic sentence when the verb is unknown", async () => {
             const html = await runningTask(() => "Jellyfin Media Server", () => null);
-            expect(html).to.contain("Jellyfin Media Server is running");
+            expect(html).to.contain("TASK_RUNNING_TXT");
             expect(html).to.contain('data-task="package"');
             expect(html).to.contain('data-operation=""');
         });
@@ -46,7 +46,7 @@ describe("widgets/running-task", () => {
         it("should label an update instead of naming the lock owner", async () => {
             // qbUpdate takes the lock under its own name.
             const html = await runningTask(() => "QuickBox", () => "update");
-            expect(html).to.contain("QuickBox update");
+            expect(html).to.contain("TASK_RUNNING_TXT");
             expect(html).to.contain('data-task="update"');
         });
 

@@ -18,9 +18,9 @@ export interface MemoryStatsData {
         clearCache: string;
     };
     physical: MemoryProgress & { used: string; free: string };
-    cached?: MemoryProgress & { description: string; buffersDescription: string };
-    real?: MemoryProgress & { description: string; freeDescription: string };
-    swap?: MemoryProgress & { totalDescription: string; usedDescription: string; freeDescription: string };
+    cached?: MemoryProgress & { description: string; buffersDescription: string; used?: string; buffered?: string };
+    real?: MemoryProgress & { description: string; freeDescription: string; used?: string; free?: string };
+    swap?: MemoryProgress & { totalDescription: string; usedDescription: string; freeDescription: string; total?: string; used?: string; free?: string };
     total: string;
 }
 
@@ -48,15 +48,16 @@ function isMemoryLabels(value: unknown) {
         fields.every((key) => typeof value[key] === "string");
 }
 
-function isProgressSection(value: unknown, descriptionFields: string[]) {
-    if (!isRecord(value) || !isProgress(value) || !hasOnlyKeys(value, ["percent", "colorClass", ...descriptionFields])) {
+function isProgressSection(value: unknown, descriptionFields: string[], optionalFields: string[] = []) {
+    if (!isRecord(value) || !isProgress(value) || !hasOnlyKeys(value, ["percent", "colorClass", ...descriptionFields, ...optionalFields])) {
         return false;
     }
-    return descriptionFields.every((field) => typeof value[field] === "string");
+    return descriptionFields.every((field) => typeof value[field] === "string") &&
+        optionalFields.every((field) => value[field] === undefined || typeof value[field] === "string");
 }
 
-function isOptionalProgressSection(value: Record<string, unknown>, key: string, fields: string[]) {
-    return value[key] === undefined || isProgressSection(value[key], fields);
+function isOptionalProgressSection(value: Record<string, unknown>, key: string, fields: string[], optionalFields: string[] = []) {
+    return value[key] === undefined || isProgressSection(value[key], fields, optionalFields);
 }
 
 export function isMemoryStatsData(value: unknown): value is MemoryStatsData {
@@ -66,7 +67,7 @@ export function isMemoryStatsData(value: unknown): value is MemoryStatsData {
     }
     return isMemoryLabels(value.labels) && typeof value.total === "string" &&
         isProgressSection(value.physical, ["used", "free"]) &&
-        isOptionalProgressSection(value, "cached", ["description", "buffersDescription"]) &&
-        isOptionalProgressSection(value, "real", ["description", "freeDescription"]) &&
-        isOptionalProgressSection(value, "swap", ["totalDescription", "usedDescription", "freeDescription"]);
+        isOptionalProgressSection(value, "cached", ["description", "buffersDescription"], ["used", "buffered"]) &&
+        isOptionalProgressSection(value, "real", ["description", "freeDescription"], ["used", "free"]) &&
+        isOptionalProgressSection(value, "swap", ["totalDescription", "usedDescription", "freeDescription"], ["total", "used", "free"]);
 }

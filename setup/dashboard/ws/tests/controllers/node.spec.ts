@@ -85,15 +85,15 @@ describe("controllers/node", () => {
         ]);
     });
 
-    it("should translate dashboard config labels with request locale", async () => {
+    it("should return bandwidth page keys in dashboard config", async () => {
         const res = await request(app).get("/node/dashboard_config?locale=zh");
 
         expect(res.status).to.equal(200);
         expect(res.body).to.have.property("bwPages").that.deep.equals([
-            { key: "t", title: "最高10天" },
-            { key: "h", title: "最近几小时" },
-            { key: "d", title: "过去30天" },
-            { key: "m", title: "过去12个月" },
+            { key: "t", title: "Top 10 days" },
+            { key: "h", title: "Recent hours" },
+            { key: "d", title: "Last 30 days" },
+            { key: "m", title: "Last 12 months" },
         ]);
     });
 
@@ -172,13 +172,13 @@ describe("controllers/node", () => {
         expect(recorder.calls).to.have.length(0);
     });
 
-    it("should render removal modals with request-local locale", async () => {
+    it("should render removal modals with i18n keys", async () => {
         const zh = await request(app).get("/node/removal_modals?locale=zh");
         const en = await request(app).get("/node/removal_modals");
 
         expect(zh.status).to.equal(200);
-        expect(zh.text).to.include("取消");
-        expect(zh.text).to.include("我明白，继续！");
+        expect(zh.text).to.include("CANCEL");
+        expect(zh.text).to.include("AGREE");
         expect(en.status).to.equal(200);
         expect(en.text).to.include("RemovalConfirm");
         expect(en.text).to.include('data-click-handler="packageRemove"');

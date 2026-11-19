@@ -15,6 +15,7 @@ import childProcess from "child_process";
 // exactly as in production.
 import { app } from "../src/server";
 import { createAppRouter } from "../src/router";
+import type { DashboardBootstrapPayload } from "../src/shared/bootstrap-contract";
 
 interface SystemStaticResponse {
     cpu: {
@@ -70,122 +71,97 @@ function createExecFileRecorder() {
 describe("router — HTTP routes", () => {
     // ── Root ─────────────────────────────────────────────────────────────────
 
-    describe("GET /", () => {
-        it("should return 200 with the Node-rendered dashboard shell", async () => {
+    describe("GET / & GET /node/bootstrap", () => {
+        it("should return 200 with the static SPA dashboard shell", async () => {
             const res = await request(app).get("/");
             expect(res.status).to.equal(200);
             expect(res.text).to.include("<!DOCTYPE html>");
             expect(res.text).to.include("Quickbox Dashboard");
-            expect(res.text).to.include("id=\"service_control_widget\"");
+            expect(res.text).to.include('id="root"');
             expect(res.text).to.match(/dashboard-theme-(defaulted|smoked)\.css/);
             expect(res.text).to.include("/css/dashboard-foundation.css");
+            expect(res.text).to.include("./assets/");
             expect(res.text).to.not.include("/skins/quick.css");
             expect(res.text).to.not.include("bootstrap.min");
-            expect(res.text).to.include("window.quickboxRuntime");
-            expect(res.text).to.include('"basePath":""');
-            expect(res.text).to.include('"locale":"en"');
             expect(res.text).to.not.include("/js/dashboard.js");
             expect(res.text).to.not.include("/lib/socket.io/socket.io.min.js");
-            expect(res.text).to.not.include("/lib/visibility/visibility.core.js");
-            expect(res.text).to.not.include("/lib/ansi_up/ansi_up.min.js");
-            expect(res.text).to.include("id=\"bw_tables_loading\"");
-            expect(res.text).to.include("box fix dpkg");
-            expect(res.text).to.include("qb-package-management__table");
-            expect(res.text).to.include("/js/client/dashboard-client.");
-            expect(res.text).to.not.include("autodlirssiRemovalConfirm");
-            expect(res.text).to.not.include('data-click-handler="packageRemove"');
-            expect(res.text).to.not.include("/lib/datatables/js/jquery.dataTables.min.js");
-            expect(res.text).to.not.include("/lib/perfect-scrollbar/js/perfect-scrollbar.min.js");
-            expect(res.text).to.not.include("/lib/bootstrap/js/bootstrap.min.js");
             expect(res.text).to.not.include("/lib/jquery/jquery.min.js");
-            expect(res.text).to.not.include("/lib/jquery-gritter/css/jquery.gritter.css");
-            expect(res.text).to.not.include("/lib/animate.css/animate.min.css");
-            expect(res.text).to.not.include("/lib/lazysizes/lazysizes.min.js");
-            expect(res.text).to.not.include("/lib/font-awesome/css/font-awesome.min.css");
             expect(res.text).to.not.include("/js/quick.js");
-            expect(res.text).to.not.include('fetchJson("/node/menu")');
-            expect(res.text).to.not.include('fetchText("/node/removal_modals")');
-            expect(res.text).to.not.include("panel.app_status.ws.js");
-            expect(res.text).to.not.include("panel.app_service.ws.js");
         });
 
-        it("should render the dashboard shell with request-local locale", async () => {
-            const zh = await request(app).get("/?locale=zh");
-            const en = await request(app).get("/?locale=en");
+        it("should return bootstrap payload with request-local locale and i18n keys", async () => {
+            const zh = await request(app).get("/node/bootstrap?locale=zh");
+            const en = await request(app).get("/node/bootstrap?locale=en");
+            const zhBody = zh.body as DashboardBootstrapPayload;
+            const enBody = en.body as DashboardBootstrapPayload;
 
             expect(zh.status).to.equal(200);
             expect(en.status).to.equal(200);
-            expect(zh.text).to.include("<html lang=\"zh\">");
-            expect(zh.text).to.include("window.quickboxRuntime");
-            expect(zh.text).to.include("\"locale\":\"zh\"");
-            expect(zh.text).to.include("\"enabled\":\"已启用\"");
-            expect(zh.text).to.include("\"disabled\":\"禁用\"");
-            expect(zh.text).to.include("服务控制中心");
-            expect(zh.text).to.include('"closeRefresh":"关闭 \\u0026 刷新"');
-            expect(zh.text).to.include("切换到 <code>development</code> 分支");
-            expect(zh.text).to.not.include("切换到 &lt;code&gt;development&lt;/code&gt; 分支");
-            expect(en.text).to.include("Service Control Center");
-            expect(en.text).to.include('"closeRefresh":"Close \\u0026 Refresh"');
-            expect(en.text).to.include("Switch to <code>development</code>");
-            expect(en.text).to.not.include("Switch to &lt;code&gt;development&lt;/code&gt;");
+            expect(zhBody.basePath).to.equal("");
+            expect(zhBody.locale).to.equal("zh");
+            expect(zhBody.messages.enabled).to.equal("ENABLED");
+            expect(zhBody.messages.disabled).to.equal("DISABLED");
+            expect(zhBody.messages.title).to.equal("SERVICE_CONTROL_CENTER");
+            expect(zhBody.messages.closeRefresh).to.equal("CLOSE_REFRESH");
+            expect(zhBody.chrome.labels.switchDev).to.equal("SWITCH_DEV");
+            expect(enBody.messages.title).to.equal("SERVICE_CONTROL_CENTER");
+            expect(enBody.messages.closeRefresh).to.equal("CLOSE_REFRESH");
+            expect(enBody.chrome.labels.switchDev).to.equal("SWITCH_DEV");
         });
 
-        it("fails closed when the React client bundle is absent", async () => {
+        it("fails closed when the web bundle is absent", async () => {
             const dashboardDir = mkdtempSync(path.join(os.tmpdir(), "quickbox-legacy-dashboard-"));
             try {
                 const res = await request(createRouterTestApp(childProcess.execFile, dashboardDir)).get("/");
 
                 expect(res.status).to.equal(503);
-                expect(res.text).to.equal("Dashboard client bundle is unavailable");
+                expect(res.text).to.equal("Dashboard web bundle is unavailable");
             } finally {
                 rmSync(dashboardDir, { recursive: true, force: true });
             }
         });
 
-        it("should render the dashboard shell from browser locale cookie", async () => {
+        it("should return bootstrap payload from browser locale cookie", async () => {
             const res = await request(app)
-                .get("/")
+                .get("/node/bootstrap")
                 .set("Cookie", "quickbox_locale=zh");
+            const body = res.body as DashboardBootstrapPayload;
 
             expect(res.status).to.equal(200);
-            expect(res.text).to.include("<html lang=\"zh\">");
-            expect(res.text).to.include("window.quickboxRuntime");
-            expect(res.text).to.include("\"locale\":\"zh\"");
-            expect(res.text).to.include("服务控制中心");
+            expect(body.locale).to.equal("zh");
+            expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
         });
 
-        it("should render the dashboard shell from Accept-Language when no explicit locale is set", async () => {
+        it("should return bootstrap payload from Accept-Language when no explicit locale is set", async () => {
             const res = await request(app)
-                .get("/")
+                .get("/node/bootstrap")
                 .set("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.1");
+            const body = res.body as DashboardBootstrapPayload;
 
             expect(res.status).to.equal(200);
-            expect(res.text).to.include("<html lang=\"fr\">");
-            expect(res.text).to.include("window.quickboxRuntime");
-            expect(res.text).to.include("\"locale\":\"fr\"");
-            expect(res.text).to.include("Centre de contrôle des services");
+            expect(body.locale).to.equal("fr");
+            expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
         });
 
-        it("should render the dashboard shell from a browser locale region without a base fallback", async () => {
+        it("should return bootstrap payload from a browser locale region without a base fallback", async () => {
             const res = await request(app)
-                .get("/")
+                .get("/node/bootstrap")
                 .set("Accept-Language", "de-DE");
+            const body = res.body as DashboardBootstrapPayload;
 
             expect(res.status).to.equal(200);
-            expect(res.text).to.include("<html lang=\"de\">");
-            expect(res.text).to.include("window.quickboxRuntime");
-            expect(res.text).to.include("\"locale\":\"de\"");
-            expect(res.text).to.include("Dienst Kontrollcenter");
+            expect(body.locale).to.equal("de");
+            expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
         });
 
-        it("should render the dashboard shell under the legacy /ws base path", async () => {
-            const res = await request(app).get("/ws?locale=zh");
+        it("should return bootstrap payload under the legacy /ws base path", async () => {
+            const res = await request(app).get("/ws/node/bootstrap?locale=zh");
+            const body = res.body as DashboardBootstrapPayload;
 
             expect(res.status).to.equal(200);
-            expect(res.text).to.include("服务控制中心");
-            expect(res.text).to.include("window.quickboxRuntime");
-            expect(res.text).to.include("\"basePath\":\"/ws\"");
-            expect(res.text).to.include("\"locale\":\"zh\"");
+            expect(body.basePath).to.equal("/ws");
+            expect(body.locale).to.equal("zh");
+            expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
         });
     });
 
@@ -232,13 +208,14 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.equal("en");
         });
 
-        it("should not mutate the dashboard shell locale globally", async () => {
+        it("should not mutate the dashboard bootstrap locale globally", async () => {
             await request(app).get("/set?lang=zh");
-            const res = await request(app).get("/");
+            const res = await request(app).get("/node/bootstrap");
+            const body = res.body as DashboardBootstrapPayload;
 
             expect(res.status).to.equal(200);
-            expect(res.text).to.include("Service Control Center");
-            expect(res.text).to.not.include("服务控制中心");
+            expect(body.locale).to.equal("en");
+            expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
         });
     });
 
@@ -282,12 +259,12 @@ describe("router — HTTP routes", () => {
     });
 
     describe("GET /node/removal_modals locale", () => {
-        it("should render with request-local locale", async () => {
+        it("should render with i18n keys", async () => {
             const res = await request(app).get("/node/removal_modals?locale=zh");
 
             expect(res.status).to.equal(200);
-            expect(res.text).to.include("取消");
-            expect(res.text).to.include("我明白，继续！");
+            expect(res.text).to.include("CANCEL");
+            expect(res.text).to.include("AGREE");
         });
     });
 
@@ -313,15 +290,15 @@ describe("router — HTTP routes", () => {
             ]);
         });
 
-        it("should translate dashboard config labels with request locale", async () => {
+        it("should return bandwidth page keys regardless of request locale", async () => {
             const res = await request(app).get("/node/dashboard_config?locale=zh");
 
             expect(res.status).to.equal(200);
             expect(res.body).to.have.property("bwPages").that.deep.equals([
-                { key: "t", title: "最高10天" },
-                { key: "h", title: "最近几小时" },
-                { key: "d", title: "过去30天" },
-                { key: "m", title: "过去12个月" },
+                { key: "t", title: "Top 10 days" },
+                { key: "h", title: "Recent hours" },
+                { key: "d", title: "Last 30 days" },
+                { key: "m", title: "Last 12 months" },
             ]);
         });
     });

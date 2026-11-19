@@ -5,6 +5,7 @@ import { expect } from "chai";
 import request from "supertest";
 
 import { app } from "../../src/server";
+import type { DashboardBootstrapPayload } from "../../src/shared/bootstrap-contract";
 
 describe("controllers/locale", () => {
     it("should return normalized locale for a loopback request", async () => {
@@ -38,12 +39,13 @@ describe("controllers/locale", () => {
         expect(res.status).to.equal(403);
     });
 
-    it("should not mutate the dashboard shell locale globally", async () => {
+    it("should not mutate the dashboard bootstrap locale globally", async () => {
         await request(app).get("/set?lang=zh");
-        const res = await request(app).get("/");
+        const res = await request(app).get("/node/bootstrap");
+        const body = res.body as DashboardBootstrapPayload;
 
         expect(res.status).to.equal(200);
-        expect(res.text).to.include("Service Control Center");
-        expect(res.text).to.not.include("服务控制中心");
+        expect(body.locale).to.equal("en");
+        expect(body.messages.title).to.equal("SERVICE_CONTROL_CENTER");
     });
 });

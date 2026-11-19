@@ -18,6 +18,19 @@ export interface ServiceRequestV2 {
     generation: number;
 }
 
+export interface ServiceControlLabels {
+    title: string;
+    status: string;
+    restart: string;
+    enableDisable: string;
+    refresh: string;
+    enabled: string;
+    disabled: string;
+    serviceStatusUnconfirmed: string;
+    serviceStatusStale: string;
+    serviceStatusLastConfirmedTemplate: string;
+}
+
 export interface ServiceRow {
     id: string;
     name: string;

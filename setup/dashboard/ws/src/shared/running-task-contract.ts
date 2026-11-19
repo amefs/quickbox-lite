@@ -6,6 +6,7 @@ export interface RunningTaskData {
     active: boolean;
     kind: RunningTaskOperation | "package";
     operation: RunningTaskOperation | "";
+    title?: string;
     text: string;
     viewLogLabel: string;
     abortLabel: string;
@@ -24,6 +25,7 @@ export function isRunningTaskData(value: unknown): value is RunningTaskData {
     return typeof record.active === "boolean" &&
         (record.kind === "install" || record.kind === "remove" || record.kind === "update" || record.kind === "package") &&
         (record.operation === "" || record.operation === "install" || record.operation === "remove" || record.operation === "update") &&
+        (record.title === undefined || typeof record.title === "string") &&
         typeof record.text === "string" &&
         typeof record.viewLogLabel === "string" &&
         typeof record.abortLabel === "string" &&

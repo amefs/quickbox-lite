@@ -2,15 +2,24 @@ import { AsyncLocalStorage } from "async_hooks";
 
 import { I18n } from "./vendor/i18n";
 
-import da from "../../lang/lang_da.json";
-import de from "../../lang/lang_de.json";
-import en from "../../lang/lang_en.json";
-import es from "../../lang/lang_es.json";
-import fr from "../../lang/lang_fr.json";
-import zh from "../../lang/lang_zh-Hans-CN.json";
-
-const translations = { da, de, en, es, fr, zh };
-const baseI18n = new I18n(translations, { enableFallback: true });
+const translations: Record<string, Record<string, string>> = {
+    da: {},
+    de: {},
+    en: {},
+    es: {},
+    fr: {},
+    zh: {},
+};
+const createScopedI18n = (locale?: string): I18n => {
+    const instance = new I18n(translations, {
+        ...(locale ? { locale } : {}),
+        enableFallback: true,
+        missingBehavior: "guess",
+    });
+    instance.missingTranslation.get = (scope) => (Array.isArray(scope) ? scope.join(".") : String(scope));
+    return instance;
+};
+const baseI18n = createScopedI18n();
 const i18nStorage = new AsyncLocalStorage<I18n>();
 const localeAliases: Record<string, string> = {
     "zh-cn": "zh",
@@ -23,7 +32,7 @@ function getActiveI18n(): I18n {
 }
 
 export function withLocale<T>(locale: string, callback: () => T | Promise<T>): T | Promise<T> {
-    const scopedI18n = new I18n(translations, { locale: normalizeLocale(locale), enableFallback: true });
+    const scopedI18n = createScopedI18n(normalizeLocale(locale));
     return i18nStorage.run(scopedI18n, callback);
 }
 

@@ -10,14 +10,14 @@ describe("widgets/service-control", () => {
         const result = await serviceControl();
 
         expect(result).to.include("panel-server-service-control");
-        expect(result).to.include("Service Control Center");
+        expect(result).to.include("SERVICE_CONTROL_CENTER");
     });
 
     it("should render a table shell even when no services are installed", async () => {
         const result = await serviceControl();
 
         expect(result).to.include("<table");
-        expect(result).to.include("Service Status");
-        expect(result).to.include("Enable/Disable");
+        expect(result).to.include("SERVICE_STATUS");
+        expect(result).to.include("ENABLE_DISABLE_SERVICES");
     });
 });

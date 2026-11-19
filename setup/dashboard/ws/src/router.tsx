@@ -3,17 +3,12 @@
 
 import express, { Router, type Request, type Response } from "express";
 import * as childProcess from "child_process";
-import { createHash } from "crypto";
-import { existsSync, readFileSync, statSync } from "fs";
+import { existsSync } from "fs";
 import path from "path";
-import React from "react";
-import ReactDOMServer from "react-dom/server";
-import { createCache, extractStyle, StyleProvider } from "@ant-design/cssinjs";
 
 import { resolveWidget } from "./handlers/message";
-import i18n, { normalizeLocale, resolveRequestLocale, withLocale } from "./i18n";
-import { DebugPage } from "./debug";
-import { DashboardPage, type DashboardSsrFragments } from "./dashboard-page";
+import i18n, { normalizeLocale, resolveRequestLocale, VALID_LOCALES, withLocale } from "./i18n";
+import { getDebugMeta } from "./debug-meta";
 import { applyDashboardThemeWithExecFile, dashboardConfig } from "./dashboard-config";
 import { isTestMode, setActiveProfile } from "./testing";
 import { dashboardMenu, resolveDashboardMenuState } from "./widgets/menu";
@@ -21,10 +16,8 @@ import { removalModals } from "./widgets/removal-modals";
 import {
     getPackageManagementData,
     getPackageManagementLabels,
-    renderPackageManagementIsland,
 } from "./widgets/package-management-center";
 import { getServiceControlRows } from "./widgets/service-control";
-import { renderServiceControlIsland, type ServiceControlLabels, type ServiceControlTheme } from "./widgets/service-control-island";
 import { getUptimeParts } from "./widgets/up";
 import { diskData, diskDataData } from "./widgets/disk-data";
 import { ramStats, ramStatsData } from "./widgets/memory-stats";
@@ -32,9 +25,16 @@ import { systemLoadData, widgetsLoad } from "./widgets/load";
 import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAction } from "./plugins";
 import { systemStaticInfoWithProviders } from "./system-static";
 import { readOutputLog } from "./widgets/output-log";
-import { resolveDashboardClientBundle } from "./utils/client-assets";
 import { runningTaskData } from "./widgets/running-task";
 import { shouldUpgradeDashboardSocket } from "./auth";
+import { serviceMap } from "./info";
+import type {
+    DashboardBootstrapPayload,
+    DashboardChromeData,
+    DashboardPageLabels,
+} from "./shared/bootstrap-contract";
+import type { ServiceControlLabels } from "./shared/service-control-contract";
+import { isDashboardTheme, type DashboardTheme } from "./shared/theme";
 
 export interface AppRouterOptions {
     /** Absolute path to the dashboard root (setup/dashboard). Used by /debug/assets/* static routes. */
@@ -60,12 +60,13 @@ export function createAppRouter(options: AppRouterOptions): Router {
     const runExecFile = options.execFile ?? childProcess.execFile;
     const skinsDir = options.skinsDir ?? path.join(options.dashboardDir, "skins");
     const debugEnabled = process.env.NODE_ENV !== "production" || process.env.QUICKBOX_WS_DEBUG === "1";
-    const reactClientBundlePath = resolveDashboardClientBundle(options.dashboardDir);
-    const readDashboardTheme = (req?: Request): ServiceControlTheme => {
+    const webDistDir = path.join(options.dashboardDir, "web", "dist");
+    const webIndexHtmlPath = path.join(webDistDir, "index.html");
+    const readDashboardTheme = (req?: Request): DashboardTheme => {
         const cookieHeader = req?.headers.cookie;
         if (typeof cookieHeader === "string") {
             const match = /(?:^|;\s*)quickbox_theme=(smoked|defaulted)(?:;|$)/.exec(cookieHeader);
-            if (match?.[1] === "smoked" || match?.[1] === "defaulted") {
+            if (isDashboardTheme(match?.[1])) {
                 return match[1];
             }
         }
@@ -90,43 +91,27 @@ export function createAppRouter(options: AppRouterOptions): Router {
     };
 
     router.use("/skins", express.static(skinsDir));
-    router.use("/fonts", express.static(path.join(options.dashboardDir, "fonts")));
-    router.use("/img", express.static(path.join(options.dashboardDir, "img")));
-    router.use("/js", express.static(path.join(options.dashboardDir, "js")));
-    router.use("/css", express.static(path.join(options.dashboardDir, "css")));
-    router.use("/lang", express.static(path.join(options.dashboardDir, "lang")));
 
-    const assetVersionCache = new Map<string, { mtimeMs: number; size: number; hash: string }>();
-    const assetVersion = (relativePath: string): string => {
-        try {
-            const fullPath = path.join(options.dashboardDir, relativePath);
-            const stat = statSync(fullPath);
-            const cached = assetVersionCache.get(relativePath);
-            if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
-                return cached.hash;
-            }
-            const hash = createHash("sha256").update(readFileSync(fullPath)).digest("hex").slice(0, 12);
-            assetVersionCache.set(relativePath, { mtimeMs: stat.mtimeMs, size: stat.size, hash });
-            return hash;
-        } catch {
-            return "";
-        }
-    };
+    router.use(express.static(webDistDir, { index: false }));
 
-    // ── Root ─────────────────────────────────────────────────────────────────
+    // ── Root & Bootstrap ────────────────────────────────────────────────────
 
-    const renderDashboard = async (req: Request, res: Response, basePath = "") => {
-        if (!reactClientBundlePath) {
-            res.status(503).type("text/plain").send("Dashboard client bundle is unavailable");
+    const serveDashboardIndex = (_req: Request, res: Response) => {
+        if (!existsSync(webIndexHtmlPath)) {
+            res.status(503).type("text/plain").send("Dashboard web bundle is unavailable");
             return;
         }
+        res.sendFile(webIndexHtmlPath);
+    };
+
+    const buildBootstrapPayload = async (req: Request, basePath = ""): Promise<DashboardBootstrapPayload> => {
         const locale = resolveRequestLocale(req);
-        const html = await withLocale(locale, async () => {
+        return await withLocale(locale, async () => {
+            const config = dashboardConfig();
             const menuState = await resolveDashboardMenuState();
             const dashboardTheme = readDashboardTheme(req);
             const packageManagementData = getPackageManagementData();
             const packageManagementLabels = getPackageManagementLabels();
-            const packageManagementIsland = renderPackageManagementIsland(packageManagementData, packageManagementLabels, dashboardTheme);
             const serviceControlRows = getServiceControlRows();
             const serviceControlLabels: ServiceControlLabels = {
                 title: i18n.t("SERVICE_CONTROL_CENTER"),
@@ -140,60 +125,134 @@ export function createAppRouter(options: AppRouterOptions): Router {
                 serviceStatusStale: i18n.t("SERVICE_STATUS_STALE"),
                 serviceStatusLastConfirmedTemplate: i18n.t("SERVICE_STATUS_LAST_CONFIRMED", { time: "__SERVICE_STATUS_TIME__" }),
             };
-            const serviceControlTheme: ServiceControlTheme = dashboardTheme;
-            const serviceControlFragment = renderServiceControlIsland({ rows: serviceControlRows, labels: serviceControlLabels, theme: serviceControlTheme, statusById: {} });
             const uptimeParts = getUptimeParts();
-            const ssrFragments: DashboardSsrFragments = {
-                serviceControlHtml: serviceControlFragment.html,
-                serviceControlRows,
-                serviceControlLabels,
-                serviceControlTheme,
-                packageManagementCenterHtml: packageManagementIsland.html,
-                runningTask: runningTaskData(),
-                packageManagementRuntime: { data: packageManagementData, labels: packageManagementLabels, theme: dashboardTheme },
-                uptimeHtml: "",
-                uptimeParts,
-                diskDataHtml: "",
-                ramStatsHtml: "",
-                loadHtml: "",
-                cpuStaticHtml: "",
-                networkInterfaces: [],
+            const chrome: DashboardChromeData = {
+                locale,
+                config: {
+                    username: config.username,
+                    version: config.version,
+                    branch: config.branch,
+                    branchCommit: config.branchCommit,
+                    developerLabel: i18n.t("DEV_REPO_TXT", { branch: config.branch }),
+                    showDeveloper: config.showDeveloper,
+                    hasExternalAuth: config.hasExternalAuth,
+                    ssoLogoutUrl: config.ssoLogoutUrl,
+                    languages: config.languages,
+                    themes: config.themes,
+                    bwPages: config.bwPages,
+                },
+                menuState,
+                labels: {
+                    language: i18n.t("LANG_SELECT"),
+                    theme: i18n.t("THEME_SELECT"),
+                    bandwidth: i18n.t("BW_SELECT"),
+                    panelConfig: i18n.t("PANEL_CONFIG"),
+                    panelReset: i18n.t("PANEL_RESET"),
+                    themeChange: i18n.t("THEME_CHANGE_TXT"),
+                    cancel: i18n.t("CANCEL"),
+                    agree: i18n.t("AGREE"),
+                    mainMenu: i18n.t("MAIN_MENU"),
+                    pluginMenu: i18n.t("RPLUGIN_MENU"),
+                    helpCommands: i18n.t("HELP_COMMANDS"),
+                    downloads: i18n.t("DOWNLOADS"),
+                    webConsole: i18n.t("WEB_CONSOLE"),
+                    quickSystemTips: i18n.t("QUICK_SYSTEM_TIPS"),
+                    seedboxCommands: i18n.t("SEEDBOX_COMMANDS"),
+                    essentialUserCommands: i18n.t("ESSENTIAL_USER_COMMANDS"),
+                    systemUpgrade: i18n.t("SYS_UPGRADE_TXT"),
+                    setLanguage: i18n.t("SET_LANG_TXT"),
+                    changeInterface: i18n.t("CHANGEINTERFACE_TXT"),
+                    cleanMemory: i18n.t("CLEAN_MEM_TXT"),
+                    cleanLog: i18n.t("CLEAN_LOG_TXT"),
+                    diskTest: i18n.t("DISKTEST_TXT"),
+                    appInstall: i18n.t("APP_INSTALL_TXT"),
+                    appUninstall: i18n.t("APP_UNINSTALL_TXT"),
+                    appUpgrade: i18n.t("APP_UPGRADE_TXT"),
+                    changePassword: i18n.t("CHANGEUSERPASS_TXT"),
+                    fixDpkg: i18n.t("FIX_DPKG_TXT"),
+                    troubleshoot: i18n.t("TROUBLESHOOT_TXT"),
+                    restartRtorrent: i18n.t("SCREEN_RTORRNENT_TXT"),
+                    switchDev: i18n.t("SWITCH_DEV"),
+                    switchMaster: i18n.t("SWITCH_MASTER"),
+                    branchOther: i18n.t("BRANCH_OTHER"),
+                    branchSwitch: i18n.t("BRANCH_SWITCH"),
+                    branchCurrent: i18n.t("BRANCH_CURRENT"),
+                    branchTarget: i18n.t("BRANCH_TARGET"),
+                    branchLoading: i18n.t("BRANCH_LOADING"),
+                    branchListError: i18n.t("BRANCH_LIST_ERROR"),
+                    branchWarning: i18n.t("BRANCH_WARNING"),
+                    branchLoadFailed: i18n.t("BRANCH_LOAD_FAILED"),
+                    branchSelect: i18n.t("BRANCH_SELECT"),
+                    branchRetry: i18n.t("BRANCH_RETRY"),
+                    branchUpdate: i18n.t("BRANCH_UPDATE"),
+                    branchSwitchAction: i18n.t("BRANCH_SWITCH_ACTION"),
+                    ssoLogout: i18n.t("SSO_LOGOUT_TXT"),
+                    issueReport: i18n.t("ISSUE_REPORT_TXT"),
+                },
             };
-            const pageStyleCache = createCache();
-            const rendered = ReactDOMServer.renderToString(
-                <StyleProvider cache={pageStyleCache}>
-                    <DashboardPage
-                        basePath={basePath}
-                        socketUpgrade={shouldUpgradeDashboardSocket(req.headers)}
-                        locale={locale}
-                        menuState={menuState}
-                        ssrFragments={ssrFragments}
-                        reactClientBundlePath={reactClientBundlePath}
-                        theme={dashboardTheme}
-                        assetVersions={{ css: assetVersion("css/dashboard.css"), js: "" }}
-                    />
-                </StyleProvider>,
-            );
-            const styleMarkup = [extractStyle(pageStyleCache), serviceControlFragment.styleMarkup, packageManagementIsland.styleMarkup]
-                .filter(Boolean)
-                .join("");
-            return styleMarkup
-                ? rendered.replace("</head>", `${styleMarkup}</head>`)
-                : rendered;
+            const pageLabels: DashboardPageLabels = {
+                bandwidthData: i18n.t("BANDWIDTH_DATA"),
+                network: i18n.t("NETWORK"),
+                upload: i18n.t("UPLOAD"),
+                download: i18n.t("DOWNLOAD"),
+                bandwidthDetails: i18n.t("VIEW_ADDITIONAL_BANDWIDTH_DETAILS"),
+                serverLoad: i18n.t("SERVER_LOAD"),
+                serverLoadText: i18n.t("SL_TXT"),
+                uptime: i18n.t("UPTIME"),
+                cpuStatus: i18n.t("CPU_STATUS"),
+                diskStatus: i18n.t("YOUR_DISK_STATUS"),
+                ramStatus: i18n.t("SYSTEM_RAM_STATUS"),
+                recentUpdates: i18n.t("RECENT_UPDATES"),
+                changelogTitle: i18n.t("CURRENT_VERSIONS_CHANGELOG"),
+                update: i18n.t("UPDATE"),
+            };
+            return {
+                basePath: basePath === "/ws" ? "/ws" : "",
+                locale,
+                locales: VALID_LOCALES,
+                serviceKeys: [...serviceMap.keys()],
+                messages: {
+                    systemResponse: i18n.t("SYSTEM_RESPONSE_TITLE"),
+                    closeRefresh: i18n.t("CLOSE_REFRESH"),
+                    close: i18n.t("CLOSE"),
+                    ...serviceControlLabels,
+                },
+                socketUpgrade: shouldUpgradeDashboardSocket(req.headers),
+                serviceTheme: dashboardTheme,
+                serviceRows: serviceControlRows,
+                systemSummary: {
+                    uptime: uptimeParts,
+                    labels: {
+                        days: i18n.t("DAYS_L"),
+                        hours: i18n.t("HOURS_L"),
+                        minutes: i18n.t("MINUTES_L"),
+                    },
+                },
+                networkInterfaces: [],
+                networkInterfacesLoaded: false,
+                runningTask: runningTaskData(),
+                packageManagement: {
+                    data: packageManagementData,
+                    labels: packageManagementLabels,
+                    theme: dashboardTheme,
+                },
+                chrome,
+                pageLabels,
+            };
         });
-        res.send(`<!DOCTYPE html>${html}`);
     };
 
-    router.get("/", async (req: Request, res: Response) => {
-        await renderDashboard(req, res);
+    router.get("/", serveDashboardIndex);
+    router.get("/index.html", serveDashboardIndex);
+    router.get("/ws", serveDashboardIndex);
+    router.get("/ws/", serveDashboardIndex);
+
+    router.get("/node/bootstrap", async (req: Request, res: Response) => {
+        res.json(await buildBootstrapPayload(req));
     });
 
-    router.get("/ws", async (req: Request, res: Response) => {
-        await renderDashboard(req, res, "/ws");
-    });
-
-    router.get("/ws/", async (req: Request, res: Response) => {
-        await renderDashboard(req, res, "/ws");
+    router.get("/ws/node/bootstrap", async (req: Request, res: Response) => {
+        res.json(await buildBootstrapPayload(req, "/ws"));
     });
 
     // ── Locale ───────────────────────────────────────────────────────────────
@@ -330,11 +389,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
     // ── Debug endpoints ───────────────────────────────────────────────────────
 
     if (debugEnabled) {
-        router.use("/debug/assets/skins", express.static(skinsDir));
-        router.use("/debug/assets/fonts", express.static(path.join(options.dashboardDir, "fonts")));
-        router.use("/debug/assets/css", express.static(path.join(options.dashboardDir, "css")));
-
-        router.get("/debug/node", async (req: Request, res: Response) => {
+        const handleDebugNode = async (req: Request, res: Response) => {
             const url = req.query.url;
             if (typeof url !== "string" || !url) {
                 res.status(400).json({ error: "url query param required, e.g. /debug/node?url=/node/up" });
@@ -342,11 +397,18 @@ export function createAppRouter(options: AppRouterOptions): Router {
             }
             const result = await renderWithLocale(req, async () => await resolveWidget(url));
             res.send(result);
-        });
+        };
 
-        router.get("/debug", (_req: Request, res: Response) => {
-            res.send(ReactDOMServer.renderToString(<DebugPage theme={readDashboardTheme()} />));
+        router.get("/debug", serveDashboardIndex);
+        router.get("/ws/debug", serveDashboardIndex);
+        router.get("/debug/meta", (req: Request, res: Response) => {
+            res.json(getDebugMeta(readDashboardTheme(req)));
         });
+        router.get("/ws/debug/meta", (req: Request, res: Response) => {
+            res.json(getDebugMeta(readDashboardTheme(req), "/ws"));
+        });
+        router.get("/debug/node", handleDebugNode);
+        router.get("/ws/debug/node", handleDebugNode);
     }
 
     // ── Test-only endpoints ───────────────────────────────────────────────────

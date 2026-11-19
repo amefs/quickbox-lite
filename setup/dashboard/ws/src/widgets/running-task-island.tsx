@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React from "react";
-import { LoadingOutlined } from "@ant-design/icons";
 
 import type { RunningTaskData } from "../shared/running-task-contract";
 
@@ -17,7 +16,7 @@ export function RunningTaskIsland({ data }: { data: RunningTaskData | null }) {
             data-task={data.kind}
             data-operation={data.operation}
         >
-            <LoadingOutlined className="qb-running-task-icon" aria-hidden="true" />
+            <span className="qb-running-task-icon" aria-hidden="true" />
             <span className="qb-running-task-text">{data.text}</span>
             <span className="qb-running-task-actions">
                 <button

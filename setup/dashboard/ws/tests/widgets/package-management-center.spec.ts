@@ -10,8 +10,8 @@ describe("widgets/package-management-center", () => {
         const result = await packageManagementCenter();
 
         expect(result).to.include("panel-server-package-management");
-        expect(result).to.include("Package Management Center");
-        expect(result).to.include("Heads Up!");
+        expect(result).to.include("PACKAGE_MANAGEMENT_CENTER");
+        expect(result).to.include("PMC_NOTICE_TXT");
     });
 
     it("should include package rows", async () => {
@@ -19,13 +19,12 @@ describe("widgets/package-management-center", () => {
 
         expect(result).to.include("<table");
         expect(result).to.include("AutoDL-iRSSi");
-        expect(result).to.include("Install");
+        expect(result).to.include("INSTALL");
     });
 
-    it("should render html in package details", async () => {
+    it("should include package description keys", async () => {
         const result = await packageManagementCenter();
 
-        expect(result).to.include("https://hub.docker.com/r/80x86/filebrowser/");
-        expect(result).to.include("<a href=");
+        expect(result).to.include("FILEBROWSER");
     });
 });

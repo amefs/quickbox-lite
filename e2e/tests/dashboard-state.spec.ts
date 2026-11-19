@@ -343,6 +343,7 @@ test.describe("service status recovery", () => {
     test("reconnect restarts dashboard widget polls stopped by repeated errors", async ({ page }) => {
         await page.clock.install({ time: new Date("2026-03-24T14:30:00Z") });
         await openDashboard(page);
+        await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { socket?: { connected?: boolean } }).socket?.connected))).toBe(true);
         await captureNetworkRequests(page);
         await page.evaluate(() => {
             const socket = (window as unknown as { socket: { listeners: (event: string) => unknown[] } }).socket;

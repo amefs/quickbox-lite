@@ -1,0 +1,319 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+
+.qb-package-management .panel-body > .alert {
+    margin: 0;
+}
+
+.qb-package-management--defaulted {
+    --qb-pmc-table-head-background: #d8dce3;
+    --qb-pmc-table-head-color: #3b4354;
+    --qb-pmc-table-background: #f0f1f4;
+    --qb-pmc-table-color: #696c74;
+    --qb-pmc-table-border: #fff;
+    --qb-pmc-table-hover: #e7e9ee;
+}
+
+.qb-package-management--smoked {
+    --qb-pmc-table-head-background: #1d1d1d;
+    --qb-pmc-table-head-color: #fff;
+    --qb-pmc-table-background: #222;
+    --qb-pmc-table-color: #fff;
+    --qb-pmc-table-border: #222;
+    --qb-pmc-table-hover: #333;
+}
+
+.qb-package-management__toolbar {
+    min-height: 61px;
+    margin: 0;
+}
+
+.qb-package-management__toolbar > [class^="col-"]:first-child,
+.qb-package-management__pagination > [class^="col-"]:first-child {
+    padding-left: 0;
+}
+
+.qb-package-management__toolbar > [class^="col-"]:last-child,
+.qb-package-management__pagination > [class^="col-"]:last-child {
+    padding-right: 0;
+}
+
+.qb-package-management__toolbar .dataTables_length,
+.qb-package-management__toolbar .dataTables_filter {
+    min-height: 44px;
+}
+
+.qb-package-management__toolbar .dataTables_filter .ant-input {
+    display: inline-block;
+    width: auto;
+    height: 24px;
+    min-height: 24px;
+    margin-left: 0.5em;
+    padding: 2px 8px;
+    border-color: var(--qb-form-border);
+    border-radius: 2px;
+    background: var(--qb-form-background);
+    box-shadow: none;
+    color: var(--qb-form-color);
+    font-family: inherit;
+    font-size: 11px;
+    line-height: 1.1;
+}
+
+#pmc_widget .qb-package-management__toolbar .dataTables_filter .ant-input:focus {
+    background: var(--qb-form-focus-background);
+    border-color: var(--qb-form-focus-border);
+    outline: none;
+    outline-width: 0;
+    box-shadow: none;
+}
+
+.qb-package-management__toolbar .dataTables_length select {
+    width: 75px;
+    height: 24px;
+    margin: 0 4px;
+    display: inline-block;
+    font-size: 12px;
+}
+
+.qb-package-management__toolbar .dataTables_length label,
+.qb-package-management__toolbar .dataTables_filter label {
+    margin-bottom: 5px;
+    font-weight: 400;
+}
+
+#pmc_widget .qb-package-management__table .ant-table {
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.42857143;
+}
+
+#pmc_widget .qb-package-management__table .ant-table-container {
+    border-inline-start: 0 !important;
+    border-radius: 0;
+}
+
+#pmc_widget .qb-package-management__table .ant-table table {
+    background: var(--qb-pmc-table-background) !important;
+    margin-bottom: -2px;
+}
+
+#pmc_widget .qb-package-management__table .ant-table-thead > tr > th {
+    position: relative;
+    padding: 11px 30px 11px 5px;
+    border: 0;
+    border-radius: 0 !important;
+    background: var(--qb-pmc-table-head-background) !important;
+    color: var(--qb-pmc-table-head-color);
+    font-family: 'Open Sans', 'Helvetica Neue', Helvetica, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-align: left;
+    text-transform: uppercase;
+    vertical-align: bottom;
+}
+
+#pmc_widget .qb-package-management__table .ant-table-thead > tr > th::before {
+    display: none;
+}
+
+#pmc_widget .qb-package-management__table .ant-table-thead > tr > th:focus-visible {
+    outline: 1px auto -webkit-focus-ring-color;
+    outline-offset: 0;
+}
+
+#pmc_widget .qb-package-management__table .ant-table-column-sorters {
+    display: block;
+    height: 17.1429px;
+    min-height: 0;
+    padding: 0;
+    line-height: 17.1429px;
+    position: static;
+}
+
+#pmc_widget .qb-package-management__table .ant-table-column-title {
+    display: block;
+    white-space: nowrap;
+}
+
+#pmc_widget .qb-package-management__table .ant-table-column-sorter {
+    position: absolute;
+    top: 14px;
+    right: 8px;
+    margin: 0;
+    font-family: 'Glyphicons Halflings';
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.2;
+}
+
+#pmc_widget .qb-package-management__table .ant-table-column-sorter-inner {
+    display: none;
+}
+
+#pmc_widget .qb-package-management__table .ant-table-column-sorter::before {
+    content: "\e150";
+}
+
+#pmc_widget .qb-package-management__table th.ant-table-column-sort .ant-table-column-sorter {
+    opacity: 0.5;
+}
+
+#pmc_widget .qb-package-management__table th.ant-table-column-sort .ant-table-column-sorter::before {
+    content: "\e155";
+}
+
+#pmc_widget .qb-package-management__table th.ant-table-column-sort:has(.ant-table-column-sorter-down.active) .ant-table-column-sorter::before {
+    content: "\e156";
+}
+
+#pmc_widget .qb-package-management__table .ant-table-tbody > tr > td {
+    padding: 5px;
+    border: 0;
+    border-top: 1px solid var(--qb-pmc-table-border);
+    background: transparent !important;
+    color: var(--qb-pmc-table-color);
+    font-family: 'Open Sans';
+    font-size: 12px;
+    line-height: 1.42857143;
+    text-align: center;
+    vertical-align: middle;
+}
+
+#pmc_widget .qb-package-management__table .ant-table-tbody > tr {
+    color: var(--qb-pmc-table-color);
+}
+
+#pmc_widget .qb-package-management .ant-btn.btn-danger {
+    border-color: transparent;
+    color: #fff;
+    background: #d9534f;
+}
+
+#pmc_widget .qb-package-management .ant-btn.btn-danger:disabled {
+    border-color: transparent;
+    color: #fff;
+    background: #d9534f;
+    opacity: 0.65;
+}
+
+#pmc_widget .qb-package-management__table .ant-table-tbody > tr:hover > td {
+    background: var(--qb-pmc-table-hover) !important;
+}
+
+.qb-package-management .ant-btn.package-action-btn {
+    box-sizing: border-box;
+    height: 23.5px;
+    padding: 3px 5px 2px;
+    border-radius: 2px;
+    box-shadow: none;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.qb-package-management .ant-btn.btn-default {
+    border-color: var(--qb-button-border);
+    color: var(--qb-button-color);
+    background: var(--qb-button-background);
+}
+
+.qb-package-management .ant-btn.btn-default:hover {
+    border-color: var(--qb-button-hover-border);
+    color: var(--qb-button-hover-color);
+    background: var(--qb-button-hover-background);
+}
+
+.qb-package-management .ant-btn.btn-success {
+    border-color: transparent;
+    color: #fff;
+    background: #4daf7c;
+}
+
+.qb-package-management .ant-btn.btn-info {
+    border-color: #46b8da;
+    color: #fff;
+    background: #5bc0de;
+}
+
+.qb-package-management__pagination {
+    min-height: 61px;
+    margin: 0;
+}
+
+.qb-package-management__pagination .dataTables_info {
+    padding-top: 8px;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.qb-package-management__pagination #dataTable1_paginate {
+    margin: 17px 17px 17px 0;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.qb-package-management__pagination #dataTable1_paginate ul.pagination {
+    display: inline-block;
+    margin: 2px 0;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.qb-package-management__pagination #dataTable1_paginate .pagination > li:not(:first-child):not(:last-child) > a {
+    min-width: 25.15625px;
+    font-size: 16px;
+}
+
+.qb-package-management__pagination #dataTable1_paginate .pagination > li:first-child > a { border-radius: 2px 0 0 2px; }
+.qb-package-management__pagination #dataTable1_paginate .pagination > li:last-child > a { border-radius: 0 2px 2px 0; }
+
+.qb-package-management__pagination #dataTable1_paginate .pagination > .active > a {
+    color: #fff;
+    background-color: #259dab;
+    border-color: transparent;
+}
+
+.qb-package-management__pagination #dataTable1_paginate .pagination > .disabled > a {
+    color: #b8b9be;
+    background-color: var(--qb-pagination-disabled-background);
+    border-color: transparent;
+}
+
+.qb-package-management__lock {
+    padding: 0 12px 12px;
+    font-size: 10px;
+    text-align: center;
+}
+
+.qb-package-management__lock hr {
+    margin: 10px 0;
+}
+
+.qb-package-management .ant-modal .ant-modal-content {
+    border-radius: 4px;
+}
+
+.qb-package-management .ant-modal .ant-modal-title {
+    font-size: 15px;
+}
+
+@media (max-width: 767px) {
+    .qb-package-management__toolbar .dataTables_length,
+    .qb-package-management__toolbar .dataTables_filter,
+    .qb-package-management__pagination .dataTables_info,
+    .qb-package-management__pagination .dataTables_paginate {
+        text-align: center;
+        margin-right: 0;
+    }
+
+    .qb-package-management__toolbar .dataTables_filter .ant-input {
+        max-width: min(220px, calc(100vw - 70px));
+    }
+}

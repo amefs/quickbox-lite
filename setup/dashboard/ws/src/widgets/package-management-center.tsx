@@ -1,14 +1,11 @@
 import React from "react";
-import { createCache, extractStyle, StyleProvider } from "@ant-design/cssinjs";
 import ReactDOMServer from "react-dom/server";
 
 import i18n from "../i18n";
 import { getVisiblePackages, isPackageInstalled } from "./panels";
-import { PackageManagementCenterView } from "./package-management-center-view";
 import type {
     PackageManagementData,
     PackageManagementLabels,
-    PackageManagementTheme,
 } from "../shared/package-management-contract";
 
 export function getPackageManagementData(): PackageManagementData {
@@ -23,6 +20,9 @@ export function getPackageManagementData(): PackageManagementData {
                 descriptionText: descriptionHtml.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
                 installTooltip: pkg.install ? i18n.t(pkg.install) : "",
                 ...(pkg.uninstall ? { uninstallHtml: i18n.t(pkg.uninstall) } : {}),
+                ...(pkg.description ? { descriptionKey: pkg.description } : {}),
+                ...(pkg.install ? { installTooltipKey: pkg.install } : {}),
+                ...(pkg.uninstall ? { uninstallKey: pkg.uninstall } : {}),
                 installed: isPackageInstalled(pkg),
                 boxOnly: pkg.boxonly === true,
             };
@@ -51,16 +51,6 @@ export function getPackageManagementLabels(): PackageManagementLabels {
         searchPlaceholder: "Search:",
         total: "entries",
     };
-}
-
-export function renderPackageManagementIsland(data: PackageManagementData, labels: PackageManagementLabels, theme: PackageManagementTheme) {
-    const cache = createCache();
-    const html = ReactDOMServer.renderToString(
-        <StyleProvider cache={cache}>
-            <PackageManagementCenterView data={data} labels={labels} theme={theme} />
-        </StyleProvider>,
-    );
-    return { html, styleMarkup: extractStyle(cache) };
 }
 
 // eslint-disable-next-line @typescript-eslint/require-await
