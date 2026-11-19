@@ -226,5 +226,13 @@
   "BACKEND_UNAVAILABLE_TITLE": "Backend service unavailable",
   "RETRY": "Reload",
   "BACKEND_RETRYING_DESC": "Unable to reach the QuickBox backend ({{error}}). Retrying ({{attempt}}/{{max}})…",
-  "BACKEND_RETRY_EXHAUSTED_DESC": "Unable to reach the QuickBox backend ({{error}}) after {{max}} attempts. Automatic refresh has stopped."
+  "BACKEND_RETRY_EXHAUSTED_DESC": "Unable to reach the QuickBox backend ({{error}}) after {{max}} attempts. Automatic refresh has stopped.",
+  "SERVICE_ACTION_ENABLE": "enable",
+  "SERVICE_ACTION_DISABLE": "disable",
+  "SERVICE_ACTION_RESTART": "restart",
+  "SERVICE_ACTION_FAILED": "Failed to {{action}} {{service}}: {{reason}}",
+  "SERVICE_ACTION_REASON_TIMEOUT": "command timed out",
+  "SERVICE_ACTION_REASON_BUSY": "too many commands in progress",
+  "SERVICE_ACTION_REASON_INVALID": "invalid service action",
+  "SERVICE_ACTION_REASON_UNKNOWN": "service action failed"
 }

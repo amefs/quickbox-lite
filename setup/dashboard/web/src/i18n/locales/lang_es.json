@@ -226,5 +226,13 @@
   "BACKEND_UNAVAILABLE_TITLE": "Servicio backend no disponible",
   "RETRY": "Recargar",
   "BACKEND_RETRYING_DESC": "No se pudo conectar con el backend de QuickBox ({{error}}). Reintentando ({{attempt}}/{{max}})…",
-  "BACKEND_RETRY_EXHAUSTED_DESC": "No se pudo conectar con el backend de QuickBox ({{error}}) tras {{max}} intentos. Se detuvo la actualización automática."
+  "BACKEND_RETRY_EXHAUSTED_DESC": "No se pudo conectar con el backend de QuickBox ({{error}}) tras {{max}} intentos. Se detuvo la actualización automática.",
+  "SERVICE_ACTION_ENABLE": "habilitar",
+  "SERVICE_ACTION_DISABLE": "deshabilitar",
+  "SERVICE_ACTION_RESTART": "reiniciar",
+  "SERVICE_ACTION_FAILED": "Error al {{action}} {{service}}: {{reason}}",
+  "SERVICE_ACTION_REASON_TIMEOUT": "tiempo de espera agotado",
+  "SERVICE_ACTION_REASON_BUSY": "demasiados comandos en curso",
+  "SERVICE_ACTION_REASON_INVALID": "acción de servicio no válida",
+  "SERVICE_ACTION_REASON_UNKNOWN": "error en la acción del servicio"
 }

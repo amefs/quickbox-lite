@@ -26,6 +26,21 @@
     display: none;
 }
 
+#quickbox-header-root .headermenu > li > .btn-group > .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 64px;
+    padding-top: 0;
+    padding-bottom: 0;
+    line-height: 1.4;
+}
+
+#quickbox-header-root .headermenu > li > .btn-group > .btn .caret {
+    margin-left: 0;
+    margin-top: 0;
+}
+
 #quickbox-header-root .headermenu .btn-group.open > .dropdown-menu {
     display: block;
 }

@@ -5,7 +5,6 @@ import { expect } from "chai";
 import request from "supertest";
 
 import { app } from "../../src/server";
-import type { DashboardBootstrapPayload } from "../../src/shared/bootstrap-contract";
 
 describe("controllers/locale", () => {
     it("should return normalized locale for a loopback request", async () => {
@@ -37,14 +36,5 @@ describe("controllers/locale", () => {
             .set("X-Forwarded-For", "203.0.113.1");
 
         expect(res.status).to.equal(403);
-    });
-
-    it("should not mutate the dashboard bootstrap locale globally", async () => {
-        await request(app).get("/set?lang=zh");
-        const res = await request(app).get("/node/bootstrap");
-        const body = res.body as DashboardBootstrapPayload;
-
-        expect(res.status).to.equal(200);
-        expect(body.locale).to.equal("en");
     });
 });

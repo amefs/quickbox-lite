@@ -10,7 +10,9 @@ export interface UptimeParts {
 }
 
 export interface SystemLoadData {
-    text: string;
+    loadavg?: [number, number, number];
+    currentLoad?: number;
+    processes: number;
 }
 
 export interface SystemSummaryLabels {
@@ -34,9 +36,21 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isNonNegativeInteger = (value: unknown): value is number =>
     typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 
+const isFiniteNumber = (value: unknown): value is number =>
+    typeof value === "number" && Number.isFinite(value);
+
 export function isSystemLoadData(value: unknown): value is SystemLoadData {
-    return isRecord(value) && Object.keys(value).length === 1 &&
-        typeof value.text === "string";
+    if (!isRecord(value) || !isNonNegativeInteger(value.processes)) {
+        return false;
+    }
+    const keys = Object.keys(value);
+    if (keys.length !== 2) {
+        return false;
+    }
+    if (Array.isArray(value.loadavg)) {
+        return value.loadavg.length === 3 && value.loadavg.every(isFiniteNumber);
+    }
+    return isFiniteNumber(value.currentLoad);
 }
 
 export function isUptimeParts(value: unknown): value is UptimeParts {

@@ -21,7 +21,7 @@ function runServer(env: Record<string, string>, timeoutMs = 20000): Promise<RunR
     return new Promise((resolve, reject) => {
         const child: ChildProcessWithoutNullStreams = spawn(
             process.execPath,
-            ["--import", "tsx", path.join(packageRoot, "src", "server.tsx")],
+            ["--import", "tsx", path.join(packageRoot, "src", "server.ts")],
             {
                 cwd: packageRoot,
                 env: {

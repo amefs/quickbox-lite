@@ -153,7 +153,7 @@ export function initDashboardRuntime() {
 
     const basePath = runtime.basePath ?? "";
     window.quickboxApiBase = basePath;
-    window.quickboxLocale = normalizeLocale(runtime.locale);
+    window.quickboxLocale = normalizeLocale(window.quickboxLocale);
     persistLocale(window.quickboxLocale);
 
     window.quickboxWidgetUrl = (url: string) => {
@@ -175,10 +175,6 @@ export function initDashboardRuntime() {
             console.warn(`[ws] stopping updates for ${key}`);
             window.quickboxSystemResponseIsland?.notifyWarning("QuickBox", `Stopped status updates for ${key}`);
         },
-    });
-
-    socket.on("connect", () => {
-        socket.emit("i18n", window.quickboxLocale || "en");
     });
 
     socket.on("service-action-result", (response: unknown) => {
@@ -226,9 +222,6 @@ export function initDashboardRuntime() {
         window.quickboxServiceIsland?.onLocaleChanged(nextLocale);
         persistLocale(nextLocale);
         resetWidgetWriteState();
-        if (socket.connected) {
-            socket.emit("i18n", nextLocale);
-        }
     };
 
     function fetchJson(url: string): Promise<unknown> {

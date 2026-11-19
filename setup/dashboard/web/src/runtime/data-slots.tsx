@@ -9,8 +9,8 @@ import { unified } from "unified";
 import { isBandwidthTableData, type BandwidthIslandBridge, type BandwidthTableData } from "../../../ws/src/shared/bandwidth-contract";
 import type { DashboardBootstrapPayload } from "../../../ws/src/shared/bootstrap-contract";
 import { isCpuStaticData, type CpuStaticData, type CpuStatusBridge } from "../../../ws/src/shared/cpu-status-contract";
-import { isDiskDataData, type DiskDataBridge, type DiskDataData } from "../../../ws/src/shared/disk-data-contract";
-import { isMemoryStatsData, type MemoryStatsBridge, type MemoryStatsData } from "../../../ws/src/shared/memory-stats-contract";
+import { isDiskDataPayload, type DiskDataBridge, type DiskDataPayload } from "../../../ws/src/shared/disk-data-contract";
+import { isMemoryStatsPayload, type MemoryStatsBridge, type MemoryStatsPayload } from "../../../ws/src/shared/memory-stats-contract";
 import {
     isNetworkInterfaces,
     isNetworkSnapshot,
@@ -30,6 +30,7 @@ import { isRunningTaskData, type RunningTaskBridge, type RunningTaskData } from 
 import {
     isSystemLoadData,
     isUptimeParts,
+    type SystemLoadData,
     type SystemSummaryBridge,
     type UptimeParts,
 } from "../../../ws/src/shared/system-summary-contract";
@@ -89,18 +90,18 @@ interface NetworkState {
 }
 
 interface SummaryState {
-    loadText: string | null;
+    load: SystemLoadData | null;
     uptime: UptimeParts | null;
 }
 
 const bandwidthStore = createValueStore<BandwidthTableData | null>(null);
 const cpuStatusStore = createValueStore<CpuStaticData | null>(null);
-const diskDataStore = createValueStore<DiskDataData | null>(null);
-const memoryStatsStore = createValueStore<MemoryStatsData | null>(null);
+const diskDataStore = createValueStore<DiskDataPayload | null>(null);
+const memoryStatsStore = createValueStore<MemoryStatsPayload | null>(null);
 const networkStore = createValueStore<NetworkState>({ interfaces: [], loaded: false, rates: {} });
 const packageStore = createValueStore<PackageManagementData | null>(null);
 const runningTaskStore = createValueStore<RunningTaskData | null>(null);
-const systemSummaryStore = createValueStore<SummaryState>({ loadText: null, uptime: null });
+const systemSummaryStore = createValueStore<SummaryState>({ load: null, uptime: null });
 
 function emptyRates(interfaces: string[], value: string): Record<string, NetworkRate> {
     return Object.fromEntries(interfaces.map((iface) => [iface, { tx: value, rx: value }]));
@@ -130,7 +131,7 @@ export function registerDataIslands(bootstrap: DashboardBootstrapPayload) {
     });
     packageStore.setValue(bootstrap.packageManagement.data);
     runningTaskStore.setValue(bootstrap.runningTask);
-    systemSummaryStore.setValue({ loadText: null, uptime: bootstrap.systemSummary.uptime });
+    systemSummaryStore.setValue({ load: null, uptime: bootstrap.systemSummary.uptime });
 
     window.quickboxBandwidthIsland = {
         onMessage: (value) => {
@@ -147,14 +148,14 @@ export function registerDataIslands(bootstrap: DashboardBootstrapPayload) {
         },
     };
     const updateDisk = (value: unknown) => {
-        if (!isDiskDataData(value)) {return false;}
+        if (!isDiskDataPayload(value)) {return false;}
         diskDataStore.setValue(value);
         return true;
     };
     window.quickboxDiskDataIsland = { onPrefetch: updateDisk, onMessage: updateDisk };
 
     const updateMemory = (value: unknown) => {
-        if (!isMemoryStatsData(value)) {return false;}
+        if (!isMemoryStatsPayload(value)) {return false;}
         memoryStatsStore.setValue(value);
         return true;
     };
@@ -239,12 +240,12 @@ export function registerDataIslands(bootstrap: DashboardBootstrapPayload) {
     window.quickboxSystemSummaryIsland = {
         onPrefetch: (value) => {
             if (!isSystemLoadData(value)) {return false;}
-            systemSummaryStore.setValue({ ...systemSummaryStore.getSnapshot(), loadText: value.text });
+            systemSummaryStore.setValue({ ...systemSummaryStore.getSnapshot(), load: value });
             return true;
         },
         onMessage: (key, value) => {
             if (key === "TOP" && isSystemLoadData(value)) {
-                systemSummaryStore.setValue({ ...systemSummaryStore.getSnapshot(), loadText: value.text });
+                systemSummaryStore.setValue({ ...systemSummaryStore.getSnapshot(), load: value });
                 return true;
             }
             if (key === "UPTIME" && isUptimeParts(value)) {
@@ -340,7 +341,7 @@ export function RunningTaskSlot() {
 
 export function SystemLoadSlot() {
     const state = useSyncExternalStore(systemSummaryStore.subscribe, systemSummaryStore.getSnapshot, systemSummaryStore.getSnapshot);
-    return <SystemLoadValue text={state.loadText} />;
+    return <SystemLoadValue data={state.load} />;
 }
 
 export function UptimeSlot({ bootstrap: _bootstrap }: { bootstrap: DashboardBootstrapPayload }) {

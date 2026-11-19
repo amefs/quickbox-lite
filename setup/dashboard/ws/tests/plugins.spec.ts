@@ -4,7 +4,7 @@ import "mocha";
 import { expect } from "chai";
 import childProcess from "child_process";
 
-import { applyRutorrentPluginActionWithExecFile } from "../src/plugins";
+import { applyRutorrentPluginActionWithExecFile } from "../src/services/packages/plugins";
 
 describe("plugins", () => {
     it("should execute an allowlisted ruTorrent plugin action", async () => {

@@ -61,7 +61,6 @@ interface TrafficEntry {
 
 export interface ParsedTrafficEntry {
     time: number;
-    label: string;
     rx: number;
     tx: number;
     rx_avg: number;
@@ -151,7 +150,6 @@ const buildHourEntries = (
 
         result.push({
             time: ts.getTime(),
-            label: ts.toLocaleTimeString("en-US", { hour: "numeric", hour12: true }),
             rx, // in bytes
             tx, // in bytes
             rx_avg: Math.round(rx / diffTime) * 8, // in bits/s
@@ -178,7 +176,6 @@ const buildDayEntries = (trafficData: TrafficData, jsonVersion: string, dataCoef
 
         result.push({
             time: ts.getTime(),
-            label: ts.toLocaleDateString("en-US", { day: "numeric", month: "short" }),
             rx, // in bytes
             tx, // in bytes
             rx_avg: Math.round(rx / diffTime) * 8, // in bits/s
@@ -206,7 +203,6 @@ const buildMonthEntries = (trafficData: TrafficData, jsonVersion: string, dataCo
 
         result.push({
             time: firstDay.getTime(),
-            label: firstDay.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
             rx, // in bytes
             tx, // in bytes
             rx_avg: Math.round(rx / diffTime) * 8, // in bits/s
@@ -228,7 +224,6 @@ const buildTopEntries = (trafficData: TrafficData, jsonVersion: string, dataCoef
 
         result.push({
             time: ts.getTime(),
-            label: ts.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }),
             rx, // in bytes
             tx, // in bytes
             rx_avg: Math.round(rx / diffTime) * 8, // in bits/s

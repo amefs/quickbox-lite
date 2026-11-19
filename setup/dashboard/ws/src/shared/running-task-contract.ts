@@ -7,10 +7,10 @@ export interface RunningTaskData {
     kind: RunningTaskOperation | "package";
     operation: RunningTaskOperation | "";
     title?: string;
-    text: string;
-    viewLogLabel: string;
-    abortLabel: string;
-    abortConfirm: string;
+    text?: string;
+    viewLogLabel?: string;
+    abortLabel?: string;
+    abortConfirm?: string;
 }
 
 export interface RunningTaskBridge {
@@ -22,12 +22,9 @@ export function isRunningTaskData(value: unknown): value is RunningTaskData {
         return false;
     }
     const record = value as Record<string, unknown>;
+    const optionalStrings = ["title", "text", "viewLogLabel", "abortLabel", "abortConfirm"];
     return typeof record.active === "boolean" &&
-        (record.kind === "install" || record.kind === "remove" || record.kind === "update" || record.kind === "package") &&
-        (record.operation === "" || record.operation === "install" || record.operation === "remove" || record.operation === "update") &&
-        (record.title === undefined || typeof record.title === "string") &&
-        typeof record.text === "string" &&
-        typeof record.viewLogLabel === "string" &&
-        typeof record.abortLabel === "string" &&
-        typeof record.abortConfirm === "string";
+        ["install", "remove", "update", "package"].includes(record.kind as string) &&
+        ["", "install", "remove", "update"].includes(record.operation as string) &&
+        optionalStrings.every((key) => record[key] === undefined || typeof record[key] === "string");
 }

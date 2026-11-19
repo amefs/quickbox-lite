@@ -28,7 +28,19 @@ import {
 } from "antd";
 
 import type { DebugEndpointItem, DebugMetaPayload } from "../../ws/src/shared/bootstrap-contract";
+import { isBandwidthTableData } from "../../ws/src/shared/bandwidth-contract";
+import { isCpuStaticData } from "../../ws/src/shared/cpu-status-contract";
+import { isDiskDataPayload } from "../../ws/src/shared/disk-data-contract";
+import { isMemoryStatsPayload } from "../../ws/src/shared/memory-stats-contract";
+import { isRunningTaskData } from "../../ws/src/shared/running-task-contract";
+import { isSystemLoadData, isUptimeParts } from "../../ws/src/shared/system-summary-contract";
 import type { DashboardTheme } from "../../ws/src/shared/theme";
+import { BandwidthTablesRoot } from "./components/bandwidth-tables-view";
+import { CpuStatusValue } from "./components/cpu-status-island";
+import { DiskDataRoot } from "./components/disk-data-island";
+import { MemoryStatsRoot } from "./components/memory-stats-island";
+import { RunningTaskIsland } from "./components/running-task-island";
+import { SystemLoadValue, UptimeValue } from "./components/system-summary-island";
 import { applyFrontendTheme, getAntdThemeConfig } from "./runtime/theme-store";
 
 interface DebugHistoryEntry {
@@ -43,42 +55,39 @@ interface DebugHistoryEntry {
 
 type FetchStatus = "idle" | "loading" | "ok" | "error";
 
-function formatOutputHtml(rawText: string): string | null {
-    const trimmed = rawText.trimStart();
-    if (trimmed.startsWith("<")) {
-        return rawText;
-    }
+function renderDataPreview(url: string, rawText: string): React.ReactNode | null {
+    let parsed: unknown;
     try {
-        const parsed = JSON.parse(rawText) as unknown;
-        if (parsed && typeof parsed === "object" && "html" in parsed && typeof (parsed as { html?: unknown }).html === "string") {
-            return (parsed as { html: string }).html;
-        }
+        parsed = JSON.parse(rawText);
     } catch {
-        // Non-JSON responses fall back to raw display.
+        return null;
+    }
+    const pathname = url.split("?")[0];
+    if (pathname === "/node/data/system_load" && isSystemLoadData(parsed)) {
+        return <SystemLoadValue data={parsed} />;
+    }
+    if (pathname === "/node/data/system_uptime" && isUptimeParts(parsed)) {
+        return <UptimeValue parts={parsed} labels={{ days: "days", hours: "hrs", minutes: "min" }} />;
+    }
+    if (pathname === "/node/data/system_static" && parsed && typeof parsed === "object" && "cpu" in parsed) {
+        const cpu = (parsed as { cpu?: unknown }).cpu;
+        if (isCpuStaticData(cpu)) {
+            return <CpuStatusValue data={cpu} />;
+        }
+    }
+    if (pathname === "/node/data/disk_data" && isDiskDataPayload(parsed)) {
+        return <DiskDataRoot data={parsed} />;
+    }
+    if (pathname === "/node/data/ram_stats" && isMemoryStatsPayload(parsed)) {
+        return <MemoryStatsRoot data={parsed} />;
+    }
+    if (pathname === "/node/data/bandwidth" && isBandwidthTableData(parsed)) {
+        return <BandwidthTablesRoot data={parsed} />;
+    }
+    if (pathname === "/node/data/task_status" && isRunningTaskData(parsed) && parsed.active) {
+        return <RunningTaskIsland data={parsed} />;
     }
     return null;
-}
-
-function ShadowHtmlPreview({ html, theme }: { html: string; theme: DashboardTheme }) {
-    const hostRef = React.useRef<HTMLDivElement | null>(null);
-
-    React.useEffect(() => {
-        const host = hostRef.current;
-        if (!host) {
-            return;
-        }
-        const shadow = host.shadowRoot ?? host.attachShadow({ mode: "open" });
-        shadow.innerHTML = `<link rel="stylesheet" href="/css/dashboard-foundation.css" /><link rel="stylesheet" href="/css/dashboard-theme-${theme}.css" /><div data-theme="${theme}">${html}</div>`;
-    }, [html, theme]);
-
-    return (
-        <div
-            id="result-rendered"
-            ref={hostRef}
-            data-theme={theme}
-            style={{ padding: 12, borderRadius: 4, border: "1px solid rgba(128,128,128,0.2)" }}
-        />
-    );
 }
 
 function formatRawPretty(rawText: string): string {
@@ -193,7 +202,7 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
     }, [selectedEndpoint, fetchEndpoint]);
 
     const statusTagColor = status === "ok" ? "success" : status === "error" ? "error" : status === "loading" ? "processing" : "default";
-    const renderedHtml = currentResult ? formatOutputHtml(currentResult.rawText) : null;
+    const renderedNode = currentResult ? renderDataPreview(currentResult.url, currentResult.rawText) : null;
 
     return (
         <ConfigProvider theme={getAntdThemeConfig(theme, { colorPrimary: "#2574ab", borderRadius: 4 })}>
@@ -352,8 +361,14 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
                                 ) : !currentResult ? (
                                     <Empty description="Click any widget or service endpoint on the left to inspect its output." />
                                 ) : viewMode === "rendered" ? (
-                                    renderedHtml !== null ? (
-                                        <ShadowHtmlPreview html={renderedHtml} theme={theme} />
+                                    renderedNode !== null ? (
+                                        <div
+                                            id="result-rendered"
+                                            data-theme={theme}
+                                            style={{ padding: 12, borderRadius: 4, border: "1px solid rgba(128,128,128,0.2)" }}
+                                        >
+                                            {renderedNode}
+                                        </div>
                                     ) : (
                                         <pre
                                             id="result-rendered"

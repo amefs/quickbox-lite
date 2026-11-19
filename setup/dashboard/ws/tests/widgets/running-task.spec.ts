@@ -4,56 +4,63 @@
 import "mocha";
 import { expect } from "chai";
 
-import { detectRunningTaskOperation, runningTask } from "../../src/widgets/running-task";
+import { detectRunningTaskOperation, runningTaskData } from "../../src/services/packages/running-task";
 
 describe("widgets/running-task", () => {
-    describe("runningTask()", () => {
-        it("should render nothing while no operation holds the install lock", async () => {
-            expect(await runningTask(() => null)).to.equal("");
+    describe("runningTaskData()", () => {
+        it("should return inactive state while no operation holds the install lock", () => {
+            expect(runningTaskData(() => null)).to.deep.equal({
+                active: false,
+                kind: "package",
+                operation: "",
+            });
         });
 
-        it("should render nothing for a lock without a title", async () => {
-            expect(await runningTask(() => "")).to.equal("");
+        it("should return inactive state for a lock without a title", () => {
+            expect(runningTaskData(() => "")).to.deep.equal({
+                active: false,
+                kind: "package",
+                operation: "",
+            });
         });
 
-        it("should name the running package and offer the log and abort actions", async () => {
-            const html = await runningTask(() => "Jellyfin Media Server", () => "install");
-            expect(html).to.contain("TASK_INSTALL_TXT");
-            expect(html).to.contain('data-qb-system-response=""');
-            expect(html).to.not.contain("data-sysresponse-mode");
-            expect(html).to.contain("data-task-abort");
-            expect(html).to.contain("data-confirm=");
-            expect(html).to.contain('data-task="install"');
-            expect(html).to.contain('data-operation="install"');
+        it("should return structured task metadata without rendered text or labels", () => {
+            expect(runningTaskData(() => "Jellyfin Media Server", () => "install")).to.deep.equal({
+                active: true,
+                kind: "install",
+                operation: "install",
+                title: "Jellyfin Media Server",
+            });
+            expect(runningTaskData(() => "Jellyfin Media Server", () => "remove")).to.deep.equal({
+                active: true,
+                kind: "remove",
+                operation: "remove",
+                title: "Jellyfin Media Server",
+            });
+            expect(runningTaskData(() => "Jellyfin Media Server", () => "update")).to.deep.equal({
+                active: true,
+                kind: "update",
+                operation: "update",
+                title: "Jellyfin Media Server",
+            });
         });
 
-        it("should say what the operation does to the package", async () => {
-            expect(await runningTask(() => "Jellyfin Media Server", () => "install"))
-                .to.contain("TASK_INSTALL_TXT");
-            expect(await runningTask(() => "Jellyfin Media Server", () => "remove"))
-                .to.contain("TASK_UNINSTALL_TXT");
-            expect(await runningTask(() => "Jellyfin Media Server", () => "update"))
-                .to.contain("TASK_UPGRADE_TXT");
+        it("should fall back to package kind when the verb is unknown", () => {
+            expect(runningTaskData(() => "Jellyfin Media Server", () => null)).to.deep.equal({
+                active: true,
+                kind: "package",
+                operation: "",
+                title: "Jellyfin Media Server",
+            });
         });
 
-        it("should fall back to a generic sentence when the verb is unknown", async () => {
-            const html = await runningTask(() => "Jellyfin Media Server", () => null);
-            expect(html).to.contain("TASK_RUNNING_TXT");
-            expect(html).to.contain('data-task="package"');
-            expect(html).to.contain('data-operation=""');
-        });
-
-        it("should label an update instead of naming the lock owner", async () => {
-            // qbUpdate takes the lock under its own name.
-            const html = await runningTask(() => "QuickBox", () => "update");
-            expect(html).to.contain("TASK_RUNNING_TXT");
-            expect(html).to.contain('data-task="update"');
-        });
-
-        it("should announce itself as a status region", async () => {
-            const html = await runningTask(() => "Jellyfin Media Server", () => "install");
-            expect(html).to.contain('role="status"');
-            expect(html).to.contain("alert-warning");
+        it("should label QuickBox updates with kind=update", () => {
+            expect(runningTaskData(() => "QuickBox", () => "update")).to.deep.equal({
+                active: true,
+                kind: "update",
+                operation: "update",
+                title: "QuickBox",
+            });
         });
     });
 

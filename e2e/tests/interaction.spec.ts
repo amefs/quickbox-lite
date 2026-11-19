@@ -35,7 +35,7 @@ test.describe("Language Switching", () => {
 
         // Load the Ant Design debug page to verify visually
         await page.goto(`${WS_BASE_URL}/debug`);
-        await page.locator("[data-url='/node/up']").click();
+        await page.locator("[data-url='/node/data/system_uptime']").click();
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
         await snap(page, testInfo, "language-chinese-uptime");
     });

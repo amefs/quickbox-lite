@@ -2,11 +2,18 @@
 
 import React from "react";
 
-import type { UptimeParts } from "../../../ws/src/shared/system-summary-contract";
+import type { SystemLoadData, UptimeParts } from "../../../ws/src/shared/system-summary-contract";
 import { SystemLoadPlaceholder } from "./placeholder";
 
-export function SystemLoadValue({ text }: { text: string | null }) {
-    return text === null ? <SystemLoadPlaceholder /> : text;
+export function formatSystemLoad(data: SystemLoadData): string {
+    if (Array.isArray(data.loadavg)) {
+        return `${data.loadavg.map((load) => load.toFixed(2)).join(" ")} ${data.processes}`;
+    }
+    return `${(data.currentLoad ?? 0).toFixed(2)}% ${data.processes}`;
+}
+
+export function SystemLoadValue({ data }: { data: SystemLoadData | null }) {
+    return data === null ? <SystemLoadPlaceholder /> : <>{formatSystemLoad(data)}</>;
 }
 
 export function UptimeValue({ parts, labels }: {

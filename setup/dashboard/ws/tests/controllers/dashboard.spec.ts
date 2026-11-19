@@ -51,19 +51,4 @@ describe("controllers/dashboard", () => {
         expect(bootstrapRes.body).to.have.property("chrome").that.is.an("object");
         expect(bootstrapRes.body).to.have.property("systemSummary").that.is.an("object");
     });
-
-    it("should keep locale runtime in sync for query, cookie and accept-language", async () => {
-        const byQuery = await request(app).get("/node/bootstrap?locale=zh");
-        const byCookie = await request(app).get("/node/bootstrap").set("Cookie", "quickbox_locale=fr");
-        const byHeader = await request(app).get("/node/bootstrap").set("Accept-Language", "de-DE");
-
-        expect(byQuery.status).to.equal(200);
-        expect((byQuery.body as DashboardBootstrapPayload).locale).to.equal("zh");
-
-        expect(byCookie.status).to.equal(200);
-        expect((byCookie.body as DashboardBootstrapPayload).locale).to.equal("fr");
-
-        expect(byHeader.status).to.equal(200);
-        expect((byHeader.body as DashboardBootstrapPayload).locale).to.equal("de");
-    });
 });

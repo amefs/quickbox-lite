@@ -18,7 +18,7 @@ fs.writeFileSync(path.join(dbDir, "master.txt"), `${process.env.E2E_USER || "tes
 fs.writeFileSync(path.join(dbDir, "interface.txt"), `${process.env.E2E_IFACE || "eth0"}\n`);
 fs.writeFileSync(path.join(dbDir, "output.log"), "");
 
-const child = spawn(tsx, ["src/server.tsx"], {
+const child = spawn(tsx, ["src/server.ts"], {
     cwd: wsRoot,
     env: {
         ...process.env,

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 export interface CpuStaticData {
-    model: string;
-    count: number | string;
-    frequency?: string;
+    model?: string;
+    count?: number;
+    speedGHz?: number;
     cache?: string;
 }
 
@@ -14,14 +14,16 @@ export interface CpuStatusBridge {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     value !== null && typeof value === "object" && !Array.isArray(value);
 
+const isFiniteNumber = (value: unknown): value is number =>
+    typeof value === "number" && Number.isFinite(value);
+
 export function isCpuStaticData(value: unknown): value is CpuStaticData {
-    if (!isRecord(value) || typeof value.model !== "string" ||
-        !(typeof value.count === "string" || typeof value.count === "number") ||
-        !["model", "count", "frequency", "cache"].every((key) => Object.hasOwn(value, key) ||
-            (key === "frequency" || key === "cache"))) {
+    if (!isRecord(value)) {
         return false;
     }
-    return Object.keys(value).every((key) => ["model", "count", "frequency", "cache"].includes(key)) &&
-        (value.frequency === undefined || typeof value.frequency === "string") &&
+    return Object.keys(value).every((key) => ["model", "count", "speedGHz", "cache"].includes(key)) &&
+        (value.model === undefined || typeof value.model === "string") &&
+        (value.count === undefined || isFiniteNumber(value.count)) &&
+        (value.speedGHz === undefined || isFiniteNumber(value.speedGHz)) &&
         (value.cache === undefined || typeof value.cache === "string");
 }

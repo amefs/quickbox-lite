@@ -4,7 +4,7 @@
 import "mocha";
 import { expect } from "chai";
 
-import { packageMap, packageList, serviceMap, getPackage } from "../src/info";
+import { packageMap, packageList, serviceMap, getPackage } from "../src/services/packages/info";
 
 describe("info", () => {
     describe("packageMap", () => {

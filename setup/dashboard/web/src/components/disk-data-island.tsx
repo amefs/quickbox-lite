@@ -3,8 +3,52 @@
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import type { DiskDataData, DiskFileSystemRow } from "../../../ws/src/shared/disk-data-contract";
+import type { DiskDataData, DiskDataPayload, DiskDataRawData, DiskFileSystemRow } from "../../../ws/src/shared/disk-data-contract";
+import { formatSize } from "../utils/format";
 import { DiskStatusPlaceholder } from "./placeholder";
+
+function getProgressColor(percent: number): DiskFileSystemRow["progressClass"] {
+    if (percent >= 90) {
+        return "progress-bar-danger";
+    }
+    if (percent >= 70) {
+        return "progress-bar-warning";
+    }
+    return "progress-bar-success";
+}
+
+function getDiskClass(percent: number): DiskFileSystemRow["diskClass"] {
+    if (percent >= 90) {
+        return "disk-danger";
+    }
+    if (percent >= 70) {
+        return "disk-warning";
+    }
+    return "disk-good";
+}
+
+function normalizeDiskData(payload: DiskDataPayload): {
+    fileSystems: DiskFileSystemRow[];
+    torrents: { key: string; title?: string; loaded: number }[];
+} {
+    if ("labels" in payload) {
+        return payload;
+    }
+    const raw: DiskDataRawData = payload;
+    return {
+        fileSystems: raw.fileSystems.map((filesystem) => ({
+            mount: filesystem.mount,
+            used: formatSize(filesystem.used),
+            available: formatSize(filesystem.available),
+            size: formatSize(filesystem.size),
+            percent: filesystem.percent,
+            percentText: "",
+            progressClass: getProgressColor(filesystem.percent),
+            diskClass: getDiskClass(filesystem.percent),
+        })),
+        torrents: raw.torrents,
+    };
+}
 
 function HddIcon({ className }: { className: string }) {
     return (
@@ -55,8 +99,9 @@ const TORRENT_TITLE_KEYS: Record<string, string> = {
     qbittorrent: "QTORRENTS_TITLE",
 };
 
-function DiskDataView({ data }: { data: DiskDataData }) {
+function DiskDataView({ data: payload }: { data: DiskDataPayload }) {
     const { t } = useTranslation();
+    const data = normalizeDiskData(payload);
     const labels = {
         mountPoint: t("MOUNT_POINT"),
         diskSpace: t("DISK_SPACE"),
@@ -71,7 +116,7 @@ function DiskDataView({ data }: { data: DiskDataData }) {
             ))}
             <div>
                 {data.torrents.map((torrent) => {
-                    const title = t(TORRENT_TITLE_KEYS[torrent.key] ?? torrent.title);
+                    const title = t(TORRENT_TITLE_KEYS[torrent.key] ?? torrent.title ?? torrent.key);
                     return (
                         <div key={torrent.key}>
                             <h4>{title}</h4>
@@ -84,6 +129,6 @@ function DiskDataView({ data }: { data: DiskDataData }) {
     );
 }
 
-export function DiskDataRoot({ data }: { data: DiskDataData | null }) {
+export function DiskDataRoot({ data }: { data: DiskDataPayload | null }) {
     return data ? <DiskDataView data={data} /> : <DiskStatusPlaceholder />;
 }
