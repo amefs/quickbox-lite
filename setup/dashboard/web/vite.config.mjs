@@ -86,7 +86,7 @@ function separateModules() {
         },
         generateBundle(_options, bundle) {
             for (const chunk of Object.values(bundle)) {
-                if (chunk.type !== "chunk" || !chunk.isEntry) {
+                if (chunk.type !== "chunk") {
                     continue;
                 }
                 chunk.code = chunk.code.replace(/globalThis\.__QBL_MODULE_BOUNDARY__\((?:"[^"]*"|'[^']*'|`[^`]*`)\)/g, "0\n").trimStart();
@@ -124,13 +124,21 @@ export default defineConfig({
                 chunkFileNames: "assets/[name].js",
                 assetFileNames: "assets/[name][extname]",
                 manualChunks(id) {
-                    if (id.includes("node_modules/antd") || id.includes("node_modules/@ant-design") || id.includes("node_modules/@rc-component")) {
+                    const normalizedId = id.replaceAll("\\", "/");
+                    if (
+                        normalizedId.includes("/src/i18n/") ||
+                        normalizedId.includes("node_modules/i18next") ||
+                        normalizedId.includes("node_modules/react-i18next")
+                    ) {
+                        return "i18n";
+                    }
+                    if (normalizedId.includes("node_modules/antd") || normalizedId.includes("node_modules/@ant-design") || normalizedId.includes("node_modules/@rc-component")) {
                         return "antd";
                     }
-                    if (id.includes("node_modules/react") || id.includes("node_modules/react-dom") || id.includes("node_modules/scheduler")) {
+                    if (normalizedId.includes("node_modules/react") || normalizedId.includes("node_modules/react-dom") || normalizedId.includes("node_modules/scheduler")) {
                         return "react";
                     }
-                    if (id.includes("node_modules/")) {
+                    if (normalizedId.includes("node_modules/")) {
                         return "vendor";
                     }
                     return undefined;

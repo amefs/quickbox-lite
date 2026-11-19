@@ -21,7 +21,6 @@ export interface SystemSummaryLabels {
 
 export interface SystemSummaryRuntime {
     uptime: UptimeParts;
-    labels: SystemSummaryLabels;
 }
 
 export interface SystemSummaryBridge {

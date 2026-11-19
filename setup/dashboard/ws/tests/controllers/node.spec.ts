@@ -11,7 +11,7 @@ import { createControllerTestApp, createExecFileRecorder } from "./test-utils";
 
 interface SystemStaticResponse {
     cpu: {
-        modelHtml: string;
+        model: string;
         count: unknown;
     };
     interfaces: string[];
@@ -104,7 +104,7 @@ describe("controllers/node", () => {
 
         expect(res.status).to.equal(200);
         expect(body).to.have.property("cpu").that.is.an("object");
-        expect(body.cpu).to.have.property("modelHtml").that.is.a("string");
+        expect(body.cpu).to.have.property("model").that.is.a("string");
         expect(body.cpu).to.have.property("count");
         expect(body).to.have.property("interfaces").that.is.an("array");
     });

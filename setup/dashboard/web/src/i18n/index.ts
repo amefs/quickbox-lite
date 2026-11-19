@@ -104,6 +104,10 @@ void i18n.use(initReactI18next).init({
     interpolation: {
         escapeValue: false,
     },
+    react: {
+        transSupportBasicHtmlNodes: true,
+        transKeepBasicHtmlNodesFor: ["br", "strong", "b", "code", "i", "p"],
+    },
 });
 
 export function setLocale(nextLocale: unknown, persistCookie = true): DashboardLocale {

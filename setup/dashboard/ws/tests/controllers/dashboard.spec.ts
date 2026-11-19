@@ -49,7 +49,7 @@ describe("controllers/dashboard", () => {
         expect(bootstrapRes.body).to.have.property("serviceRows").that.is.an("array");
         expect(bootstrapRes.body).to.have.property("packageManagement").that.is.an("object");
         expect(bootstrapRes.body).to.have.property("chrome").that.is.an("object");
-        expect(bootstrapRes.body).to.have.property("pageLabels").that.is.an("object");
+        expect(bootstrapRes.body).to.have.property("systemSummary").that.is.an("object");
     });
 
     it("should keep locale runtime in sync for query, cookie and accept-language", async () => {

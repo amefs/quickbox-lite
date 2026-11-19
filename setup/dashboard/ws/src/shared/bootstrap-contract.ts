@@ -2,7 +2,7 @@
 
 import type { PackageManagementRuntime } from "./package-management-contract";
 import type { RunningTaskData } from "./running-task-contract";
-import type { ServiceControlLabels, ServiceRow } from "./service-control-contract";
+import type { ServiceRow } from "./service-control-contract";
 import type { SystemSummaryRuntime } from "./system-summary-contract";
 import type { DashboardTheme } from "./theme";
 
@@ -11,7 +11,6 @@ export interface DashboardChromeConfig {
     version: string;
     branch: string;
     branchCommit?: string;
-    developerLabel: string;
     showDeveloper: boolean;
     hasExternalAuth: boolean;
     ssoLogoutUrl: string;
@@ -37,24 +36,6 @@ export interface DashboardChromeData {
     locale: string;
     config: DashboardChromeConfig;
     menuState: DashboardChromeMenuState;
-    labels: Record<string, string>;
-}
-
-export interface DashboardPageLabels {
-    bandwidthData: string;
-    network: string;
-    upload: string;
-    download: string;
-    bandwidthDetails: string;
-    serverLoad: string;
-    serverLoadText: string;
-    uptime: string;
-    cpuStatus: string;
-    diskStatus: string;
-    ramStatus: string;
-    recentUpdates: string;
-    changelogTitle: string;
-    update: string;
 }
 
 export interface DashboardBootstrapPayload {
@@ -62,7 +43,6 @@ export interface DashboardBootstrapPayload {
     locale: string;
     locales: readonly string[];
     serviceKeys: string[];
-    messages: ServiceControlLabels & { systemResponse: string; closeRefresh: string; close: string };
     socketUpgrade: boolean;
     serviceTheme: DashboardTheme;
     serviceRows: ServiceRow[];
@@ -72,7 +52,6 @@ export interface DashboardBootstrapPayload {
     runningTask: RunningTaskData;
     packageManagement: PackageManagementRuntime;
     chrome: DashboardChromeData;
-    pageLabels: DashboardPageLabels;
 }
 
 export interface DebugEndpointItem {

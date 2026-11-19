@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React from "react";
+import { Trans } from "react-i18next";
 import {
     AppstoreOutlined,
     CodeOutlined,
@@ -200,10 +201,11 @@ function BranchSwitchDialog({ open, mode, branch, branchCommit, locale, labels, 
             title={labels.branchSwitch}
             width={500}
             centered
+            zIndex={2200}
             wrapProps={{ id: "branchSwitch" }}
             classNames={{ wrapper: "qb-branch-switch-wrap" }}
             onCancel={onCancel}
-            footer={<><Button className="btn btn-default" data-dismiss="modal" onClick={onCancel}>{labels.cancel}</Button><Button id="branchSwitchGo" className="btn btn-primary" type="primary" disabled={!isBranchName(targetBranch) || branchesLoading || branchError} data-update={labels.branchUpdate} data-switch={labels.branchSwitchAction} onClick={() => { if (isBranchName(targetBranch)) {onSwitch(targetBranch);} }}>{buttonLabel}</Button></>}
+            footer={<><Button data-dismiss="modal" onClick={onCancel}>{labels.cancel}</Button><Button id="branchSwitchGo" type="primary" disabled={!isBranchName(targetBranch) || branchesLoading || branchError} data-update={labels.branchUpdate} data-switch={labels.branchSwitchAction} onClick={() => { if (isBranchName(targetBranch)) {onSwitch(targetBranch);} }}>{buttonLabel}</Button></>}
         >
             <div className="branch-current"><div className="branch-label">{labels.branchCurrent}</div><div className="branch-value">{branch}{branchCommit ? <span className="branch-commit">{" "}{branchCommit.slice(0, 12)}</span> : null}</div></div>
             <div className="branch-label" id="branchTargetLabel">{labels.branchTarget}</div>
@@ -343,8 +345,8 @@ export function DashboardHeader({ props, theme = "defaulted" }: { props: Dashboa
                                 <div className={`header-account btn-group${accountOpen ? " open" : ""}`} ref={accountRef}>
                                     <button type="button" className="btn btn-logged" aria-expanded={accountOpen} aria-controls="quickboxAccountDropdown" onClick={() => { setAccountOpen((open) => !open); }}>{props.config.username}<span className="caret"></span></button>
                                     <ul id="quickboxAccountDropdown" className="dropdown-menu pull-right">
-                                        {props.config.branch !== "development" ? <li><a href="#branchSwitch" data-branch-mode="development" onClick={(event) => { event.preventDefault(); openBranchSwitch("development"); }} dangerouslySetInnerHTML={{ __html: props.labels.switchDev }} /></li> : null}
-                                        {props.config.branch !== "master" ? <li><a href="#branchSwitch" data-branch-mode="master" onClick={(event) => { event.preventDefault(); openBranchSwitch("master"); }} dangerouslySetInnerHTML={{ __html: props.labels.switchMaster }} /></li> : null}
+                                        {props.config.branch !== "development" ? <li><a href="#branchSwitch" data-branch-mode="development" onClick={(event) => { event.preventDefault(); openBranchSwitch("development"); }}><Trans i18nKey="SWITCH_DEV" defaults={props.labels.switchDev} /></a></li> : null}
+                                        {props.config.branch !== "master" ? <li><a href="#branchSwitch" data-branch-mode="master" onClick={(event) => { event.preventDefault(); openBranchSwitch("master"); }}><Trans i18nKey="SWITCH_MASTER" defaults={props.labels.switchMaster} /></a></li> : null}
                                         <li><a href="#branchSwitch" data-branch-mode="other" onClick={(event) => { event.preventDefault(); openBranchSwitch("other"); }}>{props.labels.branchOther}</a></li>
                                         {props.config.hasExternalAuth ? <li><a href={`/logout?url=${encodeURIComponent(props.config.ssoLogoutUrl || "/")}`}><LogoutOutlined className="text-warning" aria-hidden="true" /> {props.labels.ssoLogout}</a></li> : null}
                                         <li style={{ borderTop: "1px solid #444" }}><a href="https://github.com/amefs/quickbox-lite/issues/new" target="_blank" rel="noopener noreferrer"><WarningOutlined className="text-warning" aria-hidden="true" /> {props.labels.issueReport}</a></li>

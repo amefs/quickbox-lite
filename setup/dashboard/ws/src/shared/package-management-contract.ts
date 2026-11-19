@@ -7,15 +7,18 @@ export type PackageManagementTheme = "defaulted" | "smoked";
 export interface PackageManagementRow {
     package: string;
     name: string;
-    descriptionHtml: string;
-    descriptionText: string;
-    installTooltip: string;
-    uninstallHtml?: string;
+    descriptionText?: string;
+    installTooltip?: string;
     descriptionKey?: string;
     installTooltipKey?: string;
     uninstallKey?: string;
     installed: boolean;
     boxOnly: boolean;
+}
+
+export interface PackageManagementStateData {
+    installedByPackage: Record<string, boolean>;
+    installLockExists: boolean;
 }
 
 export interface PackageManagementLabels {
@@ -26,8 +29,8 @@ export interface PackageManagementLabels {
     installed: string;
     install: string;
     box: string;
-    noticeHtml: string;
-    clearLockHtml: string;
+    notice: string;
+    clearLockText: string;
     clearLock: string;
     viewLog: string;
     uninstallTitle: string;
@@ -49,7 +52,6 @@ export interface PackageManagementBridge {
 
 export interface PackageManagementRuntime {
     data: PackageManagementData;
-    labels: PackageManagementLabels;
     theme: PackageManagementTheme;
 }
 
@@ -58,13 +60,22 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 function isPackageRow(value: unknown): value is PackageManagementRow {
     return isRecord(value) && typeof value.package === "string" && value.package.length > 0 &&
-        typeof value.name === "string" && typeof value.descriptionHtml === "string" &&
-        typeof value.descriptionText === "string" && typeof value.installTooltip === "string" &&
-        (value.uninstallHtml === undefined || typeof value.uninstallHtml === "string") &&
+        typeof value.name === "string" &&
+        (value.descriptionText === undefined || typeof value.descriptionText === "string") &&
+        (value.installTooltip === undefined || typeof value.installTooltip === "string") &&
+        (value.descriptionKey === undefined || typeof value.descriptionKey === "string") &&
+        (value.installTooltipKey === undefined || typeof value.installTooltipKey === "string") &&
+        (value.uninstallKey === undefined || typeof value.uninstallKey === "string") &&
         typeof value.installed === "boolean" && typeof value.boxOnly === "boolean";
 }
 
 export function isPackageManagementData(value: unknown): value is PackageManagementData {
     return isRecord(value) && Array.isArray(value.rows) && value.rows.every(isPackageRow) &&
+        typeof value.installLockExists === "boolean";
+}
+
+export function isPackageManagementStateData(value: unknown): value is PackageManagementStateData {
+    return isRecord(value) && isRecord(value.installedByPackage) &&
+        Object.values(value.installedByPackage).every((installed) => typeof installed === "boolean") &&
         typeof value.installLockExists === "boolean";
 }

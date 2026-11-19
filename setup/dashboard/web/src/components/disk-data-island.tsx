@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 import type { DiskDataData, DiskFileSystemRow } from "../../../ws/src/shared/disk-data-contract";
 import { DiskStatusPlaceholder } from "./placeholder";
@@ -72,13 +72,10 @@ function DiskDataView({ data }: { data: DiskDataData }) {
             <div>
                 {data.torrents.map((torrent) => {
                     const title = t(TORRENT_TITLE_KEYS[torrent.key] ?? torrent.title);
-                    const loadedHtml = typeof torrent.loaded === "number"
-                        ? t("TORRENTS_LOADED", { loaded: torrent.loaded })
-                        : torrent.loadedHtml;
                     return (
                         <div key={torrent.key}>
                             <h4>{title}</h4>
-                            <p className="nomargin" dangerouslySetInnerHTML={{ __html: loadedHtml }}></p>
+                            <p className="nomargin"><Trans i18nKey="TORRENTS_LOADED" values={{ loaded: torrent.loaded }} /></p>
                         </div>
                     );
                 })}

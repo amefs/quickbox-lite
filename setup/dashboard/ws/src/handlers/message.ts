@@ -15,7 +15,7 @@ import { serviceStatus, serviceStatusAll, serviceStatusAllData } from "../widget
 import { readOutputLog } from "../widgets/output-log";
 import { runningTask, runningTaskData } from "../widgets/running-task";
 import { getServiceControlRows, serviceControl } from "../widgets/service-control";
-import { getPackageManagementData, packageManagementCenter } from "../widgets/package-management-center";
+import { getPackageManagementStateData, packageManagementCenter } from "../widgets/package-management-center";
 import { parseServiceRequestV2, type ServiceRequestV2 } from "../shared/service-control-contract";
 import { SYSTEM_LOAD_DATA_URL, SYSTEM_UPTIME_DATA_URL } from "../shared/system-summary-contract";
 
@@ -96,7 +96,7 @@ const widgetHandlers: Partial<Record<string, WidgetHandler>> = {
     "/widgets/service_control": () => serviceControl(true),
     "/node/pmc": () => packageManagementCenter(),
     "/widgets/pmc": () => packageManagementCenter(),
-    "/node/data/pmc": () => getPackageManagementData(),
+    "/node/data/pmc": () => getPackageManagementStateData(),
     "/db/output.log": (args) => readOutputLog(
         parseLogPosition(args["offset"]),
         parseLogPosition(args["length"]),

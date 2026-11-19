@@ -2,6 +2,9 @@
 
 import React, { useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
+import { toString as mdastToString } from "mdast-util-to-string";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
 
 import { isBandwidthTableData, type BandwidthIslandBridge, type BandwidthTableData } from "../../../ws/src/shared/bandwidth-contract";
 import type { DashboardBootstrapPayload } from "../../../ws/src/shared/bootstrap-contract";
@@ -18,6 +21,7 @@ import {
 } from "../../../ws/src/shared/network-status-contract";
 import {
     isPackageManagementData,
+    isPackageManagementStateData,
     type PackageManagementBridge,
     type PackageManagementData,
     type PackageManagementRow,
@@ -206,6 +210,18 @@ export function registerDataIslands(bootstrap: DashboardBootstrapPayload) {
 
     window.quickboxPackageManagementIsland = {
         onMessage: (value) => {
+            if (isPackageManagementStateData(value)) {
+                const current = packageStore.getSnapshot();
+                if (!current) {return false;}
+                packageStore.setValue({
+                    rows: current.rows.map((row) => ({
+                        ...row,
+                        installed: value.installedByPackage[row.package] ?? row.installed,
+                    })),
+                    installLockExists: value.installLockExists,
+                });
+                return true;
+            }
             if (!isPackageManagementData(value)) {return false;}
             packageStore.setValue(value);
             return true;
@@ -265,6 +281,12 @@ export function NetworkInterfaceRowsSlot() {
     return <NetworkInterfaceRows interfaces={state.interfaces} loaded={state.loaded} rates={state.rates} />;
 }
 
+const markdownTextParser = unified().use(remarkParse);
+
+function markdownToPlainText(markdown: string): string {
+    return mdastToString(markdownTextParser.parse(markdown)).replace(/\s+/g, " ").trim();
+}
+
 export function PackageManagementSlot({ bootstrap, ready = true }: { bootstrap: DashboardBootstrapPayload; ready?: boolean }) {
     const { t } = useTranslation();
     const data = useSyncExternalStore(packageStore.subscribe, packageStore.getSnapshot, packageStore.getSnapshot);
@@ -274,13 +296,11 @@ export function PackageManagementSlot({ bootstrap, ready = true }: { bootstrap: 
     const localizedData: PackageManagementData = {
         ...data,
         rows: data.rows.map((row) => {
-            const descriptionHtml = row.descriptionKey ? t(row.descriptionKey) : row.descriptionHtml;
+            const descriptionSource = row.descriptionKey ? t(row.descriptionKey) : (row.descriptionText ?? "");
             return {
                 ...row,
-                descriptionHtml,
-                descriptionText: descriptionHtml.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
-                installTooltip: row.installTooltipKey ? t(row.installTooltipKey) : row.installTooltip,
-                ...(row.uninstallKey ? { uninstallHtml: t(row.uninstallKey) } : {}),
+                descriptionText: markdownToPlainText(descriptionSource),
+                installTooltip: row.installTooltipKey ? t(row.installTooltipKey) : (row.installTooltip ?? ""),
             };
         }),
     };
@@ -292,8 +312,8 @@ export function PackageManagementSlot({ bootstrap, ready = true }: { bootstrap: 
         installed: t("INSTALLED"),
         install: t("INSTALL"),
         box: t("BOX"),
-        noticeHtml: t("PMC_NOTICE_TXT"),
-        clearLockHtml: t("CLEAR_LOCK_TXT"),
+        notice: t("PMC_NOTICE_TXT"),
+        clearLockText: t("CLEAR_LOCK_TXT"),
         clearLock: t("CLEAR_LOCK"),
         viewLog: t("VIEW_LOG"),
         uninstallTitle: t("UNINSTALL_TITLE"),
