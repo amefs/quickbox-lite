@@ -37,11 +37,14 @@ export interface DashboardChromeData {
     menuState: DashboardChromeMenuState;
 }
 
+export type WsPushMode = "push" | "poll";
+
 export interface DashboardBootstrapPayload {
     basePath: string;
     locales: readonly string[];
     serviceKeys: string[];
     socketUpgrade: boolean;
+    wsPushMode?: WsPushMode;
     serviceTheme: DashboardTheme;
     serviceRows: ServiceRow[];
     systemSummary: SystemSummaryRuntime;

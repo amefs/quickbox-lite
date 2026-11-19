@@ -7,14 +7,20 @@ import i18n from "../i18n";
 import {
     SERVICE_CONTROL_URL,
     SERVICE_STATUS_ALL_URL,
+    isServiceControlData,
     isServiceResponseV2,
+    isServiceStatusAllData,
+    type ServiceControlData,
     type ServiceLocale,
     type ServiceRequestV2,
     type ServiceResponseV2,
     type ServiceRow,
     type ServiceState,
+    type ServiceStatusAllData,
 } from "../../../ws/src/shared/service-control-contract";
-import type { DashboardBootstrapPayload } from "../../../ws/src/shared/bootstrap-contract";
+import type { DashboardBootstrapPayload, WsPushMode } from "../../../ws/src/shared/bootstrap-contract";
+import { DASHBOARD_STREAM_BY_KEY } from "../../../ws/src/shared/widget-streams";
+import { isWsMessageEnvelope } from "../../../ws/src/shared/ws-message";
 import { ServiceControlIsland } from "../components/service-control-island";
 import { ServiceControlPlaceholder } from "../components/placeholder";
 import { scheduleVisibilityInterval } from "./dashboard-runtime-client";
@@ -22,6 +28,7 @@ import { useDashboardTheme } from "./theme-store";
 
 interface ServiceTransport {
     isConnected: () => boolean;
+    pushMode?: WsPushMode;
     sendMessage: (request: ServiceRequestV2) => void;
     executeServiceAction: (request: { requestId: string; service: string; action: "enable" | "disable" | "restart"; locale: ServiceLocale }) => void;
     notifyStopped: (key: string) => void;
@@ -61,9 +68,9 @@ interface ServiceControlSnapshot {
 }
 
 const REQUEST_TIMEOUT_MS = 15_000;
-const SERVICE_CONTROL_INTERVAL_MS = 15_000;
-const SERVICE_STATUS_INTERVAL_MS = 5_000;
-const SERVICE_STATUS_MAX_RETRY_MS = 30_000;
+const SERVICE_CONTROL_INTERVAL_MS = DASHBOARD_STREAM_BY_KEY.SERVICE_CONTROL.visibleMs;
+const SERVICE_STATUS_INTERVAL_MS = DASHBOARD_STREAM_BY_KEY.SERVICE_STATUS_ALL.visibleMs;
+const SERVICE_STATUS_MAX_RETRY_MS = DASHBOARD_STREAM_BY_KEY.SERVICE_STATUS_ALL.hiddenMs;
 
 function normalizeLocale(value: string): ServiceLocale {
     return (["da", "de", "en", "es", "fr", "zh"] as const).includes(value as ServiceLocale)
@@ -191,26 +198,18 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         };
         if (data.health === "unavailable") {
             markAllServiceStatusesStale();
-            scheduleStatusRetry(Math.max(5_000, data.retryAfterMs));
-        } else {
+            if (transport?.pushMode !== "push") {
+                scheduleStatusRetry(Math.max(5_000, data.retryAfterMs));
+            }
+        } else if (transport?.pushMode !== "push") {
             scheduleHealthyStatusPoll();
         }
     };
 
-    const handleResponseError = (request: ServiceRequestV2) => {
-        errorCountByKey[request.key] = (errorCountByKey[request.key] ?? 0) + 1;
-        if (request.key === "SERVICE_STATUS_ALL") {
-            markAllServiceStatusesStale();
-            scheduleStatusRetry();
-            publish();
-        }
-        if (request.key !== "SERVICE_STATUS_ALL" && errorCountByKey[request.key] > 32 && !stoppedKeys.has(request.key)) {
-            stoppedKeys.add(request.key);
-            transport?.notifyStopped(request.key);
-        }
-    };
-
     const sendRequest = (key: ServiceRequestV2["key"]) => {
+        if (transport?.pushMode === "push") {
+            return;
+        }
         if (key === "SERVICE_STATUS_ALL" && Date.now() < nextStatusRequestAt) {
             if (statusRetryTimer) {
                 clearTimeout(statusRetryTimer);
@@ -253,7 +252,62 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         transport.sendMessage(request);
     };
 
+    const applyServiceRows = (rowsData: ServiceRow[]) => {
+        const currentRows = new Map(snapshot.rows.map((row) => [row.id, row]));
+        const rows = rowsData.map((row) =>
+            pendingActionByService.has(row.id) ? currentRows.get(row.id) ?? row : row,
+        );
+        snapshot = { ...snapshot, rows };
+    };
+
+    const applyServiceFailure = (key: ServiceRequestV2["key"]) => {
+        errorCountByKey[key] = (errorCountByKey[key] ?? 0) + 1;
+        if (key === "SERVICE_STATUS_ALL") {
+            markAllServiceStatusesStale();
+            if (transport?.pushMode !== "push") {
+                scheduleStatusRetry();
+            }
+            publish();
+        }
+        if (key !== "SERVICE_STATUS_ALL" && errorCountByKey[key] > 32 && !stoppedKeys.has(key)) {
+            stoppedKeys.add(key);
+            transport?.notifyStopped(key);
+        }
+    };
+
+    const applyServiceSuccess = (key: ServiceRequestV2["key"], data: ServiceControlData | ServiceStatusAllData) => {
+        if (errorCountByKey[key]) {
+            errorCountByKey[key] = Math.max(0, errorCountByKey[key] - 1);
+        }
+        if ("rows" in data) {
+            if (!data.rows.every((row) => knownServiceIds.has(row.id))) {
+                return;
+            }
+            applyServiceRows(data.rows);
+        } else {
+            if (!Object.keys(data.states).every((id) => knownServiceIds.has(id))) {
+                return;
+            }
+            handleStatusData(data);
+        }
+        publish();
+    };
+
     const handleMessage = (payload: unknown) => {
+        if (transport?.pushMode === "push" && isWsMessageEnvelope(payload) && payload.push === true &&
+            (payload.key === "SERVICE_CONTROL" || payload.key === "SERVICE_STATUS_ALL")) {
+            const key = payload.key;
+            if (!payload.success) {
+                applyServiceFailure(key);
+                return;
+            }
+            if (key === "SERVICE_CONTROL" && isServiceControlData(payload.response)) {
+                applyServiceSuccess(key, payload.response);
+            } else if (key === "SERVICE_STATUS_ALL" && isServiceStatusAllData(payload.response)) {
+                applyServiceSuccess(key, payload.response);
+            }
+            return;
+        }
         if (!isServiceResponseV2(payload)) {
             return;
         }
@@ -268,22 +322,10 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         const request = pending.request;
         clearPendingRequest(request.requestId);
         if (response.status === "error") {
-            handleResponseError(request);
+            applyServiceFailure(request.key);
             return;
         }
-        if (errorCountByKey[request.key]) {
-            errorCountByKey[request.key] = Math.max(0, errorCountByKey[request.key] - 1);
-        }
-        if ("rows" in response.data) {
-            const currentRows = new Map(snapshot.rows.map((row) => [row.id, row]));
-            const rows = response.data.rows.map((row) =>
-                pendingActionByService.has(row.id) ? currentRows.get(row.id) ?? row : row,
-            );
-            snapshot = { ...snapshot, rows };
-        } else {
-            handleStatusData(response.data);
-        }
-        publish();
+        applyServiceSuccess(request.key, response.data);
     };
 
     const markServiceStale = (serviceId: string) => {
@@ -364,7 +406,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
             markServiceStale(request.serviceId);
         }
         publish();
-        if (refresh) {
+        if (refresh && transport?.pushMode !== "push") {
             sendRequest("SERVICE_CONTROL");
             if (!statusData) {
                 sendRequest("SERVICE_STATUS_ALL");
@@ -455,7 +497,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
 
     const bindTransport = (next: ServiceTransport) => {
         transport = next;
-        if (scheduled) {
+        if (next.pushMode === "push" || scheduled) {
             return;
         }
         scheduled = true;
@@ -482,6 +524,9 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         }
         if (bootstrapStatusTimer) {
             clearTimeout(bootstrapStatusTimer);
+        }
+        if (transport?.pushMode === "push") {
+            return;
         }
         bootstrapStatusTimer = setTimeout(() => {
             sendRequest("SERVICE_CONTROL");

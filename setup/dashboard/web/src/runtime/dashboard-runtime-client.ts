@@ -2,7 +2,18 @@
 
 import { io, type Socket } from "socket.io-client";
 
-import type { DashboardBootstrapPayload } from "../../../ws/src/shared/bootstrap-contract";
+import type { DashboardBootstrapPayload, WsPushMode } from "../../../ws/src/shared/bootstrap-contract";
+import {
+    DASHBOARD_STREAMS,
+    DISK_DATA_URL,
+    OUTPUT_LOG_URL,
+    RAM_STATS_DATA_URL,
+    SYSTEM_LOAD_DATA_URL,
+    SYSTEM_STATIC_DATA_URL,
+    buildStreamUrl,
+    normalizeBandwidthPage,
+} from "../../../ws/src/shared/widget-streams";
+import type { WsMessageEnvelope } from "../../../ws/src/shared/ws-message";
 
 interface StatusTask {
     key: string;
@@ -26,12 +37,7 @@ interface PendingRequestEntry {
     timeoutId: ReturnType<typeof setTimeout>;
 }
 
-interface WsMessageResponse {
-    requestId?: string;
-    key?: string;
-    url?: string;
-    success?: boolean;
-    response?: unknown;
+interface WsMessageResponse extends Partial<WsMessageEnvelope> {
     meta?: { protocolVersion?: number };
 }
 
@@ -48,6 +54,7 @@ interface RuntimeGlobals {
     locale?: string;
     locales?: string[];
     socketUpgrade?: boolean;
+    wsPushMode?: WsPushMode;
 }
 
 declare global {
@@ -161,14 +168,52 @@ export function initDashboardRuntime() {
         return `${window.quickboxApiBase ?? ""}${url}${separator}locale=${encodeURIComponent(window.quickboxLocale ?? "en")}`;
     };
 
+    function resolveWsPushMode(): WsPushMode {
+        const queryMode = new URLSearchParams(window.location.search).get("pushMode");
+        if (queryMode === "poll" || queryMode === "push") {
+            return queryMode;
+        }
+        try {
+            const stored = localStorage.getItem("quickbox:ws-push-mode");
+            if (stored === "poll" || stored === "push") {
+                return stored;
+            }
+        } catch {
+            // ignore storage errors
+        }
+        return runtime?.wsPushMode === "poll" ? "poll" : "push";
+    }
+
+    const wsPushMode = resolveWsPushMode();
+
     const socket = io(location.origin, {
         path: `${window.quickboxApiBase}/socket.io`,
         upgrade: runtime.socketUpgrade !== false,
     });
     window.socket = socket;
 
+    function getBandwidthPage(): string {
+        try {
+            return normalizeBandwidthPage(localStorage.getItem("bw_tables:page"));
+        } catch {
+            return "t";
+        }
+    }
+
+    function sendSubscribe() {
+        if (!socket.connected) {
+            return;
+        }
+        socket.emit("ws:subscribe", {
+            mode: wsPushMode,
+            bandwidthPage: getBandwidthPage(),
+            hidden: document.hidden,
+        });
+    }
+
     window.quickboxServiceIsland?.bindTransport({
         isConnected: () => socket.connected,
+        pushMode: wsPushMode,
         sendMessage: (request) => { socket.send(request); },
         executeServiceAction: (request) => { socket.emit("service-action", request); },
         notifyStopped: (key) => {
@@ -235,51 +280,30 @@ export function initDashboardRuntime() {
     }
 
     function createStatusTasks(): StatusTask[] {
-        const packageManagementTask: StatusTask = {
-            key: "PMC",
-            url: "/node/data/pmc",
-            id: "#pmc_widget",
-            bootstrap: false,
-            time: 30000,
-            override: (data, response, request) => {
-                const matchesPending = Boolean(
-                    request && response.key === packageManagementTask.key &&
-                    response.url === request.url && response.requestId === request.requestId,
-                );
-                if (matchesPending && window.quickboxPackageManagementIsland?.onMessage(data)) {
-                    markWidgetWritten("#pmc_widget", "ws");
-                } else {
-                    console.warn("[ws] ignored uncorrelated or invalid package-management response,", response);
-                }
-            },
-        };
+        const widgetTasks: StatusTask[] = DASHBOARD_STREAMS
+            .filter((stream) => stream.group === "widget")
+            .map((stream): StatusTask => ({
+                key: stream.key,
+                url: stream.url,
+                ...(stream.urlTemplate ? { urlTemplate: stream.urlTemplate } : {}),
+                ...(stream.elementId ? { id: stream.elementId } : {}),
+                bootstrap: Boolean(stream.bootstrap),
+                time: stream.activeVisibleMs ?? stream.visibleMs,
+                ...(stream.param === "bandwidthPage"
+                    ? {
+                        before: (task: StatusTask) => {
+                            task.url = buildStreamUrl(stream, getBandwidthPage());
+                            return true;
+                        },
+                    }
+                    : {}),
+            }));
 
         return [
-            packageManagementTask,
-            { key: "NETWORK", url: "/node/net_status", bootstrap: true, time: 1000 },
-            { key: "UPTIME", url: "/node/data/system_uptime", id: "#uptime", bootstrap: true, time: 60000 },
-            { key: "TOP", url: "/node/data/system_load", id: "#cpuload", bootstrap: true, time: 60000 },
-            {
-                key: "BANDWIDTH",
-                url: "/node/data/bandwidth",
-                urlTemplate: "/node/data/bandwidth?page={0}",
-                id: "#bw_tables",
-                before: (task) => {
-                    const page = localStorage.getItem("bw_tables:page");
-                    if (page && page.length === 1 && "hdmt".includes(page) && task.urlTemplate) {
-                        task.url = task.urlTemplate.replace("{0}", page);
-                    }
-                    return true;
-                },
-                bootstrap: true,
-                time: 60000,
-            },
-            { key: "DISK_USAGE", url: "/node/data/disk_data", id: "#disk_data", bootstrap: true, time: 15000 },
-            { key: "RAM_USAGE", url: "/node/data/ram_stats", id: "#meterram", bootstrap: true, time: 10000 },
-            { key: "TASK_STATUS", url: "/node/data/task_status", id: "#running_task_widget", bootstrap: true, time: 5000 },
+            ...widgetTasks,
             {
                 key: "SSH_OUTPUT",
-                url: "/db/output.log",
+                url: OUTPUT_LOG_URL,
                 id: "#sshoutput",
                 time: 2000,
                 before: (task) => {
@@ -290,9 +314,9 @@ export function initDashboardRuntime() {
                     const cursor = sysIsland.getOutputCursor();
                     const requestLength = 65536;
                     if (cursor.end >= 0) {
-                        task.url = `/db/output.log?offset=${cursor.end}&length=${requestLength}`;
+                        task.url = `${OUTPUT_LOG_URL}?offset=${cursor.end}&length=${requestLength}`;
                     } else {
-                        task.url = `/db/output.log?length=${requestLength}`;
+                        task.url = `${OUTPUT_LOG_URL}?length=${requestLength}`;
                     }
                     if (cursor.epoch !== undefined) {
                         task.url += `&epoch=${encodeURIComponent(cursor.epoch)}`;
@@ -388,6 +412,10 @@ export function initDashboardRuntime() {
         }
 
         window.addEventListener("quickbox:bandwidth-page-change", () => {
+            if (wsPushMode === "push") {
+                sendSubscribe();
+                return;
+            }
             const task = taskMapping.get("BANDWIDTH");
             if (!task) {
                 return;
@@ -404,6 +432,11 @@ export function initDashboardRuntime() {
                 return;
             }
             bootstrapDispatched = true;
+            sendSubscribe();
+            if (wsPushMode === "push") {
+                window.quickboxServiceIsland?.onConnected(0);
+                return;
+            }
             const bootstrapTasks = statusList.filter((task) => task.bootstrap);
             bootstrapTasks.forEach((task, index) => {
                 queueTask(task, index * 50);
@@ -412,16 +445,31 @@ export function initDashboardRuntime() {
             window.quickboxServiceIsland?.onConnected(serviceStatusDelay);
         }
 
+        function isPushResponse(response: WsMessageResponse): boolean {
+            return response.push === true && wsPushMode === "push";
+        }
+
+        function isCorrelatedResponse(
+            task: StatusTask,
+            response: WsMessageResponse,
+            request: StatusTaskRequest | undefined,
+        ): boolean {
+            if (isPushResponse(response)) {
+                return response.key === task.key;
+            }
+            return Boolean(
+                request && response.key === task.key &&
+                response.url === request.url && response.requestId === request.requestId,
+            );
+        }
+
         function dispatchIslandMessage(
             task: StatusTask,
             response: WsMessageResponse,
             request: StatusTaskRequest | undefined,
         ): boolean {
-            const matchesPending = Boolean(
-                request && response.key === task.key &&
-                response.url === request.url && response.requestId === request.requestId,
-            );
             const islandHandlers: Partial<Record<string, () => boolean>> = {
+                PMC: () => Boolean(window.quickboxPackageManagementIsland?.onMessage(response.response)),
                 TOP: () => Boolean(window.quickboxSystemSummaryIsland?.onMessage("TOP", response.response)),
                 UPTIME: () => Boolean(window.quickboxSystemSummaryIsland?.onMessage("UPTIME", response.response)),
                 NETWORK: () => Boolean(window.quickboxNetworkIsland?.onMessage(response.response)),
@@ -434,7 +482,7 @@ export function initDashboardRuntime() {
             if (!handler) {
                 return false;
             }
-            if (matchesPending && handler()) {
+            if (isCorrelatedResponse(task, response, request) && handler()) {
                 if (errorCountByKey[task.key]) {
                     errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
                 }
@@ -458,7 +506,9 @@ export function initDashboardRuntime() {
         }
 
         socket.on("message", (response: WsMessageResponse) => {
-            if (response.meta?.protocolVersion === 2) {
+            const isServicePush = isPushResponse(response) &&
+                (response.key === "SERVICE_CONTROL" || response.key === "SERVICE_STATUS_ALL");
+            if (isServicePush || response.meta?.protocolVersion === 2) {
                 window.quickboxServiceIsland?.onMessage(response);
                 return;
             }
@@ -513,6 +563,19 @@ export function initDashboardRuntime() {
 
         if (socket.connected) {
             dispatchBootstrapTasks();
+        }
+
+        if (wsPushMode === "push") {
+            document.addEventListener("visibilitychange", () => {
+                sendSubscribe();
+            });
+            if (sshOutputTask) {
+                const logTask = sshOutputTask;
+                scheduleVisibilityInterval(logTask.time, 10 * logTask.time, () => {
+                    queueTask(logTask, 0);
+                });
+            }
+            return;
         }
 
         const taskGroups: Record<string, StatusTask[]> = {};
@@ -649,7 +712,7 @@ export function initDashboardRuntime() {
     };
 
     function loadNodeFragments() {
-        fetchJson("/node/data/system_static")
+        fetchJson(SYSTEM_STATIC_DATA_URL)
             .then((payload) => {
                 const data = payload as { cpu?: unknown; interfaces?: unknown } | null;
                 if (data?.cpu && !window.quickboxCpuStatusIsland?.onMessage(data.cpu)) {
@@ -663,7 +726,7 @@ export function initDashboardRuntime() {
                 console.warn("[ws] failed to load static system info", error);
             });
 
-        fetchJson("/node/data/system_load").then((data) => {
+        fetchJson(SYSTEM_LOAD_DATA_URL).then((data) => {
             if (widgetWriteSourceOf("#cpuload") !== "") {
                 return;
             }
@@ -672,7 +735,7 @@ export function initDashboardRuntime() {
             }
         }).catch(() => { /* WebSocket will fill in later */ });
 
-        fetchJson("/node/data/disk_data").then((data) => {
+        fetchJson(DISK_DATA_URL).then((data) => {
             if (widgetWriteSourceOf("#disk_data") !== "") {
                 return;
             }
@@ -681,7 +744,7 @@ export function initDashboardRuntime() {
             }
         }).catch(() => { /* WebSocket will fill in later */ });
 
-        fetchJson("/node/data/ram_stats").then((data) => {
+        fetchJson(RAM_STATS_DATA_URL).then((data) => {
             if (widgetWriteSourceOf("#meterram") !== "") {
                 return;
             }

@@ -10,8 +10,12 @@ import { getPackageManagementData } from "../services/packages/pmc";
 import { runningTaskData } from "../services/packages/running-task";
 import { getServiceControlRows } from "../services/service/control";
 import { getUptimeParts } from "../services/system/uptime";
-import type { DashboardBootstrapPayload, DashboardChromeData } from "../shared/bootstrap-contract";
+import type { DashboardBootstrapPayload, DashboardChromeData, WsPushMode } from "../shared/bootstrap-contract";
 import { readDashboardTheme, serveDashboardIndex } from "./utils";
+
+function resolveWsPushMode(): WsPushMode {
+    return process.env.QUICKBOX_WS_PUSH_MODE === "poll" ? "poll" : "push";
+}
 
 export async function buildBootstrapPayload(
     dashboardDir: string,
@@ -44,6 +48,7 @@ export async function buildBootstrapPayload(
         locales: VALID_LOCALES,
         serviceKeys: [...serviceMap.keys()],
         socketUpgrade: shouldUpgradeDashboardSocket(req.headers),
+        wsPushMode: resolveWsPushMode(),
         serviceTheme: dashboardTheme,
         serviceRows: serviceControlRows,
         systemSummary: {

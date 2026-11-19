@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-export const SERVICE_CONTROL_URL = "/node/v2/service_control" as const;
-export const SERVICE_STATUS_ALL_URL = "/node/v2/service_status_all" as const;
+import { SERVICE_CONTROL_URL, SERVICE_STATUS_ALL_URL } from "./widget-streams";
+
+export { SERVICE_CONTROL_URL, SERVICE_STATUS_ALL_URL };
 export const SERVICE_LOCALES = ["da", "de", "en", "es", "fr", "zh"] as const;
 
 export type ServiceLocale = typeof SERVICE_LOCALES[number];
@@ -126,15 +127,26 @@ function isResponseMeta(value: unknown): value is ServiceResponseMeta {
             (value.key === "SERVICE_STATUS_ALL" && value.url === SERVICE_STATUS_ALL_URL));
 }
 
+export interface ServiceControlData {
+    rows: ServiceRow[];
+}
+
+export interface ServiceStatusAllData {
+    states: Record<string, ServiceState>;
+    health: "ok" | "degraded" | "unavailable";
+    retryAfterMs: number;
+}
+
+export function isServiceControlData(value: unknown): value is ServiceControlData {
+    return isRecord(value) && hasExactKeys(value, ["rows"]) &&
+        Array.isArray(value.rows) && value.rows.every(isServiceRow);
+}
+
 function isServiceControlDataResponse(value: Record<string, unknown>, status: "success" | "empty") {
-    if (!hasExactKeys(value, ["meta", "status", "data"]) || !isRecord(value.data) ||
-        !hasExactKeys(value.data, ["rows"]) || !Array.isArray(value.data.rows)) {
+    if (!hasExactKeys(value, ["meta", "status", "data"]) || !isServiceControlData(value.data)) {
         return false;
     }
-    if (status === "empty") {
-        return value.data.rows.length === 0;
-    }
-    return value.data.rows.length > 0 && value.data.rows.every(isServiceRow);
+    return status === "empty" ? value.data.rows.length === 0 : value.data.rows.length > 0;
 }
 
 function isServiceState(value: unknown): value is ServiceState {
@@ -144,12 +156,15 @@ function isServiceState(value: unknown): value is ServiceState {
         typeof value.stale === "boolean";
 }
 
+export function isServiceStatusAllData(value: unknown): value is ServiceStatusAllData {
+    return isRecord(value) && hasExactKeys(value, ["states", "health", "retryAfterMs"]) &&
+        isRecord(value.states) && Object.values(value.states).every(isServiceState) &&
+        ["ok", "degraded", "unavailable"].includes(String(value.health)) &&
+        typeof value.retryAfterMs === "number" && Number.isFinite(value.retryAfterMs) && value.retryAfterMs >= 0;
+}
+
 function isStatusMapResponse(value: Record<string, unknown>) {
-    return hasExactKeys(value, ["meta", "status", "data"]) && isRecord(value.data) &&
-        hasExactKeys(value.data, ["states", "health", "retryAfterMs"]) && isRecord(value.data.states) &&
-        Object.values(value.data.states).every(isServiceState) &&
-        ["ok", "degraded", "unavailable"].includes(String(value.data.health)) &&
-        typeof value.data.retryAfterMs === "number" && Number.isFinite(value.data.retryAfterMs) && value.data.retryAfterMs >= 0;
+    return hasExactKeys(value, ["meta", "status", "data"]) && isServiceStatusAllData(value.data);
 }
 
 export function isServiceResponseV2(value: unknown): value is ServiceResponseV2 {

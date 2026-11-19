@@ -16,7 +16,20 @@ import { runningTaskData } from "../services/packages/running-task";
 import { getServiceControlRows } from "../services/service/control";
 import { getPackageManagementStateData } from "../services/packages/pmc";
 import { parseServiceRequestV2, type ServiceRequestV2 } from "../shared/service-control-contract";
-import { SYSTEM_LOAD_DATA_URL, SYSTEM_UPTIME_DATA_URL } from "../shared/system-summary-contract";
+import {
+    BANDWIDTH_DATA_URL,
+    DISK_DATA_URL,
+    NETWORK_STATUS_URL,
+    OUTPUT_LOG_URL,
+    PACKAGE_MANAGEMENT_DATA_URL,
+    RAM_STATS_DATA_URL,
+    SERVICE_CONTROL_URL,
+    SERVICE_STATUS_ALL_URL,
+    SYSTEM_LOAD_DATA_URL,
+    SYSTEM_UPTIME_DATA_URL,
+    TASK_STATUS_DATA_URL,
+} from "../shared/widget-streams";
+import { createWsMessageEnvelope } from "../shared/ws-message";
 
 interface Payload {
     key: string;
@@ -62,17 +75,17 @@ function parseLogPosition(value: string | undefined) {
 }
 
 const widgetHandlers: Partial<Record<string, WidgetHandler>> = {
-    "/node/net_status": () => netStatus(),
+    [NETWORK_STATUS_URL]: () => netStatus(),
     [SYSTEM_LOAD_DATA_URL]: () => systemLoadData(),
     [SYSTEM_UPTIME_DATA_URL]: () => getUptimeParts(),
-    "/node/data/disk_data": () => diskDataData(),
-    "/node/data/ram_stats": () => ramStatsData(),
-    "/node/data/bandwidth": (args) => bandwidthTablesData(getIfaceConfig(), parseBandwidthPage(args)),
-    "/node/data/task_status": () => Promise.resolve(runningTaskData()),
-    "/node/data/pmc": () => getPackageManagementStateData(),
-    "/node/v2/service_control": () => ({ rows: getServiceControlRows() }),
-    "/node/v2/service_status_all": () => serviceStatusAllData(),
-    "/db/output.log": (args) => readOutputLog(
+    [DISK_DATA_URL]: () => diskDataData(),
+    [RAM_STATS_DATA_URL]: () => ramStatsData(),
+    [BANDWIDTH_DATA_URL]: (args) => bandwidthTablesData(getIfaceConfig(), parseBandwidthPage(args)),
+    [TASK_STATUS_DATA_URL]: () => Promise.resolve(runningTaskData()),
+    [PACKAGE_MANAGEMENT_DATA_URL]: () => getPackageManagementStateData(),
+    [SERVICE_CONTROL_URL]: () => ({ rows: getServiceControlRows() }),
+    [SERVICE_STATUS_ALL_URL]: () => serviceStatusAllData(),
+    [OUTPUT_LOG_URL]: (args) => readOutputLog(
         parseLogPosition(args["offset"]),
         parseLogPosition(args["length"]),
         args["epoch"],
@@ -141,35 +154,30 @@ const messageHandler = async (payload: unknown, client: Socket) => {
         return;
     }
     if (!isValidPayload(payload)) {
-        client.send({ key: "", pathName: "", success: false, message: "Invalid payload", response: "" });
+        client.send(createWsMessageEnvelope({ key: "", url: "", pathName: "", success: false, message: "Invalid payload", response: "" }));
         return;
     }
-    const ret: {
-        key: string;
-        requestId?: string;
-        url: string;
-        pathName: string;
-        success: boolean;
-        message: string;
-        response: string|object;
-    } = {
-        key: payload.key,
-        requestId: payload.requestId,
-        url: payload.url,
-        pathName: "",
-        success: true,
-        message: "",
-        response: "",
-    };
+    let pathName = "";
+    let response: string | object = "";
+    let success = true;
+    let message = "";
     try {
-        ret.pathName = parseUrl(payload.url).pathname;
-        ret.response = await resolveWidget(payload.url);
+        pathName = parseUrl(payload.url).pathname;
+        response = await resolveWidget(payload.url);
     } catch (error) {
         console.error("[quickbox-ws] widget render failed", payload.url, error);
-        ret.message = "Widget render failed";
-        ret.success = false;
+        message = "Widget render failed";
+        success = false;
     } finally {
-        client.send(ret);
+        client.send(createWsMessageEnvelope({
+            key: payload.key,
+            requestId: payload.requestId,
+            url: payload.url,
+            pathName,
+            success,
+            message,
+            response,
+        }));
     }
 };
 

@@ -11,6 +11,7 @@ import { WebSocketServer } from "ws";
 import { assertProductionAuth, authorizeHandshake, gatewayAuthMiddleware } from "./auth";
 import logHandler from "./socket/log";
 import messageHandler from "./socket/message";
+import pushHandler from "./socket/push";
 import execHandler from "./socket/exec";
 import { isTestMode } from "./testing";
 import { createAppRouter } from "./routes";
@@ -68,6 +69,7 @@ const wsPathIo = new socketio(server, { ...socketOptions, path: "/ws/socket.io" 
 for (const socketServer of [io, wsPathIo]) {
     socketServer.use(logHandler);
     socketServer.use(messageHandler);
+    socketServer.use(pushHandler);
     socketServer.use(execHandler);
 }
 

@@ -15,6 +15,13 @@ import { systemStaticInfoWithProviders } from "../services/system/cpu";
 import { diskDataData } from "../services/system/disk";
 import { systemLoadData } from "../services/system/load";
 import { ramStatsData } from "../services/system/memory";
+import {
+    DISK_DATA_URL,
+    PACKAGE_MANAGEMENT_DATA_URL,
+    RAM_STATS_DATA_URL,
+    SYSTEM_LOAD_DATA_URL,
+    SYSTEM_STATIC_DATA_URL,
+} from "../shared/widget-streams";
 import { isTestMode } from "../testing";
 
 const parseThemeBody = (body: unknown): string | undefined => {
@@ -95,17 +102,17 @@ export function mountNodeRoutes(router: Router, runExecFile: typeof childProcess
         });
     });
 
-    router.get("/node/data/system_static", getSystemStatic);
-    router.get("/node/data/system_load", async (_req: Request, res: Response) => {
+    router.get(SYSTEM_STATIC_DATA_URL, getSystemStatic);
+    router.get(SYSTEM_LOAD_DATA_URL, async (_req: Request, res: Response) => {
         res.json(await systemLoadData());
     });
-    router.get("/node/data/disk_data", async (_req: Request, res: Response) => {
+    router.get(DISK_DATA_URL, async (_req: Request, res: Response) => {
         res.json(await diskDataData());
     });
-    router.get("/node/data/ram_stats", async (_req: Request, res: Response) => {
+    router.get(RAM_STATS_DATA_URL, async (_req: Request, res: Response) => {
         res.json(await ramStatsData());
     });
-    router.get("/node/data/pmc", (_req: Request, res: Response) => {
+    router.get(PACKAGE_MANAGEMENT_DATA_URL, (_req: Request, res: Response) => {
         res.json(getPackageManagementStateData());
     });
 
