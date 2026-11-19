@@ -8,7 +8,11 @@ case "${1:-}" in
 panel)
   npm ci --no-audit --no-fund --prefix setup/dashboard/ws
   npm ci --no-audit --no-fund --prefix e2e
-  (cd e2e && npx --no-install playwright install --with-deps chromium)
+  if [[ "${QUICKBOX_PLAYWRIGHT_CACHE_HIT:-}" == 'true' ]]; then
+    (cd e2e && npx --no-install playwright install-deps chromium)
+  else
+    (cd e2e && npx --no-install playwright install --with-deps chromium)
+  fi
   ;;
 linux)
   docker load -i "$RUNNER_TEMP/deployment-image.tar.gz"
@@ -28,7 +32,11 @@ systemd)
 authentication)
   docker load -i "$RUNNER_TEMP/deployment-image.tar.gz"
   npm ci --no-audit --no-fund --prefix e2e
-  (cd e2e && npx --no-install playwright install --with-deps chromium webkit)
+  if [[ "${QUICKBOX_PLAYWRIGHT_CACHE_HIT:-}" == 'true' ]]; then
+    (cd e2e && npx --no-install playwright install-deps chromium webkit)
+  else
+    (cd e2e && npx --no-install playwright install --with-deps chromium webkit)
+  fi
   bash tests/deployment/run-auth.sh --prepare
   ;;
 *) echo 'Supply an environment: panel, linux, systemd or authentication.' >&2; exit 2 ;;
