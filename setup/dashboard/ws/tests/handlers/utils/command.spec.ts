@@ -3,7 +3,7 @@
 import "mocha";
 import { expect } from "chai";
 
-import { CommandType, buildCommand } from "../../../src/handlers/utils/command";
+import { CommandType, buildCommand } from "../../../src/socket/command";
 import { isSafeUsername } from "../../../src/shared/constants";
 import serviceCatalog from "../../../config/packages.json";
 import productionCommands from "../../../config/commands.json";

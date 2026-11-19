@@ -23,6 +23,20 @@ import { SystemResponseSlot } from "./runtime/system-response-client";
 import { getAntdThemeConfig, useDashboardTheme } from "./runtime/theme-store";
 import { getAntdLocale, normalizeLocale } from "./i18n";
 
+const LANGUAGE_TITLES: Record<string, string> = {
+    da: "Dansk",
+    de: "Deutsch",
+    en: "English",
+    es: "Español",
+    fr: "Français",
+    zh: "中文 (简体)",
+};
+
+const THEME_TITLES: Record<string, string> = {
+    defaulted: "Defaulted",
+    smoked: "Smoked",
+};
+
 const BW_PAGE_TITLE_KEYS: Record<"t" | "h" | "d" | "m", string> = {
     t: "Top 10 days",
     h: "Recent hours",
@@ -54,9 +68,17 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
         config: {
             ...config,
             developerLabel: t("DEV_REPO_TXT", { branch: config.branch }),
+            languages: config.languages.map((language) => ({
+                ...language,
+                title: LANGUAGE_TITLES[language.key] ?? language.key,
+            })),
+            themes: config.themes.map((theme) => ({
+                ...theme,
+                title: THEME_TITLES[theme.file] ?? theme.file,
+            })),
             bwPages: config.bwPages.map((page) => ({
                 ...page,
-                title: t(BW_PAGE_TITLE_KEYS[page.key] ?? page.title),
+                title: t(BW_PAGE_TITLE_KEYS[page.key] ?? page.key),
             })),
         },
         menuState: bootstrap.chrome.menuState,

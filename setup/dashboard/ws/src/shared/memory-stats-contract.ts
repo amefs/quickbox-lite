@@ -24,6 +24,19 @@ export interface MemoryStatsData {
     total: string;
 }
 
+export interface MemoryStatsRawData {
+    total: number;
+    used: number;
+    free: number;
+    cached: number;
+    buffers: number;
+    swapTotal: number;
+    swapUsed: number;
+    swapFree: number;
+}
+
+export type MemoryStatsPayload = MemoryStatsRawData | MemoryStatsData;
+
 export interface MemoryStatsBridge {
     onPrefetch: (data: unknown) => boolean;
     onMessage: (data: unknown) => boolean;
@@ -70,4 +83,14 @@ export function isMemoryStatsData(value: unknown): value is MemoryStatsData {
         isOptionalProgressSection(value, "cached", ["description", "buffersDescription"], ["used", "buffered"]) &&
         isOptionalProgressSection(value, "real", ["description", "freeDescription"], ["used", "free"]) &&
         isOptionalProgressSection(value, "swap", ["totalDescription", "usedDescription", "freeDescription"], ["total", "used", "free"]);
+}
+
+export function isMemoryStatsRawData(value: unknown): value is MemoryStatsRawData {
+    const fields = ["total", "used", "free", "cached", "buffers", "swapTotal", "swapUsed", "swapFree"] as const;
+    return isRecord(value) && hasOnlyKeys(value, [...fields]) &&
+        fields.every((field) => typeof value[field] === "number" && Number.isFinite(value[field]));
+}
+
+export function isMemoryStatsPayload(value: unknown): value is MemoryStatsPayload {
+    return isMemoryStatsRawData(value) || isMemoryStatsData(value);
 }

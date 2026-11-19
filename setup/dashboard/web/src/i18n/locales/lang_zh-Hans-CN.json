@@ -226,5 +226,13 @@
   "BACKEND_UNAVAILABLE_TITLE": "后端服务不可用",
   "RETRY": "重新加载",
   "BACKEND_RETRYING_DESC": "无法连接到 QuickBox 后端服务（{{error}}），正在尝试重连（{{attempt}}/{{max}}）…",
-  "BACKEND_RETRY_EXHAUSTED_DESC": "无法连接到 QuickBox 后端服务（{{error}}），已尝试 {{max}} 次仍未恢复，已停止自动刷新。"
+  "BACKEND_RETRY_EXHAUSTED_DESC": "无法连接到 QuickBox 后端服务（{{error}}），已尝试 {{max}} 次仍未恢复，已停止自动刷新。",
+  "SERVICE_ACTION_ENABLE": "启用",
+  "SERVICE_ACTION_DISABLE": "禁用",
+  "SERVICE_ACTION_RESTART": "重启",
+  "SERVICE_ACTION_FAILED": "{{action}}服务 {{service}} 失败：{{reason}}",
+  "SERVICE_ACTION_REASON_TIMEOUT": "命令执行超时",
+  "SERVICE_ACTION_REASON_BUSY": "当前并发任务过多，请稍后重试",
+  "SERVICE_ACTION_REASON_INVALID": "无效的服务操作",
+  "SERVICE_ACTION_REASON_UNKNOWN": "服务操作失败"
 }

@@ -14,13 +14,15 @@ import childProcess from "child_process";
 // the raw router, so middleware interactions (e.g. loopback detection) behave
 // exactly as in production.
 import { app } from "../src/server";
-import { createAppRouter } from "../src/router";
+import { createAppRouter } from "../src/routes";
 import type { DashboardBootstrapPayload } from "../src/shared/bootstrap-contract";
 
 interface SystemStaticResponse {
     cpu: {
-        model: string;
-        count: unknown;
+        model?: string;
+        count?: number;
+        speedGHz?: number;
+        cache?: string;
     };
     interfaces: string[];
 }
@@ -89,20 +91,15 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.not.include("/js/quick.js");
         });
 
-        it("should return bootstrap payload with request-local locale and pure data", async () => {
-            const zh = await request(app).get("/node/bootstrap?locale=zh");
-            const en = await request(app).get("/node/bootstrap?locale=en");
-            const zhBody = zh.body as DashboardBootstrapPayload;
-            const enBody = en.body as DashboardBootstrapPayload;
+        it("should return bootstrap payload with pure data", async () => {
+            const res = await request(app).get("/node/bootstrap");
+            const body = res.body as DashboardBootstrapPayload;
 
-            expect(zh.status).to.equal(200);
-            expect(en.status).to.equal(200);
-            expect(zhBody.basePath).to.equal("");
-            expect(zhBody.locale).to.equal("zh");
-            expect(enBody.locale).to.equal("en");
-            expect(zhBody.serviceRows).to.be.an("array");
-            expect(zhBody.packageManagement.data.rows).to.be.an("array");
-            expect(zhBody.chrome.config).to.be.an("object");
+            expect(res.status).to.equal(200);
+            expect(body.basePath).to.equal("");
+            expect(body.serviceRows).to.be.an("array");
+            expect(body.packageManagement.data.rows).to.be.an("array");
+            expect(body.chrome.config).to.be.an("object");
         });
 
         it("fails closed when the web bundle is absent", async () => {
@@ -117,43 +114,12 @@ describe("router — HTTP routes", () => {
             }
         });
 
-        it("should return bootstrap payload from browser locale cookie", async () => {
-            const res = await request(app)
-                .get("/node/bootstrap")
-                .set("Cookie", "quickbox_locale=zh");
-            const body = res.body as DashboardBootstrapPayload;
-
-            expect(res.status).to.equal(200);
-            expect(body.locale).to.equal("zh");
-        });
-
-        it("should return bootstrap payload from Accept-Language when no explicit locale is set", async () => {
-            const res = await request(app)
-                .get("/node/bootstrap")
-                .set("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.1");
-            const body = res.body as DashboardBootstrapPayload;
-
-            expect(res.status).to.equal(200);
-            expect(body.locale).to.equal("fr");
-        });
-
-        it("should return bootstrap payload from a browser locale region without a base fallback", async () => {
-            const res = await request(app)
-                .get("/node/bootstrap")
-                .set("Accept-Language", "de-DE");
-            const body = res.body as DashboardBootstrapPayload;
-
-            expect(res.status).to.equal(200);
-            expect(body.locale).to.equal("de");
-        });
-
         it("should return bootstrap payload under the legacy /ws base path", async () => {
-            const res = await request(app).get("/ws/node/bootstrap?locale=zh");
+            const res = await request(app).get("/ws/node/bootstrap");
             const body = res.body as DashboardBootstrapPayload;
 
             expect(res.status).to.equal(200);
             expect(body.basePath).to.equal("/ws");
-            expect(body.locale).to.equal("zh");
         });
     });
 
@@ -199,34 +165,9 @@ describe("router — HTTP routes", () => {
             expect(res.status).to.equal(200);
             expect(res.text).to.equal("en");
         });
-
-        it("should not mutate the dashboard bootstrap locale globally", async () => {
-            await request(app).get("/set?lang=zh");
-            const res = await request(app).get("/node/bootstrap");
-            const body = res.body as DashboardBootstrapPayload;
-
-            expect(res.status).to.equal(200);
-            expect(body.locale).to.equal("en");
-        });
     });
 
     // ── Node widget endpoints (/node/*) ───────────────────────────────────────
-
-    describe("GET /node/menu", () => {
-        it("should return 200 with JSON containing mainMenuHtml and showPluginTab", async () => {
-            const res = await request(app).get("/node/menu");
-            expect(res.status).to.equal(200);
-            expect(res.body).to.be.an("object");
-            expect(res.body).to.have.property("mainMenuHtml").that.is.a("string");
-            expect(res.body).to.have.property("showPluginTab").that.is.a("boolean");
-        });
-
-        it("should not expose $username$ placeholders in the response", async () => {
-            const res = await request(app).get("/node/menu");
-            const body = res.body as { mainMenuHtml: string };
-            expect(body.mainMenuHtml).to.not.include("$username$");
-        });
-    });
 
     describe("legacy inc assets", () => {
         it("should not serve the status updater script now owned by the Node shell", async () => {
@@ -249,16 +190,6 @@ describe("router — HTTP routes", () => {
         });
     });
 
-    describe("GET /node/removal_modals locale", () => {
-        it("should render with i18n keys", async () => {
-            const res = await request(app).get("/node/removal_modals?locale=zh");
-
-            expect(res.status).to.equal(200);
-            expect(res.text).to.include("CANCEL");
-            expect(res.text).to.include("AGREE");
-        });
-    });
-
     describe("GET /node/dashboard_config", () => {
         it("should return static dashboard menu config", async () => {
             const res = await request(app).get("/node/dashboard_config");
@@ -268,16 +199,16 @@ describe("router — HTTP routes", () => {
             expect(res.body).to.have.property("version", `v${wsPackage.version}`);
             expect(res.body).to.have.property("branch").that.is.a("string");
             expect(res.body).to.have.property("languages").that.is.an("array").with.length.greaterThan(0);
-            expect((res.body as DashboardConfigResponse).languages[0]).to.have.keys(["file", "key", "title", "locale"]);
+            expect((res.body as DashboardConfigResponse).languages[0]).to.have.keys(["file", "key", "locale"]);
             expect(res.body).to.have.property("themes").that.deep.equals([
-                { file: "defaulted", title: "Defaulted" },
-                { file: "smoked", title: "Smoked" },
+                { file: "defaulted" },
+                { file: "smoked" },
             ]);
             expect(res.body).to.have.property("bwPages").that.deep.equals([
-                { key: "t", title: "Top 10 days" },
-                { key: "h", title: "Recent hours" },
-                { key: "d", title: "Last 30 days" },
-                { key: "m", title: "Last 12 months" },
+                { key: "t" },
+                { key: "h" },
+                { key: "d" },
+                { key: "m" },
             ]);
         });
 
@@ -286,24 +217,28 @@ describe("router — HTTP routes", () => {
 
             expect(res.status).to.equal(200);
             expect(res.body).to.have.property("bwPages").that.deep.equals([
-                { key: "t", title: "Top 10 days" },
-                { key: "h", title: "Recent hours" },
-                { key: "d", title: "Last 30 days" },
-                { key: "m", title: "Last 12 months" },
+                { key: "t" },
+                { key: "h" },
+                { key: "d" },
+                { key: "m" },
             ]);
         });
     });
 
-    describe("GET /node/system_static", () => {
+    describe("GET /node/data/system_static", () => {
         it("should return CPU and network interface metadata", async function() {
             this.timeout(6000);
-            const res = await request(app).get("/node/system_static");
+            const res = await request(app).get("/node/data/system_static");
             const body = res.body as SystemStaticResponse;
 
             expect(res.status).to.equal(200);
             expect(body).to.have.property("cpu").that.is.an("object");
-            expect(body.cpu).to.have.property("model").that.is.a("string");
-            expect(body.cpu).to.have.property("count");
+            if (body.cpu.model !== undefined) {
+                expect(body.cpu.model).to.be.a("string");
+            }
+            if (body.cpu.count !== undefined) {
+                expect(body.cpu.count).to.be.a("number");
+            }
             expect(body).to.have.property("interfaces").that.is.an("array");
         });
     });
@@ -392,24 +327,6 @@ describe("router — HTTP routes", () => {
         });
     });
 
-    describe("GET /node/removal_modals", () => {
-        it("should return 200 with an HTML fragment", async () => {
-            const res = await request(app).get("/node/removal_modals");
-            expect(res.status).to.equal(200);
-            expect(res.text).to.be.a("string");
-        });
-
-        it("should include at least one RemovalConfirm modal", async () => {
-            const res = await request(app).get("/node/removal_modals");
-            expect(res.text).to.include("RemovalConfirm");
-        });
-
-        it("should set data-click-handler='packageRemove' on confirm buttons", async () => {
-            const res = await request(app).get("/node/removal_modals");
-            expect(res.text).to.include('data-click-handler="packageRemove"');
-        });
-    });
-
     // ── Debug endpoints (/debug*) ─────────────────────────────────────────────
     // NODE_ENV=test → debug endpoints enabled; NODE_ENV=production → disabled
 
@@ -434,7 +351,7 @@ describe("router — HTTP routes", () => {
         });
 
         it("should return 200 for a valid widget url", async () => {
-            const res = await request(app).get("/debug/node?url=/node/up");
+            const res = await request(app).get("/debug/node?url=/node/data/system_uptime");
             expect(res.status).to.equal(200);
         });
 
@@ -444,7 +361,7 @@ describe("router — HTTP routes", () => {
             try {
                 const productionApp = createRouterTestApp();
                 const debugRes = await request(productionApp).get("/debug");
-                const debugNodeRes = await request(productionApp).get("/debug/node?url=/node/up");
+                const debugNodeRes = await request(productionApp).get("/debug/node?url=/node/data/system_uptime");
                 expect(debugRes.status).to.equal(404);
                 expect(debugNodeRes.status).to.equal(404);
             } finally {

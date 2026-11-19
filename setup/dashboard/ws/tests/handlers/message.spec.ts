@@ -3,9 +3,8 @@
 import "mocha";
 import { expect } from "chai";
 
-import messageHandler, { parseUrl, resolveWidget } from "../../src/handlers/message";
+import messageHandler, { parseUrl, resolveWidget } from "../../src/socket/message";
 import Constant from "../../src/shared/constants";
-import { setServiceStateCollectorsForTests } from "../../src/widgets/service-state";
 
 describe("handlers/message", () => {
     describe("middleware", () => {
@@ -42,17 +41,17 @@ describe("handlers/message", () => {
 
     describe("parseUrl", () => {
         it("should parse relative URLs", () => {
-            expect(parseUrl("/node/up")).to.deep.equal({ pathname: "/node/up", args: {} });
-            expect(parseUrl("/node/bw_tables?page=d")).to.deep.equal({
-                pathname: "/node/bw_tables",
+            expect(parseUrl("/node/data/system_uptime")).to.deep.equal({ pathname: "/node/data/system_uptime", args: {} });
+            expect(parseUrl("/node/data/bandwidth?page=d")).to.deep.equal({
+                pathname: "/node/data/bandwidth",
                 args: { page: "d" },
             });
         });
 
         it("should parse absolute URLs down to the pathname", () => {
-            expect(parseUrl("http://localhost/node/up")).to.deep.equal({ pathname: "/node/up", args: {} });
-            expect(parseUrl("https://example.test/node/up?locale=zh")).to.deep.equal({
-                pathname: "/node/up",
+            expect(parseUrl("http://localhost/node/data/system_uptime")).to.deep.equal({ pathname: "/node/data/system_uptime", args: {} });
+            expect(parseUrl("https://example.test/node/data/system_uptime?locale=zh")).to.deep.equal({
+                pathname: "/node/data/system_uptime",
                 args: { locale: "zh" },
             });
         });
@@ -62,11 +61,11 @@ describe("handlers/message", () => {
         });
 
         it("should resolve a widget for relative and absolute URLs alike", async () => {
-            const relative = await resolveWidget("/node/up");
-            const absolute = await resolveWidget("http://localhost/node/up");
-            expect(relative).to.be.a("string");
-            expect((relative as string).length).to.be.greaterThan(0);
-            expect(absolute).to.equal(relative);
+            const relative = await resolveWidget("/node/data/system_uptime");
+            const absolute = await resolveWidget("http://localhost/node/data/system_uptime");
+            expect(relative).to.be.an("object");
+            expect(relative).to.have.keys("days", "hours", "minutes");
+            expect(absolute).to.deep.equal(relative);
         });
     });
 
@@ -77,15 +76,14 @@ describe("handlers/message", () => {
                 id: "client-msg-flow-1",
                 on(event: string, cb: (p: unknown) => Promise<void>) {
                     if (event === Constant.EVENT_MESSAGE) {
-                        // call it asynchronously with a valid payload
-                        setTimeout(() => void cb({ key: "test-key", url: "/node/up", requestId: "req-1" }), 0);
+                        setTimeout(() => void cb({ key: "test-key", url: "/node/data/system_uptime", requestId: "req-1" }), 0);
                     }
                 },
                 send(data: unknown) {
                     expect(data).to.have.property("key", "test-key");
                     expect(data).to.have.property("requestId", "req-1");
-                    expect(data).to.have.property("url", "/node/up");
-                    expect(data).to.have.property("pathName", "/node/up");
+                    expect(data).to.have.property("url", "/node/data/system_uptime");
+                    expect(data).to.have.property("pathName", "/node/data/system_uptime");
                     expect(data).to.have.property("success").that.is.a("boolean");
                     expect(data).to.have.property("response");
                     done();
@@ -99,11 +97,10 @@ describe("handlers/message", () => {
                 id: "client-msg-flow-2",
                 on(event: string, cb: (p: unknown) => Promise<void>) {
                     if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb({ key: "err-key", url: "/node/load" }), 0);
+                        setTimeout(() => void cb({ key: "err-key", url: "/node/data/system_load" }), 0);
                     }
                 },
                 send(data: unknown) {
-                    // load.php may fail in test env due to systeminformation; just verify structure
                     expect(data).to.have.property("key", "err-key");
                     expect(data).to.have.property("success").that.is.a("boolean");
                     done();
@@ -185,71 +182,41 @@ describe("handlers/message", () => {
     });
 
     // C7: page validation test (via resolveWidget)
-    describe("C7 — bw_tables page validation", () => {
+    describe("C7 — bandwidth page validation", () => {
         it("should fall back to the hourly table for an invalid page value", async () => {
-            const invalid = await resolveWidget("/node/bw_tables?page=x");
-            const hourly = await resolveWidget("/node/bw_tables?page=h");
-            expect(invalid).to.equal(hourly);
-            expect(invalid).to.include("Recent hours");
+            const invalid = await resolveWidget("/node/data/bandwidth?page=x") as { page: string };
+            const hourly = await resolveWidget("/node/data/bandwidth?page=h") as { page: string };
+            expect(invalid).to.deep.equal(hourly);
+            expect(invalid.page).to.equal("h");
         });
 
-        it("should render the table that matches each page value", async () => {
-            const pages: [string, string][] = [
-                ["d", "Last 30 days"],
-                ["m", "Last 12 months"],
-                ["t", "Top 10 days"],
-            ];
-            for (const [page, caption] of pages) {
-                const result = await resolveWidget(`/node/bw_tables?page=${page}`);
-                expect(result).to.include(caption);
+        it("should return the table that matches each page value", async () => {
+            for (const page of ["d", "m", "t"]) {
+                const result = await resolveWidget(`/node/data/bandwidth?page=${page}`) as { page: string };
+                expect(result.page).to.equal(page);
             }
         });
     });
 
     // B1: SSRF prevention — no default proxy, explicit routes only
     describe("B1 — route allowlist", () => {
-        it("should resolve /widgets/service_status same as /node/service_status", async () => {
-            const nodeResult = await resolveWidget("/node/service_status?service=nginx");
-            const widgetResult = await resolveWidget("/widgets/service_status?service=nginx");
-            expect(widgetResult).to.equal(nodeResult);
-            expect(nodeResult).to.be.a("string");
-            expect((nodeResult as string).length).to.be.greaterThan(0);
-        });
-
-        it("should return a batch service status object for /node/service_status_all", async () => {
-            const result = await resolveWidget("/node/service_status_all");
+        it("should return a batch service status object for /node/v2/service_status_all", async () => {
+            const result = await resolveWidget("/node/v2/service_status_all");
             expect(result).to.be.an("object");
-            const batch = result as { badges: Record<string, string>; health: string; retryAfterMs: number };
-            expect(batch).to.have.keys("badges", "health", "retryAfterMs");
-            expect(batch.badges).to.have.property("irssi");
+            const batch = result as { states: Record<string, unknown>; health: string; retryAfterMs: number };
+            expect(batch).to.have.keys("states", "health", "retryAfterMs");
         });
 
-        it("should resolve /widgets/service_control same as /node/service_control", async () => {
-            const nodeResult = await resolveWidget("/node/service_control");
-            const widgetResult = await resolveWidget("/widgets/service_control");
-            expect(widgetResult).to.equal(nodeResult);
+        it("should return structured rows for /node/v2/service_control", async () => {
+            const result = await resolveWidget("/node/v2/service_control");
+            expect(result).to.be.an("object");
+            expect(result).to.have.property("rows").that.is.an("array");
         });
 
-        it("should collect current status on both service control routes", async () => {
-            for (const route of ["/node/service_control", "/widgets/service_control"]) {
-                let calls = 0;
-                setServiceStateCollectorsForTests({
-                    systemd: () => { calls += 1; return Promise.resolve(new Map<string, boolean>()); },
-                    process: () => { calls += 1; return Promise.resolve(new Map<string, boolean>()); },
-                });
-                try {
-                    await resolveWidget(route);
-                    expect(calls).to.be.greaterThan(0);
-                } finally {
-                    setServiceStateCollectorsForTests(undefined);
-                }
-            }
-        });
-
-        it("should resolve /widgets/pmc same as /node/pmc", async () => {
-            const nodeResult = await resolveWidget("/node/pmc");
-            const widgetResult = await resolveWidget("/widgets/pmc");
-            expect(widgetResult).to.equal(nodeResult);
+        it("should return compact package state for /node/data/pmc", async () => {
+            const result = await resolveWidget("/node/data/pmc");
+            expect(result).to.be.an("object");
+            expect(result).to.have.keys("installedByPackage", "installLockExists");
         });
 
         it("should return an object with content, start, end, size and epoch for /db/output.log", async () => {
@@ -322,57 +289,6 @@ describe("handlers/message", () => {
                     done();
                 },
             };
-            messageHandler(mockClient as never);
-        });
-    });
-
-    describe("request-local locale", () => {
-        it("should render widget responses with payload locale", (done) => {
-            const mockClient = {
-                id: "client-locale-1",
-                data: {},
-                on(event: string, cb: (p: unknown) => Promise<void>) {
-                    if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb({
-                            key: "pmc-locale",
-                            url: "/node/pmc",
-                            locale: "zh",
-                        }), 0);
-                    }
-                },
-                send(data: Record<string, unknown>) {
-                    expect(data.success).to.equal(true);
-                    expect(data.response).to.be.a("string");
-                    expect(data.response).to.include("PACKAGE_MANAGEMENT_CENTER");
-                    expect((mockClient.data as { locale?: string }).locale).to.equal("zh");
-                    done();
-                },
-            };
-
-            messageHandler(mockClient as never);
-        });
-
-        it("should not leak payload locale to clients without locale", (done) => {
-            const mockClient = {
-                id: "client-locale-2",
-                data: {},
-                on(event: string, cb: (p: unknown) => Promise<void>) {
-                    if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb({
-                            key: "pmc-locale-default",
-                            url: "/node/pmc",
-                        }), 0);
-                    }
-                },
-                send(data: Record<string, unknown>) {
-                    expect(data.success).to.equal(true);
-                    expect(data.response).to.be.a("string");
-                    expect(data.response).to.include("PACKAGE_MANAGEMENT_CENTER");
-                    expect((mockClient.data as { locale?: string }).locale).to.equal(undefined);
-                    done();
-                },
-            };
-
             messageHandler(mockClient as never);
         });
     });

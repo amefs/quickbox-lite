@@ -21,15 +21,15 @@ test.describe("WS Debug Console", () => {
 
     test("should list widget endpoints", async ({ page }) => {
         await page.goto(`${WS_BASE_URL}/debug`);
-        await expect(page.locator("[data-url='/node/load']")).toBeVisible();
-        await expect(page.locator("[data-url='/node/up']")).toBeVisible();
-        await expect(page.locator("[data-url='/node/ram_stats']")).toBeVisible();
-        await expect(page.locator("[data-url='/node/disk_data']")).toBeVisible();
+        await expect(page.locator("[data-url='/node/data/system_load']")).toBeVisible();
+        await expect(page.locator("[data-url='/node/data/system_uptime']")).toBeVisible();
+        await expect(page.locator("[data-url='/node/data/ram_stats']")).toBeVisible();
+        await expect(page.locator("[data-url='/node/data/disk_data']")).toBeVisible();
     });
 
     test("should fetch uptime widget via debug console", async ({ page }, testInfo) => {
         await page.goto(`${WS_BASE_URL}/debug`);
-        await page.locator("[data-url='/node/up']").click();
+        await page.locator("[data-url='/node/data/system_uptime']").click();
         const resultTitle = page.locator("#result-title");
         await expect(resultTitle).toContainText("Uptime", { timeout: 10_000 });
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
@@ -41,7 +41,7 @@ test.describe("WS Debug Console", () => {
         // selected here instead of relying on whatever ran before.
         await setMockProfile(page, "all-running");
         await page.goto(`${WS_BASE_URL}/debug`);
-        await page.locator("[data-url='/node/load']").click();
+        await page.locator("[data-url='/node/data/system_load']").click();
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
         // Mock loadavg: "1.52 1.34 1.21"
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).toContain("1.52 1.34 1.21");
@@ -49,24 +49,24 @@ test.describe("WS Debug Console", () => {
 
     test("should fetch RAM stats widget via debug console", async ({ page }) => {
         await page.goto(`${WS_BASE_URL}/debug`);
-        await page.locator("[data-url='/node/ram_stats']").click();
+        await page.locator("[data-url='/node/data/ram_stats']").click();
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
     });
 
     test("should fetch disk data widget via debug console", async ({ page }, testInfo) => {
         await page.goto(`${WS_BASE_URL}/debug`);
-        await page.locator("[data-url='/node/disk_data']").click();
+        await page.locator("[data-url='/node/data/disk_data']").click();
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
         await snap(page, testInfo, "debug-disk-data-result");
     });
 
     test("should handle /debug/node API directly", async ({ page }) => {
         await setMockProfile(page, "all-running");
-        const response = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/up`);
+        const response = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/data/system_uptime`);
         expect(response.ok()).toBeTruthy();
-        const text = await response.text();
+        const body = await response.json() as { days: number };
         // all-running reports 15 days of uptime.
-        expect(text).toContain("<b>15</b>");
+        expect(body.days).toBe(15);
     });
 
     test("should return error for unknown widget", async ({ page }) => {
@@ -107,7 +107,7 @@ test.describe("WS API Endpoints", () => {
         expect(response.ok()).toBeTruthy();
 
         // Load data reflects empty system (loadavg 0.05)
-        const loadResponse = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/load`);
+        const loadResponse = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/data/system_load`);
         const loadText = await loadResponse.text();
         expect(loadText).toContain("0.05");
 

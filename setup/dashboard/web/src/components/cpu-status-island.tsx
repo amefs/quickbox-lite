@@ -11,10 +11,10 @@ function CpuStatusValue({ data }: { data: CpuStaticData | null }) {
     }
     return (
         <>
-            <h4>{data.model}</h4>
-            {data.frequency ? <> <span style={{ color: "#999", fontWeight: 600 }}>Frequency:</span> {data.frequency}</> : null}
+            <h4>{data.model ?? "Unknown"}</h4>
+            {data.speedGHz !== undefined ? <> <span style={{ color: "#999", fontWeight: 600 }}>Frequency:</span> {data.speedGHz} GHz</> : null}
             {data.cache ? <><br /> <span style={{ color: "#999", fontWeight: 600 }}>Secondary cache:</span> {data.cache}</> : null}
-            <br />[<span style={{ color: "#999", fontWeight: 600 }}>x{data.count}</span> core]
+            <br />[<span style={{ color: "#999", fontWeight: 600 }}>x{data.count ?? "-"}</span> core]
         </>
     );
 }

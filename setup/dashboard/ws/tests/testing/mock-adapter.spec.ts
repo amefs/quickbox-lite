@@ -4,8 +4,8 @@ import "mocha";
 import { expect } from "chai";
 
 import { getActiveProfile, getMockSystemdServiceActive, runMockCommand, setActiveProfile } from "../../src/testing/mock-adapter";
-import { buildCommand } from "../../src/handlers/utils/command";
-import { serviceMap } from "../../src/info";
+import { buildCommand } from "../../src/socket/command";
+import { serviceMap } from "../../src/services/packages/info";
 
 describe("testing mock command adapter", () => {
     const previousNodeEnv = process.env.NODE_ENV;

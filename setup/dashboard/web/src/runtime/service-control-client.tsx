@@ -2,6 +2,7 @@
 
 import React, { useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 import {
     SERVICE_CONTROL_URL,
@@ -294,14 +295,43 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         publish();
     };
 
+    const formatActionReason = (rawMessage: string): string => {
+        if (rawMessage === "Service command timed out") {
+            return i18n.t("SERVICE_ACTION_REASON_TIMEOUT");
+        }
+        if (rawMessage === "Too many commands in progress") {
+            return i18n.t("SERVICE_ACTION_REASON_BUSY");
+        }
+        if (rawMessage === "Invalid service action") {
+            return i18n.t("SERVICE_ACTION_REASON_INVALID");
+        }
+        return rawMessage || i18n.t("SERVICE_ACTION_REASON_UNKNOWN");
+    };
+
+    const formatActionLabel = (action: unknown): string => {
+        if (action === "enable") {return i18n.t("SERVICE_ACTION_ENABLE");}
+        if (action === "disable") {return i18n.t("SERVICE_ACTION_DISABLE");}
+        if (action === "restart") {return i18n.t("SERVICE_ACTION_RESTART");}
+        return "";
+    };
+
     const showActionFailure = (payload: Record<string, unknown>) => {
-        const responseMessage = typeof payload.message === "string" ? payload.message : "Service action failed";
-        const failedOperation = typeof payload.failedOperation === "string" ? `systemctl ${payload.failedOperation}` : "";
+        const serviceId = typeof payload.service === "string" ? payload.service : "";
+        const serviceName = snapshot.rows.find((row) => row.id === serviceId)?.name || serviceId;
+        const actionLabel = formatActionLabel(payload.action);
+        const rawMessage = typeof payload.message === "string" ? payload.message : "";
+        const reason = formatActionReason(rawMessage);
+        const message = serviceName && actionLabel
+            ? i18n.t("SERVICE_ACTION_FAILED", { action: actionLabel, service: serviceName, reason })
+            : reason;
+        const failedOperation = typeof payload.failedOperation === "string" && payload.failedOperation !== ""
+            ? (serviceId ? `systemctl ${payload.failedOperation} ${serviceId}` : `systemctl ${payload.failedOperation}`)
+            : "";
         const output = typeof payload.stderr === "string" && payload.stderr !== ""
             ? payload.stderr
             : typeof payload.stdout === "string" ? payload.stdout : "";
         window.quickboxSystemResponseIsland?.showAlert({
-            message: responseMessage,
+            message,
             ...(failedOperation ? { command: failedOperation } : {}),
             ...(output ? { output } : {}),
         });
@@ -499,7 +529,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
 let serviceStore: ReturnType<typeof createServiceControlStore> | undefined;
 
 export function registerServiceControlIsland(bootstrap: DashboardBootstrapPayload) {
-    const store = createServiceControlStore(bootstrap.serviceRows, bootstrap.locale, bootstrap.serviceKeys);
+    const store = createServiceControlStore(bootstrap.serviceRows, window.quickboxLocale ?? "en", bootstrap.serviceKeys);
     serviceStore = store;
     window.quickboxServiceIsland = {
         bindTransport: store.bindTransport,

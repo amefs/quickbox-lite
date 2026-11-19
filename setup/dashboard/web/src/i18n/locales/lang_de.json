@@ -226,5 +226,13 @@
   "BACKEND_UNAVAILABLE_TITLE": "Backend-Dienst nicht verfügbar",
   "RETRY": "Neu laden",
   "BACKEND_RETRYING_DESC": "Verbindung zum QuickBox-Backend fehlgeschlagen ({{error}}). Erneuter Versuch ({{attempt}}/{{max}})…",
-  "BACKEND_RETRY_EXHAUSTED_DESC": "Verbindung zum QuickBox-Backend nach {{max}} Versuchen fehlgeschlagen ({{error}}). Automatische Aktualisierung gestoppt."
+  "BACKEND_RETRY_EXHAUSTED_DESC": "Verbindung zum QuickBox-Backend nach {{max}} Versuchen fehlgeschlagen ({{error}}). Automatische Aktualisierung gestoppt.",
+  "SERVICE_ACTION_ENABLE": "aktivieren",
+  "SERVICE_ACTION_DISABLE": "deaktivieren",
+  "SERVICE_ACTION_RESTART": "neu starten",
+  "SERVICE_ACTION_FAILED": "Fehler beim {{action}} von {{service}}: {{reason}}",
+  "SERVICE_ACTION_REASON_TIMEOUT": "Zeitüberschreitung bei der Befehlsausführung",
+  "SERVICE_ACTION_REASON_BUSY": "zu viele Befehle werden gleichzeitig ausgeführt",
+  "SERVICE_ACTION_REASON_INVALID": "ungültige Dienstaktion",
+  "SERVICE_ACTION_REASON_UNKNOWN": "Dienstaktion fehlgeschlagen"
 }

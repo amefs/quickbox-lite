@@ -6,7 +6,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
-import { readOutputLogAtPath } from "../../src/widgets/output-log";
+import { readOutputLogAtPath } from "../../src/services/output-log";
 
 /**
  * Upper bound documented by `DEFAULT_CONFIG.maxLength` in `src/widgets/output-log.ts`.

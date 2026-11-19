@@ -3,28 +3,24 @@
 import "mocha";
 import { expect } from "chai";
 
-import { packageManagementCenter } from "../../src/widgets/package-management-center";
+import { getPackageManagementData, getPackageManagementStateData } from "../../src/services/packages/pmc";
 
 describe("widgets/package-management-center", () => {
-    it("should render the package management panel", async () => {
-        const result = await packageManagementCenter();
+    it("should return package rows with i18n keys and no HTML fields", () => {
+        const result = getPackageManagementData();
 
-        expect(result).to.include("panel-server-package-management");
-        expect(result).to.include("PACKAGE_MANAGEMENT_CENTER");
-        expect(result).to.include("PMC_NOTICE_TXT");
+        expect(result).to.have.property("rows").that.is.an("array");
+        expect(result).to.have.property("installLockExists").that.is.a("boolean");
+        const autodl = result.rows.find((row) => row.name === "AutoDL-iRSSi");
+        expect(autodl).to.be.an("object");
+        const filebrowser = result.rows.find((row) => row.descriptionKey === "FILEBROWSER");
+        expect(filebrowser).to.be.an("object");
     });
 
-    it("should include package rows", async () => {
-        const result = await packageManagementCenter();
+    it("should return compact installed state map for polling", () => {
+        const state = getPackageManagementStateData();
 
-        expect(result).to.include("<table");
-        expect(result).to.include("AutoDL-iRSSi");
-        expect(result).to.include("INSTALL");
-    });
-
-    it("should include package description keys", async () => {
-        const result = await packageManagementCenter();
-
-        expect(result).to.include("FILEBROWSER");
+        expect(state).to.have.property("installedByPackage").that.is.an("object");
+        expect(state).to.have.property("installLockExists").that.is.a("boolean");
     });
 });

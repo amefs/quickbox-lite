@@ -6,7 +6,7 @@ import { expect } from "chai";
 import * as sinon from "sinon";
 import si from "systeminformation";
 
-import { netStatus } from "../../src/widgets/network-status";
+import { netStatus } from "../../src/services/system/network";
 
 describe("widgets/network-status", () => {
     let networkInterfacesStub: sinon.SinonStub;

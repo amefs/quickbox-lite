@@ -6,7 +6,7 @@
  * module only provides profile lifecycle management.
  */
 
-import { getPackage, serviceMap } from "../info";
+import { getPackage, serviceMap } from "../services/packages/info";
 import commandConfig from "../../config/commands.json";
 import { username } from "../shared/constants";
 import { type MockProcess, type MockProfile, getProfile } from "./mock-profiles";

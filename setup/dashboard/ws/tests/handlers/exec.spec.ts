@@ -20,7 +20,7 @@ import execHandler, {
     UPDATE_ACK_FAILED,
     UPDATE_ACK_OK,
     UPDATE_ACK_PENDING,
-} from "../../src/handlers/exec";
+} from "../../src/socket/exec";
 import Constant from "../../src/shared/constants";
 
 /** Helper to build a minimal mock Socket client */

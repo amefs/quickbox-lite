@@ -91,10 +91,12 @@
 }
 
 .qb-service-control .qb-service-switch.ant-switch .ant-switch-loading-icon {
-    position: relative;
-    top: 0;
-    inset-inline-start: 0;
-    display: inline-flex;
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 14px;
+    height: 14px;
+    display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;

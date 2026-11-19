@@ -86,7 +86,7 @@ function startDashboardServer(config = buildServerConfig()) {
     // Socket.IO polling -> websocket probe, which breaks the dev dashboard.
     // `--import tsx` keeps the server in this process: a tsx CLI child would
     // survive SIGTERM and leave port 8575 occupied.
-    nodeProcess = spawn(process.execPath, ["--import", "tsx", path.join(packageRoot, "src", "server.tsx")], {
+    nodeProcess = spawn(process.execPath, ["--import", "tsx", path.join(packageRoot, "src", "server.ts")], {
         cwd: packageRoot,
         env: {
             ...process.env,

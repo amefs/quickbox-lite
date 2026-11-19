@@ -226,5 +226,13 @@
   "BACKEND_UNAVAILABLE_TITLE": "Service backend indisponible",
   "RETRY": "Recharger",
   "BACKEND_RETRYING_DESC": "Impossible de joindre le backend QuickBox ({{error}}). Nouvelle tentative ({{attempt}}/{{max}})…",
-  "BACKEND_RETRY_EXHAUSTED_DESC": "Impossible de joindre le backend QuickBox ({{error}}) après {{max}} tentatives. Actualisation automatique arrêtée."
+  "BACKEND_RETRY_EXHAUSTED_DESC": "Impossible de joindre le backend QuickBox ({{error}}) après {{max}} tentatives. Actualisation automatique arrêtée.",
+  "SERVICE_ACTION_ENABLE": "activer",
+  "SERVICE_ACTION_DISABLE": "désactiver",
+  "SERVICE_ACTION_RESTART": "redémarrer",
+  "SERVICE_ACTION_FAILED": "Échec de l’opération {{action}} sur {{service}} : {{reason}}",
+  "SERVICE_ACTION_REASON_TIMEOUT": "délai d’attente dépassé",
+  "SERVICE_ACTION_REASON_BUSY": "trop de commandes en cours",
+  "SERVICE_ACTION_REASON_INVALID": "action de service invalide",
+  "SERVICE_ACTION_REASON_UNKNOWN": "échec de l’action sur le service"
 }

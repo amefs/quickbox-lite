@@ -29,6 +29,26 @@ export interface DiskDataData {
     torrents: DiskTorrentRow[];
 }
 
+export interface DiskFileSystemRawRow {
+    mount: string;
+    used: number;
+    available: number;
+    size: number;
+    percent: number;
+}
+
+export interface DiskTorrentRawRow {
+    key: string;
+    loaded: number;
+}
+
+export interface DiskDataRawData {
+    fileSystems: DiskFileSystemRawRow[];
+    torrents: DiskTorrentRawRow[];
+}
+
+export type DiskDataPayload = DiskDataRawData | DiskDataData;
+
 export interface DiskDataBridge {
     onPrefetch: (data: unknown) => boolean;
     onMessage: (data: unknown) => boolean;
@@ -64,4 +84,29 @@ export function isDiskDataData(value: unknown): value is DiskDataData {
         return false;
     }
     return true;
+}
+
+function isRawFileSystemRow(value: unknown): value is DiskFileSystemRawRow {
+    return isRecord(value) && hasOnlyKeys(value, ["mount", "used", "available", "size", "percent"]) &&
+        typeof value.mount === "string" &&
+        typeof value.used === "number" && Number.isFinite(value.used) &&
+        typeof value.available === "number" && Number.isFinite(value.available) &&
+        typeof value.size === "number" && Number.isFinite(value.size) &&
+        typeof value.percent === "number" && Number.isFinite(value.percent);
+}
+
+function isRawTorrentRow(value: unknown): value is DiskTorrentRawRow {
+    return isRecord(value) && hasOnlyKeys(value, ["key", "loaded"]) &&
+        typeof value.key === "string" &&
+        typeof value.loaded === "number" && Number.isFinite(value.loaded);
+}
+
+export function isDiskDataRawData(value: unknown): value is DiskDataRawData {
+    return isRecord(value) && hasOnlyKeys(value, ["fileSystems", "torrents"]) &&
+        Array.isArray(value.fileSystems) && value.fileSystems.every(isRawFileSystemRow) &&
+        Array.isArray(value.torrents) && value.torrents.every(isRawTorrentRow);
+}
+
+export function isDiskDataPayload(value: unknown): value is DiskDataPayload {
+    return isDiskDataRawData(value) || isDiskDataData(value);
 }

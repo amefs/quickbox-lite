@@ -403,11 +403,13 @@ test.describe("service action confirmation", () => {
         await expect(toggle).toHaveClass(/ant-switch-loading/);
         const spinnerOffset = await toggle.evaluate((el) => {
             const handle = el.querySelector(".ant-switch-handle")?.getBoundingClientRect();
-            const icon = el.querySelector(".ant-switch-loading-icon")?.getBoundingClientRect();
-            if (!handle || !icon) {return null;}
+            const svg = el.querySelector(".ant-switch-loading-icon svg")?.getBoundingClientRect();
+            if (!handle || !svg) {return null;}
             return {
-                dx: Math.abs((handle.left + handle.width / 2) - (icon.left + icon.width / 2)),
-                dy: Math.abs((handle.top + handle.height / 2) - (icon.top + icon.height / 2)),
+                dx: Math.abs((handle.left + handle.width / 2) - (svg.left + svg.width / 2)),
+                dy: Math.abs((handle.top + handle.height / 2) - (svg.top + svg.height / 2)),
+                handleWidth: handle.width,
+                svgWidth: svg.width,
             };
         });
         expect(spinnerOffset).not.toBeNull();

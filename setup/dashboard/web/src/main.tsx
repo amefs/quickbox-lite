@@ -30,10 +30,9 @@ function detectInitialTheme(): DashboardTheme {
     return match?.[1] === "smoked" ? "smoked" : "defaulted";
 }
 
-function createFallbackBootstrap(basePath: string, locale: string, theme: DashboardTheme): DashboardBootstrapPayload {
+function createFallbackBootstrap(basePath: string, theme: DashboardTheme): DashboardBootstrapPayload {
     return {
         basePath,
-        locale,
         locales: VALID_LOCALES,
         serviceKeys: [],
         socketUpgrade: true,
@@ -48,17 +47,12 @@ function createFallbackBootstrap(basePath: string, locale: string, theme: Dashbo
             active: false,
             kind: "package",
             operation: "",
-            text: "",
-            viewLogLabel: "",
-            abortLabel: "",
-            abortConfirm: "",
         },
         packageManagement: {
             data: { rows: [], installLockExists: false },
             theme,
         },
         chrome: {
-            locale,
             config: {
                 username: "QuickBox",
                 version: "",
@@ -67,22 +61,22 @@ function createFallbackBootstrap(basePath: string, locale: string, theme: Dashbo
                 hasExternalAuth: false,
                 ssoLogoutUrl: "",
                 languages: [
-                    { file: "lang_da", key: "da", title: "Dansk" },
-                    { file: "lang_de", key: "de", title: "Deutsch" },
-                    { file: "lang_en", key: "en", title: "English" },
-                    { file: "lang_es", key: "es", title: "Español" },
-                    { file: "lang_fr", key: "fr", title: "Français" },
-                    { file: "lang_zh", key: "zh", title: "中文 (简体)" },
+                    { file: "lang_da", key: "da" },
+                    { file: "lang_de", key: "de" },
+                    { file: "lang_en", key: "en" },
+                    { file: "lang_es", key: "es" },
+                    { file: "lang_fr", key: "fr" },
+                    { file: "lang_zh", key: "zh" },
                 ],
                 themes: [
-                    { file: "defaulted", title: "Defaulted" },
-                    { file: "smoked", title: "Smoked" },
+                    { file: "defaulted" },
+                    { file: "smoked" },
                 ],
                 bwPages: [
-                    { key: "t", title: "Top 10 days" },
-                    { key: "h", title: "Recent hours" },
-                    { key: "d", title: "Last 30 days" },
-                    { key: "m", title: "Last 12 months" },
+                    { key: "t" },
+                    { key: "h" },
+                    { key: "d" },
+                    { key: "m" },
                 ],
             },
             menuState: {
@@ -102,7 +96,7 @@ function DashboardRoot({ basePath }: { basePath: string }) {
     const initialLocale = React.useMemo(() => detectInitialLocale(), []);
     const initialTheme = React.useMemo(() => detectInitialTheme(), []);
     const [bootstrap, setBootstrap] = React.useState<DashboardBootstrapPayload>(() =>
-        createFallbackBootstrap(basePath, initialLocale, initialTheme),
+        createFallbackBootstrap(basePath, initialTheme),
     );
     const [bootstrapReady, setBootstrapReady] = React.useState(false);
     const [bootstrapRetry, setBootstrapRetry] = React.useState<BootstrapRetryState | null>(null);
@@ -126,9 +120,9 @@ function DashboardRoot({ basePath }: { basePath: string }) {
                 throw new Error(`Bootstrap failed (${response.status})`);
             }
             const payload = (await response.json()) as DashboardBootstrapPayload;
-            const resolvedLocale = detectInitialLocale(payload.locale);
+            const resolvedLocale = detectInitialLocale();
             setLocale(resolvedLocale, false);
-            payload.locale = resolvedLocale;
+            window.quickboxLocale = resolvedLocale;
             applyFrontendTheme(payload.serviceTheme);
 
             window.quickboxRuntime = payload;

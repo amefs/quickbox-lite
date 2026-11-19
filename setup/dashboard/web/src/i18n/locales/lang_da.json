@@ -226,5 +226,13 @@
   "BACKEND_UNAVAILABLE_TITLE": "Backend-tjeneste utilgængelig",
   "RETRY": "Genindlæs",
   "BACKEND_RETRYING_DESC": "Kunne ikke oprette forbindelse til QuickBox-backend ({{error}}). Forsøger igen ({{attempt}}/{{max}})…",
-  "BACKEND_RETRY_EXHAUSTED_DESC": "Kunne ikke oprette forbindelse til QuickBox-backend ({{error}}) efter {{max}} forsøg. Automatisk opdatering er stoppet."
+  "BACKEND_RETRY_EXHAUSTED_DESC": "Kunne ikke oprette forbindelse til QuickBox-backend ({{error}}) efter {{max}} forsøg. Automatisk opdatering er stoppet.",
+  "SERVICE_ACTION_ENABLE": "aktivere",
+  "SERVICE_ACTION_DISABLE": "deaktivere",
+  "SERVICE_ACTION_RESTART": "genstarte",
+  "SERVICE_ACTION_FAILED": "Kunne ikke {{action}} {{service}}: {{reason}}",
+  "SERVICE_ACTION_REASON_TIMEOUT": "kommandoen fik timeout",
+  "SERVICE_ACTION_REASON_BUSY": "for mange kommandoer kører samtidigt",
+  "SERVICE_ACTION_REASON_INVALID": "ugyldig tjenestehandling",
+  "SERVICE_ACTION_REASON_UNKNOWN": "tjenestehandling mislykkedes"
 }

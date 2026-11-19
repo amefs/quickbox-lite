@@ -4,7 +4,7 @@ import express from "express";
 import path from "path";
 import childProcess from "child_process";
 
-import { createAppRouter } from "../../src/router";
+import { createAppRouter } from "../../src/routes";
 
 export function createControllerTestApp(execFile: typeof childProcess.execFile = childProcess.execFile) {
     const testApp = express();

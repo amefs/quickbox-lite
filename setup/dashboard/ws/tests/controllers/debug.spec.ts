@@ -37,7 +37,7 @@ describe("controllers/debug", () => {
     });
 
     it("should resolve valid widget urls", async () => {
-        const res = await request(app).get("/debug/node?url=/node/up");
+        const res = await request(app).get("/debug/node?url=/node/data/system_uptime");
 
         expect(res.status).to.equal(200);
     });

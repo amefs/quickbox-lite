@@ -14,9 +14,9 @@ export interface DashboardChromeConfig {
     showDeveloper: boolean;
     hasExternalAuth: boolean;
     ssoLogoutUrl: string;
-    languages: { file: string; key: string; title: string }[];
-    themes: { file: string; title: string }[];
-    bwPages: { key: "t" | "h" | "d" | "m"; title: string }[];
+    languages: { file: string; key: string }[];
+    themes: { file: string }[];
+    bwPages: { key: "t" | "h" | "d" | "m" }[];
 }
 
 export interface DashboardChromeMenuEntry {
@@ -33,14 +33,12 @@ export interface DashboardChromeMenuState {
 }
 
 export interface DashboardChromeData {
-    locale: string;
     config: DashboardChromeConfig;
     menuState: DashboardChromeMenuState;
 }
 
 export interface DashboardBootstrapPayload {
     basePath: string;
-    locale: string;
     locales: readonly string[];
     serviceKeys: string[];
     socketUpgrade: boolean;

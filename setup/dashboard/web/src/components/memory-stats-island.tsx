@@ -3,8 +3,71 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import type { MemoryProgress, MemoryStatsData } from "../../../ws/src/shared/memory-stats-contract";
+import type { MemoryProgress, MemoryStatsData, MemoryStatsPayload, MemoryStatsRawData } from "../../../ws/src/shared/memory-stats-contract";
+import { formatSize } from "../utils/format";
 import { MemoryStatusPlaceholder } from "./placeholder";
+
+function getRamColor(percent: number): MemoryProgress["colorClass"] {
+    if (percent >= 90) {
+        return "progress-bar-danger";
+    }
+    if (percent >= 70) {
+        return "progress-bar-warning";
+    }
+    return "progress-bar-success";
+}
+
+function normalizeMemoryStats(payload: MemoryStatsPayload): Omit<MemoryStatsData, "labels"> {
+    if ("physical" in payload) {
+        return payload;
+    }
+    const raw: MemoryStatsRawData = payload;
+    const memPercent = raw.total > 0 ? Number((raw.used / raw.total * 100).toFixed(2)) : 0;
+    const memRealUsedNumber = raw.used - raw.cached - raw.buffers;
+    const memRealPercent = raw.total > 0 ? Number((memRealUsedNumber / raw.total * 100).toFixed(2)) : 0;
+    const memCachedPercent = raw.total > 0 ? Number((raw.cached / raw.total * 100).toFixed(2)) : 0;
+    const swapPercent = raw.swapTotal > 0 ? Number((raw.swapUsed / raw.swapTotal * 100).toFixed(2)) : 0;
+
+    return {
+        physical: {
+            percent: memPercent,
+            colorClass: getRamColor(memPercent),
+            used: formatSize(raw.used),
+            free: formatSize(raw.free),
+        },
+        ...(raw.cached > 1e-5 ? {
+            cached: {
+                percent: memCachedPercent,
+                colorClass: getRamColor(memCachedPercent),
+                description: "",
+                buffersDescription: "",
+                used: formatSize(raw.cached),
+                buffered: formatSize(raw.buffers),
+            },
+            real: {
+                percent: memRealPercent,
+                colorClass: getRamColor(memRealPercent),
+                description: "",
+                freeDescription: "",
+                used: formatSize(memRealUsedNumber),
+                free: formatSize(raw.total - memRealUsedNumber),
+            },
+        } : {}),
+        ...(raw.swapTotal > 1e-5 ? {
+            swap: {
+                percent: swapPercent,
+                colorClass: getRamColor(swapPercent),
+                totalDescription: "",
+                usedDescription: "",
+                freeDescription: "",
+                total: formatSize(raw.swapTotal),
+                used: formatSize(raw.swapUsed),
+                free: formatSize(raw.swapFree),
+            },
+        } : {}),
+        total: formatSize(raw.total),
+    };
+}
 
 function Progress({ data, usedLabel }: { data: MemoryProgress; usedLabel: string }) {
     return (
@@ -16,8 +79,9 @@ function Progress({ data, usedLabel }: { data: MemoryProgress; usedLabel: string
     );
 }
 
-function MemoryStatsView({ data }: { data: MemoryStatsData }) {
+function MemoryStatsView({ data: payload }: { data: MemoryStatsPayload }) {
     const { t } = useTranslation();
+    const data = normalizeMemoryStats(payload);
     const labels = {
         physical: t("PHYSICAL_MEMORY_TITLE"),
         physicalUsed: t("PHYSICAL_MEMORY_USED_TXT"),
@@ -92,6 +156,6 @@ function MemoryStatsView({ data }: { data: MemoryStatsData }) {
     );
 }
 
-export function MemoryStatsRoot({ data }: { data: MemoryStatsData | null }) {
+export function MemoryStatsRoot({ data }: { data: MemoryStatsPayload | null }) {
     return data ? <MemoryStatsView data={data} /> : <MemoryStatusPlaceholder />;
 }
