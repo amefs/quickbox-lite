@@ -42,13 +42,13 @@ jobs:
           cd setup/dashboard/ws || exit 1
           npm run build
           NODE_ENV=test node -e "require('./dist/server.js'); process.exit(0)"
-          if git diff --quiet -- dist && [ -z "$(git ls-files --others --exclude-standard -- dist)" ]; then
+          if git diff --quiet -- dist ../js/migration && [ -z "$(git ls-files --others --exclude-standard -- dist ../js/migration)" ]; then
             echo "Dashboard build artifacts are up to date."
             exit 0
           fi
-          echo "::error::Dashboard build artifacts are out of date. Run 'npm run build' in setup/dashboard/ws and commit all changes in dist/."
-          git status --short -- dist
-          git diff --stat -- dist
+          echo "::error::Dashboard build artifacts are out of date. Run 'npm run build' in setup/dashboard/ws and commit all changes in dist/ and setup/dashboard/js/migration/."
+          git status --short -- dist ../js/migration
+          git diff --stat -- dist ../js/migration
           exit 1
 
   es-linter-for-js:

@@ -79,14 +79,17 @@ test.describe("WS Debug Console", () => {
 test.describe("WS API Endpoints", () => {
     test("should serve the selected theme through dashboard and debug asset routes", async ({ page }) => {
         await page.goto("/");
-        const dashboardCss = await page.request.get(new URL("/skins/quick.css", page.url()).href);
-        const debugCssUrl = `${WS_BASE_URL.replace(/\/+$/, "")}/debug/assets/skins/quick.css`;
+        const theme = await page.locator("body").getAttribute("data-theme");
+        expect(theme).toMatch(/^(defaulted|smoked)$/);
+        const cssPath = `/css/dashboard-theme-${theme}.css`;
+        const dashboardCss = await page.request.get(new URL(cssPath, page.url()).href);
+        const debugCssUrl = `${WS_BASE_URL.replace(/\/+$/, "")}/debug/assets${cssPath}`;
         const debugCss = await page.request.get(debugCssUrl);
 
         expect(dashboardCss.status()).toBe(200);
         expect(debugCss.status()).toBe(200);
         const [dashboardBody, debugBody] = await Promise.all([dashboardCss.text(), debugCss.text()]);
-        expect(dashboardBody).toContain("Quick Box UI");
+        expect(dashboardBody).toContain("Reconstructed QuickBox application rules");
         expect(debugBody).toBe(dashboardBody);
     });
 

@@ -2,15 +2,10 @@
 
 import "mocha";
 import { expect } from "chai";
-import { readFileSync } from "fs";
-import path from "path";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 
 import { DebugPage } from "../src/debug";
-
-const debugScript = readFileSync(path.resolve(__dirname, "../../js/debug.js"), "utf8");
-const debugStyles = readFileSync(path.resolve(__dirname, "../../css/debug.css"), "utf8");
 
 describe("debug page", () => {
     it("should render a complete HTML page", () => {
@@ -51,25 +46,33 @@ describe("debug page", () => {
         expect(html).to.include("btn-history-reload");
     });
 
-    it("should reference the external client-side script", () => {
+    it("should include client-side script", () => {
         const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("src=\"/js/debug.js\"");
-        expect(debugScript).to.include("fetchEndpoint");
-        expect(debugScript).to.include("requestHistory");
-        expect(debugScript).to.include("renderHistoryList");
+        expect(html).to.include("fetchEndpoint");
+        expect(html).to.include("withDebugBase('/debug/node?url=' + encodeURIComponent(requestUrl))");
+        expect(html).to.include("requestHistory");
+        expect(html).to.include("renderHistoryList");
     });
 
     it("should derive debug base path for prefixed deployments", () => {
-        expect(debugScript).to.include("var debugBasePath = (function()");
-        expect(debugScript).to.include("quickCss.href = withDebugBase(\"/debug/assets/skins/quick.css\")");
-        expect(debugScript).to.include("faCss.href = withDebugBase(\"/debug/assets/lib/font-awesome/css/font-awesome.min.css\")");
+        const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
+        expect(html).to.include("var debugBasePath = (function()");
+        expect(html).to.include("foundationCss.href = withDebugBase('/debug/assets/css/dashboard-foundation.css')");
+        expect(html).to.include("themeCss.href = withDebugBase('/debug/assets/css/dashboard-theme-' + debugTheme + '.css')");
+        expect(html).to.not.include("quick.css");
+        expect(html).to.include("faCss.href = withDebugBase('/debug/assets/lib/font-awesome/css/font-awesome.min.css')");
     });
 
-    it("should reference the external CSS file", () => {
+    it("passes the selected theme to the widget preview", () => {
+        const html = ReactDOMServer.renderToString(React.createElement(DebugPage, { theme: "smoked" }));
+        expect(html).to.include('data-theme="smoked"');
+        expect(html).to.include("resultRendered.setAttribute('data-theme', debugTheme)");
+    });
+
+    it("should include CSS styles", () => {
         const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("href=\"/css/debug.css\"");
-        expect(debugStyles).to.include(".debug-container");
-        expect(debugStyles).to.include(".endpoint-btn");
+        expect(html).to.include("debug-container");
+        expect(html).to.include("endpoint-btn");
     });
 
     it("should contain data-url attributes with correct widget paths", () => {

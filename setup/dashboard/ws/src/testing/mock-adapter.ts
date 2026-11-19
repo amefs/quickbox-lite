@@ -7,6 +7,7 @@
  */
 
 import { getPackage, serviceMap } from "../info";
+import commandConfig from "../../config/commands.json";
 import { username } from "../shared/constants";
 import { type MockProcess, type MockProfile, getProfile } from "./mock-profiles";
 
@@ -61,11 +62,8 @@ function removeMatching(list: string[], predicate: (value: string) => boolean) {
 }
 
 function serviceUnitName(service: string) {
-    const detail = serviceMap.get(service);
-    if (!detail) {
-        return service;
-    }
-    return detail.username === "root" ? service : `${service}@${detail.username}`;
+    const target = commandConfig.systemctl.targets.find((entry) => entry === service || entry === `${service}@$username$`);
+    return target?.replaceAll("$username$", username) ?? service;
 }
 
 function ensureProcessRunning(service: string) {

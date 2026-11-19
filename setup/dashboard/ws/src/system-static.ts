@@ -4,13 +4,9 @@ import { readFile } from "fs/promises";
 import os from "os";
 import si from "systeminformation";
 import { listActiveInterfaceNames } from "./utils/network-interfaces";
+import type { CpuStaticData } from "./shared/cpu-status-contract";
 
-export interface CpuStaticInfo {
-    modelHtml: string;
-    count: number | string;
-    frequency?: string;
-    cache?: string;
-}
+export type CpuStaticInfo = CpuStaticData;
 
 const SYSTEM_STATIC_TIMEOUT_MS = 1200;
 const CPU_INFO_TIMEOUT_MS = 5000;
@@ -18,6 +14,7 @@ const NETWORK_INTERFACES_TIMEOUT_MS = 5000;
 const CPU_INFO_CACHE_TTL_MS = 5 * 60 * 1000;
 const UNKNOWN_CPU: CpuStaticInfo = {
     modelHtml: "<h4>Unknown</h4>",
+    model: "Unknown",
     count: "-",
 };
 
@@ -85,6 +82,7 @@ export async function getCpuStaticInfo(): Promise<CpuStaticInfo> {
 
         const cpuInfo = {
             modelHtml: parts.join(""),
+            model,
             count: cpu.cores || os.cpus().length || "-",
             frequency,
             cache,

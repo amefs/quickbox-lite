@@ -102,8 +102,8 @@ test.describe("Package Management Centre", () => {
         const pmc = page.locator("#pmc_widget");
         await expect(pmc.locator("table")).toBeVisible({ timeout: 30_000 });
 
-        // Should have install buttons (data-click-handler='packageInstall')
-        const installButtons = pmc.locator("[data-click-handler='packageInstall']");
+        // React renders package actions as buttons and owns their click handlers.
+        const installButtons = pmc.getByRole("button", { name: "Install", exact: true });
         expect(await installButtons.count()).toBeGreaterThan(0);
         await snap(page, testInfo, "pmc-install-buttons");
     });
@@ -114,7 +114,7 @@ test.describe("Package Management Centre", () => {
         await expect(pmc.locator("table")).toBeVisible({ timeout: 30_000 });
 
         // Installed packages render as success buttons that open a removal confirmation modal.
-        const removeButtons = pmc.locator("button.btn-success[data-target$='RemovalConfirm']");
+        const removeButtons = pmc.locator("button.package-action-btn.btn-success");
         expect(await removeButtons.count()).toBeGreaterThan(0);
         await snap(page, testInfo, "pmc-remove-buttons");
     });
@@ -124,27 +124,19 @@ test.describe("Package Management Centre", () => {
         const pmc = page.locator("#pmc_widget");
         await expect(pmc.locator("table")).toBeVisible({ timeout: 30_000 });
 
-        // Installed packages render a success button whose data-target points at
-        // the removal modal rendered by `<RemovalModals>` on the dashboard page.
-        // The `packageRemove` handler lives inside that modal, not in the PMC
-        // widget, so the widget is only the entry point.
-        const installedButtons = pmc.locator("button.btn-success[data-target$='RemovalConfirm']");
+        // React owns the row selection and renders one confirmation dialog.
+        const installedButtons = pmc.locator("button.package-action-btn.btn-success");
         await expect(installedButtons.first()).toBeVisible();
-        const target = await installedButtons.first().getAttribute("data-target");
-        expect(target).toMatch(/^#[A-Za-z0-9-]+RemovalConfirm$/);
-
-        const modal = page.locator(target as string);
-        await expect(modal).toBeHidden();
-
         await installedButtons.first().click();
+        const modal = page.getByRole("dialog");
         await expect(modal).toBeVisible();
         await expect(modal).toHaveAttribute("aria-modal", "true");
-        await expect(modal.locator(".modal-title")).toContainText("Uninstall");
-        await expect(modal.locator("[data-click-handler='packageRemove']")).toBeVisible();
+        await expect(modal).toHaveAccessibleName(/Uninstall/);
+        await expect(modal.getByRole("button", { name: /understand/i })).toBeVisible();
         await snap(page, testInfo, "pmc-remove-confirmation-dialog");
 
         // Cancelling closes the dialog and leaves the package installed.
-        await modal.locator(".modal-footer .btn-default").click();
+        await modal.getByRole("button", { name: "Cancel" }).click();
         await expect(modal).toBeHidden();
         await expect(installedButtons.first()).toBeVisible();
     });
@@ -155,7 +147,8 @@ test.describe("Package Management Centre", () => {
         const pmc = page.locator("#pmc_widget");
         await expect(pmc.locator("table")).toBeVisible({ timeout: 30_000 });
 
-        const autoDlInstall = pmc.locator("#autodlirssiInstall");
+        const autoDlRow = pmc.locator('tr[data-row-key="autodlirssi"]');
+        const autoDlInstall = autoDlRow.getByRole("button", { name: "Install", exact: true });
         await expect(autoDlInstall).toBeVisible();
         const [execResponse] = await Promise.all([
             page.evaluate(() => new Promise<{ success: boolean }>((resolve) => {
@@ -171,16 +164,15 @@ test.describe("Package Management Centre", () => {
         ]);
         expect(execResponse).toMatchObject({ success: true });
 
-        const sysResponse = page.locator("#sysResponse");
+        const sysResponse = page.getByRole("dialog", { name: /System Response/ });
         await expect(sysResponse).toBeVisible({ timeout: 10_000 });
-        await expect(sysResponse).not.toHaveAttribute("aria-hidden", "true");
         await expect(sysResponse).toHaveAttribute("aria-modal", "true");
         await expectFocusInside(page, "#sysResponse");
         await expect(page.locator(".bootbox")).toHaveCount(0);
 
         await page.locator("#sysResponseCloseAction").click();
-        await expect(pmc.locator("#autodlirssiInstall")).toHaveCount(0);
-        await expect(pmc.locator("button.btn-success[data-target='#autodlirssiRemovalConfirm']")).toBeVisible();
+        await expect(autoDlRow.getByRole("button", { name: "Install", exact: true })).toHaveCount(0);
+        await expect(autoDlRow.locator("button.package-action-btn.btn-success")).toBeVisible();
         await snap(page, testInfo, "pmc-install-package-success");
     });
 });
@@ -206,8 +198,8 @@ test.describe("Service Control", () => {
         const sc = page.locator("#service_control_widget");
         await expect(sc.locator("table")).toBeVisible({ timeout: 15_000 });
 
-        // Toggle switches or service action buttons should exist
-        const toggles = sc.locator(".toggle-en, .toggle-dis, [data-click-handler='serviceUpdate']");
+        // The migrated service controls expose accessible switch roles.
+        const toggles = sc.locator('[role="switch"]');
         expect(await toggles.count()).toBeGreaterThan(0);
         await snap(page, testInfo, "service-toggles");
     });
@@ -253,7 +245,7 @@ test.describe("Full Page Interactions", () => {
 });
 
 test.describe("Command failure dialog", () => {
-    test("should show the Bootstrap alert modal and escape failed command output", async ({ page }, testInfo) => {
+    test("should show the React alert dialog and escape failed command output", async ({ page }, testInfo) => {
         await setMockProfile(page, "partial-running");
         await page.goto("/");
 
@@ -270,14 +262,11 @@ test.describe("Command failure dialog", () => {
             (window as unknown as { socket: { emit: (event: string, data: string) => void } }).socket.emit("exec", command);
         }, payload);
 
-        const modal = page.locator("#quickbox-alert-modal");
+        const modal = page.getByRole("dialog", { name: /System Response/ });
         await expect(modal).toBeVisible({ timeout: 10_000 });
-        expect(await modal.getAttribute("aria-hidden")).toBeNull();
         await expect(modal).toHaveAttribute("aria-modal", "true");
-        await expect(modal).toHaveAttribute("aria-labelledby", "quickbox-alert-title");
-        await expect(modal.locator("#quickbox-alert-title")).toHaveText("System Response");
-        await expect(modal.locator(".quickbox-modal-close")).toBeVisible();
-        await expect(modal.locator(".modal-footer .btn-primary")).toBeVisible();
+        await expect(modal.getByRole("button", { name: "Close" })).toBeVisible();
+        await expect(modal.getByRole("button", { name: "OK" })).toBeVisible();
         await expectFocusInside(page, "#quickbox-alert-modal");
         await expect(modal.locator(".modal-body")).toContainText("Invalid payload");
         await expect(modal.locator(".modal-body code")).toContainText(payload);
@@ -286,7 +275,7 @@ test.describe("Command failure dialog", () => {
         await expect(page.locator(".bootbox")).toHaveCount(0);
         await snap(page, testInfo, "exec-failure-alert-modal");
 
-        await modal.locator(".quickbox-modal-close").click();
-        await expect(modal).toBeHidden({ timeout: 10_000 });
+        await modal.getByRole("button", { name: "Close" }).click();
+        await expect(page.locator("#quickbox-alert-modal")).toBeHidden({ timeout: 10_000 });
     });
 });

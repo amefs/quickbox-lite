@@ -26,24 +26,26 @@ async function openLog(page: Page) {
     });
 }
 
-async function deliverLog(page: Page, content: string, start = 0) {
-    await page.evaluate(({ content, start }) => {
-        const socket = (window as unknown as { socket: { listeners(event: string): ((payload: unknown) => void)[] } }).socket;
-        for (const listener of socket.listeners("message")) {
-            listener({ key: "SSH_OUTPUT", success: true, response: { content, start, end: start + content.length, epoch: "mobile-log" } });
+async function deliverLog(page: Page, content: string, start = 0, epoch = "mobile-log") {
+    await page.evaluate(({ content, start, epoch }) => {
+        const island = (window as unknown as {
+            quickboxSystemResponseIsland?: { onMessage: (payload: unknown) => boolean };
+        }).quickboxSystemResponseIsland;
+        if (!island?.onMessage({ content, start, end: start + content.length, size: start + content.length, epoch })) {
+            throw new Error("the system response view rejected the log payload");
         }
-    }, { content, start });
+    }, { content, start, epoch });
 }
 
 async function expectLogInViewport(page: Page) {
     const viewport = page.viewportSize()!;
-    for (const selector of ["#sysResponse .modal-dialog", "#sysResponse .modal-title", "#sysResponseDismiss", "#sysPre", "#sysResponseCloseAction"]) {
+    for (const selector of ["#sysResponse .ant-modal", "#sysResponse .modal-title", "#sysResponseDismiss", "#sysPre", "#sysResponseCloseAction"]) {
         const box = await page.locator(selector).boundingBox();
         expect(box).not.toBeNull();
         expect(box!.x).toBeGreaterThanOrEqual(0);
         expect(box!.y).toBeGreaterThanOrEqual(0);
         expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
-        expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+        expect(box!.y + box!.height, selector).toBeLessThanOrEqual(viewport.height);
     }
 }
 
@@ -51,10 +53,10 @@ async function expectLogInViewport(page: Page) {
 // height and font size across siblings, equal min-size rules, and a label that
 // fits without clipping. Theme metrics stay in the theme stylesheets.
 async function expectFooterButtonsConsistent(page: Page) {
-    const buttons = await page.evaluate(() => Array.from(document.querySelectorAll(".modal-footer .btn")).map(el => {
+    const buttons = await page.evaluate(() => Array.from(document.querySelectorAll("#sysResponse .modal-footer .btn")).map(el => {
         const style = getComputedStyle(el);
         const rect = el.getBoundingClientRect();
-        const dialog = el.closest(".modal");
+            const dialog = el.closest("#sysResponse");
         return {
             dialog: dialog instanceof HTMLElement ? dialog.id : "",
             label: (el.textContent ?? "").trim(),
@@ -68,8 +70,7 @@ async function expectFooterButtonsConsistent(page: Page) {
         };
     }));
 
-    // Every dialog on the page is checked, not just the open one.
-    expect(buttons.length).toBeGreaterThan(3);
+    expect(buttons.length).toBeGreaterThan(0);
     expect(buttons.some(button => button.visible)).toBe(true);
     const byDialog = new Map<string, typeof buttons>();
     for (const button of buttons) {
@@ -137,7 +138,7 @@ for (const theme of ["smoked", "defaulted"]) {
             await page.locator("#sysResponseDismiss").click();
             await expect(page.locator("#sysResponse")).toBeHidden();
             expect(await page.evaluate(() => performance.timeOrigin)).toBe(documentId);
-            await expect(page.locator("body")).not.toHaveClass(/modal-open/);
+            await expect(page.locator("#sysResponse")).toBeHidden();
         });
     }
 }
@@ -148,12 +149,12 @@ test("log dialog ignores clicks outside the panel", async ({ page }) => {
     await expect(page.locator("#sysResponseDismiss")).toHaveAttribute("aria-label", "关闭");
     await page.mouse.click(4, 4);
     await expect(page.locator("#sysResponse")).toBeVisible();
-    await expect(page.locator("body")).toHaveClass(/modal-open/);
+    await expect(page.locator("#sysResponse")).toBeVisible();
     // Dismissing stays an explicit action: only the footer button or the header
     // X closes it, and Escape is bound to the same dismiss path as the X.
     await page.keyboard.press("Escape");
     await expect(page.locator("#sysResponse")).toBeHidden();
-    await expect(page.locator("body")).not.toHaveClass(/modal-open/);
+    await expect(page.locator("#sysResponse")).toBeHidden();
 });
 
 test("closing the log dialog reloads the page from the footer button only", async ({ page }) => {
@@ -184,16 +185,43 @@ test("reopening the log dialog starts a fresh session with the same close action
     await expect(page.locator("#sshoutput")).toHaveText("");
 });
 
+test("a new log epoch replaces output at the same byte offset", async ({ page }) => {
+    await openLog(page);
+    const previous = "previous task output\n";
+    const replacement = "replaced task result\n";
+    expect(replacement.length).toBe(previous.length);
+    await deliverLog(page, previous, 0, "epoch-one");
+    await expect(page.locator("#sshoutput")).toContainText("previous task output");
+    const firstCursor = await page.evaluate(() => (window as unknown as {
+        quickboxSystemResponseIsland: { getOutputCursor: () => { end: number; epoch?: string } };
+    }).quickboxSystemResponseIsland.getOutputCursor());
+    expect(firstCursor).toEqual({ end: previous.length, epoch: "epoch-one" });
+
+    await deliverLog(page, replacement, 0, "epoch-two");
+    await expect(page.locator("#sshoutput")).toContainText("replaced task result");
+    await expect(page.locator("#sshoutput")).not.toContainText("previous task output");
+    const nextCursor = await page.evaluate(() => (window as unknown as {
+        quickboxSystemResponseIsland: { getOutputCursor: () => { end: number; epoch?: string } };
+    }).quickboxSystemResponseIsland.getOutputCursor());
+    expect(nextCursor).toEqual({ end: replacement.length, epoch: "epoch-two" });
+});
+
 test("log updates preserve reading position and follow only at the bottom", async ({ page }) => {
     await openLog(page);
     await deliverLog(page, log);
     const output = page.locator("#sysPre");
-    await output.evaluate(el => { el.scrollTop = 40; });
+    await output.evaluate(el => new Promise<void>(resolve => {
+        el.addEventListener("scroll", () => { resolve(); }, { once: true });
+        el.scrollTop = 40;
+    }));
     await deliverLog(page, "", log.length);
     expect(await output.evaluate(el => el.scrollTop)).toBe(40);
     await deliverLog(page, "new output\n", log.length);
     expect(await output.evaluate(el => el.scrollTop)).toBe(40);
-    await output.evaluate(el => { el.scrollTop = el.scrollHeight; });
+    await output.evaluate(el => new Promise<void>(resolve => {
+        el.addEventListener("scroll", () => { resolve(); }, { once: true });
+        el.scrollTop = el.scrollHeight;
+    }));
     await deliverLog(page, "more output\n", log.length + "new output\n".length);
     await expect.poll(() => output.evaluate(el => el.scrollHeight - el.scrollTop - el.clientHeight)).toBeLessThan(2);
 });

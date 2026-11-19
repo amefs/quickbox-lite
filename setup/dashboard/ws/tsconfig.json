@@ -9,6 +9,7 @@
         "jsx": "react",
         "declaration": false,
         "strict": true,
+        "skipLibCheck": true,
         "noImplicitAny": true,
         "noImplicitUseStrict": false,
         "removeComments": true,

@@ -1,8 +1,67 @@
 import React from "react";
+import { createCache, extractStyle, StyleProvider } from "@ant-design/cssinjs";
 import ReactDOMServer from "react-dom/server";
 
 import i18n from "../i18n";
 import { getVisiblePackages, isPackageInstalled } from "./panels";
+import { PackageManagementCenterView } from "./package-management-center-view";
+import type {
+    PackageManagementData,
+    PackageManagementLabels,
+    PackageManagementTheme,
+} from "../shared/package-management-contract";
+
+export function getPackageManagementData(): PackageManagementData {
+    return {
+        rows: getVisiblePackages().map((pkg) => {
+            const packageName = pkg.package.toLowerCase();
+            const descriptionHtml = pkg.description ? i18n.t(pkg.description) : "";
+            return {
+                package: packageName,
+                name: pkg.name,
+                descriptionHtml,
+                descriptionText: descriptionHtml.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
+                installTooltip: pkg.install ? i18n.t(pkg.install) : "",
+                ...(pkg.uninstall ? { uninstallHtml: i18n.t(pkg.uninstall) } : {}),
+                installed: isPackageInstalled(pkg),
+                boxOnly: pkg.boxonly === true,
+            };
+        }),
+        installLockExists: isPackageInstalled({ lockfile: "/install/.install.lock" }),
+    };
+}
+
+export function getPackageManagementLabels(): PackageManagementLabels {
+    return {
+        title: i18n.t("PACKAGE_MANAGEMENT_CENTER"),
+        name: i18n.t("NAME"),
+        details: i18n.t("DETAILS"),
+        availability: i18n.t("AVAILABILITY"),
+        installed: i18n.t("INSTALLED"),
+        install: i18n.t("INSTALL"),
+        box: i18n.t("BOX"),
+        noticeHtml: i18n.t("PMC_NOTICE_TXT"),
+        clearLockHtml: i18n.t("CLEAR_LOCK_TXT"),
+        clearLock: i18n.t("CLEAR_LOCK"),
+        viewLog: i18n.t("VIEW_LOG"),
+        uninstallTitle: i18n.t("UNINSTALL_TITLE"),
+        cancel: i18n.t("CANCEL"),
+        agree: i18n.t("AGREE"),
+        empty: "No matching records found.",
+        searchPlaceholder: "Search:",
+        total: "entries",
+    };
+}
+
+export function renderPackageManagementIsland(data: PackageManagementData, labels: PackageManagementLabels, theme: PackageManagementTheme) {
+    const cache = createCache();
+    const html = ReactDOMServer.renderToString(
+        <StyleProvider cache={cache}>
+            <PackageManagementCenterView data={data} labels={labels} theme={theme} />
+        </StyleProvider>,
+    );
+    return { html, styleMarkup: extractStyle(cache) };
+}
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function packageManagementCenter() {

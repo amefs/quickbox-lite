@@ -65,3 +65,6 @@ __pycache__/
 
 # Downloaded runtime packages
 packages/rutorrent/
+
+e2e/baseline/
+docs/migration/

@@ -5,6 +5,8 @@ import { expect } from "chai";
 
 import { CommandType, buildCommand } from "../../../src/handlers/utils/command";
 import { isSafeUsername } from "../../../src/shared/constants";
+import serviceCatalog from "../../../config/packages.json";
+import productionCommands from "../../../config/commands.json";
 
 const config = {
     "systemctl": {
@@ -132,6 +134,18 @@ describe("exec", () => {
     });
 
     describe("production command templates", () => {
+        it("accepts service-control operations for every configured service", () => {
+            const services = (serviceCatalog as { services?: Record<string, unknown> }[]).flatMap((pkg) => Object.keys(pkg.services ?? {}));
+            expect(services.length).to.be.greaterThan(12);
+            for (const service of services) {
+                for (const operation of ["stop", "disable", "enable", "restart"]) {
+                    const command = buildCommand(`systemctl:${operation}:${service}`, productionCommands, username);
+                    expect(command, `${service} ${operation}`).to.contain(`/bin/systemctl ${operation} `);
+                    expect(command).not.to.contain("$username$");
+                }
+            }
+        });
+
         it("should wrap privileged commands with sudo -n", () => {
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             const production = require("../../../config/commands.json") as CommandType;

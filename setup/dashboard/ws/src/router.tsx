@@ -4,29 +4,36 @@
 import express, { Router, type Request, type Response } from "express";
 import * as childProcess from "child_process";
 import { createHash } from "crypto";
-import { readFileSync, statSync } from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 import path from "path";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
+import { createCache, extractStyle, StyleProvider } from "@ant-design/cssinjs";
 
 import { resolveWidget } from "./handlers/message";
-import { normalizeLocale, resolveRequestLocale, withLocale } from "./i18n";
+import i18n, { normalizeLocale, resolveRequestLocale, withLocale } from "./i18n";
 import { DebugPage } from "./debug";
 import { DashboardPage, type DashboardSsrFragments } from "./dashboard-page";
 import { applyDashboardThemeWithExecFile, dashboardConfig } from "./dashboard-config";
 import { isTestMode, setActiveProfile } from "./testing";
 import { dashboardMenu, resolveDashboardMenuState } from "./widgets/menu";
 import { removalModals } from "./widgets/removal-modals";
-import { packageManagementCenter } from "./widgets/package-management-center";
-import { runningTask } from "./widgets/running-task";
-import { serviceControl } from "./widgets/service-control";
-import { upTime } from "./widgets/up";
-import { diskData } from "./widgets/disk-data";
-import { ramStats } from "./widgets/memory-stats";
-import { widgetsLoad } from "./widgets/load";
-import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins } from "./plugins";
+import {
+    getPackageManagementData,
+    getPackageManagementLabels,
+    renderPackageManagementIsland,
+} from "./widgets/package-management-center";
+import { getServiceControlRows } from "./widgets/service-control";
+import { renderServiceControlIsland, type ServiceControlLabels, type ServiceControlTheme } from "./widgets/service-control-island";
+import { getUptimeParts } from "./widgets/up";
+import { diskData, diskDataData } from "./widgets/disk-data";
+import { ramStats, ramStatsData } from "./widgets/memory-stats";
+import { systemLoadData, widgetsLoad } from "./widgets/load";
+import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins, isPluginAction } from "./plugins";
 import { systemStaticInfoWithProviders } from "./system-static";
 import { readOutputLog } from "./widgets/output-log";
+import { resolveDashboardClientBundle } from "./utils/client-assets";
+import { runningTask } from "./widgets/running-task";
 import { shouldUpgradeDashboardSocket } from "./auth";
 
 export interface AppRouterOptions {
@@ -45,7 +52,7 @@ export interface AppRouterOptions {
  *   /            — Node-rendered dashboard shell
  *   /set         — legacy locale normalizer for older clients
  *   /node/*      — React SSR widget endpoints consumed by the dashboard shell
- *   /debug*      — debug/introspection endpoints (disabled in production unless QUICKBOX_WS_DEBUG=1)
+ *   /debug*      — debug/introspection endpoints (gated by NODE_ENV)
  *   /test/*      — test-only endpoints (gated by isTestMode())
  */
 export function createAppRouter(options: AppRouterOptions): Router {
@@ -53,16 +60,33 @@ export function createAppRouter(options: AppRouterOptions): Router {
     const runExecFile = options.execFile ?? childProcess.execFile;
     const skinsDir = options.skinsDir ?? path.join(options.dashboardDir, "skins");
     const debugEnabled = process.env.NODE_ENV !== "production" || process.env.QUICKBOX_WS_DEBUG === "1";
+    const reactClientBundlePath = resolveDashboardClientBundle(options.dashboardDir);
+    const readDashboardTheme = (): ServiceControlTheme =>
+        existsSync(path.join(options.dashboardDir, "db", ".smoked.lock")) ? "smoked" : "defaulted";
+    const parseThemeBody = (body: unknown): string | undefined => {
+        if (body === null || typeof body !== "object" || !("theme" in body)) {
+            return undefined;
+        }
+        const theme = (body as { theme?: unknown }).theme;
+        return typeof theme === "string" ? theme : undefined;
+    };
+    const parsePluginBody = (body: unknown): { plugin?: unknown; action?: unknown } => {
+        if (body === null || typeof body !== "object") {
+            return {};
+        }
+        const record = body as { plugin?: unknown; action?: unknown };
+        return { plugin: record.plugin, action: record.action };
+    };
     const renderWithLocale = async <T,>(req: Request, callback: () => T | Promise<T>): Promise<T> => {
         return await withLocale(resolveRequestLocale(req), callback);
     };
 
     router.use("/skins", express.static(skinsDir));
-    router.use("/css", express.static(path.join(options.dashboardDir, "css")));
     router.use("/lib", express.static(path.join(options.dashboardDir, "lib")));
     router.use("/fonts", express.static(path.join(options.dashboardDir, "fonts")));
     router.use("/img", express.static(path.join(options.dashboardDir, "img")));
     router.use("/js", express.static(path.join(options.dashboardDir, "js")));
+    router.use("/css", express.static(path.join(options.dashboardDir, "css")));
     router.use("/lang", express.static(path.join(options.dashboardDir, "lang")));
 
     const assetVersionCache = new Map<string, { mtimeMs: number; size: number; hash: string }>();
@@ -85,35 +109,70 @@ export function createAppRouter(options: AppRouterOptions): Router {
     // ── Root ─────────────────────────────────────────────────────────────────
 
     const renderDashboard = async (req: Request, res: Response, basePath = "") => {
+        if (!reactClientBundlePath) {
+            res.status(503).type("text/plain").send("Dashboard client bundle is unavailable");
+            return;
+        }
         const locale = resolveRequestLocale(req);
         const html = await withLocale(locale, async () => {
-            const [menuState, serviceControlHtml, packageManagementCenterHtml, runningTaskHtml] = await Promise.all([
-                resolveDashboardMenuState(),
-                serviceControl(),
-                packageManagementCenter(),
-                runningTask(),
-            ]);
+            const menuState = await resolveDashboardMenuState();
+            const dashboardTheme = readDashboardTheme();
+            const packageManagementData = getPackageManagementData();
+            const packageManagementLabels = getPackageManagementLabels();
+            const packageManagementIsland = renderPackageManagementIsland(packageManagementData, packageManagementLabels, dashboardTheme);
+            const serviceControlRows = getServiceControlRows();
+            const serviceControlLabels: ServiceControlLabels = {
+                title: i18n.t("SERVICE_CONTROL_CENTER"),
+                status: i18n.t("SERVICE_STATUS"),
+                restart: i18n.t("RESTART_SERVICES"),
+                enableDisable: i18n.t("ENABLE_DISABLE_SERVICES"),
+                refresh: i18n.t("REFRESH"),
+                enabled: i18n.t("ENABLED"),
+                disabled: i18n.t("DISABLED"),
+                serviceStatusUnconfirmed: i18n.t("SERVICE_STATUS_UNCONFIRMED"),
+                serviceStatusStale: i18n.t("SERVICE_STATUS_STALE"),
+                serviceStatusLastConfirmedTemplate: i18n.t("SERVICE_STATUS_LAST_CONFIRMED", { time: "__SERVICE_STATUS_TIME__" }),
+            };
+            const serviceControlTheme: ServiceControlTheme = dashboardTheme;
+            const serviceControlFragment = renderServiceControlIsland({ rows: serviceControlRows, labels: serviceControlLabels, theme: serviceControlTheme, statusById: {} });
+            const uptimeParts = getUptimeParts();
             const ssrFragments: DashboardSsrFragments = {
-                serviceControlHtml,
-                packageManagementCenterHtml,
-                runningTaskHtml,
-                uptimeHtml: upTime(),
+                serviceControlHtml: serviceControlFragment.html,
+                serviceControlRows,
+                serviceControlLabels,
+                serviceControlTheme,
+                packageManagementCenterHtml: packageManagementIsland.html,
+                runningTaskHtml: await runningTask(),
+                packageManagementRuntime: { data: packageManagementData, labels: packageManagementLabels, theme: dashboardTheme },
+                uptimeHtml: "",
+                uptimeParts,
                 diskDataHtml: "",
                 ramStatsHtml: "",
                 loadHtml: "",
                 cpuStaticHtml: "",
                 networkInterfaces: [],
             };
-            return ReactDOMServer.renderToString(
-                <DashboardPage
-                    basePath={basePath}
-                    socketUpgrade={shouldUpgradeDashboardSocket(req.headers)}
-                    locale={locale}
-                    menuState={menuState}
-                    ssrFragments={ssrFragments}
-                    assetVersions={{ css: assetVersion("css/dashboard.css"), js: assetVersion("js/dashboard.js") }}
-                />,
+            const pageStyleCache = createCache();
+            const rendered = ReactDOMServer.renderToString(
+                <StyleProvider cache={pageStyleCache}>
+                    <DashboardPage
+                        basePath={basePath}
+                        socketUpgrade={shouldUpgradeDashboardSocket(req.headers)}
+                        locale={locale}
+                        menuState={menuState}
+                        ssrFragments={ssrFragments}
+                        reactClientBundlePath={reactClientBundlePath}
+                        theme={dashboardTheme}
+                        assetVersions={{ css: assetVersion("css/dashboard.css"), js: assetVersion("js/dashboard.js") }}
+                    />
+                </StyleProvider>,
             );
+            const styleMarkup = [extractStyle(pageStyleCache), serviceControlFragment.styleMarkup, packageManagementIsland.styleMarkup]
+                .filter(Boolean)
+                .join("");
+            return styleMarkup
+                ? rendered.replace("</head>", `${styleMarkup}</head>`)
+                : rendered;
         });
         res.send(`<!DOCTYPE html>${html}`);
     };
@@ -174,20 +233,40 @@ export function createAppRouter(options: AppRouterOptions): Router {
         res.json(await renderWithLocale(req, async () => await systemStaticInfoWithProviders()));
     });
 
+    router.get("/node/migration/system_static", async (req: Request, res: Response) => {
+        res.json(await renderWithLocale(req, async () => await systemStaticInfoWithProviders()));
+    });
+
     router.get("/node/load", async (req: Request, res: Response) => {
         res.send(await renderWithLocale(req, async () => await widgetsLoad()));
+    });
+
+    router.get("/node/migration/system_load", async (req: Request, res: Response) => {
+        res.json(await renderWithLocale(req, async () => await systemLoadData()));
     });
 
     router.get("/node/disk_data", async (req: Request, res: Response) => {
         res.send(await renderWithLocale(req, async () => await diskData()));
     });
 
+    router.get("/node/migration/disk_data", async (req: Request, res: Response) => {
+        res.json(await renderWithLocale(req, async () => await diskDataData()));
+    });
+
     router.get("/node/ram_stats", async (req: Request, res: Response) => {
         res.send(await renderWithLocale(req, async () => await ramStats()));
     });
 
+    router.get("/node/migration/ram_stats", async (req: Request, res: Response) => {
+        res.json(await renderWithLocale(req, async () => await ramStatsData()));
+    });
+
     router.post("/node/theme", express.json(), async (req: Request, res: Response) => {
-        const theme = (req.body as { theme?: unknown } | undefined)?.theme;
+        const theme = parseThemeBody(req.body);
+        if (theme === undefined) {
+            res.status(400).json({ error: "theme field required" });
+            return;
+        }
         try {
             await applyDashboardThemeWithExecFile(theme, runExecFile);
             res.json({ ok: true, theme });
@@ -202,9 +281,11 @@ export function createAppRouter(options: AppRouterOptions): Router {
     });
 
     router.post("/node/plugin", express.json(), async (req: Request, res: Response) => {
-        const body = req.body as { plugin?: unknown; action?: unknown } | undefined;
-        const plugin = body?.plugin;
-        const action = body?.action;
+        const { plugin, action } = parsePluginBody(req.body);
+        if (typeof plugin !== "string" || !isPluginAction(action)) {
+            res.status(400).json({ error: "plugin and action fields required" });
+            return;
+        }
         try {
             await applyRutorrentPluginActionWithExecFile(plugin, action, runExecFile);
             res.json({ ok: true, plugin, action });
@@ -217,6 +298,10 @@ export function createAppRouter(options: AppRouterOptions): Router {
     router.get("/node/removal_modals", async (req: Request, res: Response) => {
         const result = await renderWithLocale(req, async () => await removalModals());
         res.send(result);
+    });
+
+    router.get("/node/migration/pmc", async (req: Request, res: Response) => {
+        res.json(await renderWithLocale(req, () => getPackageManagementData()));
     });
 
     router.get("/db/output.log", (req: Request, res: Response) => {
@@ -241,6 +326,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         router.use("/debug/assets/skins", express.static(skinsDir));
         router.use("/debug/assets/lib", express.static(path.join(options.dashboardDir, "lib")));
         router.use("/debug/assets/fonts", express.static(path.join(options.dashboardDir, "fonts")));
+        router.use("/debug/assets/css", express.static(path.join(options.dashboardDir, "css")));
 
         router.get("/debug/node", async (req: Request, res: Response) => {
             const url = req.query.url;
@@ -253,7 +339,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
         });
 
         router.get("/debug", (_req: Request, res: Response) => {
-            res.send(ReactDOMServer.renderToString(<DebugPage />));
+            res.send(ReactDOMServer.renderToString(<DebugPage theme={readDashboardTheme()} />));
         });
     }
 

@@ -99,6 +99,10 @@ function taskText(title: string, operation: RunningTaskOperation | null) {
     return i18n.t(OPERATION_TEXT[operation], { task: title });
 }
 
+function taskAbortPrompt() {
+    return i18n.t("TASK_ABORT_CONFIRM_TXT").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 /**
  * Banner for the operation that currently owns the log. Renders nothing when
  * the lock is absent, so the Dashboard can poll it as a normal widget.
@@ -130,16 +134,15 @@ export async function runningTask(
                 <button
                     type="button"
                     className="btn btn-xs btn-default"
-                    data-toggle="modal"
-                    data-target="#sysResponse"
+                    data-qb-system-response=""
                 >
                     {i18n.t("VIEW_LOG")}
                 </button>
                 <button
                     type="button"
                     className="btn btn-xs btn-danger"
-                    data-toggle="modal"
-                    data-target="#taskAbortConfirm"
+                    data-task-abort
+                    data-confirm={taskAbortPrompt()}
                 >
                     {i18n.t("TASK_ABORT")}
                 </button>

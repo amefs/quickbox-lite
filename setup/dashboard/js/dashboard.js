@@ -29,17 +29,17 @@
     document.cookie = cookie;
   }
 
+  let messages = runtime.messages;
   window.quickboxApiBase = runtime.basePath;
   window.quickboxLocale = normalizeLocale(runtime.locale);
-  window.quickboxMessages = runtime.messages;
+  window.quickboxMessages = Object.assign({ enabled: "Enabled", disabled: "Disabled", refresh: "Refresh", systemResponse: "System Response" }, messages);
   persistLocale(window.quickboxLocale);
 
   window.quickboxSetLocale = function (locale) {
     window.quickboxLocale = normalizeLocale(locale);
+    window.quickboxServiceIsland.onLocaleChanged(window.quickboxLocale);
     persistLocale(window.quickboxLocale);
-    if (typeof window.quickboxResetWidgetState === "function") {
-      window.quickboxResetWidgetState();
-    }
+    window.quickboxResetWidgetState();
     if (window.socket && window.socket.connected) {
       window.socket.emit("i18n", window.quickboxLocale);
     }
@@ -57,19 +57,23 @@
     upgrade: window.quickboxRuntime.socketUpgrade !== false
   });
   window.socket = socket;
-  socket.on("connect", function () {
-    socket.emit("i18n", window.quickboxLocale);
-  });
-
-  function resetPanel() {
-    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-      let key = localStorage.key(i);
-      if (key && key.indexOf("lobipanel") === 0) {
-        localStorage.removeItem(key);
+  window.quickboxServiceIsland.bindTransport({
+    isConnected: function () { return socket.connected; },
+    sendMessage: function (request) { socket.send(request); },
+    executeServiceAction: function (request) { socket.emit("service-action", request); },
+    notifyStopped: function (key) {
+      console.warn("[ws] stopping updates for " + key);
+      if (window.jQuery && window.jQuery.gritter) {
+        window.jQuery.gritter.add({ title: "QuickBox", text: "Stopped status updates for " + key });
       }
     }
-    location.reload();
-  }
+  });
+  socket.on("connect", function () {
+    socket.emit("i18n", window.quickboxLocale || "en");
+  });
+  socket.on("service-action-result", function (response) {
+    window.quickboxServiceIsland.onActionResult(response);
+  });
 
   function fetchJson(url) {
     return fetch(window.quickboxWidgetUrl(url), { credentials: "same-origin" }).then(function (response) {
@@ -87,462 +91,54 @@
       .replace(/'/g, "&#39;");
   }
 
-  var WRITE_SOURCE = { PREFETCH: 1, WS: 2 };
-  var widgetWritePriority = {};
+  // Component write ordering. A widget can be filled by the HTTP pre-fetch or by
+  // the WebSocket stream; the newest WebSocket payload must always win, so every
+  // write records its source instead of inferring readiness from the DOM.
+  var widgetWriteSource = {};
 
   function markWidgetWritten(selector, source) {
     if (!selector) { return; }
-    widgetWritePriority[selector] = source;
+    widgetWriteSource[selector] = source;
+    var element = document.querySelector(selector);
+    if (element instanceof HTMLElement) {
+      element.dataset.qbWriteSource = source;
+    }
   }
 
-  function canWriteWidget(selector, source) {
-    return Boolean(selector) && source >= (widgetWritePriority[selector] || 0);
+  function widgetWriteSourceOf(selector) {
+    if (Object.prototype.hasOwnProperty.call(widgetWriteSource, selector)) {
+      return widgetWriteSource[selector];
+    }
+    var element = document.querySelector(selector);
+    if (element instanceof HTMLElement && element.dataset.qbWriteSource) {
+      return element.dataset.qbWriteSource;
+    }
+    return "";
   }
 
   function resetWidgetWriteState() {
-    widgetWritePriority = {};
+    widgetWriteSource = {};
+    Array.prototype.forEach.call(document.querySelectorAll("[data-qb-write-source]"), function (element) {
+      delete element.dataset.qbWriteSource;
+    });
   }
 
   window.quickboxResetWidgetState = resetWidgetWriteState;
 
-  let serviceStatusItems = window.quickboxRuntime.serviceKeys.map(function (service) {
-    return { service, id: "#appstat_" + service };
-  });
-  let lastServiceStatusResponse = {};
-  let serviceStatusNextAllowedAt = 0;
-  let serviceStatusFailureCount = 0;
-  let serviceStatusRetryTimer = null;
-  let serviceActionRequestSeq = 0;
-  let serviceActionRequests = {};
-  let pendingServiceActionByService = {};
-  let reconcileServiceControlOnReconnect = false;
-
-  function markServiceStatusesStale(service) {
-    serviceStatusItems.forEach(function (item) {
-      if (service && item.service !== service) return;
-      let $status = window.jQuery(item.id);
-      if ($status.length === 0) return;
-      let messages = window.quickboxMessages;
-      let unconfirmed = messages.serviceStatusUnconfirmed;
-      let staleLabel = messages.serviceStatusStale;
-      if ($status.find(".badge").length === 0) {
-        let $unknown = window.jQuery("<span>").attr({ title: unconfirmed, "aria-label": unconfirmed });
-        $unknown.append(window.jQuery("<span>").addClass("badge badge-service-unknown-dot badge-service-stale"));
-        $unknown.append(window.jQuery("<span>").addClass("badge badge-service-unknown-pulse badge-service-stale"));
-        $status.empty().append($unknown);
-      } else {
-        $status.find(".badge").addClass("badge-service-stale");
-        let $badge = $status.find("span[data-observed-at]").first();
-        if ($badge.length === 0) $badge = $status.children("span").first();
-        let observedAt = Number($badge.attr("data-observed-at"));
-        let title = unconfirmed;
-        if (observedAt) {
-          let time = new Date(observedAt).toLocaleString(window.quickboxLocale);
-          let template = messages.serviceStatusLastConfirmedTemplate;
-          let lastConfirmed = template.split("__SERVICE_STATUS_TIME__").join(time);
-          title = staleLabel + "; " + lastConfirmed;
-        }
-        $badge.attr("title", title).attr("aria-label", title);
-      }
-      lastServiceStatusResponse[item.service] = $status.html() || "";
-    });
-  }
-
-
-  function ensureServiceStatusPlaceholders(restoreCached) {
-    serviceStatusItems.forEach(function (item) {
-      let $status = window.jQuery(item.id);
-      let cached = lastServiceStatusResponse[item.service];
-      if ($status.length > 0 && cached && (restoreCached || $status.html() === "")) {
-        $status.html(cached);
-      }
-    });
-  }
-
-  function formatNetworkSpeed(length) {
-    let suffixList = ["B/s", "KB/s", "MB/s", "GB/s", "TB/s"];
-    let numeric = Number(length);
-    let idx = 0;
-    if (!isFinite(numeric) || numeric <= 0) {
-      return "0 B/s";
-    }
-    while (numeric >= 1024 && idx < suffixList.length - 1) {
-      numeric /= 1024;
-      idx += 1;
-    }
-    return numeric.toFixed(idx > 0 ? 2 : 0) + " " + suffixList[idx];
-  }
-
-  function updateServiceStatus(response) {
-    if (!response || typeof response !== "object" || !response.badges || typeof response.badges !== "object") {
-      ensureServiceStatusPlaceholders();
-      return;
-    }
-    let badges = response.badges;
-    Object.keys(badges).forEach(function (service) {
-      if (pendingServiceActionByService[service]) return;
-      if (badges[service] !== undefined && badges[service] !== "") {
-        lastServiceStatusResponse[service] = badges[service];
-      }
-    });
-    serviceStatusItems.forEach(function (item) {
-      if (pendingServiceActionByService[item.service]) return;
-      if (badges[item.service] !== undefined) {
-        window.jQuery(item.id).html(badges[item.service] || lastServiceStatusResponse[item.service] || "");
-      }
-    });
-    ensureServiceStatusPlaceholders();
-  }
-
-  function initializeServiceToggles() {
-    ensureServiceStatusPlaceholders(true);
-    window.jQuery(".toggle-en, .toggle-dis").each(function () {
-      let $toggle = window.jQuery(this);
-      if ($toggle.parent(".toggle-slide").length > 0 || $toggle.parent(".toggle-modern").length > 0) {
-        return;
-      }
-      $toggle.toggles({
-        on: $toggle.hasClass("toggle-en"),
-        height: 26,
-        width: 100,
-        click: false,
-        drag: false,
-        text: {
-          on: window.quickboxMessages.enabled,
-          off: window.quickboxMessages.disabled
-        }
-      });
-    });
-    window.jQuery(".tooltips").tooltip();
-  }
-
-  let pluginActionPending = false;
-
-  function applyRutorrentPluginAction(toggle, plugin, action) {
-    if (pluginActionPending) { return; }
-    pluginActionPending = true;
-    let $ = window.jQuery;
-    if ($ && $.fn && $.fn.toggles) {
-      $(toggle).addClass("disabled").toggles(action === "install");
-    }
-    fetch(window.quickboxApiBase + "/node/plugin", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plugin, action })
-    }).then(function (response) {
-      if (!response.ok) { throw new Error("Failed to apply plugin action"); }
-      // Plugin state is rendered by the server, so reload to pick it up.
-      location.reload();
-    }).catch(function (error) {
-      pluginActionPending = false;
-      if ($ && $.fn && $.fn.toggles) {
-        $(toggle).removeClass("disabled").toggles(action !== "install");
-      }
-      console.warn("[ws] failed to apply plugin action", error);
-      showAlert("Failed to apply plugin action: " + plugin);
-    });
-  }
-
-  function initializePluginToggles(attempt) {
-    let $ = window.jQuery;
-    if (!$ || !$.fn || !$.fn.toggles) {
-      // toggles.min.js loads after this bundle; retry until it is parsed.
-      if (attempt < 20) {
-        window.setTimeout(function () { initializePluginToggles(attempt + 1); }, 100);
-      }
-      return;
-    }
-    let messages = window.quickboxMessages;
-    $("#node-plugin-list .toggle-pen").toggles({
-      on: true,
-      height: 16,
-      width: 90,
-      click: false,
-      drag: false,
-      text: {
-        on: messages.pluginInstalled,
-        off: messages.pluginUninstalling
-      }
-    });
-    $("#node-plugin-list .toggle-pdis").toggles({
-      on: false,
-      height: 16,
-      width: 90,
-      click: false,
-      drag: false,
-      text: {
-        on: messages.pluginInstalling,
-        off: messages.pluginUninstalled
-      }
-    });
-  }
-
-  function initializePluginList() {
-    let list = document.getElementById("node-plugin-list");
-    if (!list) { return; }
-    list.addEventListener("click", function (event) {
-      let target = event.target;
-      if (!target || typeof target.closest !== "function") { return; }
-      // Plugin names are plain labels; only the toggle performs an action.
-      if (target.closest("a")) { event.preventDefault(); }
-      let toggle = target.closest("[data-plugin-action]");
-      if (!toggle) { return; }
-      applyRutorrentPluginAction(toggle, toggle.dataset.plugin, toggle.dataset.pluginAction);
-    });
-    initializePluginToggles(0);
-  }
-
-  function capturePackageTableState(task) {
-    let $ = window.jQuery;
-    if (!$ || !$.fn || !$.fn.DataTable || !$.fn.DataTable.isDataTable("#dataTable1")) {
-      return;
-    }
-    let existing = $("#dataTable1").DataTable();
-    let state = {
-      page: existing.page(),
-      search: existing.search(),
-      order: existing.order(),
-      length: existing.page.len()
-    };
-    existing.destroy();
-    if (task) {
-      task._tableState = state;
-    }
-  }
-
-  function initializePackageTable(task) {
-    let $ = window.jQuery;
-    if (!$ || !$.fn || !$.fn.DataTable) {
-      return;
-    }
-    let state = (task && task._tableState) || null;
-    if ($.fn.DataTable.isDataTable("#dataTable1")) {
-      let existing = $("#dataTable1").DataTable();
-      state = state || {
-        page: existing.page(),
-        search: existing.search(),
-        order: existing.order(),
-        length: existing.page.len()
-      };
-      existing.destroy();
-    }
-    if (task) {
-      task._tableState = null;
-    }
-    let table = $("#dataTable1").DataTable();
-    $(table.table().container()).find("input[type='search']").attr({
-      id: "dataTable1-search",
-      name: "dataTable1-search"
-    });
-    if (!state) {
-      $(".tooltips").tooltip({ container: "body" });
-      return;
-    }
-    if (state.length) {
-      table.page.len(state.length);
-    }
-    if (state.search) {
-      table.search(state.search);
-    }
-    if (state.order && state.order.length > 0) {
-      table.order(state.order);
-    }
-    table.draw(false);
-    let page = state.page || 0;
-    let pageCount = table.page.info().pages;
-    if (pageCount > 0 && page > pageCount - 1) {
-      page = pageCount - 1;
-    }
-    if (page > 0) {
-      table.page(page).draw("page");
-    }
-    $(".tooltips").tooltip({ container: "body" });
-  }
-
-  function updateNetworkStatus(dataJSON) {
-    if (window.ts === undefined || window.net === undefined) {
-      window.net = dataJSON.net;
-      window.ts = dataJSON.ts;
-      return;
-    }
-    let duration = dataJSON.ts - window.ts;
-    if (duration < 1e-5) {
-      return;
-    }
-    let invalidData = false;
-    Object.keys(dataJSON.net).forEach(function (networkInterface) {
-      let ifaceCells = window.netInterfaceCells && window.netInterfaceCells[networkInterface];
-      let previous = window.net[networkInterface];
-      let current = dataJSON.net[networkInterface];
-      if (!previous || !current) {
-        invalidData = true;
-        return;
-      }
-      let outSpeed = (current.tx_bytes - previous.tx_bytes) / duration;
-      if (isNaN(outSpeed)) {
-        invalidData = true;
-        console.warn("[NaN DETECTED] " + networkInterface + "/tx", outSpeed, current, previous, duration);
-      } else {
-        if (ifaceCells && ifaceCells.tx) {
-          ifaceCells.tx.textContent = formatNetworkSpeed(outSpeed);
-        }
-      }
-      let inSpeed = (current.rx_bytes - previous.rx_bytes) / duration;
-      if (isNaN(inSpeed)) {
-        invalidData = true;
-        console.warn("[NaN DETECTED] " + networkInterface + "/rx", inSpeed, current, previous, duration);
-      } else {
-        if (ifaceCells && ifaceCells.rx) {
-          ifaceCells.rx.textContent = formatNetworkSpeed(inSpeed);
-        }
-      }
-    });
-    if (!invalidData) {
-      window.net = dataJSON.net;
-      window.ts = dataJSON.ts;
-    }
-  }
-
-  function renderSshOutput(el, task, nextChunk, replaced) {
-    let maxBytes = 1024 * 1024;
-    if ((task._rawContent || "").length > maxBytes) {
-      task._rawContent = task._rawContent.slice(-maxBytes);
-      replaced = true;
-    }
-    if (!window.AnsiUp) {
-      el.text(task._rawContent || "");
-      return;
-    }
-    if (replaced || !task._ansi) {
-      task._ansi = new window.AnsiUp();
-      el.html(task._ansi.ansi_to_html(task._rawContent || ""));
-      return;
-    }
-    if (nextChunk) {
-      el.append(task._ansi.ansi_to_html(nextChunk));
-    }
-  }
-
-  function updateSshOutput(task, response) {
-    let container = document.getElementById("sysPre");
-    let followOutput = container && container.scrollHeight - container.scrollTop - container.clientHeight <= 24;
-    let el = window.jQuery(task.id);
-    if (typeof response === "object" && response !== null && "content" in response) {
-      let previousEnd = task._endOffset;
-      let nextChunk = "";
-      let epochChanged = response.epoch !== undefined && task._epoch !== response.epoch;
-      let replaced = epochChanged;
-      if (epochChanged || previousEnd < 0 || response.end < previousEnd || response.start > previousEnd) {
-        task._rawContent = response.content;
-        task._endOffset = response.end;
-        replaced = true;
-      } else if (response.end > previousEnd && response.content) {
-        let overlap = Math.max(0, previousEnd - response.start);
-        nextChunk = overlap > 0 ? response.content.slice(overlap) : response.content;
-        if (nextChunk) {
-          task._rawContent = (task._rawContent || "") + nextChunk;
-        }
-        task._endOffset = response.end;
-      }
-      if (response.epoch !== undefined) {
-        task._epoch = response.epoch;
-      }
-      renderSshOutput(el, task, nextChunk, replaced);
-    } else {
-      task._rawContent = "";
-      task._endOffset = -1;
-      task._ansi = undefined;
-      if (window.AnsiUp) {
-        el.html(new window.AnsiUp().ansi_to_html(String(response || "")));
-      } else {
-        el.text(String(response || ""));
-      }
-    }
-    if (container && followOutput) {
-      container.scrollTop = container.scrollHeight;
-    }
-  }
-
-  // The log panel is a viewer with a session, not a window onto a persistent
-  // buffer: every open starts from zero, so the cursor and the rendered DOM are
-  // wiped first. startStatusUpdates() replaces this with the live implementation
-  // once the SSH_OUTPUT task exists.
-  let resetSshOutputCursor = function () {};
-
-  // Force one polling task to run now, without reloading the document. Widgets
-  // whose content follows a client-side choice (the bandwidth page) use this so
-  // a choice swaps that widget's data and leaves the page exactly where it was.
-  // startStatusUpdates() replaces this once the task registry exists.
-  let requestTaskRefresh = function () {
-    return false;
-  };
-  window.quickboxRefreshTask = function (key) {
-    return requestTaskRefresh(key);
-  };
-
-  function resetSysResponseView() {
-    resetSshOutputCursor();
-    let output = document.getElementById("sshoutput");
-    if (output) {
-      output.textContent = "";
-    }
-    let container = document.getElementById("sysPre");
-    if (container) {
-      container.scrollTop = 0;
-    }
-  }
-
   function createStatusTasks() {
-    let hasSsrServiceControl = window.jQuery("#service_control_widget [data-inner-id='panel-server-service-control']").length > 0;
-    let hasSsrPackageManagement = window.jQuery("#pmc_widget [data-inner-id='panel-server-package-management']").length > 0;
-    return [
-      {
-        key: "SERVICE_STATUS_ALL",
-        url: "/node/service_status_all",
-        override: updateServiceStatus,
-        bootstrap: false,
-        time: 5000
-      },
-      {
-        key: "SERVICE_CONTROL",
-        url: "/node/service_control",
-        id: "#service_control_widget",
-        after: initializeServiceToggles,
-        bootstrap: !hasSsrServiceControl,
-        time: 15000
-      },
-      {
-        key: "PMC",
-        url: "/node/pmc",
-        id: "#pmc_widget",
-        beforeHtml: capturePackageTableState,
-        after: initializePackageTable,
-        bootstrap: !hasSsrPackageManagement,
-        time: 30000
-      },
-      {
-        // Renders nothing while no operation holds the install lock, so the
-        // banner appears and disappears on its own.
-        key: "RUNNING_TASK",
-        url: "/node/task_status",
-        id: "#running_task_widget",
-        bootstrap: true,
-        time: 5000
-      },
+    let tasks = [
       {
         key: "NETWORK",
         url: "/node/net_status",
-        override: updateNetworkStatus,
         bootstrap: true,
         time: 1000
       },
-      { key: "UPTIME", url: "/node/up", id: "#uptime", bootstrap: true, time: 60000 },
-      { key: "TOP", url: "/node/load", id: "#cpuload", bootstrap: true, time: 60000 },
+      { key: "UPTIME", url: "/node/migration/system_uptime", id: "#uptime", bootstrap: true, time: 60000 },
+      { key: "TOP", url: "/node/migration/system_load", id: "#cpuload", bootstrap: true, time: 60000 },
       {
         key: "BANDWIDTH",
-        url: "/node/bw_tables",
-        urlTemplate: "/node/bw_tables?page={0}",
+        url: "/node/migration/bandwidth",
+        urlTemplate: "/node/migration/bandwidth?page={0}",
         id: "#bw_tables",
         before: function (task) {
           let page = localStorage.getItem("bw_tables:page");
@@ -554,35 +150,55 @@
         bootstrap: true,
         time: 60000
       },
-      { key: "DISK_USAGE", url: "/node/disk_data", id: "#disk_data", bootstrap: true, time: 15000 },
-      { key: "RAM_USAGE", url: "/node/ram_stats", id: "#meterram", bootstrap: true, time: 10000 },
+      { key: "DISK_USAGE", url: "/node/migration/disk_data", id: "#disk_data", bootstrap: true, time: 15000 },
+      { key: "RAM_USAGE", url: "/node/migration/ram_stats", id: "#meterram", bootstrap: true, time: 10000 },
+      { key: "TASK_STATUS", url: "/node/task_status", id: "#running_task_widget", bootstrap: true, time: 5000 },
       {
         key: "SSH_OUTPUT",
         url: "/db/output.log",
         id: "#sshoutput",
         time: 2000,
-        _endOffset: -1,
-        _epoch: undefined,
-        _requestLength: 65536,
         before: function (task) {
-          if (!window.jQuery("#sysResponse").is(":visible")) {
+          if (!window.quickboxSystemResponseIsland.isOpen()) {
             return false;
           }
-          if (task._endOffset >= 0) {
-            task.url = "/db/output.log?offset=" + task._endOffset + "&length=" + task._requestLength;
+          let cursor = window.quickboxSystemResponseIsland.getOutputCursor();
+          let endOffset = cursor.end;
+          let epoch = cursor.epoch;
+          let requestLength = 65536;
+          if (endOffset >= 0) {
+            task.url = "/db/output.log?offset=" + endOffset + "&length=" + requestLength;
           } else {
-            task.url = "/db/output.log?length=" + task._requestLength;
+            task.url = "/db/output.log?length=" + requestLength;
           }
-          if (task._epoch !== undefined) {
-            task.url += "&epoch=" + encodeURIComponent(task._epoch);
+          if (epoch !== undefined) {
+            task.url += "&epoch=" + encodeURIComponent(epoch);
           }
           return true;
         },
         override: function (response) {
-          updateSshOutput(this, response);
+          window.quickboxSystemResponseIsland.onMessage(response);
         }
       }
     ];
+    let packageManagementTask = {
+        key: "PMC",
+        url: "/node/migration/pmc",
+        id: "#pmc_widget",
+        bootstrap: false,
+        time: 30000,
+        override: function (data, response, request) {
+          let matchesPending = request && response.key === packageManagementTask.key &&
+            response.url === request.url && response.requestId === request.requestId;
+          if (matchesPending && window.quickboxPackageManagementIsland.onMessage(data)) {
+            markWidgetWritten("#pmc_widget", "ws");
+          } else {
+            console.warn("[ws] ignored uncorrelated or invalid package-management response,", response);
+          }
+        }
+    };
+    tasks.unshift(packageManagementTask);
+    return tasks;
   }
 
   function groupByTime(tasks) {
@@ -600,50 +216,23 @@
     let pendingRequests = {};
     let pendingRequestByKey = {};
     let firstRequest = true;
-    function scheduleServiceStatusRetry(baseDelay) {
-      serviceStatusFailureCount += 1;
-      let exponentialDelay = Math.min(30000, 5000 * Math.pow(2, serviceStatusFailureCount - 1));
-      let delay = Math.max(exponentialDelay, Number(baseDelay) || 0);
-      serviceStatusNextAllowedAt = Date.now() + delay + Math.floor(Math.random() * 750);
-      if (serviceStatusRetryTimer) clearTimeout(serviceStatusRetryTimer);
-      let statusTask = taskMapping.SERVICE_STATUS_ALL;
-      if (statusTask) serviceStatusRetryTimer = setTimeout(function () { queueTask(statusTask, 0); }, Math.max(0, serviceStatusNextAllowedAt - Date.now()));
-    }
     let errorCountByKey = {};
     let stoppedKeys = {};
     let bootstrapDispatched = false;
     let requestSeq = 0;
     let pendingRequestTimeoutMs = 15000;
+    let sshOutputTask;
 
     statusList.forEach(function (task) {
+      if (task.key in taskMapping) {
+        console.warn("[ws] status config key: " + task.key + " duplicated,", task);
+        return;
+      }
       taskMapping[task.key] = task;
+      if (task.key === "SSH_OUTPUT") {
+        sshOutputTask = task;
+      }
     });
-    let sshOutputTask = taskMapping.SSH_OUTPUT;
-
-    resetSshOutputCursor = function () {
-      sshOutputTask._rawContent = "";
-      sshOutputTask._endOffset = -1;
-      sshOutputTask._epoch = undefined;
-      sshOutputTask._ansi = undefined;
-    };
-
-    requestTaskRefresh = function (key) {
-      let task = taskMapping[key];
-      if (!task) {
-        return false;
-      }
-      if (key === "SERVICE_STATUS_ALL" && Date.now() < serviceStatusNextAllowedAt) return false;
-      // Drop a request already in flight for this key: the answer it brings was
-      // derived from the previous choice, so waiting for it would repaint the
-      // widget with the old data and leave the new one pending a whole interval.
-      let pendingRequestId = pendingRequestByKey[task.key];
-      if (pendingRequestId) {
-        clearPendingRequestById(pendingRequestId);
-      }
-      task._lastHtml = null;
-      queueTask(task, 0);
-      return true;
-    };
 
     function clearPendingRequestById(requestId) {
       let pending = pendingRequests[requestId];
@@ -673,14 +262,11 @@
         if (!socket.connected) {
           return;
         }
-        if (task.key === "SERVICE_STATUS_ALL" && Date.now() < serviceStatusNextAllowedAt) {
-          return;
-        }
         let request = Object.assign({}, task);
-        if (request.before && request.before(request) === false) {
+        if (request.before && typeof request.before === "function" && request.before(request) === false) {
           return;
         }
-        if (!((request.id && window.jQuery(request.id).length > 0) || request.override)) {
+        if (request.id && !document.querySelector(request.id)) {
           return;
         }
         let pendingRequestId = pendingRequestByKey[request.key];
@@ -693,10 +279,7 @@
             console.warn("[ws] request timed out: " + request.requestId);
             clearPendingRequestById(request.requestId);
             if (socket.connected) {
-              if (task.key === "SERVICE_STATUS_ALL") {
-                markServiceStatusesStale();
-                scheduleServiceStatusRetry();
-              } else queueTask(task, 0);
+              queueTask(task, 0);
             }
           }
         }, pendingRequestTimeoutMs);
@@ -706,10 +289,20 @@
           timeoutId
         };
         pendingRequestByKey[request.key] = request.requestId;
-        request.locale = window.quickboxLocale;
+        request.locale = window.quickboxLocale || "en";
         socket.send(request);
       }, delay);
     }
+
+    window.addEventListener("quickbox:bandwidth-page-change", function () {
+      let task = taskMapping.BANDWIDTH;
+      if (!task) { return; }
+      let pendingRequestId = pendingRequestByKey.BANDWIDTH;
+      if (pendingRequestId) {
+        clearPendingRequestById(pendingRequestId);
+      }
+      queueTask(task, 0);
+    });
 
     function dispatchBootstrapTasks() {
       if (bootstrapDispatched) {
@@ -720,10 +313,15 @@
       bootstrapTasks.forEach(function (task, index) {
         queueTask(task, index * 50);
       });
-      queueTask(taskMapping.SERVICE_STATUS_ALL, bootstrapTasks.length * 50 + 100);
+      let serviceStatusDelay = bootstrapTasks.length * 50 + 100;
+      window.quickboxServiceIsland.onConnected(serviceStatusDelay);
     }
 
     socket.on("message", function (response) {
+      if (response && response.meta && response.meta.protocolVersion === 2) {
+        window.quickboxServiceIsland.onMessage(response);
+        return;
+      }
       let pending = response.requestId ? pendingRequests[response.requestId] : undefined;
       if (response.requestId && !pending) {
         return;
@@ -738,55 +336,89 @@
           console.warn("[ws] task config not found,", response);
           return;
         }
-        if (errorCountByKey[task.key]) {
-          errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
-        }
-        if (task.override) {
-          task.override.call(task, response.response, response, request);
-          if (task.key === "SERVICE_STATUS_ALL") {
-            let health = response.response && response.response.health;
-            if (health === "unavailable") {
-              markServiceStatusesStale();
-              scheduleServiceStatusRetry(Math.max(5000, Number(response.response.retryAfterMs) || 0));
-            } else {
-              serviceStatusFailureCount = 0;
-              serviceStatusNextAllowedAt = Date.now() + 5000;
-              if (serviceStatusRetryTimer) clearTimeout(serviceStatusRetryTimer);
-              serviceStatusRetryTimer = setTimeout(function () { queueTask(task, 0); }, 5000);
+        if (task.key === "TOP" || task.key === "UPTIME") {
+          let matchesPending = request && response.key === task.key && response.url === request.url && response.requestId === request.requestId;
+          if (matchesPending && window.quickboxSystemSummaryIsland.onMessage(task.key, response.response)) {
+            if (errorCountByKey[task.key]) {
+              errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
             }
+            markWidgetWritten(task.id, "ws");
+          } else {
+            console.warn("[ws] ignored uncorrelated or invalid system summary response,", response);
           }
           return;
         }
-        if (task.id !== undefined) {
-          if (!canWriteWidget(task.id, WRITE_SOURCE.WS)) {
-            return;
+        if (task.key === "NETWORK") {
+          let matchesPending = request && response.key === task.key && response.url === request.url && response.requestId === request.requestId;
+          if (matchesPending && window.quickboxNetworkIsland.onMessage(response.response)) {
+            if (errorCountByKey[task.key]) {
+              errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
+            }
+          } else {
+            console.warn("[ws] ignored uncorrelated or invalid network response,", response);
           }
-          if (task.key === "SERVICE_CONTROL" && Object.keys(pendingServiceActionByService).length > 0) {
-            return;
+          return;
+        }
+        if (task.key === "BANDWIDTH") {
+          let matchesPending = request && response.key === task.key && response.url === request.url && response.requestId === request.requestId;
+          if (matchesPending && window.quickboxBandwidthIsland.onMessage(response.response)) {
+            if (errorCountByKey[task.key]) {
+              errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
+            }
+          } else {
+            console.warn("[ws] ignored uncorrelated or invalid bandwidth response,", response);
           }
+          return;
+        }
+        if (task.key === "RAM_USAGE") {
+          let matchesPending = request && response.key === task.key && response.url === request.url && response.requestId === request.requestId;
+          if (matchesPending && window.quickboxMemoryStatsIsland.onMessage(response.response)) {
+            if (errorCountByKey[task.key]) {
+              errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
+            }
+            markWidgetWritten(task.id, "ws");
+          } else {
+            console.warn("[ws] ignored uncorrelated or invalid memory response,", response);
+          }
+          return;
+        }
+        if (task.key === "DISK_USAGE") {
+          let matchesPending = request && response.key === task.key && response.url === request.url && response.requestId === request.requestId;
+          if (matchesPending && window.quickboxDiskDataIsland.onMessage(response.response)) {
+            if (errorCountByKey[task.key]) {
+              errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
+            }
+            markWidgetWritten(task.id, "ws");
+          } else {
+            console.warn("[ws] ignored uncorrelated or invalid disk response,", response);
+          }
+          return;
+        }
+        if (errorCountByKey[task.key]) {
+          errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
+        }
+        if (task.override && typeof task.override === "function") {
+          task.override.call(task, response.response, response, request);
+          return;
+        }
+        if (task.key === "TASK_STATUS") {
           if (task._lastHtml === response.response) {
             return;
           }
           task._lastHtml = response.response;
-          if (task.beforeHtml) {
-            task.beforeHtml(task);
+          let element = document.querySelector(task.id);
+          if (element instanceof HTMLElement) {
+            element.innerHTML = response.response;
+            markWidgetWritten(task.id, "ws");
           }
-          window.jQuery(task.id).html(response.response);
-          markWidgetWritten(task.id, WRITE_SOURCE.WS);
-          if (task.after) {
-            task.after(task);
-          }
-        } else {
-          console.warn("[ws] DOM id not found, status won't update,", response);
+          return;
         }
+        console.warn("[ws] response has no dashboard handler,", response);
       } else {
         let failedKey = (task && task.key) || response.key || "unknown";
         errorCountByKey[failedKey] = (errorCountByKey[failedKey] || 0) + 1;
         console.error("[ws] request failed,", response);
-        if (failedKey === "SERVICE_STATUS_ALL") {
-          markServiceStatusesStale();
-          scheduleServiceStatusRetry();
-        } else if (errorCountByKey[failedKey] > 32 && !stoppedKeys[failedKey]) {
+        if (errorCountByKey[failedKey] > 32 && !stoppedKeys[failedKey]) {
           stoppedKeys[failedKey] = true;
           console.warn("[ws] stopping updates for " + failedKey);
           if (window.jQuery && window.jQuery.gritter) {
@@ -804,19 +436,18 @@
       errorCountByKey = {};
       stoppedKeys = {};
       bootstrapDispatched = false;
-      serviceStatusNextAllowedAt = 0;
-      serviceStatusFailureCount = 0;
-      if (serviceStatusRetryTimer) clearTimeout(serviceStatusRetryTimer);
       dispatchBootstrapTasks();
-      if (sshOutputTask && window.jQuery("#sysResponse").is(":visible")) {
+      if (sshOutputTask && window.quickboxSystemResponseIsland.isOpen()) {
         queueTask(sshOutputTask, 0);
       }
     });
     socket.on("disconnect", function () {
       clearAllPendingRequests("socket disconnected");
+      window.quickboxServiceIsland.onDisconnected();
     });
     socket.on("connect_error", function () {
       clearAllPendingRequests("socket connect error");
+      window.quickboxServiceIsland.onDisconnected();
     });
 
     if (socket.connected) {
@@ -830,7 +461,7 @@
       let taskEntity = function () {
         let delay = 0;
         taskList.forEach(function (task) {
-          if (firstRequest === true && (task.bootstrap || task.key === "SERVICE_STATUS_ALL")) {
+          if (firstRequest === true && task.bootstrap) {
             return;
           }
           queueTask(task, delay);
@@ -846,144 +477,20 @@
   }
 
   function showAlert(message) {
-    let $ = window.jQuery;
-    if (!$ || typeof $.fn.modal !== "function") {
-      window.alert(message);
-      return;
-    }
-    let modalId = "quickbox-alert-modal";
-    let $modal = $("#" + modalId);
-    let title = window.quickboxMessages.systemResponse;
-    if ($modal.length === 0) {
-      $modal = $(
-        "<div class='modal fade' id='" + modalId + "' tabindex='-1' role='dialog' aria-modal='true' aria-labelledby='quickbox-alert-title'>" +
-          "<div class='modal-dialog'>" +
-            "<div class='modal-content'>" +
-              "<div class='modal-header'>" +
-                "<h4 class='modal-title' id='quickbox-alert-title'>" + escapeHtml(title) + "</h4>" +
-                "<button type='button' class='quickbox-modal-close' data-dismiss='modal' aria-label='Close'>" +
-                  "<span aria-hidden='true'>&times;</span>" +
-                "</button>" +
-              "</div>" +
-              "<div class='modal-body'></div>" +
-              "<div class='modal-footer'>" +
-                "<button type='button' class='btn btn-primary' data-dismiss='modal'>OK</button>" +
-              "</div>" +
-            "</div>" +
-          "</div>" +
-        "</div>"
-      );
-      $("body").append($modal);
-    }
-    $modal.find(".modal-title").text(title);
-    $modal.find(".modal-body").html(message);
-    $modal.modal("show");
+    window.quickboxSystemResponseIsland.showAlert(message);
   }
 
-  function serviceActionRow(service) {
-    return window.jQuery("#service_control_widget [data-service]")
-      .filter(function () { return this.dataset.service === service; })
-      .first()
-      .closest("tr");
+  let inflightExecCount = 0;
+  let reloadAfterExec = false;
+
+  function maybeReloadAfterExec() {
+    if (reloadAfterExec && inflightExecCount <= 0) {
+      location.reload();
+    }
   }
-
-  function setServiceActionPending(service, pending) {
-    let $row = serviceActionRow(service);
-    if ($row.length === 0) return;
-    $row.toggleClass("service-action-pending", pending).attr("aria-busy", pending ? "true" : "false");
-    $row.find("button[data-click-handler='serviceUpdate']").prop("disabled", pending);
-    $row.find(".toggle-en, .toggle-dis").toggleClass("disabled", pending);
-  }
-
-  function updateServiceToggle(service, enabled) {
-    let $toggle = serviceActionRow(service).find(".toggle-en, .toggle-dis").first();
-    if ($toggle.length === 0) return;
-    if (typeof enabled !== "boolean") enabled = $toggle.hasClass("toggle-en");
-    $toggle.removeClass("toggle-en toggle-dis").addClass(enabled ? "toggle-en" : "toggle-dis");
-    $toggle.attr("data-service-action", enabled ? "disable" : "enable");
-    if ($toggle.data("toggles")) {
-      $toggle.toggles(enabled);
-    }
-    $toggle.find(".toggle-on").text(window.quickboxMessages.enabled);
-    $toggle.find(".toggle-off").text(window.quickboxMessages.disabled);
-  }
-
-  function setServiceTogglePending(service) {
-    let $toggle = serviceActionRow(service).find(".toggle-en, .toggle-dis").first();
-    if ($toggle.length === 0) return;
-    let pendingText = window.quickboxMessages.serviceActionPending;
-    $toggle.find(".toggle-on, .toggle-off").text(pendingText);
-  }
-
-  socket.on("service-action-result", function (response) {
-    if (!response || typeof response.requestId !== "string") return;
-    let request = serviceActionRequests[response.requestId];
-    if (!request || request.service !== response.service) return;
-    if (response.phase === "action-complete") {
-      markServiceStatusesStale(request.service);
-      if (response.success === false) {
-        request.failureShown = true;
-        let message = escapeHtml(response.message || "Service action failed");
-        if (response.failedOperation) message += "<br><code>systemctl " + escapeHtml(response.failedOperation) + "</code>";
-        let output = response.stderr || response.stdout || "";
-        if (output) {
-          output = window.AnsiUp ? new window.AnsiUp().ansi_to_html(output) : escapeHtml(output);
-          message += "<hr><div class='exec-output' style='display: inline-grid'>" + output + "</div>";
-        }
-        showAlert(message);
-      }
-      return;
-    }
-    if (request.timeoutId) {
-      window.clearTimeout(request.timeoutId);
-    }
-    delete serviceActionRequests[response.requestId];
-    if (pendingServiceActionByService[request.service] === response.requestId) {
-      delete pendingServiceActionByService[request.service];
-      setServiceActionPending(request.service, false);
-    }
-    if (response.status) updateServiceStatus(response.status);
-    updateServiceToggle(request.service, response.enabled);
-    if (response.success === false && !request.failureShown) {
-      let message = escapeHtml(response.message || "Service action failed");
-      if (response.failedOperation) message += "<br><code>systemctl " + escapeHtml(response.failedOperation) + "</code>";
-      let output = response.stderr || response.stdout || "";
-      if (output) {
-        output = window.AnsiUp ? new window.AnsiUp().ansi_to_html(output) : escapeHtml(output);
-        message += "<hr><div class='exec-output' style='display: inline-grid'>" + output + "</div>";
-      }
-      showAlert(message);
-    }
-    if (response.statusError) {
-      showAlert("The service action finished, but its current status could not be confirmed.");
-    }
-    requestTaskRefresh("SERVICE_CONTROL");
-  });
-
-  socket.on("disconnect", function () {
-    let pendingServices = Object.keys(pendingServiceActionByService);
-    if (pendingServices.length > 0) reconcileServiceControlOnReconnect = true;
-    pendingServices.forEach(function (service) {
-      let requestId = pendingServiceActionByService[service];
-      delete pendingServiceActionByService[service];
-      if (requestId) {
-        if (serviceActionRequests[requestId] && serviceActionRequests[requestId].timeoutId) {
-          window.clearTimeout(serviceActionRequests[requestId].timeoutId);
-        }
-        delete serviceActionRequests[requestId];
-      }
-      setServiceActionPending(service, false);
-      updateServiceToggle(service);
-    });
-  });
-
-  socket.on("connect", function () {
-    if (!reconcileServiceControlOnReconnect) return;
-    reconcileServiceControlOnReconnect = false;
-    requestTaskRefresh("SERVICE_CONTROL");
-  });
 
   socket.on("exec", function (response) {
+    inflightExecCount = Math.max(0, inflightExecCount - 1);
     if (response && response.success === false) {
       let message = escapeHtml(response.message || "");
       let output = response.stdout || response.stderr || "";
@@ -997,16 +504,36 @@
         message += "<hr><div class='exec-output' style='display: inline-grid'>" + output + "</div>";
       }
       showAlert(message);
+      maybeReloadAfterExec();
       return;
     }
-    if (response && response.cmd && response.cmd.indexOf("box:lang") === 0) {
-      location.reload();
+    if (response && response.cmd && (response.cmd.indexOf("systemctl") === 0 || response.cmd.indexOf("box:lang") === 0)) {
+      reloadAfterExec = true;
     }
+    maybeReloadAfterExec();
   });
 
   function exec(command) {
+    if (typeof command !== "string") {
+      showAlert("Invalid service parameter: '" + command + "'");
+      return;
+    }
+    inflightExecCount += 1;
     socket.emit("exec", command);
   }
+
+  window.addEventListener("quickbox:branch-switch", function (event) {
+    let detail = event && event.detail;
+    let branch = detail && detail.branch;
+    if (typeof branch !== "string" || !branch || branch.charAt(0) === "-" || branch.indexOf(":") >= 0) {
+      return;
+    }
+    for (let index = 0; index < branch.length; index += 1) {
+      let code = branch.charCodeAt(index);
+      if (code <= 32 || code === 127) { return; }
+    }
+    exec("box:switch-branch:" + branch);
+  });
 
   function closestDatasetTarget(initialTarget, datasetKey) {
     let target = initialTarget;
@@ -1032,29 +559,9 @@
       return;
     }
     let service = target.dataset.service;
-    let action = target.dataset.serviceAction;
-    if (!service || !action || pendingServiceActionByService[service]) return;
-    let requestId = "SERVICE_ACTION:" + (++serviceActionRequestSeq);
-    let timeoutId = window.setTimeout(function () {
-      if (!serviceActionRequests[requestId]) return;
-      delete serviceActionRequests[requestId];
-      if (pendingServiceActionByService[service] === requestId) {
-        delete pendingServiceActionByService[service];
-        setServiceActionPending(service, false);
-        updateServiceToggle(service);
-      }
-      requestTaskRefresh("SERVICE_CONTROL");
-    }, 40000);
-    serviceActionRequests[requestId] = { service, action, timeoutId };
-    pendingServiceActionByService[service] = requestId;
-    setServiceActionPending(service, true);
-    setServiceTogglePending(service);
-    markServiceStatusesStale(service);
-    socket.emit("service-action", {
-      requestId,
-      service,
-      action,
-      locale: window.quickboxLocale
+    let operations = target.dataset.operation || "";
+    operations.split(",").forEach(function (operation) {
+      exec("systemctl:" + operation + ":" + service);
     });
   }
 
@@ -1071,337 +578,80 @@
   window.serviceUpdateHandler = serviceUpdateHandler;
   window.boxHandler = boxHandler;
 
-  function appendSmallOption(container, element) {
-    if (!container) { return; }
-    let wrapper = document.createElement("small");
-    wrapper.appendChild(element);
-    container.appendChild(wrapper);
-  }
-
-  function renderDashboardConfig(payload) {
-    let langContainer = document.getElementById("node-language-options");
-    let themeContainer = document.getElementById("node-theme-options");
-    let bwContainer = document.getElementById("node-bw-page-options");
-
-    if (langContainer && Array.isArray(payload.languages)) {
-      langContainer.innerHTML = "";
-      payload.languages.forEach(function (lang) {
-        let option = document.createElement("div");
-        option.style.cursor = "pointer";
-        option.dataset.locale = lang.key;
-        option.onclick = function () {
-          window.quickboxSetLocale(lang.key);
-          location.reload();
-        };
-        let img = document.createElement("img");
-        img.className = "lang-flag";
-        img.src = "/lang/flag_" + lang.file + ".png";
-        img.alt = "";
-        img.setAttribute("aria-hidden", "true");
-        option.appendChild(img);
-        option.appendChild(document.createTextNode(lang.title));
-        appendSmallOption(langContainer, option);
-      });
-    }
-
-    if (themeContainer && Array.isArray(payload.themes)) {
-      themeContainer.innerHTML = "";
-      payload.themes.forEach(function (theme) {
-        let option = document.createElement("div");
-        option.style.cursor = "pointer";
-        option.setAttribute("data-toggle", "modal");
-        option.setAttribute("data-target", "#themeSelect" + theme.file + "Confirm");
-        let img = document.createElement("img");
-        img.className = "lang-flag";
-        img.src = "/img/themes/opt_" + theme.file + ".png";
-        img.alt = "";
-        img.setAttribute("aria-hidden", "true");
-        option.appendChild(img);
-        option.appendChild(document.createTextNode(theme.title));
-        appendSmallOption(themeContainer, option);
-      });
-    }
-
-    if (bwContainer && Array.isArray(payload.bwPages)) {
-      bwContainer.innerHTML = "";
-      payload.bwPages.forEach(function (page) {
-        let option = document.createElement("div");
-        option.style.cursor = "pointer";
-        // Picking a bandwidth page changes one widget's data, nothing else:
-        // re-request that widget instead of reloading the document, so the page
-        // keeps its scroll position and the rest of the dashboard stays live.
-        option.onclick = function () {
-          localStorage.setItem("bw_tables:page", page.key);
-          window.quickboxRefreshTask("BANDWIDTH");
-        };
-        option.textContent = page.title;
-        appendSmallOption(bwContainer, option);
-      });
-    }
-  }
-
   function renderNetworkInterfaces(interfaces) {
-    let tbody = document.getElementById("node-network-interface-rows");
-    if (!tbody) { return; }
-    tbody.innerHTML = "";
-    window.netInterfaceCells = {};
-    if (!Array.isArray(interfaces) || !interfaces.length) {
-      let emptyRow = document.createElement("tr");
-      let emptyCell = document.createElement("td");
-      emptyCell.colSpan = 3;
-      emptyCell.style.fontSize = "11px";
-      emptyCell.style.padding = "4px 4px 4px 12px";
-      emptyCell.textContent = "N/A";
-      emptyRow.appendChild(emptyCell);
-      tbody.appendChild(emptyRow);
-      return;
+    if (!window.quickboxNetworkIsland.onInterfaces(interfaces)) {
+      console.warn("[ws] ignored invalid network interface list", interfaces);
     }
-    interfaces.forEach(function (iface) {
-      let row = document.createElement("tr");
-
-      let ifaceCell = document.createElement("td");
-      ifaceCell.style.fontSize = "14px";
-      ifaceCell.style.fontWeight = "bold";
-      ifaceCell.style.padding = "2px 2px 2px 12px";
-      ifaceCell.textContent = String(iface);
-
-      let txCell = document.createElement("td");
-      txCell.style.fontSize = "11px";
-      txCell.style.padding = "2px 2px 2px 12px";
-      let txWrap = document.createElement("span");
-      txWrap.className = "text-success";
-      let txValue = document.createElement("span");
-      txValue.textContent = "0B/s";
-      txWrap.appendChild(txValue);
-      txCell.appendChild(txWrap);
-
-      let rxCell = document.createElement("td");
-      rxCell.style.fontSize = "11px";
-      rxCell.style.padding = "2px 2px 2px 12px";
-      let rxWrap = document.createElement("span");
-      rxWrap.className = "text-primary";
-      let rxValue = document.createElement("span");
-      rxValue.textContent = "0B/s";
-      rxWrap.appendChild(rxValue);
-      rxCell.appendChild(rxWrap);
-
-      row.appendChild(ifaceCell);
-      row.appendChild(txCell);
-      row.appendChild(rxCell);
-      tbody.appendChild(row);
-
-      window.netInterfaceCells[iface] = {
-        tx: txValue,
-        rx: rxValue
-      };
-    });
   }
 
   function renderSystemStatic(payload) {
-    let cpu = document.getElementById("node-cpu-static");
-    if (cpu && payload && payload.cpu) {
-      cpu.innerHTML = payload.cpu.modelHtml + "<br/>[<span style='color:#999;font-weight:600'>x" + payload.cpu.count + "</span> core]";
+    if (payload && payload.cpu && !window.quickboxCpuStatusIsland.onMessage(payload.cpu)) {
+      console.warn("[ws] ignored invalid CPU status response", payload.cpu);
     }
     renderNetworkInterfaces(payload ? payload.interfaces : []);
   }
 
-  function applyDashboardTheme(theme) {
-    fetch(window.quickboxApiBase + "/node/theme", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ theme })
-    }).then(function (response) {
-      if (!response.ok) { throw new Error("Failed to apply theme"); }
-      location.reload();
-    }).catch(function (error) {
-      console.warn("[ws] failed to apply theme", error);
-      if (window.jQuery) {
-        window.jQuery("#themeSelect" + theme + "Confirm").modal("hide");
-      }
-      showAlert(error && error.message ? error.message : "Failed to apply theme");
-    });
-  }
-
   function loadNodeFragments() {
-    fetchJson("/node/dashboard_config").then(renderDashboardConfig).catch(function (error) {
-      console.warn("[ws] failed to load dashboard config", error);
-    });
-    fetchJson("/node/system_static").then(renderSystemStatic).catch(function (error) {
+    fetchJson("/node/migration/system_static").then(renderSystemStatic).catch(function (error) {
       console.warn("[ws] failed to load static system info", error);
-      renderNetworkInterfaces([]);
     });
 
     // Pre-fetch widget data via HTTP for immediate display (before WebSocket is ready).
-    function applyPrefetchHtml(selector, html) {
-      if (!canWriteWidget(selector, WRITE_SOURCE.PREFETCH)) {
+    // A pre-fetch never overwrites a payload the WebSocket already delivered, and
+    // no longer infers readiness from the presence of child nodes (the CPU load
+    // widget is text only).
+    fetchJson("/node/migration/system_load").then(function (data) {
+      if (widgetWriteSourceOf("#cpuload") !== "") {
         return;
       }
-      let $el = window.jQuery(selector);
-      if (!$el.length) {
+      if (window.quickboxSystemSummaryIsland.onPrefetch(data)) {
+        markWidgetWritten("#cpuload", "prefetch");
+      }
+    }).catch(function () { /* WebSocket will fill in later */ });
+
+    fetchJson("/node/migration/disk_data").then(function (data) {
+      if (widgetWriteSourceOf("#disk_data") !== "") {
         return;
       }
-      $el.html(html);
-      markWidgetWritten(selector, WRITE_SOURCE.PREFETCH);
-    }
-
-    fetch(window.quickboxWidgetUrl("/node/load"), { credentials: "same-origin" })
-      .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { applyPrefetchHtml("#cpuload", html); })
-      .catch(function () { /* WebSocket will fill in later */ });
-
-    fetch(window.quickboxWidgetUrl("/node/disk_data"), { credentials: "same-origin" })
-      .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { applyPrefetchHtml("#disk_data", html); })
-      .catch(function () { /* WebSocket will fill in later */ });
-
-    fetch(window.quickboxWidgetUrl("/node/ram_stats"), { credentials: "same-origin" })
-      .then(function (r) { return r.ok ? r.text() : Promise.reject(r); })
-      .then(function (html) { applyPrefetchHtml("#meterram", html); })
-      .catch(function () { /* WebSocket will fill in later */ });
-  }
-
-  // Two close affordances, one decision each, both taken on the spot: the footer
-  // button hides the panel and reloads the page; the header X (and Escape) only
-  // hides it.
-  let sysResponseClosing = false;
-
-  function isSysResponseVisible() {
-    return !!window.jQuery && window.jQuery("#sysResponse").is(":visible");
-  }
-
-  function closeSysResponsePanel(options) {
-    let reload = !!(options && options.reload);
-    if (sysResponseClosing) {
-      return;
-    }
-    if (!isSysResponseVisible()) {
-      if (reload) {
-        location.reload();
+      if (window.quickboxDiskDataIsland.onPrefetch(data)) {
+        markWidgetWritten("#disk_data", "prefetch");
       }
-      return;
-    }
-    sysResponseClosing = true;
-    if (window.jQuery) {
-      window.jQuery("#sysResponse").modal("hide");
-    }
-    resetSysResponseView();
-    if (reload) {
-      location.reload();
-    }
+    }).catch(function () { /* WebSocket will fill in later */ });
+
+    fetchJson("/node/migration/ram_stats").then(function (data) {
+      if (widgetWriteSourceOf("#meterram") !== "") {
+        return;
+      }
+      if (window.quickboxMemoryStatsIsland.onPrefetch(data)) {
+        markWidgetWritten("#meterram", "prefetch");
+      }
+    }).catch(function () { /* WebSocket will fill in later */ });
   }
 
+  window.quickboxPackageManagementActions = {
+    run: function (action, packageName) {
+      if ((action !== "install" && action !== "remove") || typeof packageName !== "string") {
+        return;
+      }
+      window.quickboxSystemResponseIsland.open();
+      exec((action === "install" ? "installpackage::" : "removepackage::") + packageName);
+    }
+  };
   document.addEventListener("DOMContentLoaded", function () {
-    let psElements = document.querySelectorAll(".ps");
-    if (typeof window.PerfectScrollbar === "function") {
-      psElements.forEach(function (element) {
-        new window.PerfectScrollbar(element);
-      });
-    } else {
-      // Fallback: keep scrollable containers usable even if Perfect Scrollbar fails to load.
-      psElements.forEach(function (element) {
-        element.style.setProperty("overflow", "auto", "important");
-      });
-    }
-
-    let reset = document.getElementById("node-panel-reset");
-    if (reset) { reset.addEventListener("click", resetPanel); }
-
-    // Every trigger opens the dialog through Bootstrap's data-toggle, so the
-    // session reset hangs off the dialog's own event instead of each entry.
-    if (window.jQuery) {
-      let $branchSwitch = window.jQuery("#branchSwitch");
-      let select = document.getElementById("branchTarget");
-      let switchButton = document.getElementById("branchSwitchGo");
-      let branchError = document.getElementById("branchError");
-      let branchRetry = document.getElementById("branchRetry");
-      let fixedTarget = document.getElementById("branchFixedTarget");
-      let selectContainer = document.getElementById("branchSelectContainer");
-      let directTarget = "";
-      let branchRequest = 0;
-      function setBranchOption(text) {
-        select.replaceChildren(new Option(text, ""));
-      }
-      function updateBranchButton() {
-        switchButton.disabled = !select.value;
-        switchButton.textContent = select.value === select.dataset.current ? switchButton.dataset.update : switchButton.dataset.switch;
-      }
-      function loadBranches() {
-        let request = ++branchRequest;
-        select.disabled = true;
-        switchButton.disabled = true;
-        branchError.hidden = true;
-        setBranchOption(select.dataset.loading);
-        fetchJson("/node/branches").then(function (data) {
-          if (request !== branchRequest) { return; }
-          if (!Array.isArray(data.branches) || data.branches.length === 0) { throw new Error("No branches"); }
-          setBranchOption(select.dataset.select);
-          data.branches.forEach(function (branch) {
-            select.add(new Option(branch, branch));
-          });
-          select.value = data.branches.includes(select.dataset.current) ? select.dataset.current : "";
-          select.disabled = false;
-          updateBranchButton();
-        }).catch(function () {
-          if (request !== branchRequest) { return; }
-          setBranchOption(select.dataset.failed);
-          branchError.hidden = false;
-        });
-      }
-      $branchSwitch.on("show.bs.modal", function (event) {
-        let trigger = event.relatedTarget;
-        let mode = trigger && trigger.dataset ? trigger.dataset.branchMode : "other";
-        directTarget = mode === "master" || mode === "development" ? mode : "";
-        branchRequest += 1;
-        branchError.hidden = true;
-        fixedTarget.hidden = !directTarget;
-        selectContainer.hidden = !!directTarget;
-        if (directTarget) {
-          fixedTarget.textContent = directTarget;
-          select.disabled = true;
-          switchButton.disabled = false;
-          switchButton.textContent = switchButton.dataset.switch;
-        } else {
-          fixedTarget.textContent = "";
-          loadBranches();
-        }
-      });
-      $branchSwitch.on("hidden.bs.modal", function () { branchRequest += 1; });
-      branchRetry.addEventListener("click", loadBranches);
-      select.addEventListener("change", updateBranchButton);
-      switchButton.addEventListener("click", function () {
-        let branch = directTarget || select.value;
-        if (!branch) { return; }
-        $branchSwitch.modal("hide");
-        window.jQuery("#sysResponse").modal("show");
-        exec("box:switch-branch:" + branch);
-      });
-      let $sysResponse = window.jQuery("#sysResponse");
-      if ($sysResponse.length) {
-        $sysResponse.on("show.bs.modal", function () {
-          sysResponseClosing = false;
-          resetSysResponseView();
-        });
-        $sysResponse.on("hidden.bs.modal", function () {
-          sysResponseClosing = false;
-          resetSysResponseView();
-        });
-      }
-    }
-
-    document.addEventListener("keydown", function (event) {
-      if (event.key !== "Escape" && event.key !== "Esc") { return; }
-      if (!isSysResponseVisible()) { return; }
-      event.preventDefault();
-      closeSysResponsePanel({ reload: false });
-    });
-
     document.addEventListener("click", function (event) {
       let target = event.target;
       if (!(target instanceof Element)) { return; }
-      let themeButton = target.closest("[data-click-handler='themeSelect']");
-      if (themeButton && themeButton instanceof HTMLElement && themeButton.dataset.theme) {
-        applyDashboardTheme(themeButton.dataset.theme);
+      let sysResponseTrigger = target.closest("[data-target='#sysResponse'], [data-qb-system-response]");
+      if (sysResponseTrigger instanceof HTMLElement) {
+        window.quickboxSystemResponseIsland.open();
+      }
+      let taskAbortButton = target.closest("[data-task-abort]");
+      if (taskAbortButton instanceof HTMLElement) {
+        event.preventDefault();
+        if (window.confirm(taskAbortButton.dataset.confirm || "Terminate the running task?")) {
+          exec("box:abort:");
+        }
+        return;
       }
       let packageInstallButton = target.closest("[data-click-handler='packageInstall']");
       if (packageInstallButton) {
@@ -1422,25 +672,8 @@
       if (boxHandlerButton) {
         window.boxHandler(event);
       }
-      // The two closing affordances differ in exactly one bit: reload or not.
-      if (target.closest("#sysResponseCloseAction")) {
-        closeSysResponsePanel({ reload: true });
-        return;
-      }
-      if (target.closest("#sysResponseDismiss")) {
-        closeSysResponsePanel({ reload: false });
-        return;
-      }
     });
     loadNodeFragments();
-    if (window.jQuery) {
-      window.jQuery(function ($) {
-        $(".tooltips").tooltip({ container: "body" });
-        initializeServiceToggles();
-        initializePluginList();
-        initializePackageTable();
-      });
-    }
     if (window.Visibility) {
       window.Visibility.afterPrerendering(startStatusUpdates);
     } else {

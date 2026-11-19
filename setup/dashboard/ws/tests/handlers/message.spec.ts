@@ -5,6 +5,7 @@ import { expect } from "chai";
 
 import messageHandler, { parseUrl, resolveWidget } from "../../src/handlers/message";
 import Constant from "../../src/shared/constants";
+import { setServiceStateCollectorsForTests } from "../../src/widgets/service-state";
 
 describe("handlers/message", () => {
     describe("middleware", () => {
@@ -227,6 +228,22 @@ describe("handlers/message", () => {
             const nodeResult = await resolveWidget("/node/service_control");
             const widgetResult = await resolveWidget("/widgets/service_control");
             expect(widgetResult).to.equal(nodeResult);
+        });
+
+        it("should collect current status on both service control routes", async () => {
+            for (const route of ["/node/service_control", "/widgets/service_control"]) {
+                let calls = 0;
+                setServiceStateCollectorsForTests({
+                    systemd: () => { calls += 1; return Promise.resolve(new Map<string, boolean>()); },
+                    process: () => { calls += 1; return Promise.resolve(new Map<string, boolean>()); },
+                });
+                try {
+                    await resolveWidget(route);
+                    expect(calls).to.be.greaterThan(0);
+                } finally {
+                    setServiceStateCollectorsForTests(undefined);
+                }
+            }
         });
 
         it("should resolve /widgets/pmc same as /node/pmc", async () => {

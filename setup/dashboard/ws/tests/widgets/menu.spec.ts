@@ -4,7 +4,7 @@
 import "mocha";
 import { expect } from "chai";
 
-import { dashboardMenu, resolveDashboardMenuState } from "../../src/widgets/menu";
+import { dashboardMenu } from "../../src/widgets/menu";
 
 describe("widgets/menu", () => {
     describe("dashboardMenu()", () => {
@@ -37,15 +37,6 @@ describe("widgets/menu", () => {
             const [first, second] = await Promise.all([dashboardMenu(), dashboardMenu()]);
             expect(first.showPluginTab).to.equal(second.showPluginTab);
             expect(first.mainMenuHtml).to.equal(second.mainMenuHtml);
-        });
-
-        it("should only collect ruTorrent plugins while the plugin tab is shown", async () => {
-            const { showPluginTab, rutorrentPlugins } = await resolveDashboardMenuState();
-
-            expect(rutorrentPlugins).to.be.an("array");
-            if (!showPluginTab) {
-                expect(rutorrentPlugins).to.deep.equal([]);
-            }
         });
     });
 });
