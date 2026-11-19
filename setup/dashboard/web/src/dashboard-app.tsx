@@ -6,7 +6,7 @@ import { Alert, Button, Card, Col, ConfigProvider, Layout, Row } from "antd";
 import { useTranslation } from "react-i18next";
 
 import type { DashboardBootstrapPayload } from "../../ws/src/shared/bootstrap-contract";
-import { DashboardHeader, DashboardSidebar, type DashboardChromeProps } from "./components/dashboard-chrome";
+import { DashboardHeader, DashboardSidebar, type DashboardChromeProps } from "./components/dashboard-layout";
 import {
     BandwidthTablesSlot,
     CpuStatusSlot,

@@ -282,11 +282,15 @@ test.describe("Command failure dialog", () => {
                 has: page.locator(`img[src="/img/themes/opt_${target}.png"]`),
             }).click();
             await expect(page.locator("body")).toHaveAttribute("data-theme", target);
-            await expect(page.locator(`link[href="/css/dashboard-theme-${target}.css"]`)).toHaveCount(1);
+            await expect(page.locator('link[href$="dashboard-theme.css"]')).toHaveCount(1);
+            await expect(page.locator(".panel").first()).toHaveCSS(
+                "background-color",
+                target === "smoked" ? "rgb(34, 34, 34)" : "rgb(255, 255, 255)",
+            );
 
             await page.reload({ waitUntil: "domcontentloaded" });
             await expect(page.locator("body")).toHaveAttribute("data-theme", target);
-            await expect(page.locator(`link[href="/css/dashboard-theme-${target}.css"]`)).toHaveCount(1);
+            await expect(page.locator('link[href$="dashboard-theme.css"]')).toHaveCount(1);
         }
     });
 

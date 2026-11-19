@@ -80,7 +80,7 @@ test.describe("WS API Endpoints", () => {
         await page.goto("/");
         const theme = await page.locator("body").getAttribute("data-theme");
         expect(theme).toMatch(/^(defaulted|smoked)$/);
-        const cssPath = `/css/dashboard-theme-${theme}.css`;
+        const cssPath = "/css/dashboard-theme.css";
         const dashboardCss = await page.request.get(new URL(cssPath, page.url()).href);
         const debugMeta = await page.request.get(`${WS_BASE_URL.replace(/\/+$/, "")}/debug/meta`);
 

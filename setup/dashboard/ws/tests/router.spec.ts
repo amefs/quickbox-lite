@@ -80,7 +80,7 @@ describe("router — HTTP routes", () => {
             expect(res.text).to.include("<!DOCTYPE html>");
             expect(res.text).to.include("Quickbox Dashboard");
             expect(res.text).to.include('id="root"');
-            expect(res.text).to.match(/dashboard-theme-(defaulted|smoked)\.css/);
+            expect(res.text).to.include("/css/dashboard-theme.css");
             expect(res.text).to.include("/css/dashboard-foundation.css");
             expect(res.text).to.include("./assets/");
             expect(res.text).to.not.include("/skins/quick.css");
