@@ -23,11 +23,14 @@ jobs:
             setup/dashboard/ws/package-lock.json
             e2e/package-lock.json
       - name: Cache Chromium
+        id: chromium-cache
         uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
       - name: Prepare Node dependencies and Chromium
+        env:
+          QUICKBOX_PLAYWRIGHT_CACHE_HIT: ${{ steps.chromium-cache.outputs.cache-hit }}
         run: python3 tests/deployment/report.py prepare bash tests/deployment/prepare.sh panel
       - name: Type-check the browser suite
         run: python3 tests/deployment/report.py typecheck npm run typecheck --prefix e2e
@@ -197,6 +200,7 @@ jobs:
       QUICKBOX_AUTH_FIXTURES: /tmp/quickbox-auth-fixtures
       QUICKBOX_AUTH_PROJECT: quickbox-auth-acceptance
       QUICKBOX_AUTH_ARTIFACTS: /tmp/quickbox-auth-artifacts
+      QUICKBOX_AUTH_IMAGES_ARCHIVE: /tmp/quickbox-auth-images.tar
       QUICKBOX_AUTH_SKIP_BUILD: '1'
     steps:
       - uses: actions/checkout@v5
@@ -210,12 +214,20 @@ jobs:
           name: dashboard-deployment-image
           path: ${{ runner.temp }}
       - name: Cache authentication browsers
+        id: auth-browsers-cache
         uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: auth-browsers-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
           restore-keys: chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/package-lock.json') }}
+      - name: Cache identity provider images
+        uses: actions/cache@v5
+        with:
+          path: /tmp/quickbox-auth-images.tar
+          key: auth-images-${{ runner.arch }}-${{ hashFiles('tests/deployment/auth-compose.yml') }}
       - name: Prepare browser, application and identity providers
+        env:
+          QUICKBOX_PLAYWRIGHT_CACHE_HIT: ${{ steps.auth-browsers-cache.outputs.cache-hit }}
         run: python3 tests/deployment/report.py prepare bash tests/deployment/prepare.sh authentication
       - name: Basic Auth access and transports
         run: python3 tests/deployment/report.py basic bash tests/deployment/run-auth.sh --provider basic

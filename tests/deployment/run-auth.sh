@@ -14,7 +14,15 @@ prepare() {
   if [[ "${QUICKBOX_AUTH_SKIP_BUILD:-0}" != 1 ]]; then
     bash "$repo/tests/deployment/run-linux.sh" --build-only
   fi
-  docker compose -p "$QUICKBOX_AUTH_PROJECT" -f "$compose" pull authelia vouch
+  if [[ -n "${QUICKBOX_AUTH_IMAGES_ARCHIVE:-}" && -f "$QUICKBOX_AUTH_IMAGES_ARCHIVE" ]]; then
+    docker load -i "$QUICKBOX_AUTH_IMAGES_ARCHIVE"
+  else
+    docker compose -p "$QUICKBOX_AUTH_PROJECT" -f "$compose" pull authelia vouch
+    if [[ -n "${QUICKBOX_AUTH_IMAGES_ARCHIVE:-}" ]]; then
+      mapfile -t provider_images < <(docker compose -f "$compose" config --images | grep -E 'authelia|vouch')
+      docker save "${provider_images[@]}" -o "$QUICKBOX_AUTH_IMAGES_ARCHIVE"
+    fi
+  fi
   python3 "$repo/tests/deployment/prepare-auth.py" "$QUICKBOX_AUTH_FIXTURES"
   docker compose -p "$QUICKBOX_AUTH_PROJECT" -f "$compose" up -d --pull never
 }
