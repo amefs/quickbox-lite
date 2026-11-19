@@ -67,7 +67,7 @@ test("recommended branches open confirmation without loading the branch list", a
     await expect(page.locator("#branchTarget")).toBeHidden();
     await expect(page.locator("#branchSwitchGo")).toBeEnabled();
     expect(branchRequests).toBe(0);
-    await page.locator("#branchSwitch .modal-footer [data-dismiss=modal]").click();
+    await page.locator("#branchSwitch").getByRole("button", { name: "Cancel" }).click();
     await expect(page.locator("#branchSwitch")).toBeHidden();
     await expect.poll(async () => (await page.request.get("/node/dashboard_config")).json()).toMatchObject({ branch: "master" });
     await page.locator(".header-account button").click();
