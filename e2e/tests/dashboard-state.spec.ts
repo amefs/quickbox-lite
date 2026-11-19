@@ -231,7 +231,8 @@ function makeServiceStatusResponse(
 }
 
 async function openDashboard(page: Page): Promise<void> {
-    await page.goto(WS_BASE_URL);
+    const separator = WS_BASE_URL.includes("?") ? "&" : "?";
+    await page.goto(`${WS_BASE_URL}${separator}pushMode=poll`);
     await expect.poll(async () => isPackageTableReady(page), { timeout: 60000 }).toBe(true);
 }
 

@@ -15,6 +15,7 @@ import { runMockCommand } from "../testing/mock-adapter";
 import { serviceMap } from "../services/packages/info";
 import { isServiceEnabled } from "../services/packages/panels";
 import { serviceStatusAllData } from "../services/service/status";
+import { notifyPushSubscribers } from "./push";
 
 let baseDir = __dirname;
 let configPath = "";
@@ -449,6 +450,7 @@ async function serviceActionHandler(payload: unknown, client: Socket) {
         releaseExecSlot(client);
     }
     client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
+    notifyPushSubscribers(["SERVICE_STATUS_ALL", "SERVICE_CONTROL"]);
 }
 
 const execHandler = (payload: unknown, client: Socket) => {
@@ -485,6 +487,7 @@ const execHandler = (payload: unknown, client: Socket) => {
         releaseExecSlot(client);
         if (ret.success && payload.startsWith("systemctl:")) {invalidateServiceState();}
         client.emit(Constant.EVENT_EXEC, ret);
+        notifyPushSubscribers(["TASK_STATUS", "SERVICE_STATUS_ALL", "SERVICE_CONTROL", "PMC"]);
     };
     const mockResult = runMockCommand(payload);
     if (mockResult !== undefined) {
@@ -528,7 +531,12 @@ const execHandler = (payload: unknown, client: Socket) => {
             });
         return;
     }
+    const taskStartTimer = setTimeout(() => {
+        notifyPushSubscribers(["TASK_STATUS"]);
+    }, 300);
+    taskStartTimer.unref();
     exec(template, execOption, (error, stdout, stderr) => {
+        clearTimeout(taskStartTimer);
         ret.stdout = decodeExecOutput(stdout);
         ret.stderr = decodeExecOutput(stderr);
         if (error) {

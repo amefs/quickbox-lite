@@ -7,6 +7,7 @@ export default class Constant {
     public static EVENT_CONNECTION = "connection";
     public static EVENT_DISCONNECT = "disconnect";
     public static EVENT_MESSAGE = "message";
+    public static EVENT_WS_SUBSCRIBE = "ws:subscribe";
     public static EVENT_EXEC = "exec";
     public static EVENT_SERVICE_ACTION = "service-action";
     public static EVENT_SERVICE_ACTION_RESULT = "service-action-result";

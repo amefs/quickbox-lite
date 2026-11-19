@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-export const PACKAGE_MANAGEMENT_DATA_URL = "/node/data/pmc" as const;
+import { PACKAGE_MANAGEMENT_DATA_URL } from "./widget-streams";
+
+export { PACKAGE_MANAGEMENT_DATA_URL };
 
 export type PackageManagementTheme = "defaulted" | "smoked";
 

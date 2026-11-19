@@ -33,6 +33,15 @@ import { isCpuStaticData } from "../../ws/src/shared/cpu-status-contract";
 import { isDiskDataPayload } from "../../ws/src/shared/disk-data-contract";
 import { isMemoryStatsPayload } from "../../ws/src/shared/memory-stats-contract";
 import { isRunningTaskData } from "../../ws/src/shared/running-task-contract";
+import {
+    BANDWIDTH_DATA_URL,
+    DISK_DATA_URL,
+    RAM_STATS_DATA_URL,
+    SYSTEM_LOAD_DATA_URL,
+    SYSTEM_STATIC_DATA_URL,
+    SYSTEM_UPTIME_DATA_URL,
+    TASK_STATUS_DATA_URL,
+} from "../../ws/src/shared/widget-streams";
 import { isSystemLoadData, isUptimeParts } from "../../ws/src/shared/system-summary-contract";
 import type { DashboardTheme } from "../../ws/src/shared/theme";
 import { BandwidthTablesRoot } from "./components/bandwidth-tables-view";
@@ -63,28 +72,28 @@ function renderDataPreview(url: string, rawText: string): React.ReactNode | null
         return null;
     }
     const pathname = url.split("?")[0];
-    if (pathname === "/node/data/system_load" && isSystemLoadData(parsed)) {
+    if (pathname === SYSTEM_LOAD_DATA_URL && isSystemLoadData(parsed)) {
         return <SystemLoadValue data={parsed} />;
     }
-    if (pathname === "/node/data/system_uptime" && isUptimeParts(parsed)) {
+    if (pathname === SYSTEM_UPTIME_DATA_URL && isUptimeParts(parsed)) {
         return <UptimeValue parts={parsed} labels={{ days: "days", hours: "hrs", minutes: "min" }} />;
     }
-    if (pathname === "/node/data/system_static" && parsed && typeof parsed === "object" && "cpu" in parsed) {
+    if (pathname === SYSTEM_STATIC_DATA_URL && parsed && typeof parsed === "object" && "cpu" in parsed) {
         const cpu = (parsed as { cpu?: unknown }).cpu;
         if (isCpuStaticData(cpu)) {
             return <CpuStatusValue data={cpu} />;
         }
     }
-    if (pathname === "/node/data/disk_data" && isDiskDataPayload(parsed)) {
+    if (pathname === DISK_DATA_URL && isDiskDataPayload(parsed)) {
         return <DiskDataRoot data={parsed} />;
     }
-    if (pathname === "/node/data/ram_stats" && isMemoryStatsPayload(parsed)) {
+    if (pathname === RAM_STATS_DATA_URL && isMemoryStatsPayload(parsed)) {
         return <MemoryStatsRoot data={parsed} />;
     }
-    if (pathname === "/node/data/bandwidth" && isBandwidthTableData(parsed)) {
+    if (pathname === BANDWIDTH_DATA_URL && isBandwidthTableData(parsed)) {
         return <BandwidthTablesRoot data={parsed} />;
     }
-    if (pathname === "/node/data/task_status" && isRunningTaskData(parsed) && parsed.active) {
+    if (pathname === TASK_STATUS_DATA_URL && isRunningTaskData(parsed) && parsed.active) {
         return <RunningTaskIsland data={parsed} />;
     }
     return null;

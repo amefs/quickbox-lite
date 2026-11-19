@@ -4,6 +4,7 @@ import express, { Router } from "express";
 import * as childProcess from "child_process";
 import path from "path";
 
+import { OUTPUT_LOG_URL } from "../shared/widget-streams";
 import { isTestMode } from "../testing";
 import { mountBootstrapRoutes } from "./bootstrap";
 import { mountDebugRoutes } from "./debug";
@@ -38,7 +39,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
     mountBootstrapRoutes(router, options.dashboardDir, webIndexHtmlPath);
     router.get("/set", setLocale);
     mountNodeRoutes(router, runExecFile);
-    router.get("/db/output.log", getOutputLog);
+    router.get(OUTPUT_LOG_URL, getOutputLog);
 
     if (debugEnabled) {
         mountDebugRoutes(router, options.dashboardDir, webIndexHtmlPath);
