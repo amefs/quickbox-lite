@@ -58,11 +58,6 @@ export function applyFrontendTheme(nextTheme: DashboardTheme) {
         if (document.body.getAttribute("data-theme") !== nextTheme) {
             document.body.setAttribute("data-theme", nextTheme);
         }
-        const targetHref = `/css/dashboard-theme-${nextTheme}.css`;
-        const themeLink = document.querySelector('link[href*="/css/dashboard-theme-"]');
-        if (themeLink instanceof HTMLLinkElement && themeLink.getAttribute("href") !== targetHref) {
-            themeLink.href = targetHref;
-        }
         let cookie = `quickbox_theme=${encodeURIComponent(nextTheme)}; Path=/; SameSite=Lax`;
         if (window.location.protocol === "https:") {
             cookie += "; Secure";
