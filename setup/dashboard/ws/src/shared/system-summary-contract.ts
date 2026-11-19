@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-export const SYSTEM_LOAD_DATA_URL = "/node/migration/system_load" as const;
-export const SYSTEM_UPTIME_DATA_URL = "/node/migration/system_uptime" as const;
+export const SYSTEM_LOAD_DATA_URL = "/node/data/system_load" as const;
+export const SYSTEM_UPTIME_DATA_URL = "/node/data/system_uptime" as const;
 
 export interface UptimeParts {
     days: number;

@@ -15,7 +15,7 @@ export default defineConfig({
     build: {
         target: "es2022",
         minify: "esbuild",
-        outDir: path.join(dashboardRoot, "js", "migration"),
+        outDir: path.join(dashboardRoot, "js", "client"),
         emptyOutDir: true,
         cssCodeSplit: false,
         lib: {
@@ -41,7 +41,7 @@ export default defineConfig({
                         this.emitFile({
                             type: "asset",
                             fileName: "dashboard-client-manifest.json",
-                            source: `${JSON.stringify({ version: 1, dashboardClient: `/js/migration/${entry.fileName}` }, null, 2)}\n`,
+                            source: `${JSON.stringify({ version: 1, dashboardClient: `/js/client/${entry.fileName}` }, null, 2)}\n`,
                         });
                     },
                 },

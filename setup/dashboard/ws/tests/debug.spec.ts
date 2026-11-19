@@ -60,7 +60,7 @@ describe("debug page", () => {
         expect(html).to.include("foundationCss.href = withDebugBase('/debug/assets/css/dashboard-foundation.css')");
         expect(html).to.include("themeCss.href = withDebugBase('/debug/assets/css/dashboard-theme-' + debugTheme + '.css')");
         expect(html).to.not.include("quick.css");
-        expect(html).to.include("faCss.href = withDebugBase('/debug/assets/lib/font-awesome/css/font-awesome.min.css')");
+        expect(html).to.not.include("font-awesome");
     });
 
     it("passes the selected theme to the widget preview", () => {

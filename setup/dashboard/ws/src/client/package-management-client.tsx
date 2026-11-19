@@ -11,6 +11,7 @@ import {
     type PackageManagementRow,
 } from "../shared/package-management-contract";
 import { PackageManagementCenterView } from "../widgets/package-management-center-view";
+import { useDashboardTheme } from "./theme-store";
 
 interface PackageManagementActions {
     run: (action: "install" | "remove", packageName: string) => void;
@@ -54,12 +55,13 @@ if (runtime) {
     if (mount) {
         function ClientPackageManagement() {
             const data = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
+            const activeTheme = useDashboardTheme(clientRuntime.theme);
             const actions = window.quickboxPackageManagementActions;
             return (
                 <PackageManagementCenterView
                     data={data}
                     labels={clientRuntime.labels}
-                    theme={clientRuntime.theme}
+                    theme={activeTheme}
                     onPackageAction={(action, row: PackageManagementRow) => actions?.run(action, row.package)}
                 />
             );

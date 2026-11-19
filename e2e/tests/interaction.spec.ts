@@ -278,4 +278,62 @@ test.describe("Command failure dialog", () => {
         await modal.getByRole("button", { name: "Close" }).click();
         await expect(page.locator("#quickbox-alert-modal")).toBeHidden({ timeout: 10_000 });
     });
+
+    test("theme selection switches on the frontend and persists across reload", async ({ page }) => {
+        await page.goto("/");
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "defaulted");
+
+        for (const target of ["smoked", "defaulted"] as const) {
+            await page.locator("#noticePanel > button").click();
+            await page.locator('#noticeDropdown a[href="#dashadjust"]').click();
+            await page.locator("#node-theme-options .qb-chrome-option").filter({
+                has: page.locator(`img[src="/img/themes/opt_${target}.png"]`),
+            }).click();
+            const dialog = page.locator(`#themeSelect${target}Confirm`);
+            await expect(dialog).toBeVisible();
+            await page.locator(`#themeSelect${target}Go`).click();
+            await expect(page.locator("body")).toHaveAttribute("data-theme", target);
+            await expect(page.locator(`link[href="/css/dashboard-theme-${target}.css"]`)).toHaveCount(1);
+
+            await page.reload({ waitUntil: "domcontentloaded" });
+            await expect(page.locator("body")).toHaveAttribute("data-theme", target);
+            await expect(page.locator(`link[href="/css/dashboard-theme-${target}.css"]`)).toHaveCount(1);
+        }
+    });
+
+    test("package search matches smart search semantics", async ({ page }) => {
+        await page.goto("/");
+        await expect(page.locator("#pmc_widget tr[data-row-key]").first()).toBeVisible({ timeout: 10_000 });
+        await page.locator("#quickbox-pmc-page-size").selectOption("100");
+        const fixture = await page.evaluate(() => (window as unknown as {
+            quickboxRuntime: {
+                packageManagement: {
+                    data: { rows: { package: string; name: string; descriptionText: string; installed: boolean; boxOnly: boolean }[] };
+                    labels: { installed: string; box: string; install: string };
+                };
+            };
+        }).quickboxRuntime.packageManagement);
+
+        const smartMatch = (query: string): string[] => {
+            const terms = (query.toLocaleLowerCase().match(/"[^"]+"|[^ ]+/g) ?? [])
+                .map((term) => term.startsWith('"') && term.endsWith('"') ? term.slice(1, -1) : term.replace('"', ""));
+            return fixture.data.rows
+                .filter((row) => {
+                    const availability = row.installed ? fixture.labels.installed : row.boxOnly ? fixture.labels.box : fixture.labels.install;
+                    const text = `${row.name} ${row.descriptionText} ${availability}`.toLocaleLowerCase();
+                    return terms.every((term) => text.includes(term));
+                })
+                .map((row) => row.package)
+                .sort();
+        };
+
+        for (const query of ["", "torrents remove", '"remove torrents"', '"torrents remove"', "DELUGE", "no-such-package-123", "  file  browser "]) {
+            const expected = smartMatch(query);
+            await page.locator("#dataTable1-search").fill(query);
+            await expect.poll(
+                () => page.locator("#pmc_widget tr[data-row-key]").evaluateAll((rows) => rows.map((row) => row.getAttribute("data-row-key")).sort()),
+                { message: `search ${JSON.stringify(query)}` },
+            ).toEqual(expected);
+        }
+    });
 });

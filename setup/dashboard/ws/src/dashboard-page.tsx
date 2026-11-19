@@ -1,6 +1,8 @@
 ﻿// SPDX-License-Identifier: GPL-3.0-or-later
 
 import React from "react";
+import { BellOutlined } from "@ant-design/icons";
+import { Card, Col, ConfigProvider, Layout, Row } from "antd";
 
 import { dashboardConfig } from "./dashboard-config";
 import i18n, { VALID_LOCALES } from "./i18n";
@@ -17,7 +19,10 @@ import { CpuStatusValue } from "./widgets/cpu-status-island";
 import { MemoryStatsRoot } from "./widgets/memory-stats-island";
 import { DiskDataRoot } from "./widgets/disk-data-island";
 import type { DashboardMenuState } from "./widgets/menu";
+import { getAntdThemeConfig } from "./shared/theme";
 import { DashboardHeader, DashboardSidebar, type DashboardChromeProps } from "./widgets/dashboard-chrome";
+import type { RunningTaskData } from "./shared/running-task-contract";
+import { RunningTaskIsland } from "./widgets/running-task-island";
 import {
     ServiceControlPlaceholder,
     PackageManagementPlaceholder,
@@ -26,7 +31,7 @@ import {
 
 export interface DashboardSsrFragments {
     packageManagementCenterHtml: string;
-    runningTaskHtml: string;
+    runningTask?: RunningTaskData;
     serviceControlHtml: string;
     serviceControlRows?: ServiceRow[];
     serviceControlLabels?: ServiceControlLabels;
@@ -171,6 +176,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
         networkInterfaces: ssrFragments.networkInterfaces,
         networkInterfacesLoaded,
         chrome: chromeProps,
+        ...(ssrFragments.runningTask ? { runningTask: ssrFragments.runningTask } : {}),
         ...(ssrFragments.packageManagementRuntime ? { packageManagement: ssrFragments.packageManagementRuntime } : {}),
     };
 
@@ -190,10 +196,7 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                 <link rel="icon" type="image/png" href="/img/favicon/favicon-16x16.png" sizes="16x16" />
                 <link rel="manifest" href="/img/favicon/manifest.json" />
                 <link rel="mask-icon" href="/img/favicon/safari-pinned-tab.svg" color="#5bbad5" />
-                <link rel="stylesheet" href="/lib/jquery-gritter/css/jquery.gritter.css" />
                 <link rel="stylesheet" href={dashboardAssetUrl("/css/dashboard.css", assetVersions.css)} />
-                <link rel="stylesheet" href="/lib/animate.css/animate.min.css" />
-                <link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css" />
                 <link rel="stylesheet" href="/css/dashboard-foundation.css" />
                 <link rel="stylesheet" href={`/css/dashboard-theme-${theme}.css`} />
                 <link rel="stylesheet" href="/css/react-service-control.css" />
@@ -224,178 +227,157 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
     border-radius: 50%;
     flex-shrink: 0;
 }
-#quickbox-alert-modal .modal-dialog {
-    width: 600px;
-    max-width: calc(100vw - 30px);
-}
-#quickbox-alert-modal .modal-header {
-    align-items: center;
-    display: flex;
-    min-height: 48px;
-    padding: 8px 12px 8px 20px;
-}
-#quickbox-alert-modal .modal-title {
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 32px;
-}
-#quickbox-alert-modal .quickbox-modal-close {
-    background: transparent;
-    border: 0;
-    border-radius: 4px;
-    color: #69707a;
-    flex: 0 0 32px;
-    font-size: 22px;
-    height: 32px;
-    line-height: 30px;
-    margin-left: auto;
-    opacity: .65;
-    padding: 0;
-    text-align: center;
-    width: 32px;
-}
-#quickbox-alert-modal .quickbox-modal-close:hover,
-#quickbox-alert-modal .quickbox-modal-close:focus {
-    background: rgba(0, 0, 0, .08);
-    color: #111;
-    opacity: 1;
-    outline: 0;
-}
-#quickbox-alert-modal .modal-footer {
-    padding: 12px 20px;
-}
-#quickbox-alert-modal .modal-footer .btn {
-    min-width: 88px;
-}
 ` }} />
-                <script src="/lib/jquery/jquery.min.js"></script>
                 <script dangerouslySetInnerHTML={{ __html: `window.quickboxRuntime = ${serializeJsonForScript(runtimeConfig)};` }} />
             </head>
             <body className="body" data-theme={theme}>
-                <div className="dashboard-layout">
-                    <header id="quickbox-header-root"><DashboardHeader props={chromeProps} /></header>
-                    <section>
-                        <div id="quickbox-sidebar-root" className="leftpanel ps"><DashboardSidebar props={chromeProps} /></div>
-                        <div className="mainpanel">
-                            <div className="contentpanel">
-                                <div id="running_task_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.runningTaskHtml }}></div>
-                                <div className="row">
-                                    <div className="col-md-8" data-inner-id="left-panel-container">
-                                        <div className="panel panel-main panel-inverse" data-inner-id="panel-server-bandwidth-interface">
-                                            <div className="panel-heading">
-                                                <h4 className="panel-title">{i18n.t("BANDWIDTH_DATA")}</h4>
-                                            </div>
-                                            <div className="row panel-footer panel-statistics" style={{ padding: 0 }}>
-                                                <div className="col-md-12">
-                                                    <div className="table-responsive">
-                                                        <table className="table table-hover table-bordered nomargin">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("NETWORK")}</th>
-                                                                    <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("UPLOAD")}</th>
-                                                                    <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("DOWNLOAD")}</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody id="node-network-interface-rows">
-                                                                <NetworkInterfaceRows
-                                                                    interfaces={ssrFragments.networkInterfaces}
-                                                                    loaded={networkInterfacesLoaded}
-                                                                    rates={Object.fromEntries(ssrFragments.networkInterfaces.map((iface) => [iface, { tx: "0 B/s", rx: "0 B/s" }]))}
-                                                                />
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
+                <ConfigProvider theme={getAntdThemeConfig(theme)}>
+                    <Layout className="dashboard-layout" style={{ background: "transparent" }}>
+                        <header id="quickbox-header-root"><DashboardHeader props={chromeProps} theme={theme} /></header>
+                        <Layout style={{ background: "transparent" }}>
+                            <div id="quickbox-sidebar-root" className="leftpanel ps"><DashboardSidebar props={chromeProps} theme={theme} /></div>
+                            <Layout.Content className="mainpanel" style={{ background: "transparent" }}>
+                                <div className="contentpanel">
+                                    <div id="running_task_widget"><RunningTaskIsland data={ssrFragments.runningTask ?? null} /></div>
+                                    <Row gutter={20}>
+                                        <Col xs={24} lg={16} data-inner-id="left-panel-container">
+                                            <Card
+                                                variant="borderless"
+                                                className="panel panel-main panel-inverse"
+                                                data-inner-id="panel-server-bandwidth-interface"
+                                                classNames={{ header: "panel-heading", body: "panel-footer panel-statistics" }}
+                                                styles={{ body: { padding: 0 } }}
+                                                title={<h4 className="panel-title">{i18n.t("BANDWIDTH_DATA")}</h4>}
+                                            >
+                                                <Row>
+                                                    <Col span={24}>
+                                                        <div className="table-responsive">
+                                                            <table className="table table-hover table-bordered nomargin">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("NETWORK")}</th>
+                                                                        <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("UPLOAD")}</th>
+                                                                        <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("DOWNLOAD")}</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody id="node-network-interface-rows">
+                                                                    <NetworkInterfaceRows
+                                                                        interfaces={ssrFragments.networkInterfaces}
+                                                                        loaded={networkInterfacesLoaded}
+                                                                        rates={Object.fromEntries(ssrFragments.networkInterfaces.map((iface) => [iface, { tx: "0 B/s", rx: "0 B/s" }]))}
+                                                                    />
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </Col>
+                                                </Row>
+                                            </Card>
+                                            <Card
+                                                variant="borderless"
+                                                className="panel panel-inverse"
+                                                data-inner-id="panel-server-bandwidth-details"
+                                                classNames={{ header: "panel-heading", body: "panel-body" }}
+                                                styles={{ body: { padding: 0 } }}
+                                                title={<h4 className="panel-title">{i18n.t("VIEW_ADDITIONAL_BANDWIDTH_DETAILS")}</h4>}
+                                            >
+                                                <div id="bw_tables" style={{ padding: 0, margin: 0 }}>
+                                                    <BandwidthTablesRoot data={null} />
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <div className="panel panel-inverse" data-inner-id="panel-server-bandwidth-details">
-                                            <div className="panel-heading">
-                                                <h4 className="panel-title">{i18n.t("VIEW_ADDITIONAL_BANDWIDTH_DETAILS")}</h4>
-                                            </div>
-                                            <div className="panel-body" style={{ padding: 0 }}>
-                                                <div className="row" style={{ padding: 0, margin: 0 }}>
-                                                    <div id="bw_tables" style={{ padding: 0, margin: 0 }}>
-                                                        <BandwidthTablesRoot data={null} />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {ssrFragments.serviceControlHtml === "" ? (
-                                            <div id="service_control_widget"><ServiceControlPlaceholder /></div>
-                                        ) : (
-                                            <div id="service_control_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.serviceControlHtml }}></div>
-                                        )}
-                                        {ssrFragments.packageManagementCenterHtml === "" ? (
-                                            <div id="pmc_widget"><PackageManagementPlaceholder /></div>
-                                        ) : (
-                                            <div id="pmc_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.packageManagementCenterHtml }}></div>
-                                        )}
-                                    </div>
-                                    <div className="col-md-4 dash-right" data-inner-id="right-panel-container">
-                                        <div className="panel panel-side panel-inverse-full panel-updates" data-inner-id="panel-server-load">
-                                            <div className="panel-heading"><h4 className="panel-title text-success">{i18n.t("SERVER_LOAD")}</h4></div>
-                                            <div className="panel-body">
-                                                <div className="row qb-panel-split">
-                                                    <div className="col-sm-9 qb-panel-main">
+                                            </Card>
+                                            {ssrFragments.serviceControlHtml === "" ? (
+                                                <div id="service_control_widget"><ServiceControlPlaceholder /></div>
+                                            ) : (
+                                                <div id="service_control_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.serviceControlHtml }}></div>
+                                            )}
+                                            {ssrFragments.packageManagementCenterHtml === "" ? (
+                                                <div id="pmc_widget"><PackageManagementPlaceholder /></div>
+                                            ) : (
+                                                <div id="pmc_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.packageManagementCenterHtml }}></div>
+                                            )}
+                                        </Col>
+                                        <Col xs={24} lg={8} className="dash-right" data-inner-id="right-panel-container">
+                                            <Card
+                                                variant="borderless"
+                                                className="panel panel-side panel-inverse-full panel-updates"
+                                                data-inner-id="panel-server-load"
+                                                classNames={{ header: "panel-heading", body: "panel-body" }}
+                                                title={<h4 className="panel-title text-success">{i18n.t("SERVER_LOAD")}</h4>}
+                                            >
+                                                <Row className="qb-panel-split">
+                                                    <Col xs={24} md={18} className="qb-panel-main">
                                                         <h4><span id="cpuload" dangerouslySetInnerHTML={ssrFragments.loadHtml ? { __html: ssrFragments.loadHtml } : undefined}>{ssrFragments.loadHtml ? undefined : <SystemLoadValue text={null} />}</span></h4>
                                                         <p>{i18n.t("SL_TXT")}</p>
-                                                    </div>
-                                                    <div className="col-sm-3 text-right qb-panel-icon"><i className="fa fa-heartbeat text-danger"></i></div>
-                                                </div>
-                                                <div className="row">
-                                                    <div className="col-sm-12 mt20 text-center qb-uptime">
+                                                    </Col>
+                                                    <Col xs={24} md={6} className="text-right qb-panel-icon">
+                                                        <span role="img" aria-hidden="true" className="anticon text-danger">
+                                                            <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" focusable="false">
+                                                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35zm-7.4-9.85h3.2l1.4-2.8 2.1 5.6 1.7-3.4 1.2 1.6h4.2v-1.5h-3.4l-2-2.6-1.7 3.4-2.1-5.6-2 4.1H4.6v1.2z" />
+                                                            </svg>
+                                                        </span>
+                                                    </Col>
+                                                </Row>
+                                                <Row>
+                                                    <Col span={24} className="mt20 text-center qb-uptime">
                                                         <strong>{i18n.t("UPTIME")}:</strong> <span id="uptime" dangerouslySetInnerHTML={ssrFragments.uptimeHtml ? { __html: ssrFragments.uptimeHtml } : undefined}>{ssrFragments.uptimeHtml ? undefined : ssrFragments.uptimeParts ? <UptimeValue parts={ssrFragments.uptimeParts} labels={systemSummaryLabels} /> : <UptimePlaceholder />}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="panel panel-side panel-inverse" data-inner-id="panel-server-cpu">
-                                            <div className="panel-heading"><h4 className="panel-title">{i18n.t("CPU_STATUS")}</h4></div>
-                                            <div className="panel-body" style={{ overflow: "hidden" }}>
+                                                    </Col>
+                                                </Row>
+                                            </Card>
+                                            <Card
+                                                variant="borderless"
+                                                className="panel panel-side panel-inverse"
+                                                data-inner-id="panel-server-cpu"
+                                                classNames={{ header: "panel-heading", body: "panel-body" }}
+                                                styles={{ body: { overflow: "hidden" } }}
+                                                title={<h4 className="panel-title">{i18n.t("CPU_STATUS")}</h4>}
+                                            >
                                                 <span id="node-cpu-static" className="nomargin" style={{ fontSize: "14px" }} dangerouslySetInnerHTML={ssrFragments.cpuStaticHtml ? { __html: ssrFragments.cpuStaticHtml } : undefined}>{ssrFragments.cpuStaticHtml ? undefined : <CpuStatusValue data={null} />}</span>
-                                            </div>
-                                        </div>
-                                        <div className="panel panel-side panel-inverse" data-inner-id="panel-server-disk">
-                                            <div className="panel-heading"><h4 className="panel-title">{i18n.t("YOUR_DISK_STATUS")}</h4></div>
-                                            <div className="panel-body"><div id="disk_data" dangerouslySetInnerHTML={ssrFragments.diskDataHtml ? { __html: ssrFragments.diskDataHtml } : undefined}>{ssrFragments.diskDataHtml ? undefined : <DiskDataRoot data={null} />}</div></div>
-                                        </div>
-                                        <div className="panel panel-side panel-inverse" data-inner-id="panel-server-ram">
-                                            <div className="panel-heading"><h4 className="panel-title">{i18n.t("SYSTEM_RAM_STATUS")}</h4></div>
-                                            <div className="panel-body"><div id="meterram" dangerouslySetInnerHTML={ssrFragments.ramStatsHtml ? { __html: ssrFragments.ramStatsHtml } : undefined}>{ssrFragments.ramStatsHtml ? undefined : <MemoryStatsRoot data={null} />}</div></div>
-                                        </div>
-                                        <div className="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
-                                            <div className="panel-heading">
-                                                <h4 className="panel-title text-success">
-                                                    {i18n.t("RECENT_UPDATES")}{" "}
-                                                    <a href={`https://github.com/amefs/quickbox-lite/blob/${config.branch}/CHANGELOG.md#changelog-${config.version.replaceAll(".", "")}`} title={i18n.t("CURRENT_VERSIONS_CHANGELOG")} data-placement="top" className="label label-primary tooltips" style={{ fontSize: "10px", paddingTop: 0, paddingBottom: "0px", top: "-2px", position: "relative" }} target="_blank" rel="noopener noreferrer">
-                                                        QuickBox :: <span style={{ color: "#fff", textShadow: "0px 0px 6px #fff" }}>{config.version}</span>
-                                                    </a>
-                                                </h4>
-                                            </div>
-                                            <div className="panel-body ps" style={{ maxHeight: "350px", padding: 0 }}>
-                                                <div id="activityfeed"></div>
-                                            </div>
-                                            <div className="panel-footer">
+                                            </Card>
+                                            <Card
+                                                variant="borderless"
+                                                className="panel panel-side panel-inverse"
+                                                data-inner-id="panel-server-disk"
+                                                classNames={{ header: "panel-heading", body: "panel-body" }}
+                                                title={<h4 className="panel-title">{i18n.t("YOUR_DISK_STATUS")}</h4>}
+                                            >
+                                                <div id="disk_data" dangerouslySetInnerHTML={ssrFragments.diskDataHtml ? { __html: ssrFragments.diskDataHtml } : undefined}>{ssrFragments.diskDataHtml ? undefined : <DiskDataRoot data={null} />}</div>
+                                            </Card>
+                                            <Card
+                                                variant="borderless"
+                                                className="panel panel-side panel-inverse"
+                                                data-inner-id="panel-server-ram"
+                                                classNames={{ header: "panel-heading", body: "panel-body" }}
+                                                title={<h4 className="panel-title">{i18n.t("SYSTEM_RAM_STATUS")}</h4>}
+                                            >
+                                                <div id="meterram" dangerouslySetInnerHTML={ssrFragments.ramStatsHtml ? { __html: ssrFragments.ramStatsHtml } : undefined}>{ssrFragments.ramStatsHtml ? undefined : <MemoryStatsRoot data={null} />}</div>
+                                            </Card>
+                                            <Card
+                                                variant="borderless"
+                                                className="panel panel-inverse"
+                                                id="project-commits"
+                                                data-inner-id="panel-server-update"
+                                                classNames={{ header: "panel-heading", body: "panel-footer" }}
+                                                title={(
+                                                    <h4 className="panel-title text-success">
+                                                        {i18n.t("RECENT_UPDATES")}{" "}
+                                                        <a href={`https://github.com/amefs/quickbox-lite/blob/${config.branch}/CHANGELOG.md#changelog-${config.version.replaceAll(".", "")}`} title={i18n.t("CURRENT_VERSIONS_CHANGELOG")} data-placement="top" className="label label-primary tooltips" style={{ fontSize: "10px", paddingTop: 0, paddingBottom: "0px", top: "-2px", position: "relative" }} target="_blank" rel="noopener noreferrer">
+                                                            QuickBox :: <span style={{ color: "#fff", textShadow: "0px 0px 6px #fff" }}>{config.version}</span>
+                                                        </a>
+                                                    </h4>
+                                                )}
+                                            >
                                                 <button data-click-handler="boxHandler" data-package="quickbox --only-core" data-operation="update" data-toggle="modal" data-target="#sysResponse" className="btn btn-success btn-quirk btn-block">
-                                                    <i className="fa fa-bell text-success"></i> {i18n.t("UPDATE")}
+                                                    <BellOutlined className="text-success" aria-hidden="true" /> {i18n.t("UPDATE")}
                                                 </button>
-                                            </div>
-                                        </div>
-                                    </div>
+                                            </Card>
+                                        </Col>
+                                    </Row>
                                 </div>
-                            </div>
-                        </div>
-                        <div id="quickbox-system-response-root" />
-                    </section>
-                </div>
-                <script src="/lib/visibility/visibility.fallback.js"></script>
-                <script src="/lib/visibility/visibility.core.js"></script>
-                <script src="/lib/visibility/visibility.timers.js"></script>
-                <script src="/lib/socket.io/socket.io.min.js"></script>
-                <script src="/lib/ansi_up/ansi_up.min.js"></script>
-                <script src="/lib/lazysizes/lazysizes.min.js" async></script>
+                            </Layout.Content>
+                            <div id="quickbox-system-response-root" />
+                        </Layout>
+                    </Layout>
+                </ConfigProvider>
                 <script type="module" src={reactClientBundlePath}></script>
-                <script type="module" src={dashboardAssetUrl("/js/dashboard.js", assetVersions.js)}></script>
             </body>
         </html>
     );

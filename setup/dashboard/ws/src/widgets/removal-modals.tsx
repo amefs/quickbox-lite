@@ -24,7 +24,7 @@ export function RemovalModals() {
             {packages.map((pkg) => (
                 <div
                     key={pkg.package}
-                    className="modal animate__bounceIn animate__animated"
+                    className="modal"
                     id={`${pkg.packageLowercase}RemovalConfirm`}
                     tabIndex={-1}
                     role="dialog"

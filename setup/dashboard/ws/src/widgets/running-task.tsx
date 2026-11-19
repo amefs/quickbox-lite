@@ -5,10 +5,12 @@ import React from "react";
 import ReactDOMServer from "react-dom/server";
 
 import i18n from "../i18n";
+import type { RunningTaskData, RunningTaskOperation } from "../shared/running-task-contract";
+import { RunningTaskIsland } from "./running-task-island";
 
 const INSTALL_LOCK = "/install/.install.lock";
 
-export type RunningTaskOperation = "install" | "remove" | "update";
+export type { RunningTaskOperation };
 
 /**
  * Title of the operation that holds the install lock, or null when no
@@ -104,6 +106,40 @@ function taskAbortPrompt() {
 }
 
 /**
+ * Structured data for the running task banner. Returns active=false when
+ * the lock is absent or empty.
+ */
+export function runningTaskData(
+    readTitle: () => string | null = readRunningTaskTitle,
+    detectOperation: () => RunningTaskOperation | null = detectRunningTaskOperation,
+): RunningTaskData {
+    const title = readTitle();
+    if (title === null || title === "") {
+        return {
+            active: false,
+            kind: "package",
+            operation: "",
+            text: "",
+            viewLogLabel: "",
+            abortLabel: "",
+            abortConfirm: "",
+        };
+    }
+
+    const operation = detectOperation();
+    const kind = operation ?? (title === "QuickBox" ? "update" : "package");
+    return {
+        active: true,
+        kind,
+        operation: operation ?? "",
+        text: taskText(title, operation),
+        viewLogLabel: i18n.t("VIEW_LOG"),
+        abortLabel: i18n.t("TASK_ABORT"),
+        abortConfirm: taskAbortPrompt(),
+    };
+}
+
+/**
  * Banner for the operation that currently owns the log. Renders nothing when
  * the lock is absent, so the Dashboard can poll it as a normal widget.
  */
@@ -112,41 +148,9 @@ export async function runningTask(
     readTitle: () => string | null = readRunningTaskTitle,
     detectOperation: () => RunningTaskOperation | null = detectRunningTaskOperation,
 ) {
-    const title = readTitle();
-    // A title is written in the same step as the lock, so an empty one is a
-    // half-written file rather than a task worth naming.
-    if (title === null || title === "") {
+    const data = runningTaskData(readTitle, detectOperation);
+    if (!data.active) {
         return "";
     }
-
-    const operation = detectOperation();
-    const kind = operation ?? (title === "QuickBox" ? "update" : "package");
-    return ReactDOMServer.renderToString(
-        <div
-            className="alert alert-warning qb-running-task"
-            role="status"
-            data-task={kind}
-            data-operation={operation ?? ""}
-        >
-            <i className="fa fa-spinner fa-pulse qb-running-task-icon" aria-hidden="true"></i>
-            <span className="qb-running-task-text">{taskText(title, operation)}</span>
-            <span className="qb-running-task-actions">
-                <button
-                    type="button"
-                    className="btn btn-xs btn-default"
-                    data-qb-system-response=""
-                >
-                    {i18n.t("VIEW_LOG")}
-                </button>
-                <button
-                    type="button"
-                    className="btn btn-xs btn-danger"
-                    data-task-abort
-                    data-confirm={taskAbortPrompt()}
-                >
-                    {i18n.t("TASK_ABORT")}
-                </button>
-            </span>
-        </div>,
-    );
+    return ReactDOMServer.renderToString(<RunningTaskIsland data={data} />);
 }

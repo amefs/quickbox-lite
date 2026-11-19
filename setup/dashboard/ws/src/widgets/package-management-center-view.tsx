@@ -9,6 +9,7 @@ import type {
     PackageManagementRow,
     PackageManagementTheme,
 } from "../shared/package-management-contract";
+import { getAntdThemeConfig } from "../shared/theme";
 
 export interface PackageManagementCenterProps {
     data: PackageManagementData;
@@ -234,7 +235,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
     };
 
     return (
-        <ConfigProvider theme={{ token: { colorPrimary: "#2574ab", fontFamily: '"Open Sans"', borderRadius: 3, controlHeightSM: 24 } }}>
+        <ConfigProvider theme={getAntdThemeConfig(theme, { colorPrimary: "#2574ab", fontFamily: '"Open Sans"', borderRadius: 3, controlHeightSM: 24 })}>
             <div className={`panel panel-main panel-inverse qb-package-management qb-package-management--${theme}`} data-inner-id="panel-server-package-management">
                 <div className="panel-heading"><h4 className="panel-title">{labels.title}</h4></div>
                 <div className="panel-body text-center" style={{ padding: 0 }}>

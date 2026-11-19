@@ -1,7 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React from "react";
+import {
+    AppstoreOutlined,
+    CodeOutlined,
+    DownloadOutlined,
+    EllipsisOutlined,
+    LogoutOutlined,
+    MenuOutlined,
+    QuestionCircleOutlined,
+    WarningOutlined,
+} from "@ant-design/icons";
 import { Button, ConfigProvider, Modal, Tooltip } from "antd";
+
+import { applyFrontendTheme } from "../client/theme-store";
+import { getAntdThemeConfig, isDashboardTheme, type DashboardTheme } from "../shared/theme";
 
 export interface ChromeMenuEntry {
     name: string;
@@ -91,15 +104,11 @@ function isBranchName(value: unknown): value is string {
 }
 
 function applyTheme(theme: string) {
-    fetch(`${window.quickboxApiBase || ""}/node/theme`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme }),
-    }).then((response) => {
-        if (!response.ok) {throw new Error("Failed to apply theme");}
-        window.location.reload();
-    }).catch((error: unknown) => { console.warn("[ws] failed to apply theme", error); });
+    if (!isDashboardTheme(theme)) {
+        console.warn("[ws] ignored unknown theme", theme);
+        return;
+    }
+    applyFrontendTheme(theme);
 }
 
 function resetPanels() {
@@ -211,7 +220,7 @@ function BranchSwitchDialog({ open, mode, branch, branchCommit, locale, labels, 
     );
 }
 
-export function DashboardHeader({ props }: { props: DashboardChromeProps }) {
+export function DashboardHeader({ props, theme = "defaulted" }: { props: DashboardChromeProps; theme?: DashboardTheme }) {
     const [noticeOpen, setNoticeOpen] = React.useState(false);
     const [accountOpen, setAccountOpen] = React.useState(false);
     const [activeNoticeTab, setActiveNoticeTab] = React.useState("quickplus");
@@ -288,20 +297,20 @@ export function DashboardHeader({ props }: { props: DashboardChromeProps }) {
     ];
 
     return (
-        <ConfigProvider theme={{ token: { colorPrimary: "#337ab7", borderRadius: 3, fontFamily: '"Open Sans", sans-serif' } }}>
+        <ConfigProvider theme={getAntdThemeConfig(theme)}>
             <div className="headerpanel">
                 <div className="logopanel">
                     <h2><a href="#"><img src="/img/logo-light.png" alt="QuickBox Seedbox" className="logo-image" width="222" height="50" /></a></h2>
                 </div>
                 <div className="headerbar">
-                    <a id="menuToggle" className="menutoggle" href="#" aria-label="Toggle sidebar"><i className="fa fa-bars"></i></a>
+                    <a id="menuToggle" className="menutoggle" href="#" aria-label="Toggle sidebar"><MenuOutlined aria-hidden="true" /></a>
                     <div className="header-right">
                         <ul className="headermenu">
                             {props.config.showDeveloper ? <li className="header-branch"><div className="btn-group"><span className="label label-warning" title={props.config.branch}><span className="header-branch-description">{props.config.developerLabel}</span><span className="header-branch-name">{props.config.branch}</span></span></div></li> : null}
                             <li>
                                 <div id="noticePanel" className={`btn-group${noticeOpen ? " open" : ""}`} ref={noticeRef}>
                                     <button className="btn" type="button" aria-expanded={noticeOpen} aria-controls="noticeDropdown" onClick={() => { setNoticeOpen((open) => !open); }}>
-                                        <i className="fa fa-menu"></i> <span className="header-menu-full">QuickBox Lite Menu</span><span className="header-menu-short">Menu</span> <span className="caret"></span>
+                                        <span className="header-menu-full">QuickBox Lite Menu</span><span className="header-menu-short">Menu</span> <span className="caret"></span>
                                     </button>
                                     <div id="noticeDropdown" className="dropdown-menu dm-notice pull-right" role="menu">
                                         <div role="tabpanel">
@@ -336,8 +345,8 @@ export function DashboardHeader({ props }: { props: DashboardChromeProps }) {
                                         {props.config.branch !== "development" ? <li><a href="#branchSwitch" data-branch-mode="development" onClick={(event) => { event.preventDefault(); openBranchSwitch("development"); }} dangerouslySetInnerHTML={{ __html: props.labels.switchDev }} /></li> : null}
                                         {props.config.branch !== "master" ? <li><a href="#branchSwitch" data-branch-mode="master" onClick={(event) => { event.preventDefault(); openBranchSwitch("master"); }} dangerouslySetInnerHTML={{ __html: props.labels.switchMaster }} /></li> : null}
                                         <li><a href="#branchSwitch" data-branch-mode="other" onClick={(event) => { event.preventDefault(); openBranchSwitch("other"); }}>{props.labels.branchOther}</a></li>
-                                        {props.config.hasExternalAuth ? <li><a href={`/logout?url=${encodeURIComponent(props.config.ssoLogoutUrl || "/")}`}><i className="fa fa-sign-out text-warning"></i>{props.labels.ssoLogout}</a></li> : null}
-                                        <li style={{ borderTop: "1px solid #444" }}><a href="https://github.com/amefs/quickbox-lite/issues/new" target="_blank" rel="noopener noreferrer"><i className="fa fa-warning text-warning"></i>{props.labels.issueReport}</a></li>
+                                        {props.config.hasExternalAuth ? <li><a href={`/logout?url=${encodeURIComponent(props.config.ssoLogoutUrl || "/")}`}><LogoutOutlined className="text-warning" aria-hidden="true" /> {props.labels.ssoLogout}</a></li> : null}
+                                        <li style={{ borderTop: "1px solid #444" }}><a href="https://github.com/amefs/quickbox-lite/issues/new" target="_blank" rel="noopener noreferrer"><WarningOutlined className="text-warning" aria-hidden="true" /> {props.labels.issueReport}</a></li>
                                     </ul>
                                 </div>
                             </li>
@@ -350,7 +359,7 @@ export function DashboardHeader({ props }: { props: DashboardChromeProps }) {
                     title={theme.title}
                     width={500}
                     wrapProps={{ id: `themeSelect${theme.file}Confirm` }}
-                    classNames={{ wrapper: "qb-theme-confirm-wrap animate__bounceIn animate__animated", container: "qb-theme-confirm-content", header: "modal-header", title: "modal-title", body: "modal-body", footer: "modal-footer" }}
+                    classNames={{ wrapper: "qb-theme-confirm-wrap", container: "qb-theme-confirm-content", header: "modal-header", title: "modal-title", body: "modal-body", footer: "modal-footer" }}
                     onCancel={() => { setSelectedTheme(null); }}
                     footer={<><Button className="btn btn-default" onClick={() => { setSelectedTheme(null); }}>{props.labels.cancel}</Button><Button id={`themeSelect${theme.file}Go`} className="btn btn-primary" type="primary" onClick={() => { applyTheme(theme.file); }}>{props.labels.agree}</Button></>}
                 >{props.labels.themeChange}</Modal>)}
@@ -374,7 +383,7 @@ const helpSections = [
     { titleKey: "seedboxCommands", rows: [["box install APPNAME", "appInstall"], ["box remove APPNAME", "appUninstall"], ["box update APPNAME", "appUpgrade"], ["box set password", "changePassword"], ["box fix dpkg", "fixDpkg"], ["box troubleshoot", "troubleshoot"]] },
 ];
 
-export function DashboardSidebar({ props }: { props: DashboardChromeProps }) {
+export function DashboardSidebar({ props, theme = "defaulted" }: { props: DashboardChromeProps; theme?: DashboardTheme }) {
     const [activeTab, setActiveTab] = React.useState("mainmenu");
     const [downloadsOpen, setDownloadsOpen] = React.useState(false);
     const [hoveredLink, setHoveredLink] = React.useState<string | null>(null);
@@ -404,20 +413,20 @@ export function DashboardSidebar({ props }: { props: DashboardChromeProps }) {
         };
     }, [downloadsOpen, props.menuState.installedDownloadEntries.length]);
     return (
-        <ConfigProvider theme={{ token: { colorPrimary: "#337ab7", fontFamily: '"Open Sans", sans-serif' } }}>
+        <ConfigProvider theme={getAntdThemeConfig(theme)}>
             <div className="leftpanelinner">
                 <ul className="nav nav-tabs nav-justified nav-sidebar">
-                    <li className={`tooltips${activeTab === "mainmenu" ? " active" : ""}`}><Tooltip title={label("mainMenu")} placement="bottom" color="#222"><a href="#mainmenu" aria-label={label("mainMenu")} aria-selected={activeTab === "mainmenu"} data-target="#mainmenu" onClick={(event) => { event.preventDefault(); setActiveTab("mainmenu"); }}><i className="tooltips fa fa-ellipsis-h"></i></a></Tooltip></li>
-                    <li id="node-plugin-tab" className={`tooltips${activeTab === "plugins" ? " active" : ""}`} style={props.menuState.showPluginTab ? undefined : { display: "none" }}><Tooltip title={label("pluginMenu")} placement="bottom" color="#222"><a href="#plugins" aria-label={label("pluginMenu")} aria-selected={activeTab === "plugins"} data-target="#plugins" onClick={(event) => { event.preventDefault(); setActiveTab("plugins"); }}><i className="tooltips fa fa-puzzle-piece"></i></a></Tooltip></li>
-                    <li className={`tooltips${activeTab === "help" ? " active" : ""}`}><Tooltip title={label("helpCommands")} placement="bottom" color="#222"><a href="#help" aria-label={label("helpCommands")} aria-selected={activeTab === "help"} data-target="#help" onClick={(event) => { event.preventDefault(); setActiveTab("help"); }}><i className="tooltips fa fa-question-circle"></i></a></Tooltip></li>
+                    <li className={`tooltips${activeTab === "mainmenu" ? " active" : ""}`}><Tooltip title={label("mainMenu")} placement="bottom" color="#222"><a href="#mainmenu" aria-label={label("mainMenu")} aria-selected={activeTab === "mainmenu"} data-target="#mainmenu" onClick={(event) => { event.preventDefault(); setActiveTab("mainmenu"); }}><EllipsisOutlined className="tooltips" aria-hidden="true" /></a></Tooltip></li>
+                    <li id="node-plugin-tab" className={`tooltips${activeTab === "plugins" ? " active" : ""}`} style={props.menuState.showPluginTab ? undefined : { display: "none" }}><Tooltip title={label("pluginMenu")} placement="bottom" color="#222"><a href="#plugins" aria-label={label("pluginMenu")} aria-selected={activeTab === "plugins"} data-target="#plugins" onClick={(event) => { event.preventDefault(); setActiveTab("plugins"); }}><AppstoreOutlined className="tooltips" aria-hidden="true" /></a></Tooltip></li>
+                    <li className={`tooltips${activeTab === "help" ? " active" : ""}`}><Tooltip title={label("helpCommands")} placement="bottom" color="#222"><a href="#help" aria-label={label("helpCommands")} aria-selected={activeTab === "help"} data-target="#help" onClick={(event) => { event.preventDefault(); setActiveTab("help"); }}><QuestionCircleOutlined className="tooltips" aria-hidden="true" /></a></Tooltip></li>
                 </ul>
                 <div className="tab-content">
                     <div className={`tab-pane${activeTab === "mainmenu" ? " active" : ""}`} id="mainmenu">
                         <h5 className="sidebar-title">{label("mainMenu")}</h5>
                         <ul className="nav nav-pills nav-stacked nav-quirk">
                             {props.menuState.installedMenuEntries.map((entry) => <li key={`menu-${entry.name}`} className={hoveredLink === entry.name ? "nav-hover" : ""} onMouseEnter={() => { setHoveredLink(entry.name); }} onMouseLeave={() => { setHoveredLink(null); }}><a className="grayscale" href={href(entry.url)} target="_blank" rel="noopener noreferrer">{entry.logo ? <img src={entry.logo} className="brand-ico" width={18} height={18} alt="" aria-hidden="true" /> : null}<span>{entry.name}</span></a></li>)}
-                            {props.menuState.installedDownloadEntries.length ? <li className={`nav-parent${downloadsOpen ? " nav-active" : ""}`}><a href="#" aria-expanded={downloadsOpen} onClick={(event) => { event.preventDefault(); setDownloadsOpen((open) => !open); }}><i className="fa fa-download"></i> <span>{label("downloads")}</span></a><ul ref={downloadsMenuRef} className="children" aria-hidden={!downloadsOpen} style={{ maxHeight: `${downloadsHeight}px` }}>{props.menuState.installedDownloadEntries.map((entry) => <li key={`download-${entry.name}`}><a href={href(entry.url)} tabIndex={downloadsOpen ? undefined : -1} target="_blank" rel="noopener noreferrer">{entry.name}</a></li>)}</ul></li> : null}
-                            {props.menuState.showWebConsole ? <li><a href={`/${props.config.username}.console`} target="_blank" rel="noopener noreferrer"><i className="fa fa-keyboard-o"></i> <span>{label("webConsole")}</span></a></li> : null}
+                            {props.menuState.installedDownloadEntries.length ? <li className={`nav-parent${downloadsOpen ? " nav-active" : ""}`}><a href="#" aria-expanded={downloadsOpen} onClick={(event) => { event.preventDefault(); setDownloadsOpen((open) => !open); }}><DownloadOutlined aria-hidden="true" /> <span>{label("downloads")}</span></a><ul ref={downloadsMenuRef} className="children" aria-hidden={!downloadsOpen} style={{ maxHeight: `${downloadsHeight}px` }}>{props.menuState.installedDownloadEntries.map((entry) => <li key={`download-${entry.name}`}><a href={href(entry.url)} tabIndex={downloadsOpen ? undefined : -1} target="_blank" rel="noopener noreferrer">{entry.name}</a></li>)}</ul></li> : null}
+                            {props.menuState.showWebConsole ? <li><a href={`/${props.config.username}.console`} target="_blank" rel="noopener noreferrer"><CodeOutlined aria-hidden="true" /> <span>{label("webConsole")}</span></a></li> : null}
                         </ul>
                     </div>
                     <div className={`tab-pane${activeTab === "plugins" ? " active" : ""}`} id="plugins"><h5 className="sidebar-title">ruTorrent Plugins</h5><ul id="node-plugin-list" className="nav nav-pills nav-stacked nav-quirk"></ul></div>

@@ -3,18 +3,16 @@
 import React, { useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { createCache, StyleProvider } from "@ant-design/cssinjs";
+import { notification } from "antd";
+import { AnsiUp } from "ansi_up";
 
 import type { SystemResponseBridge } from "../shared/system-response-contract";
 import { SystemResponseModal, type SystemResponseSnapshot } from "../widgets/system-response-modal";
-
-interface AnsiUpRenderer {
-    ansi_to_html: (value: string) => string;
-}
+import { useDashboardTheme } from "./theme-store";
 
 declare global {
     interface Window {
         quickboxSystemResponseIsland?: SystemResponseBridge;
-        AnsiUp?: new () => AnsiUpRenderer;
     }
 }
 
@@ -26,16 +24,6 @@ interface OutputChunk {
     end: number;
     size: number;
     epoch: string;
-}
-
-function escapeHtml(value: string) {
-    return value.replace(/[&<>"']/g, (character) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-    })[character] ?? character);
 }
 
 function parseOutputChunk(value: unknown): OutputChunk | null {
@@ -55,7 +43,7 @@ function createStore() {
     let rawContent = "";
     let endOffset = -1;
     let epoch: string | undefined;
-    let ansi: AnsiUpRenderer | undefined;
+    let ansi: AnsiUp | undefined;
     let outputHtml = "";
     const listeners = new Set<() => void>();
     const publish = () => { listeners.forEach((listener) => { listener(); }); };
@@ -70,10 +58,8 @@ function createStore() {
             rawContent = rawContent.slice(-MAX_OUTPUT_LENGTH);
             replaced = true;
         }
-        if (!window.AnsiUp) {
-            outputHtml = escapeHtml(rawContent);
-        } else if (replaced || !ansi) {
-            ansi = new window.AnsiUp();
+        if (replaced || !ansi) {
+            ansi = new AnsiUp();
             outputHtml = ansi.ansi_to_html(rawContent);
         } else if (nextChunk) {
             outputHtml += ansi.ansi_to_html(nextChunk);
@@ -144,6 +130,9 @@ function createStore() {
             snapshot = { ...snapshot, alertHtml: null };
             publish();
         },
+        notifyWarning: (title, description) => {
+            notification.warning({ title, description });
+        },
     };
     return { bridge, getSnapshot, subscribe };
 }
@@ -158,9 +147,11 @@ if (runtime && mount) {
     const root = createRoot(mount);
     function ClientSystemResponse() {
         const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+        const activeTheme = useDashboardTheme(clientRuntime.serviceTheme);
         return (
             <SystemResponseModal
                 snapshot={snapshot}
+                theme={activeTheme}
                 labels={{
                     title: clientRuntime.messages.systemResponse,
                     closeRefresh: clientRuntime.messages.closeRefresh,
