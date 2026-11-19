@@ -63,7 +63,10 @@ jobs:
       uses: azohra/shell-linter@latest
       with:
         # todo: scripts in packages
-        path: "onekey.sh,setup.sh,scripts/bump-version.sh"
+        path: "onekey.sh,setup.sh,scripts/bump-version.sh,packages/system/auxiliary/qbEnsureNodejs,packages/system/auxiliary/qbEnsureWsGateway,packages/system/auxiliary/qbNginxProxyMigrate,packages/system/auxiliary/qbNormalizeRepo,packages/system/auxiliary/qbWsHealthCheck,packages/system/auxiliary/qbBackupPrune,packages/system/update/qbUpdateBackup,packages/system/update/qbUpdateRevert"
+
+    - name: Check system script syntax
+      run: bash scripts/check-system-script-syntax.sh
 
   python-linter:
     name: Python & packages
@@ -91,3 +94,4 @@ jobs:
       - name: Check all package lifecycle scripts and templates
         if: ${{ !cancelled() }}
         run: python3 scripts/lint-package-scripts.py
+
