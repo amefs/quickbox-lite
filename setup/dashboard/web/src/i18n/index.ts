@@ -44,9 +44,8 @@ export function parseLocale(value: unknown): DashboardLocale | null {
     if (!normalized) {
         return null;
     }
-    const aliased = localeAliases[normalized];
-    if (aliased) {
-        return aliased;
+    if (Object.hasOwn(localeAliases, normalized)) {
+        return localeAliases[normalized];
     }
     if ((VALID_LOCALES as readonly string[]).includes(normalized)) {
         return normalized as DashboardLocale;
@@ -67,7 +66,12 @@ function readCookieLocale(): DashboardLocale | null {
         return null;
     }
     const match = /(?:^|;\s*)quickbox_locale=([^;]+)/.exec(document.cookie);
-    return match ? parseLocale(decodeURIComponent(match[1])) : null;
+    if (!match) {return null;}
+    try {
+        return parseLocale(decodeURIComponent(match[1]));
+    } catch {
+        return null;
+    }
 }
 
 function readQueryLocale(): DashboardLocale | null {
@@ -78,11 +82,11 @@ function readQueryLocale(): DashboardLocale | null {
     return parseLocale(params.get("locale")) ?? parseLocale(params.get("lang"));
 }
 
-export function detectInitialLocale(fallbackLocale?: unknown): DashboardLocale {
+export function detectInitialLocale(serverDefaultLocale?: unknown): DashboardLocale {
     return (
         readQueryLocale() ??
         readCookieLocale() ??
-        parseLocale(fallbackLocale) ??
+        parseLocale(serverDefaultLocale) ??
         (typeof navigator !== "undefined" ? parseLocale(navigator.language) : null) ??
         DEFAULT_LOCALE
     );
@@ -110,12 +114,13 @@ void i18n.use(initReactI18next).init({
     },
 });
 
-export function setLocale(nextLocale: unknown, persistCookie = true): DashboardLocale {
+export function setLocale(nextLocale: unknown, persistCookie = false): DashboardLocale {
     const normalized = normalizeLocale(nextLocale);
     if (typeof document !== "undefined") {
         document.documentElement.lang = normalized;
         if (persistCookie) {
-            document.cookie = `quickbox_locale=${encodeURIComponent(normalized)}; path=/; max-age=31536000; SameSite=Lax`;
+            const secure = window.location.protocol === "https:" ? "; Secure" : "";
+            document.cookie = `quickbox_locale=${encodeURIComponent(normalized)}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
         }
     }
     if (i18n.language !== normalized) {

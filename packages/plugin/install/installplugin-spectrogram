@@ -14,6 +14,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+# shellcheck source=packages/plugin/vault.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../vault.sh" || exit 1
+
 # To get most output from commands that are run, set to nothing
 MIN_OUTPUT= #yes
 
@@ -66,13 +69,11 @@ _installBaseDeps() {
 _installplugin-spectrogram() {
 	username=$(whoami)
 	_print "Accessing $PLUGIN in the plugin vault ... "
-	cd ${rutorrent}plugins
+	cd "${rutorrent}plugins" || exit 1
 	sleep 5
 
 	_print "Installing $PLUGIN plugin ... "
-	for i in $PLUGIN; do
-		cp -R "${PLUGINVAULT}$i" .
-	done
+	_restoreRutorrentPlugins "${PLUGINVAULT}" . "$PLUGIN" || exit 1
 	sleep 5
 
 	_print "Adjusting permissions ... "

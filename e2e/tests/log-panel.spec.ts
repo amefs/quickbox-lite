@@ -245,3 +245,18 @@ test("log updates preserve reading position and follow only at the bottom", asyn
     await deliverLog(page, "more output\n", log.length + "new output\n".length);
     await expect.poll(() => output.evaluate(el => el.scrollHeight - el.scrollTop - el.clientHeight)).toBeLessThan(2);
 });
+
+test("retains existing log nodes as the output cap drops old blocks", async ({ page }) => {
+    await openLog(page);
+    const line = "\u001b[31m" + "existing output ".repeat(7) + "\u001b[0m\n";
+    const initial = line.repeat(Math.floor(1024 * 1024 / line.length));
+    await deliverLog(page, initial);
+    const logOutput = page.locator("#sshoutput");
+    const retained = logOutput.locator("[data-log-block]").nth(50);
+    await retained.evaluate((node) => { node.setAttribute("data-retained-fixture", "true"); });
+    const firstBlock = await logOutput.locator("[data-log-block]").first().getAttribute("data-log-block");
+    await deliverLog(page, "new tail output\n".repeat(2048), initial.length);
+    await expect(logOutput).toContainText("new tail output");
+    await expect(logOutput.locator(`[data-log-block="${firstBlock}"]`)).toHaveCount(0);
+    await expect(logOutput.locator("[data-retained-fixture]")).toHaveCount(1);
+});

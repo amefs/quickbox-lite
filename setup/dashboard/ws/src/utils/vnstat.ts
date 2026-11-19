@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import fs from "fs";
 import path from "path";
-import { execFile } from "child_process";
-import { sortBy } from "lodash";
+
+import { runCollectorCommand } from "./collector-command";
 
 interface VnstatData {
     vnstatversion: string;
@@ -85,6 +85,10 @@ export interface ParsedVnstatData {
 const DATA_DIR = "./dumps";
 const VNSTAT_BIN = "/usr/bin/vnstat";
 const IFACE_NAME_REGEX = /^[a-zA-Z0-9._-]+$/;
+const VNSTAT_CACHE_TTL_MS = 10_000;
+
+const vnstatCache = new Map<string, { data: ParsedVnstatData; expiresAt: number }>();
+const vnstatRequests = new Map<string, Promise<ParsedVnstatData>>();
 
 const createEmptyDataset = (iface: string): ParsedVnstatData => ({
     hour: [],
@@ -99,7 +103,7 @@ const createEmptyDataset = (iface: string): ParsedVnstatData => ({
     },
 });
 
-async function loadVnstatData(iface: string): Promise<VnstatData | undefined> {
+async function loadVnstatData(iface: string, signal?: AbortSignal): Promise<VnstatData | undefined> {
     if (!IFACE_NAME_REGEX.test(iface)) {
         console.warn(`Invalid interface name '${iface}'`);
         return undefined;
@@ -113,7 +117,11 @@ async function loadVnstatData(iface: string): Promise<VnstatData | undefined> {
         }
         return undefined;
     }
-    return JSON.parse(await execAsync(VNSTAT_BIN, ["--json", "-i", iface])) as VnstatData;
+    const { stdout, stderr } = await runCollectorCommand(VNSTAT_BIN, ["--json", "-i", iface], { signal });
+    if (stderr) {
+        console.warn("vnstat stderr:", stderr);
+    }
+    return JSON.parse(stdout) as VnstatData;
 }
 
 const selectInterface = (vnstatData: VnstatData, iface: string) =>
@@ -160,8 +168,10 @@ const buildHourEntries = (
 };
 
 const buildDayEntries = (trafficData: TrafficData, jsonVersion: string, dataCoefficient: number) => {
-    const dayData = sortBy((jsonVersion === "1" ? trafficData.days : trafficData.day) ?? [],
-        (d) => d.date.year * 10000 + (d.date.month ?? 0) * 100 + (d.date.day ?? 0));
+    const dayData = [...((jsonVersion === "1" ? trafficData.days : trafficData.day) ?? [])]
+        .sort((left, right) =>
+            left.date.year * 10000 + (left.date.month ?? 0) * 100 + (left.date.day ?? 0) -
+            (right.date.year * 10000 + (right.date.month ?? 0) * 100 + (right.date.day ?? 0)));
     const result: ParsedTrafficEntry[] = [];
     const displayDayLength = Math.min(30, dayData.length);
     for (let i = dayData.length - displayDayLength; i < dayData.length; i++) {
@@ -170,7 +180,7 @@ const buildDayEntries = (trafficData: TrafficData, jsonVersion: string, dataCoef
         }
         const d = dayData[i];
         const ts = new Date(d.date.year, (d.date.month as number) - 1, d.date.day, 0, 0, 0);
-        const diffTime = Math.min((Date.now() - ts.getTime()) / 1000, 86400); // at most one day
+        const diffTime = Math.max(1, Math.min((Date.now() - ts.getTime()) / 1000, 86400)); // at most one day
         const rx = d.rx * dataCoefficient;
         const tx = d.tx * dataCoefficient;
 
@@ -196,8 +206,8 @@ const buildMonthEntries = (trafficData: TrafficData, jsonVersion: string, dataCo
         const d = monthData[i];
         const firstDay = new Date(d.date.year, (d.date.month as number) - 1, 1, 0, 0, 0);
         const lastDay = new Date(d.date.year, d.date.month as number, 1, 0, 0, 0);
-        const fullMonthDiff = lastDay.getTime() - firstDay.getTime();
-        const diffTime = Math.min((Date.now() - firstDay.getTime()) / 1000, fullMonthDiff); // at most one month
+        const fullMonthDiff = (lastDay.getTime() - firstDay.getTime()) / 1000;
+        const diffTime = Math.max(1, Math.min((Date.now() - firstDay.getTime()) / 1000, fullMonthDiff)); // at most one month
         const rx = d.rx * dataCoefficient;
         const tx = d.tx * dataCoefficient;
 
@@ -218,7 +228,7 @@ const buildTopEntries = (trafficData: TrafficData, jsonVersion: string, dataCoef
     for (let i = 0; i < Math.min(10, topData.length); i++) {
         const d = topData[i];
         const ts = new Date(d.date.year, (d.date.month as number) - 1, d.date.day, 0, 0, 0);
-        const diffTime = Math.min((Date.now() - ts.getTime()) / 1000, 86400);
+        const diffTime = Math.max(1, Math.min((Date.now() - ts.getTime()) / 1000, 86400));
         const rx = d.rx * dataCoefficient;
         const tx = d.tx * dataCoefficient;
 
@@ -244,45 +254,52 @@ const buildSummary = (trafficData: TrafficData, ifaceData: InterfaceData, dataCo
     };
 };
 
-function execAsync(cmd: string, args: string[]): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-        execFile(cmd, args, (error, stdout, stderr) => {
-            if (error) {
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-                reject(error as Error);
-                return;
-            }
-            if (stderr) {
-                console.warn("vnstat stderr:", stderr);
-            }
-            resolve(stdout);
-        });
-    });
-}
-
 /**
  * Get vnstat data.
  */
-export async function getVnstatData(iface: string): Promise<ParsedVnstatData> {
-    const vnstatData = await loadVnstatData(iface);
-    if (!vnstatData || vnstatData.interfaces.length === 0) {
-        console.warn(`vnstat data for interface '${iface}' is empty, return blank dataset`);
-        return createEmptyDataset(iface);
+export async function getVnstatData(iface: string, signal?: AbortSignal): Promise<ParsedVnstatData> {
+    const useCache = process.env.NODE_ENV !== "test";
+    const cached = useCache ? vnstatCache.get(iface) : undefined;
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.data;
+    }
+    const pending = useCache ? vnstatRequests.get(iface) : undefined;
+    if (pending) {
+        return pending;
     }
 
-    const ifaceData = selectInterface(vnstatData, iface);
+    const request = (async () => {
+        const vnstatData = await loadVnstatData(iface, signal);
+        if (!vnstatData || vnstatData.interfaces.length === 0) {
+            console.warn(`vnstat data for interface '${iface}' is empty, return blank dataset`);
+            return createEmptyDataset(iface);
+        }
 
-    const jsonVersion = vnstatData.jsonversion;
-    const dataCoefficient = calcDataCoefficient(jsonVersion);
-    const trafficData = ifaceData.traffic;
+        const ifaceData = selectInterface(vnstatData, iface);
+        const jsonVersion = vnstatData.jsonversion;
+        const dataCoefficient = calcDataCoefficient(jsonVersion);
+        const trafficData = ifaceData.traffic;
 
-    return {
-        hour: buildHourEntries(trafficData, jsonVersion, ifaceData.updated, dataCoefficient),
-        day: buildDayEntries(trafficData, jsonVersion, dataCoefficient),
-        month: buildMonthEntries(trafficData, jsonVersion, dataCoefficient),
-        top: buildTopEntries(trafficData, jsonVersion, dataCoefficient),
-        summary: buildSummary(trafficData, ifaceData, dataCoefficient),
-    };
+        return {
+            hour: buildHourEntries(trafficData, jsonVersion, ifaceData.updated, dataCoefficient),
+            day: buildDayEntries(trafficData, jsonVersion, dataCoefficient),
+            month: buildMonthEntries(trafficData, jsonVersion, dataCoefficient),
+            top: buildTopEntries(trafficData, jsonVersion, dataCoefficient),
+            summary: buildSummary(trafficData, ifaceData, dataCoefficient),
+        };
+    })();
+    if (useCache) {
+        vnstatRequests.set(iface, request);
+    }
+    try {
+        const data = await request;
+        if (useCache) {
+            vnstatCache.set(iface, { data, expiresAt: Date.now() + VNSTAT_CACHE_TTL_MS });
+        }
+        return data;
+    } finally {
+        vnstatRequests.delete(iface);
+    }
 }
 
 export function getIfaceConfig() {

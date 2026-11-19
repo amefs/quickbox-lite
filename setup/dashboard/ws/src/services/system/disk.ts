@@ -8,12 +8,17 @@ import type { DiskDataRawData, DiskTorrentRawRow } from "../../shared/disk-data-
 import { getProcessList, processExistsIn } from "../../utils/helpers";
 import { filterDisplayedFileSystems, getFsSize } from "../../utils/disk";
 
-async function countTorrent(directory: string) {
+async function countTorrent(directory: string, signal?: AbortSignal) {
     try {
-        const fileList = await fs.readdir(directory);
-        return fileList.filter((file) => file.endsWith(".torrent")).length;
+        signal?.throwIfAborted();
+        let count = 0;
+        for await (const entry of await fs.opendir(directory)) {
+            signal?.throwIfAborted();
+            if (entry.name.endsWith(".torrent")) {count += 1;}
+        }
+        return count;
     } catch (error) {
-        console.error("Failed to count torrent", error);
+        if (!signal?.aborted) {console.error("Failed to count torrent", error);}
         return 0;
     }
 }
@@ -27,8 +32,10 @@ async function exists(target: string) {
     }
 }
 
-async function torrentData(): Promise<DiskTorrentRawRow[]> {
+async function torrentData(signal?: AbortSignal): Promise<DiskTorrentRawRow[]> {
+    signal?.throwIfAborted();
     const processList = await getProcessList();
+    signal?.throwIfAborted();
     const checks = [
         {
             key: "rtorrent",
@@ -61,7 +68,8 @@ async function torrentData(): Promise<DiskTorrentRawRow[]> {
     const lockChecks = await Promise.all(checks.map((check) => exists(check.lock)));
     const activeClients = checks.filter((check, index) => lockChecks[index] &&
         processExistsIn(processList, check.process, username));
-    const torrentCounts = await Promise.all(activeClients.map((client) => countTorrent(client.path)));
+    const torrentCounts = await Promise.all(activeClients.map((client) => countTorrent(client.path, signal)));
+    signal?.throwIfAborted();
 
     return activeClients.map((client, index) => ({
         key: client.key,
@@ -69,8 +77,9 @@ async function torrentData(): Promise<DiskTorrentRawRow[]> {
     }));
 }
 
-export async function diskDataData(): Promise<DiskDataRawData> {
-    const fsData = await getFsSize();
+export async function diskDataData(signal?: AbortSignal): Promise<DiskDataRawData> {
+    const fsData = await getFsSize(signal);
+    signal?.throwIfAborted();
     const filteredFileSystems = filterDisplayedFileSystems(fsData);
     const fileSystems = filteredFileSystems.map((filesystem) => ({
         mount: filesystem.mount,
@@ -79,7 +88,7 @@ export async function diskDataData(): Promise<DiskDataRawData> {
         size: filesystem.size,
         percent: filesystem.use,
     }));
-    const torrents = await torrentData();
+    const torrents = await torrentData(signal);
     return {
         fileSystems,
         torrents,

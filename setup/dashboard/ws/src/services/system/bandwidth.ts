@@ -63,8 +63,8 @@ function toDetailRows(entries: ParsedTrafficEntry[]): BandwidthDetailRow[] {
     }));
 }
 
-export async function bandwidthTablesData(iface: string, page: BandwidthPage | undefined): Promise<BandwidthTableData> {
-    const vnstatData = await getVnstatData(iface);
+export async function bandwidthTablesData(iface: string, page: BandwidthPage | undefined, signal?: AbortSignal): Promise<BandwidthTableData> {
+    const vnstatData = await getVnstatData(iface, signal);
     const resolvedPage: BandwidthPage = page === "d" || page === "m" || page === "t" ? page : "h";
     const detailEntries = resolvedPage === "d"
         ? vnstatData.day

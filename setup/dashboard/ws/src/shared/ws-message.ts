@@ -9,6 +9,7 @@ export interface WsMessageEnvelope {
     message: string;
     response: unknown;
     push?: boolean;
+    stale?: boolean;
 }
 
 export function createWsMessageEnvelope(params: {
@@ -20,9 +21,11 @@ export function createWsMessageEnvelope(params: {
     response: unknown;
     requestId?: string;
     push?: boolean;
+    stale?: boolean;
 }): WsMessageEnvelope {
     return {
         ...(params.push ? { push: true } : {}),
+        ...(params.stale ? { stale: true } : {}),
         key: params.key,
         ...(params.requestId !== undefined ? { requestId: params.requestId } : {}),
         url: params.url,

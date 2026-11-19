@@ -30,5 +30,6 @@ export const serveDashboardIndex = (webIndexHtmlPath: string) => (_req: Request,
         res.status(503).type("text/plain").send("Dashboard web bundle is unavailable");
         return;
     }
+    res.setHeader("Cache-Control", "no-cache");
     res.sendFile(webIndexHtmlPath);
 };

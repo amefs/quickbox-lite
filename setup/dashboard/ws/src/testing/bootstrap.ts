@@ -212,19 +212,43 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
 
     // ── fs/promises ─────────────────────────────────────────
 
-    const origReaddir = fsp.readdir.bind(fsp);
-    const origAccess  = fsp.access.bind(fsp);
+    const origReaddir  = fsp.readdir.bind(fsp);
+    const origOpendir  = fsp.opendir.bind(fsp);
+    const origReadFile = fsp.readFile.bind(fsp);
+    const origAccess   = fsp.access.bind(fsp);
 
     fsp.readdir = async (dirPath: unknown, ...args: unknown[]): Promise<unknown> => {
-        const pathStr = String(dirPath);
-        const p = getActiveProfile();
-
-        for (const [dir, files] of Object.entries(p.torrentDirs)) {
-            if (pathStr === dir || pathStr === dir.replace(/\/$/, "")) {
-                return files;
-            }
+        if (String(dirPath) === "/proc") {
+            return getActiveProfile().installLockOperation ? [MOCK_OPERATION_PID] : [];
         }
         return origReaddir(dirPath, ...args);
+    };
+
+    fsp.opendir = async (dirPath: unknown, ...args: unknown[]): Promise<unknown> => {
+        const pathStr = String(dirPath).replace(/\/$/, "");
+        const directories: Partial<Record<string, string[]>> = getActiveProfile().torrentDirs;
+        const files = directories[pathStr] ?? directories[`${pathStr}/`];
+        if (files) {
+            return {
+                async *[Symbol.asyncIterator]() {
+                    for (const name of files) {yield { name };}
+                },
+            };
+        }
+        return origOpendir(dirPath, ...args);
+    };
+
+    fsp.readFile = async (filePath: unknown, ...args: unknown[]): Promise<unknown> => {
+        if (typeof filePath === "string") {
+            const p = getActiveProfile();
+            if (filePath === `/proc/${MOCK_OPERATION_PID}/cmdline`) {
+                const operation = p.installLockOperation;
+                if (operation) {
+                    return `/bin/bash\0/usr/local/bin/quickbox/package/${operation}/${operation}package-jellyfin\0`;
+                }
+            }
+        }
+        return origReadFile(filePath, ...args);
     };
 
     fsp.access = async (filePath: unknown, mode?: number): Promise<void> => {

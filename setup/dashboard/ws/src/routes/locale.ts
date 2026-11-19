@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { Request, Response } from "express";
+import { Router, type Request, type Response } from "express";
 import { normalizeLocale } from "../services/config/locale";
 import { isTestMode } from "../testing";
 
@@ -13,3 +13,15 @@ export const setLocale = (req: Request, res: Response) => {
     }
     res.send(normalizeLocale(req.query.lang));
 };
+
+/**
+ * Locale sub-router (mounted at `/set`).
+ *
+ * Routes:
+ *   GET /
+ */
+export function createLocaleRouter(): Router {
+    const router = Router();
+    router.get("/", setLocale);
+    return router;
+}

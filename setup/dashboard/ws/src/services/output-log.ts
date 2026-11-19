@@ -166,29 +166,69 @@ export function readOutputLogAtPath(logPath: string, offset?: number, length?: n
         };
     }
 
-    const buffer = Buffer.alloc(bytesToRead);
-
-    const fd = openSync(logPath, "r");
-    let bytesRead: number;
-    try {
-        bytesRead = readSync(fd, buffer, 0, bytesToRead, startPos);
-    } finally {
-        closeSync(fd);
-    }
-
+    const chunk = readUtf8Chunk(logPath, startPos, requestedLen, fileSize);
     const result = {
-        content: buffer.toString("utf-8", 0, bytesRead),
-        start: startPos,
-        end: startPos + bytesRead,
+        content: chunk.content,
+        start: chunk.start,
+        end: chunk.end,
         size: fileSize,
         epoch,
     };
     lastReadCache = {
         ...result,
-        bytesToRead,
+        bytesToRead: chunk.bytesToRead,
         logPath,
         mtimeMs,
         epoch,
     };
     return result;
+}
+
+function readUtf8Chunk(logPath: string, requestedStart: number, requestedLength: number, fileSize: number) {
+    const fd = openSync(logPath, "r");
+    let start = requestedStart;
+    const bytesToRead = Math.min(requestedLength, fileSize - start);
+    const buffer = Buffer.alloc(bytesToRead);
+    let bytesRead: number;
+    try {
+        bytesRead = readSync(fd, buffer, 0, bytesToRead, start);
+    } finally {
+        closeSync(fd);
+    }
+
+    let leadingSkip = 0;
+    while (leadingSkip < bytesRead && leadingSkip < 3 && isUtf8ContinuationByte(buffer[leadingSkip] ?? 0)) {
+        leadingSkip += 1;
+    }
+    const endIndex = removeIncompleteUtf8Tail(buffer, leadingSkip, bytesRead);
+    start += leadingSkip;
+    return {
+        content: buffer.toString("utf-8", leadingSkip, endIndex),
+        start,
+        end: requestedStart + endIndex,
+        bytesToRead,
+    };
+}
+
+function isUtf8ContinuationByte(byte: number): boolean {
+    return (byte & 0xc0) === 0x80;
+}
+
+function removeIncompleteUtf8Tail(buffer: Buffer, minStart: number, end: number): number {
+    if (end <= minStart) {
+        return minStart;
+    }
+    let start = end - 1;
+    while (start >= minStart && end - start <= 3 && isUtf8ContinuationByte(buffer[start] ?? 0)) {
+        start -= 1;
+    }
+    if (start < minStart) {
+        return end;
+    }
+    const leadingByte = buffer[start] ?? 0;
+    const expectedLength = leadingByte >= 0xf0 && leadingByte <= 0xf4 ? 4
+        : leadingByte >= 0xe0 && leadingByte <= 0xef ? 3
+            : leadingByte >= 0xc2 && leadingByte <= 0xdf ? 2
+                : 1;
+    return end - start < expectedLength ? start : end;
 }

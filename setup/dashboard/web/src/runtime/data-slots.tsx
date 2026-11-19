@@ -14,7 +14,6 @@ import { isMemoryStatsPayload, type MemoryStatsBridge, type MemoryStatsPayload }
 import {
     isNetworkInterfaces,
     isNetworkSnapshot,
-    type NetworkInterfaceCounters,
     type NetworkRate,
     type NetworkSnapshot,
     type NetworkStatusBridge,
@@ -43,6 +42,7 @@ import { PackageManagementCenterView } from "../components/package-management-ce
 import { PackageManagementPlaceholder, UptimePlaceholder } from "../components/placeholder";
 import { RunningTaskIsland } from "../components/running-task-island";
 import { SystemLoadValue, UptimeValue } from "../components/system-summary-island";
+import { executePackageAction } from "./dashboard-runtime-client";
 import { useDashboardTheme } from "./theme-store";
 
 declare global {
@@ -102,6 +102,7 @@ const networkStore = createValueStore<NetworkState>({ interfaces: [], loaded: fa
 const packageStore = createValueStore<PackageManagementData | null>(null);
 const runningTaskStore = createValueStore<RunningTaskData | null>(null);
 const systemSummaryStore = createValueStore<SummaryState>({ load: null, uptime: null });
+let previousNetwork: NetworkSnapshot | undefined;
 
 function emptyRates(interfaces: string[], value: string): Record<string, NetworkRate> {
     return Object.fromEntries(interfaces.map((iface) => [iface, { tx: value, rx: value }]));
@@ -121,96 +122,64 @@ function formatNetworkSpeed(length: number): string {
     return `${numeric.toFixed(idx > 0 ? 2 : 0)} ${suffixList[idx]}`;
 }
 
-export function registerDataIslands(bootstrap: DashboardBootstrapPayload) {
-    let previousNetwork: NetworkSnapshot | undefined;
+const updateDisk = (value: unknown) => {
+    if (!isDiskDataPayload(value)) {return false;}
+    diskDataStore.setValue(value);
+    return true;
+};
 
-    networkStore.setValue({
-        interfaces: bootstrap.networkInterfaces,
-        loaded: bootstrap.networkInterfacesLoaded,
-        rates: emptyRates(bootstrap.networkInterfaces, "0 B/s"),
-    });
-    packageStore.setValue(bootstrap.packageManagement.data);
-    runningTaskStore.setValue(bootstrap.runningTask);
-    systemSummaryStore.setValue({ load: null, uptime: bootstrap.systemSummary.uptime });
+const updateMemory = (value: unknown) => {
+    if (!isMemoryStatsPayload(value)) {return false;}
+    memoryStatsStore.setValue(value);
+    return true;
+};
 
-    window.quickboxBandwidthIsland = {
-        onMessage: (value) => {
+export const dataIslandBridges = {
+    bandwidth: {
+        onMessage: (value: unknown) => {
             if (!isBandwidthTableData(value)) {return false;}
             bandwidthStore.setValue(value);
             return true;
         },
-    };
-    window.quickboxCpuStatusIsland = {
-        onMessage: (value) => {
+    } satisfies BandwidthIslandBridge,
+    cpuStatus: {
+        onMessage: (value: unknown) => {
             if (!isCpuStaticData(value)) {return false;}
             cpuStatusStore.setValue(value);
             return true;
         },
-    };
-    const updateDisk = (value: unknown) => {
-        if (!isDiskDataPayload(value)) {return false;}
-        diskDataStore.setValue(value);
-        return true;
-    };
-    window.quickboxDiskDataIsland = { onPrefetch: updateDisk, onMessage: updateDisk };
-
-    const updateMemory = (value: unknown) => {
-        if (!isMemoryStatsPayload(value)) {return false;}
-        memoryStatsStore.setValue(value);
-        return true;
-    };
-    window.quickboxMemoryStatsIsland = { onPrefetch: updateMemory, onMessage: updateMemory };
-
-    window.quickboxNetworkIsland = {
-        onInterfaces: (interfaces) => {
+    } satisfies CpuStatusBridge,
+    diskData: { onPrefetch: updateDisk, onMessage: updateDisk } satisfies DiskDataBridge,
+    memoryStats: { onPrefetch: updateMemory, onMessage: updateMemory } satisfies MemoryStatsBridge,
+    network: {
+        onInterfaces: (interfaces: unknown) => {
             if (!isNetworkInterfaces(interfaces)) {return false;}
-            networkStore.setValue({ interfaces, loaded: true, rates: emptyRates(interfaces, "0B/s") });
-            return true;
-        },
-        onMessage: (value) => {
-            if (!isNetworkSnapshot(value)) {return false;}
             if (!previousNetwork) {
-                previousNetwork = value;
-                return true;
-            }
-            const duration = value.ts - previousNetwork.ts;
-            if (duration < 1e-5) {return true;}
-
-            const current = networkStore.getSnapshot();
-            let invalidData = false;
-            const rates = { ...current.rates };
-            for (const iface of Object.keys(value.net)) {
-                if (!Object.hasOwn(previousNetwork.net, iface) || !Object.hasOwn(value.net, iface)) {
-                    invalidData = true;
-                    continue;
-                }
-                const prior: NetworkInterfaceCounters = previousNetwork.net[iface];
-                const next: NetworkInterfaceCounters = value.net[iface];
-                const outSpeed = (next.tx_bytes - prior.tx_bytes) / duration;
-                const inSpeed = (next.rx_bytes - prior.rx_bytes) / duration;
-                if (Number.isNaN(outSpeed) || Number.isNaN(inSpeed)) {
-                    invalidData = true;
-                    continue;
-                }
-                if (current.interfaces.includes(iface)) {
-                    rates[iface] = {
-                        tx: formatNetworkSpeed(outSpeed),
-                        rx: formatNetworkSpeed(inSpeed),
-                    };
-                }
-            }
-            if (Object.keys(rates).some((iface) => rates[iface] !== current.rates[iface])) {
-                networkStore.setValue({ ...current, rates });
-            }
-            if (!invalidData) {
-                previousNetwork = value;
+                networkStore.setValue({ interfaces, loaded: true, rates: emptyRates(interfaces, "0 B/s") });
             }
             return true;
         },
-    };
+        onMessage: (value: unknown) => {
+            if (!isNetworkSnapshot(value)) {return false;}
+            const previous = previousNetwork;
+            const duration = previous ? value.ts - previous.ts : 0;
+            if (previous && duration >= 0 && duration < 1e-5) {return true;}
 
-    window.quickboxPackageManagementIsland = {
-        onMessage: (value) => {
+            const interfaces = Object.keys(value.net);
+            const rates = Object.fromEntries(Object.entries(value.net).map(([iface, next]) => {
+                const prior = previous && duration > 0 && Object.hasOwn(previous.net, iface) ? previous.net[iface] : undefined;
+                return [iface, {
+                    tx: prior ? formatNetworkSpeed((next.tx_bytes - prior.tx_bytes) / duration) : "0 B/s",
+                    rx: prior ? formatNetworkSpeed((next.rx_bytes - prior.rx_bytes) / duration) : "0 B/s",
+                }];
+            }));
+            previousNetwork = value;
+            networkStore.setValue({ interfaces, loaded: true, rates });
+            return true;
+        },
+    } satisfies NetworkStatusBridge,
+    packageManagement: {
+        onMessage: (value: unknown) => {
             if (isPackageManagementStateData(value)) {
                 const current = packageStore.getSnapshot();
                 if (!current) {return false;}
@@ -227,23 +196,21 @@ export function registerDataIslands(bootstrap: DashboardBootstrapPayload) {
             packageStore.setValue(value);
             return true;
         },
-    };
-
-    window.quickboxRunningTaskIsland = {
-        onMessage: (value) => {
+    } satisfies PackageManagementBridge,
+    runningTask: {
+        onMessage: (value: unknown) => {
             if (!isRunningTaskData(value)) {return false;}
             runningTaskStore.setValue(value);
             return true;
         },
-    };
-
-    window.quickboxSystemSummaryIsland = {
-        onPrefetch: (value) => {
+    } satisfies RunningTaskBridge,
+    systemSummary: {
+        onPrefetch: (value: unknown) => {
             if (!isSystemLoadData(value)) {return false;}
             systemSummaryStore.setValue({ ...systemSummaryStore.getSnapshot(), load: value });
             return true;
         },
-        onMessage: (key, value) => {
+        onMessage: (key: "TOP" | "UPTIME", value: unknown) => {
             if (key === "TOP" && isSystemLoadData(value)) {
                 systemSummaryStore.setValue({ ...systemSummaryStore.getSnapshot(), load: value });
                 return true;
@@ -254,7 +221,29 @@ export function registerDataIslands(bootstrap: DashboardBootstrapPayload) {
             }
             return false;
         },
-    };
+    } satisfies SystemSummaryBridge,
+};
+
+export function registerDataIslands(bootstrap: DashboardBootstrapPayload) {
+    previousNetwork = undefined;
+
+    networkStore.setValue({
+        interfaces: bootstrap.networkInterfaces,
+        loaded: bootstrap.networkInterfacesLoaded,
+        rates: emptyRates(bootstrap.networkInterfaces, "0 B/s"),
+    });
+    packageStore.setValue(bootstrap.packageManagement.data);
+    runningTaskStore.setValue(bootstrap.runningTask);
+    systemSummaryStore.setValue({ load: null, uptime: bootstrap.systemSummary.uptime });
+
+    window.quickboxBandwidthIsland = dataIslandBridges.bandwidth;
+    window.quickboxCpuStatusIsland = dataIslandBridges.cpuStatus;
+    window.quickboxDiskDataIsland = dataIslandBridges.diskData;
+    window.quickboxMemoryStatsIsland = dataIslandBridges.memoryStats;
+    window.quickboxNetworkIsland = dataIslandBridges.network;
+    window.quickboxPackageManagementIsland = dataIslandBridges.packageManagement;
+    window.quickboxRunningTaskIsland = dataIslandBridges.runningTask;
+    window.quickboxSystemSummaryIsland = dataIslandBridges.systemSummary;
 }
 
 export function BandwidthTablesSlot() {
@@ -292,19 +281,23 @@ export function PackageManagementSlot({ bootstrap, ready = true }: { bootstrap: 
     const { t } = useTranslation();
     const data = useSyncExternalStore(packageStore.subscribe, packageStore.getSnapshot, packageStore.getSnapshot);
     const activeTheme = useDashboardTheme(bootstrap.serviceTheme);
-    const actions = window.quickboxPackageManagementActions;
-    if (!ready || !data) {return <PackageManagementPlaceholder />;}
-    const localizedData: PackageManagementData = {
-        ...data,
-        rows: data.rows.map((row) => {
-            const descriptionSource = row.descriptionKey ? t(row.descriptionKey) : (row.descriptionText ?? "");
-            return {
-                ...row,
-                descriptionText: markdownToPlainText(descriptionSource),
-                installTooltip: row.installTooltipKey ? t(row.installTooltipKey) : (row.installTooltip ?? ""),
-            };
-        }),
-    };
+    const localizedData = React.useMemo<PackageManagementData | null>(() => {
+        if (!data) {
+            return null;
+        }
+        return {
+            ...data,
+            rows: data.rows.map((row) => {
+                const descriptionSource = row.descriptionKey ? t(row.descriptionKey) : (row.descriptionText ?? "");
+                return {
+                    ...row,
+                    descriptionText: markdownToPlainText(descriptionSource),
+                    installTooltip: row.installTooltipKey ? t(row.installTooltipKey) : (row.installTooltip ?? ""),
+                };
+            }),
+        };
+    }, [data, t]);
+    if (!ready || !localizedData) {return <PackageManagementPlaceholder />;}
     const localizedLabels = {
         title: t("PACKAGE_MANAGEMENT_CENTER"),
         name: t("NAME"),
@@ -329,7 +322,7 @@ export function PackageManagementSlot({ bootstrap, ready = true }: { bootstrap: 
             data={localizedData}
             labels={localizedLabels}
             theme={activeTheme}
-            onPackageAction={(action, row: PackageManagementRow) => actions?.run(action, row.package)}
+            onPackageAction={(action, row: PackageManagementRow) => { executePackageAction(action, row.package); }}
         />
     );
 }
@@ -344,7 +337,7 @@ export function SystemLoadSlot() {
     return <SystemLoadValue data={state.load} />;
 }
 
-export function UptimeSlot({ bootstrap: _bootstrap }: { bootstrap: DashboardBootstrapPayload }) {
+export function UptimeSlot() {
     const { t } = useTranslation();
     const state = useSyncExternalStore(systemSummaryStore.subscribe, systemSummaryStore.getSnapshot, systemSummaryStore.getSnapshot);
     const labels = {

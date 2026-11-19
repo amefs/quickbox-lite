@@ -8,11 +8,19 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def run_plugin_script(script, tmp_path):
-    source = (ROOT / "packages/plugin" / script).read_text()
+    script_path = ROOT / "packages/plugin" / script
+    source = script_path.read_text()
     source = source.replace("/srv/rutorrent/", f"{tmp_path}/rutorrent/")
     source = source.replace("/usr/local/bin/quickbox/rutorrent/plugins/", f"{tmp_path}/vault/")
     source = "sleep() { :; }\nchown() { :; }\n" + source
-    return subprocess.run(["bash"], input=source, text=True, capture_output=True, check=True)
+    return subprocess.run(
+        ["bash"],
+        input=source,
+        cwd=script_path.parent,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
 
 
 def test_getdir_removal_targets_installed_plugin(tmp_path):

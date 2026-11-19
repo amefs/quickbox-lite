@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { existsSync } from "fs";
+
 const localeAliases: Record<string, string> = {
     "zh-cn": "zh",
     "zh-hans-cn": "zh",
@@ -5,6 +9,10 @@ const localeAliases: Record<string, string> = {
 const DEFAULT_LOCALE = "en";
 
 export const VALID_LOCALES = ["da", "de", "en", "es", "fr", "zh"];
+
+export function readDefaultLocale(): string | null {
+    return VALID_LOCALES.find((locale) => existsSync(`/install/.lang_${locale}.lock`)) ?? null;
+}
 
 export function parseLocale(value: unknown): string | null {
     if (typeof value !== "string") {

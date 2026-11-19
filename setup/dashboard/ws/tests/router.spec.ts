@@ -121,6 +121,19 @@ describe("router — HTTP routes", () => {
             expect(res.status).to.equal(200);
             expect(body.basePath).to.equal("/ws");
         });
+
+        it("should mount node and debug sub-routers under both root and /ws prefixes", async () => {
+            const configRes = await request(app).get("/ws/node/dashboard_config");
+            const pluginsRes = await request(app).get("/ws/node/plugins");
+            const pmcRes = await request(app).get("/ws/node/data/pmc");
+            const debugMetaRes = await request(app).get("/ws/debug/meta");
+
+            expect(configRes.status).to.equal(200);
+            expect(pluginsRes.status).to.equal(200);
+            expect(pmcRes.status).to.equal(200);
+            expect(debugMetaRes.status).to.equal(200);
+            expect((debugMetaRes.body as { basePath: string }).basePath).to.equal("/ws");
+        });
     });
 
     // ── Locale (/set) ────────────────────────────────────────────────────────

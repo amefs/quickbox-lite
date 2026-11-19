@@ -30,6 +30,21 @@ async function readLayout(page: Page) {
     });
 }
 
+test("sidebar opens on mobile after being collapsed on desktop", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 844 });
+    await page.goto("/");
+    const toggle = page.locator("#menuToggle");
+    await toggle.click();
+    await expect.poll(async () => (await readLayout(page)).sidebarX).toBe(-280);
+    await page.setViewportSize({ width: 920, height: 844 });
+    await expect.poll(async () => (await readLayout(page)).mainX).toBe(0);
+    await toggle.click();
+    await expect.poll(async () => {
+        const { sidebarX, mainX } = await readLayout(page);
+        return { sidebarX, mainX };
+    }).toEqual({ sidebarX: 0, mainX: 280 });
+});
+
 for (const theme of ["smoked", "defaulted"]) {
     for (const width of [320, 390, 768, 1280, 1440]) {
         const mobile = width < 1280;

@@ -116,7 +116,10 @@ function DiskDataView({ data: payload }: { data: DiskDataPayload }) {
             ))}
             <div>
                 {data.torrents.map((torrent) => {
-                    const title = t(TORRENT_TITLE_KEYS[torrent.key] ?? torrent.title ?? torrent.key);
+                    const titleKey = Object.hasOwn(TORRENT_TITLE_KEYS, torrent.key)
+                        ? TORRENT_TITLE_KEYS[torrent.key]
+                        : (torrent.title ?? torrent.key);
+                    const title = t(titleKey);
                     return (
                         <div key={torrent.key}>
                             <h4>{title}</h4>

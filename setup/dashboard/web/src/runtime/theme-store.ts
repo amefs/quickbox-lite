@@ -37,6 +37,11 @@ function readInitialTheme(): DashboardTheme {
 }
 
 let currentTheme: DashboardTheme = readInitialTheme();
+let selectedTheme: DashboardTheme | undefined;
+
+export function getSelectedDashboardTheme(): DashboardTheme | undefined {
+    return selectedTheme;
+}
 
 function subscribe(listener: () => void) {
     listeners.add(listener);
@@ -58,16 +63,21 @@ export function applyFrontendTheme(nextTheme: DashboardTheme) {
         if (document.body.getAttribute("data-theme") !== nextTheme) {
             document.body.setAttribute("data-theme", nextTheme);
         }
-        let cookie = `quickbox_theme=${encodeURIComponent(nextTheme)}; Path=/; SameSite=Lax`;
-        if (window.location.protocol === "https:") {
-            cookie += "; Secure";
-        }
-        document.cookie = cookie;
     }
-    try {
-        localStorage.setItem("quickbox:theme", nextTheme);
-    } catch { /* Ignore storage errors in restricted environments. */ }
     if (changed) {
         listeners.forEach((listener) => { listener(); });
     }
+}
+
+export function selectFrontendTheme(nextTheme: DashboardTheme) {
+    selectedTheme = nextTheme;
+    applyFrontendTheme(nextTheme);
+    let cookie = `quickbox_theme=${encodeURIComponent(nextTheme)}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    if (window.location.protocol === "https:") {
+        cookie += "; Secure";
+    }
+    document.cookie = cookie;
+    try {
+        localStorage.setItem("quickbox:theme", nextTheme);
+    } catch { /* Ignore storage errors in restricted environments. */ }
 }

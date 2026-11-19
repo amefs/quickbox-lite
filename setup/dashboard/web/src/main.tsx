@@ -9,12 +9,12 @@ import type { DashboardBootstrapPayload, DebugMetaPayload } from "../../ws/src/s
 import type { DashboardTheme } from "../../ws/src/shared/theme";
 import { DashboardApp, type BootstrapRetryState } from "./dashboard-app";
 import { DebugApp } from "./debug-app";
-import { detectInitialLocale, getAntdLocale, setLocale, VALID_LOCALES } from "./i18n";
+import i18n, { detectInitialLocale, getAntdLocale, setLocale, VALID_LOCALES } from "./i18n";
 import { initDashboardRuntime } from "./runtime/dashboard-runtime-client";
 import { registerDataIslands } from "./runtime/data-slots";
 import { registerServiceControlIsland } from "./runtime/service-control-client";
 import { registerSystemResponseIsland } from "./runtime/system-response-client";
-import { applyFrontendTheme, getAntdThemeConfig } from "./runtime/theme-store";
+import { applyFrontendTheme, getAntdThemeConfig, getSelectedDashboardTheme } from "./runtime/theme-store";
 
 function detectBasePath(): string {
     return window.location.pathname === "/ws" || window.location.pathname.startsWith("/ws/") ? "/ws" : "";
@@ -34,6 +34,7 @@ function createFallbackBootstrap(basePath: string, theme: DashboardTheme): Dashb
     return {
         basePath,
         locales: VALID_LOCALES,
+        defaultLocale: null,
         serviceKeys: [],
         socketUpgrade: true,
         serviceTheme: theme,
@@ -91,6 +92,7 @@ function createFallbackBootstrap(basePath: string, theme: DashboardTheme): Dashb
 
 const MAX_BOOTSTRAP_RETRIES = 3;
 const BOOTSTRAP_RETRY_DELAY_MS = 3000;
+const BOOTSTRAP_TIMEOUT_MS = 10000;
 
 function DashboardRoot({ basePath }: { basePath: string }) {
     const initialLocale = React.useMemo(() => detectInitialLocale(), []);
@@ -102,6 +104,7 @@ function DashboardRoot({ basePath }: { basePath: string }) {
     const [bootstrapRetry, setBootstrapRetry] = React.useState<BootstrapRetryState | null>(null);
     const runtimeStartedRef = React.useRef(false);
     const retryTimerRef = React.useRef<number | null>(null);
+    const bootstrapRequestRef = React.useRef<AbortController | null>(null);
 
     const clearRetryTimer = React.useCallback(() => {
         if (retryTimerRef.current !== null) {
@@ -112,18 +115,27 @@ function DashboardRoot({ basePath }: { basePath: string }) {
 
     const loadBootstrap = React.useCallback(async (attempt = 0) => {
         clearRetryTimer();
+        bootstrapRequestRef.current?.abort();
+        const controller = new AbortController();
+        bootstrapRequestRef.current = controller;
+        const timeout = window.setTimeout(() => {
+            controller.abort(new DOMException("Bootstrap request timed out", "TimeoutError"));
+        }, BOOTSTRAP_TIMEOUT_MS);
         try {
             const response = await fetch(`${basePath}/node/bootstrap${window.location.search}`, {
                 credentials: "same-origin",
+                signal: controller.signal,
             });
             if (!response.ok) {
                 throw new Error(`Bootstrap failed (${response.status})`);
             }
             const payload = (await response.json()) as DashboardBootstrapPayload;
-            const resolvedLocale = detectInitialLocale();
-            setLocale(resolvedLocale, false);
+            if (bootstrapRequestRef.current !== controller) {return;}
+            controller.signal.throwIfAborted();
+            const resolvedLocale = detectInitialLocale(payload.defaultLocale);
+            setLocale(resolvedLocale);
             window.quickboxLocale = resolvedLocale;
-            applyFrontendTheme(payload.serviceTheme);
+            applyFrontendTheme(getSelectedDashboardTheme() ?? payload.serviceTheme);
 
             window.quickboxRuntime = payload;
             registerDataIslands(payload);
@@ -139,7 +151,10 @@ function DashboardRoot({ basePath }: { basePath: string }) {
                 initDashboardRuntime();
             }
         } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
+            if (bootstrapRequestRef.current !== controller) {return;}
+            const message = controller.signal.aborted
+                ? i18n.t("BACKEND_REQUEST_TIMEOUT")
+                : error instanceof Error ? error.message : String(error);
             console.error("[quickbox-web] Failed to start dashboard", error);
             setBootstrapReady(false);
             if (attempt < MAX_BOOTSTRAP_RETRIES) {
@@ -161,14 +176,23 @@ function DashboardRoot({ basePath }: { basePath: string }) {
                     exhausted: true,
                 });
             }
+        } finally {
+            window.clearTimeout(timeout);
+            if (bootstrapRequestRef.current === controller) {
+                bootstrapRequestRef.current = null;
+            }
         }
     }, [basePath, clearRetryTimer]);
 
     React.useEffect(() => {
-        setLocale(initialLocale, false);
+        setLocale(initialLocale);
         applyFrontendTheme(initialTheme);
         void loadBootstrap(0);
-        return () => clearRetryTimer();
+        return () => {
+            clearRetryTimer();
+            bootstrapRequestRef.current?.abort();
+            bootstrapRequestRef.current = null;
+        };
     }, [initialLocale, initialTheme, loadBootstrap, clearRetryTimer]);
 
     return (
@@ -198,6 +222,7 @@ function DebugRoot({ basePath }: { basePath: string }) {
                 throw new Error(`Debug metadata failed (${response.status})`);
             }
             const payload = (await response.json()) as DebugMetaPayload;
+            setLocale(detectInitialLocale(payload.defaultLocale));
             applyFrontendTheme(payload.theme);
             document.title = "QuickBox WS Debug Console";
             setMeta(payload);
@@ -209,13 +234,13 @@ function DebugRoot({ basePath }: { basePath: string }) {
     }, [basePath]);
 
     React.useEffect(() => {
-        setLocale(initialLocale, false);
+        setLocale(initialLocale);
         applyFrontendTheme(initialTheme);
         void loadMeta();
     }, [initialLocale, initialTheme, loadMeta]);
 
     if (meta) {
-        return <DebugApp meta={meta} />;
+        return <DebugApp meta={meta} locale={i18n.language} />;
     }
 
     return (
@@ -241,7 +266,7 @@ function startApp() {
     if (!mount) {
         return;
     }
-    setLocale(detectInitialLocale(), false);
+    setLocale(detectInitialLocale());
     applyFrontendTheme(detectInitialTheme());
     const basePath = detectBasePath();
     createRoot(mount).render(isDebugRoute() ? <DebugRoot basePath={basePath} /> : <DashboardRoot basePath={basePath} />);

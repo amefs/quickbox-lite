@@ -12,6 +12,8 @@ import type {
     PackageManagementTheme,
 } from "../../../ws/src/shared/package-management-contract";
 import { getAntdThemeConfig } from "../runtime/theme-store";
+import { executeBoxAction, useCommandConnection } from "../runtime/dashboard-runtime-client";
+import { systemResponseActions } from "../runtime/system-response-client";
 
 const INLINE_MARKDOWN_COMPONENTS = {
     p: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
@@ -167,6 +169,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
     });
     const pageRows = sortedRows.slice((page - 1) * pageSize, page * pageSize);
     const { t } = useTranslation();
+    const commandsConnected = useCommandConnection();
     const pageCount = Math.ceil(filteredRows.length / pageSize);
     const rangeStart = filteredRows.length === 0 ? 0 : (page - 1) * pageSize + 1;
     const rangeEnd = Math.min(page * pageSize, filteredRows.length);
@@ -211,6 +214,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                             size="small"
                             type="primary"
                             className="btn btn-xs btn-success package-action-btn"
+                            disabled={!commandsConnected}
                             onClick={() => { if (canRemove) { setConfirmRow(row); } }}
                         >
                             {labels.installed}
@@ -232,6 +236,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                     <Button
                         size="small"
                         className="btn btn-xs btn-default package-action-btn"
+                        disabled={!commandsConnected}
                         onClick={() => onPackageAction?.("install", row)}
                     >
                         {labels.install}
@@ -343,15 +348,21 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                             <Button
                                 size="small"
                                 className="btn btn-xs btn-default"
-                                data-click-handler="boxHandler"
-                                data-package="dpkg"
-                                data-operation="fix"
-                                data-target="#sysResponse"
+                                disabled={!commandsConnected}
+                                onClick={() => { executeBoxAction("fix", "dpkg", true); }}
                             >
                                 {labels.clearLock}
                             </Button>
                             {" "}
-                            <Button size="small" type="primary" className="btn btn-xs btn-info" data-qb-system-response>{labels.viewLog}</Button>
+                            <Button
+                                size="small"
+                                type="primary"
+                                className="btn btn-xs btn-info"
+                                data-qb-system-response
+                                onClick={() => { systemResponseActions.open(); }}
+                            >
+                                {labels.viewLog}
+                            </Button>
                         </div>
                     ) : null}
                 </div>
@@ -364,7 +375,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                     wrapProps={{ onKeyDownCapture: containConfirmTab }}
                     footer={[
                         <Button key="cancel" onClick={() => { setConfirmRow(null); }}>{labels.cancel}</Button>,
-                        <Button key="confirm" type="primary" onClick={() => {
+                        <Button key="confirm" type="primary" disabled={!commandsConnected} onClick={() => {
                             const selected = confirmRow;
                             setConfirmRow(null);
                             if (selected) {onPackageAction?.("remove", selected);}

@@ -27,6 +27,44 @@ test.describe("WS Debug Console", () => {
         await expect(page.locator("[data-url='/node/data/disk_data']")).toBeVisible();
     });
 
+    test("canonicalizes both debug paths with a trailing slash", async ({ page }) => {
+        for (const pathname of ["/debug", "/ws/debug"]) {
+            await page.goto(`${pathname}/?locale=en&source=test`);
+            await expect(page).toHaveURL(new RegExp(`${pathname}\\?locale=en&source=test$`));
+            await expect(page.locator("h1")).toContainText("QuickBox WS Debug Console");
+        }
+    });
+
+    test("ignores a slow result from a previously selected endpoint", async ({ page }) => {
+        let release: () => void = () => {};
+        const gate = new Promise<void>(resolve => { release = resolve; });
+        await page.route(url => url.pathname.endsWith("/debug/node") &&
+            url.searchParams.get("url") === "/node/data/system_uptime", async (route) => {
+            await gate;
+            await route.fulfill({ json: { days: 99, hours: 0, minutes: 0 } }).catch(() => {});
+        });
+        try {
+            await page.goto(`${WS_BASE_URL}/debug`);
+            const uptimeRequest = page.waitForRequest(request =>
+                new URL(request.url()).searchParams.get("url") === "/node/data/system_uptime");
+            await page.locator("[data-url='/node/data/system_uptime']").click();
+            await uptimeRequest;
+            const cancelled = page.waitForEvent("requestfailed", {
+                predicate: request => new URL(request.url()).searchParams.get("url") === "/node/data/system_uptime",
+            });
+            await page.locator("[data-url='/node/data/ram_stats']").click();
+            await cancelled;
+            await expect(page.locator("#result-title")).toContainText("RAM");
+            await expect.poll(() => getRenderedWidgetText(page)).not.toBe("");
+            const ram = await getRenderedWidgetText(page);
+            release();
+            await expect(page.locator("#result-title")).toContainText("RAM");
+            expect(await getRenderedWidgetText(page)).toBe(ram);
+        } finally {
+            release();
+        }
+    });
+
     test("should fetch uptime widget via debug console", async ({ page }, testInfo) => {
         await page.goto(`${WS_BASE_URL}/debug`);
         await page.locator("[data-url='/node/data/system_uptime']").click();

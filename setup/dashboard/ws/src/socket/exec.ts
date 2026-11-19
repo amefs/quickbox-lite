@@ -13,7 +13,7 @@ import { CommandType, buildCommand } from "./command";
 import { invalidateServiceState, refreshServiceState } from "../services/service/state";
 import { runMockCommand } from "../testing/mock-adapter";
 import { serviceMap } from "../services/packages/info";
-import { isServiceEnabled } from "../services/packages/panels";
+import { invalidateInstalledPackagesCache, isServiceEnabled } from "../services/packages/panels";
 import { serviceStatusAllData } from "../services/service/status";
 import { notifyPushSubscribers } from "./push";
 
@@ -57,6 +57,7 @@ const execOption: ExecOptionsWithBufferEncoding = {
     maxBuffer: 5 * 1024 * 1024, // 5 MiB
 };
 const serviceActionExecOption: ExecOptionsWithBufferEncoding = { ...execOption, timeout: 15_000 };
+const SERVICE_STATUS_CONFIRM_TIMEOUT_MS = 5_000;
 const serviceActionsInFlight = new Set<string>();
 const serviceActionOperations = {
     enable: ["enable", "start"],
@@ -370,6 +371,18 @@ interface ServiceActionPayload {
     locale?: unknown;
 }
 
+async function confirmServiceStatus() {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_resolve, reject) => {
+        timeout = setTimeout(() => { reject(new Error("Service status confirmation timed out")); }, SERVICE_STATUS_CONFIRM_TIMEOUT_MS);
+    });
+    try {
+        return await Promise.race([refreshServiceState().then(() => serviceStatusAllData()), deadline]);
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
 async function serviceActionHandler(payload: unknown, client: Socket) {
     const request = payload !== null && typeof payload === "object" ? payload as ServiceActionPayload : {};
     const response: {
@@ -415,39 +428,40 @@ async function serviceActionHandler(payload: unknown, client: Socket) {
 
     serviceActionsInFlight.add(response.service);
     try {
-        response.success = true;
-        response.message = "Service action completed";
-        for (const operation of operations) {
-            const result = await executeServiceCommand(`systemctl:${operation}:${response.service}`);
-            response.stdout += result.stdout;
-            response.stderr += result.stderr;
-            if (!result.success) {
-                response.success = false;
-                response.failedOperation = operation;
-                response.message = result.message || `systemctl ${operation} failed`;
-                break;
+        try {
+            response.success = true;
+            response.message = "Service action completed";
+            for (const operation of operations) {
+                const result = await executeServiceCommand(`systemctl:${operation}:${response.service}`);
+                response.stdout += result.stdout;
+                response.stderr += result.stderr;
+                if (!result.success) {
+                    response.success = false;
+                    response.failedOperation = operation;
+                    response.message = result.message || `systemctl ${operation} failed`;
+                    break;
+                }
+                response.completedOperations.push(operation);
             }
-            response.completedOperations.push(operation);
+        } finally {
+            releaseExecSlot(client);
         }
 
-        response.phase = "action-complete";
-        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
+        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, { ...response, phase: "action-complete" });
 
         response.phase = "status-confirmed";
         try {
-            await refreshServiceState();
+            response.statusData = await confirmServiceStatus();
             const detail = serviceMap.get(response.service);
             if (detail) {
                 response.enabled = isServiceEnabled(response.service, detail.username);
             }
-            response.statusData = await serviceStatusAllData();
         } catch (error) {
             response.statusError = error instanceof Error ? error.message : "Service status refresh failed";
             console.error(`[quickbox-ws] failed to refresh service state after ${response.action}:${response.service}`, error);
         }
     } finally {
         serviceActionsInFlight.delete(response.service);
-        releaseExecSlot(client);
     }
     client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
     notifyPushSubscribers(["SERVICE_STATUS_ALL", "SERVICE_CONTROL"]);
@@ -485,6 +499,7 @@ const execHandler = (payload: unknown, client: Socket) => {
     }
     const finish = () => {
         releaseExecSlot(client);
+        if (ret.success) {invalidateInstalledPackagesCache();}
         if (ret.success && payload.startsWith("systemctl:")) {invalidateServiceState();}
         client.emit(Constant.EVENT_EXEC, ret);
         notifyPushSubscribers(["TASK_STATUS", "SERVICE_STATUS_ALL", "SERVICE_CONTROL", "PMC"]);

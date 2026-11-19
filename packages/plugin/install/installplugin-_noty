@@ -14,6 +14,10 @@
 # QuickBox Copyright (C) 2017 QuickBox.io
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
+
+# shellcheck source=packages/plugin/vault.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../vault.sh" || exit 1
+
 OUTTO=/srv/rutorrent/home/db/output.log
 
 function _installplugin-noty() {
@@ -21,18 +25,15 @@ function _installplugin-noty() {
 	rutorrent="/srv/rutorrent/"
 	echo "Accessing _noty & _noty2 in the plugin vault ... " >>"${OUTTO}" 2>&1
 	PLUGINVAULT="/usr/local/bin/quickbox/rutorrent/plugins/"
-	cd "${rutorrent}plugins"
+	cd "${rutorrent}plugins" || exit 1
 	sleep 5
 
 	echo "Installing _noty & _noty2 plugins ... " >>"${OUTTO}" 2>&1
-	PLUGIN="_noty _noty2"
-	for i in $PLUGIN; do
-		cp -R "${PLUGINVAULT}$i" .
-	done
+	_restoreRutorrentPlugins "${PLUGINVAULT}" . _noty _noty2 || exit 1
 	sleep 5
 
 	echo "Adjusting permissions ... " >>"${OUTTO}" 2>&1
-	chown -R www-data: ${rutorrent}plugins/$PLUGIN
+	chown -R www-data: "${rutorrent}plugins/_noty" "${rutorrent}plugins/_noty2"
 	echo "_Noty & _Noty2 Plugins Install Complete!" >>"${OUTTO}" 2>&1
 
 	sleep 5

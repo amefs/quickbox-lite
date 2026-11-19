@@ -376,6 +376,11 @@ const profiles: Record<string, MockProfile> = {
         branch: "fix/dashboard-review-findings-with-an-extremely-long-branch-name(dd47129)",
         lockFiles: [...allRunning.lockFiles, "/install/.developer.lock", "/install/.debug.lock"],
     },
+    "server-locale-zh": {
+        ...partialRunning,
+        name: "server-locale-zh",
+        lockFiles: [...partialRunning.lockFiles, "/install/.lang_zh.lock"],
+    },
     "all-running": allRunning,
     "partial-running": partialRunning,
     "empty-system": emptySystem,

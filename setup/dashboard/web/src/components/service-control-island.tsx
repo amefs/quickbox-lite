@@ -29,6 +29,7 @@ export interface ServiceControlIslandProps {
     theme: ServiceControlTheme;
     statusById: Record<string, ServiceState>;
     pendingById?: Record<string, boolean>;
+    commandsDisabled: boolean;
     onRefresh?: (serviceId: string) => void;
     onEnabledChange?: (serviceId: string, enabled: boolean) => void;
 }
@@ -48,7 +49,7 @@ function ServiceBadge({ status, labels }: { status: ServiceState | undefined; la
     );
 }
 
-export function ServiceControlIsland({ rows, labels, theme, statusById, pendingById = {}, onRefresh, onEnabledChange }: ServiceControlIslandProps) {
+export function ServiceControlIsland({ rows, labels, theme, statusById, pendingById = {}, commandsDisabled, onRefresh, onEnabledChange }: ServiceControlIslandProps) {
     return (
         <ConfigProvider theme={getAntdThemeConfig(theme, { borderRadius: 2, fontFamily: "inherit" })}>
             <div className={`panel panel-inverse qb-service-control qb-service-control--${theme}`} data-inner-id="panel-server-service-control">
@@ -92,10 +93,10 @@ export function ServiceControlIsland({ rows, labels, theme, statusById, pendingB
                                                 type="default"
                                                 size="small"
                                                 className="btn btn-xs btn-default qb-service-refresh"
-                                                disabled={pendingById[row.id]}
+                                                disabled={commandsDisabled || pendingById[row.id]}
                                                 onClick={() => onRefresh?.(row.id)}
                                             >
-                                                <SyncOutlined className="text-info" spin={Boolean(pendingById[row.id])} aria-hidden="true" /> {labels.refresh}
+                                                <SyncOutlined className="text-info" spin={pendingById[row.id]} aria-hidden="true" /> {labels.refresh}
                                             </Button>
                                         </td>
                                         <td className="text-center">
@@ -106,8 +107,8 @@ export function ServiceControlIsland({ rows, labels, theme, statusById, pendingB
                                                     checkedChildren={labels.enabled}
                                                     unCheckedChildren={labels.disabled}
                                                     aria-label={row.name}
-                                                    loading={Boolean(pendingById[row.id])}
-                                                    disabled={pendingById[row.id]}
+                                                    loading={pendingById[row.id]}
+                                                    disabled={commandsDisabled || pendingById[row.id]}
                                                     onChange={(enabled) => onEnabledChange?.(row.id, enabled)}
                                                 />
                                             </div>

@@ -50,7 +50,8 @@ import { DiskDataRoot } from "./components/disk-data-island";
 import { MemoryStatsRoot } from "./components/memory-stats-island";
 import { RunningTaskIsland } from "./components/running-task-island";
 import { SystemLoadValue, UptimeValue } from "./components/system-summary-island";
-import { applyFrontendTheme, getAntdThemeConfig } from "./runtime/theme-store";
+import { getAntdLocale } from "./i18n";
+import { selectFrontendTheme, getAntdThemeConfig } from "./runtime/theme-store";
 
 interface DebugHistoryEntry {
     id: number;
@@ -107,7 +108,7 @@ function formatRawPretty(rawText: string): string {
     }
 }
 
-export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
+export function DebugApp({ meta, locale }: { meta: DebugMetaPayload; locale: string }) {
     const [theme, setTheme] = React.useState<DashboardTheme>(meta.theme);
     const [selectedEndpoint, setSelectedEndpoint] = React.useState<DebugEndpointItem | null>(null);
     const [viewMode, setViewMode] = React.useState<"rendered" | "raw">("rendered");
@@ -123,6 +124,7 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
     } | null>(null);
     const [history, setHistory] = React.useState<DebugHistoryEntry[]>([]);
     const historyIdRef = React.useRef(1);
+    const activeRequest = React.useRef<AbortController | null>(null);
 
     const widgetEndpoints = React.useMemo(
         () => meta.endpoints.filter((ep) => ep.category === "widget"),
@@ -135,10 +137,13 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
 
     const handleThemeChange = (nextTheme: DashboardTheme) => {
         setTheme(nextTheme);
-        applyFrontendTheme(nextTheme);
+        selectFrontendTheme(nextTheme);
     };
 
     const fetchEndpoint = React.useCallback(async (endpoint: DebugEndpointItem) => {
+        activeRequest.current?.abort();
+        const request = new AbortController();
+        activeRequest.current = request;
         setSelectedEndpoint(endpoint);
         setStatus("loading");
         setErrorMessage(null);
@@ -146,8 +151,10 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
         try {
             const response = await fetch(`${meta.basePath}/debug/node?url=${encodeURIComponent(endpoint.url)}`, {
                 credentials: "same-origin",
+                signal: request.signal,
             });
             const rawText = await response.text();
+            if (activeRequest.current !== request) {return;}
             const elapsedMs = Math.round(performance.now() - started);
             const ok = response.ok;
             setStatus(ok ? "ok" : "error");
@@ -171,6 +178,7 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
             };
             setHistory((prev) => [entry, ...prev].slice(0, 20));
         } catch (error) {
+            if (activeRequest.current !== request) {return;}
             const elapsedMs = Math.round(performance.now() - started);
             const message = error instanceof Error ? error.message : String(error);
             setStatus("error");
@@ -181,18 +189,25 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
                 url: endpoint.url,
                 name: endpoint.name,
             });
+        } finally {
+            if (activeRequest.current === request) {activeRequest.current = null;}
         }
     }, [meta.basePath]);
 
+    React.useEffect(() => () => {
+        activeRequest.current?.abort();
+        activeRequest.current = null;
+    }, []);
+
     React.useEffect(() => {
-        if (!autoRefresh || !selectedEndpoint) {
+        if (!autoRefresh || !selectedEndpoint || status === "loading") {
             return;
         }
-        const timer = window.setInterval(() => {
-            void fetchEndpoint(selectedEndpoint);
+        const timer = window.setTimeout(() => {
+            if (!activeRequest.current) {void fetchEndpoint(selectedEndpoint);}
         }, refreshIntervalMs);
-        return () => window.clearInterval(timer);
-    }, [autoRefresh, refreshIntervalMs, selectedEndpoint, fetchEndpoint]);
+        return () => { window.clearTimeout(timer); };
+    }, [autoRefresh, refreshIntervalMs, selectedEndpoint, fetchEndpoint, status, currentResult]);
 
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -207,14 +222,14 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
             }
         };
         window.addEventListener("keydown", onKeyDown);
-        return () => window.removeEventListener("keydown", onKeyDown);
+        return () => { window.removeEventListener("keydown", onKeyDown); };
     }, [selectedEndpoint, fetchEndpoint]);
 
     const statusTagColor = status === "ok" ? "success" : status === "error" ? "error" : status === "loading" ? "processing" : "default";
     const renderedNode = currentResult ? renderDataPreview(currentResult.url, currentResult.rawText) : null;
 
     return (
-        <ConfigProvider theme={getAntdThemeConfig(theme, { colorPrimary: "#2574ab", borderRadius: 4 })}>
+        <ConfigProvider locale={getAntdLocale(locale)} theme={getAntdThemeConfig(theme, { colorPrimary: "#2574ab", borderRadius: 4 })}>
             <Layout style={{ minHeight: "100vh" }}>
                 <Layout.Header
                     style={{
@@ -246,7 +261,7 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
                             <Segmented
                                 size="small"
                                 value={theme}
-                                onChange={(val) => handleThemeChange(val as DashboardTheme)}
+                                onChange={(val) => { handleThemeChange(val as DashboardTheme); }}
                                 options={[
                                     { label: "Defaulted", value: "defaulted" },
                                     { label: "Smoked", value: "smoked" },
@@ -343,7 +358,7 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
                                         </Button>
                                         <Segmented
                                             value={viewMode}
-                                            onChange={(val) => setViewMode(val as "rendered" | "raw")}
+                                            onChange={(val) => { setViewMode(val as "rendered" | "raw"); }}
                                             options={[
                                                 { label: "Rendered", value: "rendered", icon: <EyeOutlined /> },
                                                 { label: "Raw", value: "raw", icon: <CodeOutlined /> },
@@ -360,7 +375,7 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
                                 )}
 
                                 {errorMessage && (
-                                    <Alert type="error" showIcon message={errorMessage} style={{ marginBottom: 12 }} />
+                                    <Alert type="error" showIcon title={errorMessage} style={{ marginBottom: 12 }} />
                                 )}
 
                                 {status === "loading" && !currentResult ? (
@@ -404,7 +419,7 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
                                                     size="small"
                                                     icon={<DeleteOutlined />}
                                                     disabled={history.length === 0}
-                                                    onClick={() => setHistory([])}
+                                                    onClick={() => { setHistory([]); }}
                                                 >
                                                     Clear All
                                                 </Button>
@@ -426,12 +441,14 @@ export function DebugApp({ meta }: { meta: DebugMetaPayload }) {
                                                         key={item.id}
                                                         color={item.ok ? "processing" : "error"}
                                                         style={{ cursor: "pointer" }}
-                                                        onClick={() => setCurrentResult({
-                                                            rawText: item.rawText,
-                                                            elapsedMs: item.elapsedMs,
-                                                            url: item.url,
-                                                            name: item.name,
-                                                        })}
+                                                        onClick={() => {
+                                                            setCurrentResult({
+                                                                rawText: item.rawText,
+                                                                elapsedMs: item.elapsedMs,
+                                                                url: item.url,
+                                                                name: item.name,
+                                                            });
+                                                        }}
                                                     >
                                                         {item.timestamp} · {item.name} ({item.elapsedMs}ms)
                                                     </Tag>

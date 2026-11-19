@@ -4,6 +4,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { MemoryProgress, MemoryStatsData, MemoryStatsPayload, MemoryStatsRawData } from "../../../ws/src/shared/memory-stats-contract";
+import { executeBoxAction, useCommandConnection } from "../runtime/dashboard-runtime-client";
 import { formatSize } from "../utils/format";
 import { MemoryStatusPlaceholder } from "./placeholder";
 
@@ -81,6 +82,7 @@ function Progress({ data, usedLabel }: { data: MemoryProgress; usedLabel: string
 
 function MemoryStatsView({ data: payload }: { data: MemoryStatsPayload }) {
     const { t } = useTranslation();
+    const commandsConnected = useCommandConnection();
     const data = normalizeMemoryStats(payload);
     const labels = {
         physical: t("PHYSICAL_MEMORY_TITLE"),
@@ -142,12 +144,9 @@ function MemoryStatsView({ data: payload }: { data: MemoryStatsPayload }) {
                 {data.total}
                 <button
                     type="button"
-                    data-click-handler="boxHandler"
-                    data-package="mem"
-                    data-operation="clean"
-                    data-toggle="modal"
-                    data-target="#sysResponse"
                     className="btn btn-xs btn-default pull-right"
+                    disabled={!commandsConnected}
+                    onClick={() => { executeBoxAction("clean", "mem", true); }}
                 >
                     {labels.clearCache}
                 </button>

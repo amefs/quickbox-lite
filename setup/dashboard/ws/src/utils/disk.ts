@@ -1,6 +1,6 @@
-import { exec } from "child_process";
-import { promisify } from "util";
 import si from "systeminformation";
+
+import { runCollectorCommand } from "./collector-command";
 
 export interface FsSizeData {
     fs: string;
@@ -15,7 +15,6 @@ export interface FsSizeData {
 const IS_DARWIN = process.platform === "darwin";
 const IS_LINUX = process.platform === "linux";
 const IS_WIN32 = process.platform === "win32";
-const execAsync = promisify(exec);
 const MINIMUM_DISK_SIZE = 1 << 30; // 1GB
 
 const TMP_FILESYSTEMS = [
@@ -185,41 +184,32 @@ export function parseFsSizeOutputSystemInformation(
     return result;
 }
 
-export async function getFsSize(): Promise<FsSizeData[]> {
-    if (IS_WIN32) {
+export async function getFsSize(signal?: AbortSignal): Promise<FsSizeData[]> {
+    if (IS_DARWIN || IS_LINUX) {
+        try {
+            const { stdout } = await runCollectorCommand("df", [IS_LINUX ? "-kPT" : "-kP"], {
+                maxBuffer: 1024 * 1024,
+                signal,
+                ...(IS_LINUX ? { env: { ...process.env, LC_ALL: "C" } } : {}),
+            });
+            return IS_LINUX ? parseDfOutputLinux(stdout) : parseDfOutputMacOS(stdout);
+        } catch (error) {
+            signal?.throwIfAborted();
+            if (error instanceof Error) {
+                if ("killed" in error && error.killed) {throw error;}
+                if (IS_LINUX && "stdout" in error && typeof error.stdout === "string") {
+                    return parseDfOutputLinux(error.stdout);
+                }
+            }
+        }
+    }
+    if (IS_WIN32 || IS_DARWIN || IS_LINUX) {
         try {
             return parseFsSizeOutputSystemInformation(await si.fsSize());
         } catch {
             return [];
         }
     }
-
-    if (IS_DARWIN) {
-        try {
-            const { stdout } = await execAsync("df -kP 2>/dev/null", { maxBuffer: 1024 * 1024 });
-            return parseDfOutputMacOS(stdout);
-        } catch {
-            try {
-                return parseFsSizeOutputSystemInformation(await si.fsSize());
-            } catch {
-                return [];
-            }
-        }
-    }
-
-    if (IS_LINUX) {
-        try {
-            const { stdout } = await execAsync("export LC_ALL=C; df -kPT 2>/dev/null; unset LC_ALL", { maxBuffer: 1024 * 1024 });
-            return parseDfOutputLinux(stdout);
-        } catch {
-            try {
-                return parseFsSizeOutputSystemInformation(await si.fsSize());
-            } catch {
-                return [];
-            }
-        }
-    }
-
     return [];
 }
 

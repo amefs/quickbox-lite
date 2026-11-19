@@ -53,6 +53,52 @@ test.describe("Language Switching", () => {
         await snap(page, testInfo, "language-english-ram");
     });
 
+    test("uses the server language without saving it as a browser preference", async ({ page }) => {
+        await page.addInitScript(() => {
+            Object.defineProperty(navigator, "language", { value: "de-DE" });
+        });
+        await setMockProfile(page, "server-locale-zh");
+        const bootstrap = await page.request.get(`${WS_BASE_URL}/node/bootstrap`);
+        expect(await bootstrap.json()).toMatchObject({ defaultLocale: "zh" });
+
+        await page.goto("/");
+        await expect(page.locator("html")).toHaveAttribute("lang", "zh");
+        await expect(page.locator("#service_control_widget")).toContainText("服务控制中心");
+        expect((await page.context().cookies()).map((cookie) => cookie.name)).not.toContain("quickbox_locale");
+
+        await page.goto(`${WS_BASE_URL}/debug`);
+        await expect(page.locator("html")).toHaveAttribute("lang", "zh");
+
+        await resetMockProfile(page);
+        const unconfigured = await page.request.get(`${WS_BASE_URL}/node/bootstrap`);
+        expect(await unconfigured.json()).toMatchObject({ defaultLocale: null });
+        await page.goto("/");
+        await expect(page.locator("#pmc_widget table")).toBeVisible();
+        await expect(page.locator("html")).toHaveAttribute("lang", "de");
+    });
+
+    test("prefers an explicit URL language and remembers a language selected in the dashboard", async ({ page }) => {
+        await setMockProfile(page, "server-locale-zh");
+        await page.goto("/?lang=fr");
+        await expect(page.locator("#pmc_widget table")).toBeVisible();
+        await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+        expect((await page.context().cookies()).map((cookie) => cookie.name)).not.toContain("quickbox_locale");
+
+        await page.goto("/");
+        await expect(page.locator("#service_control_widget")).toContainText("服务控制中心");
+        await page.locator("#node-language-options [data-locale='en']").evaluate((item) => (item as HTMLElement).click());
+        await expect(page.locator("#service_control_widget")).toContainText("Service Control Center");
+        const chosen = (await page.context().cookies()).find((cookie) => cookie.name === "quickbox_locale");
+        expect(chosen?.value).toBe("en");
+        expect(chosen?.expires).toBeGreaterThan(Date.now() / 1000);
+
+        await page.goto("/?locale=de");
+        await expect(page.locator("#pmc_widget table")).toBeVisible();
+        await expect(page.locator("html")).toHaveAttribute("lang", "de");
+        await page.goto("/");
+        await expect(page.locator("#service_control_widget")).toContainText("Service Control Center");
+    });
+
     test("should reject invalid locale and fall back to English", async ({ page }) => {
         const setResponse = await page.request.get(`${WS_BASE_URL}/set?lang=xx-invalid`);
         expect(setResponse.ok()).toBeTruthy();
