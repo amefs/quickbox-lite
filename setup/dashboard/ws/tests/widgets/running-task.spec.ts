@@ -19,11 +19,10 @@ describe("widgets/running-task", () => {
         it("should name the running package and offer the log and abort actions", async () => {
             const html = await runningTask(() => "Jellyfin Media Server", () => "install");
             expect(html).to.contain("Jellyfin Media Server");
-            expect(html).to.contain('data-target="#sysResponse"');
-            // Every entry opens the same dialog with the same close semantics;
-            // there is no per-trigger mode to inherit.
+            expect(html).to.contain('data-qb-system-response=""');
             expect(html).to.not.contain("data-sysresponse-mode");
-            expect(html).to.contain('data-target="#taskAbortConfirm"');
+            expect(html).to.contain("data-task-abort");
+            expect(html).to.contain("data-confirm=");
             expect(html).to.contain('data-task="install"');
             expect(html).to.contain('data-operation="install"');
         });

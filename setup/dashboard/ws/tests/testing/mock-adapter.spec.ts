@@ -65,6 +65,23 @@ describe("testing mock command adapter", () => {
         expect(runMockCommand("unknown::target")).to.equal(false);
     });
 
+    it("uses the command unit for services with a dedicated process user", () => {
+        process.env.NODE_ENV = "test";
+        process.env.MOCK_ENABLED = "1";
+        setActiveProfile("all-running");
+
+        expect(getActiveProfile().enabledServices).to.include("netdata");
+        expect(runMockCommand("systemctl:disable:netdata")).to.equal(true);
+        expect(getActiveProfile().enabledServices).not.to.include("netdata");
+        expect(runMockCommand("systemctl:enable:netdata")).to.equal(true);
+        expect(getActiveProfile().enabledServices).to.include("netdata");
+        expect(getActiveProfile().enabledServices).not.to.include("netdata@netdata");
+
+        expect(runMockCommand("systemctl:enable:znc")).to.equal(true);
+        expect(getActiveProfile().enabledServices).to.include("znc");
+        expect(getActiveProfile().enabledServices).not.to.include("znc@znc");
+    });
+
     it("keeps target validation in the command allowlist", () => {
         expect(() => buildCommand("installpackage::not-allowlisted", {
             installpackage: { template: "install-$target$", operations: [], targets: ["autodlirssi"] },

@@ -2,7 +2,7 @@
   "name": "quickbox-dashboard",
   "version": "1.0.0",
   "scripts": {
-    "lint": "eslint ./js",
+    "lint": "eslint ./js --ignore-pattern 'js/migration/**'",
     "audit": "npm audit --registry=https://registry.npmjs.org",
     "upgrade": "npx npm-check-updates -i"
   },
@@ -11,16 +11,12 @@
   "dependencies": {
     "animate.css": "^4.1.1",
     "ansi_up": "^5.2.1",
-    "bootstrap": "3.4.1",
     "datatables": "^1.10.18",
     "font-awesome": "^4.7.0",
     "gritter": "^1.7.4",
     "jquery": "^3.7.1",
     "jquery-toggles": "^4.0.0",
-    "jquery-ui": "^1.14.2",
-    "jquery-ui-touch-punch": "^0.2.3",
     "lazysizes": "^5.3.2",
-    "lobipanel": "^1.0.0",
     "perfect-scrollbar": "^1.5.6",
     "socket.io-client": "^4.8.4",
     "visibilityjs": "^2.0.2"

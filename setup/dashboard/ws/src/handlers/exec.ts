@@ -14,7 +14,7 @@ import { invalidateServiceState, refreshServiceState } from "../widgets/service-
 import { runMockCommand } from "../testing/mock-adapter";
 import { serviceMap } from "../info";
 import { isServiceEnabled } from "../widgets/panels";
-import { serviceStatusAll } from "../widgets/service-status";
+import { serviceStatusAll, serviceStatusAllData } from "../widgets/service-status";
 import { withLocale } from "../i18n";
 
 let baseDir = __dirname;
@@ -386,6 +386,7 @@ async function serviceActionHandler(payload: unknown, client: Socket) {
         stderr: string;
         enabled?: boolean;
         status?: Awaited<ReturnType<typeof serviceStatusAll>>;
+        statusData?: Awaited<ReturnType<typeof serviceStatusAllData>>;
     } = {
         requestId: typeof request.requestId === "string" ? request.requestId : undefined,
         service: typeof request.service === "string" ? request.service : "",
@@ -441,7 +442,12 @@ async function serviceActionHandler(payload: unknown, client: Socket) {
                 response.enabled = isServiceEnabled(response.service, detail.username);
             }
             const locale = typeof request.locale === "string" ? request.locale : "en";
-            response.status = await withLocale(locale, async () => await serviceStatusAll());
+            const [status, statusData] = await withLocale(locale, async () => await Promise.all([
+                serviceStatusAll(),
+                serviceStatusAllData(),
+            ]));
+            response.status = status;
+            response.statusData = statusData;
         } catch (error) {
             response.statusError = error instanceof Error ? error.message : "Service status refresh failed";
             console.error(`[quickbox-ws] failed to refresh service state after ${response.action}:${response.service}`, error);

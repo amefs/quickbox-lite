@@ -5,52 +5,10 @@ import ReactDOMServer from "react-dom/server";
 import i18n from "../i18n";
 import { getVnstatData, ParsedTrafficEntry, ParsedVnstatData } from "../utils/vnstat";
 import { formatSize, formatSpeed } from "../utils/helpers";
+import type { BandwidthTableData, BandwidthTableRow } from "../shared/bandwidth-contract";
+import { BandwidthTablesView } from "./bandwidth-tables-view";
 
-function writeDataTable(caption: string, tab: ParsedTrafficEntry[]) {
-
-    const evenOdd = (index: number) => index % 2 === 1 ? "odd" : "even";
-
-    return (
-        <table className="table table-hover table-default nomargin" width="100%" cellSpacing="0">
-            <thead>
-                <tr>
-                    <th className="text-right" style={{ width: "20%" }}>{caption}</th>
-                    <th className="text-right" style={{ width: "15%" }}>{i18n.t("Out")}</th>
-                    <th className="text-left" style={{ width: "15%" }}>{i18n.t("In")}</th>
-                    <th className="text-right" style={{ width: "15%" }}>{i18n.t("Out_AVG")}</th>
-                    <th className="text-left" style={{ width: "15%" }}>{i18n.t("In_AVG")}</th>
-                    <th className="text-left" style={{ width: "18%" }}>{i18n.t("Total")}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {tab.map((item, index) => (
-                    <tr key={index}>
-                        <td className={`label_${evenOdd(index)}`} style={{ fontSize: "12px", textAlign: "right" }}>
-                            <b>{item.label}</b>
-                        </td>
-                        <td className={`numeric_${evenOdd(index)} text-success`} style={{ fontSize: "12px", textAlign: "right" }}>
-                            {formatSize(item.tx)}
-                        </td>
-                        <td className={`numeric_${evenOdd(index)} text-primary`} style={{ fontSize: "12px", textAlign: "left" }}>
-                            {formatSize(item.rx)}
-                        </td>
-                        <td className={`numeric_${evenOdd(index)} text-success`} style={{ fontSize: "12px", textAlign: "right" }}>
-                            {formatSpeed(item.tx_avg)}
-                        </td>
-                        <td className={`numeric_${evenOdd(index)} text-primary`} style={{ fontSize: "12px", textAlign: "left" }}>
-                            {formatSpeed(item.rx_avg)}
-                        </td>
-                        <td className={`numeric_${evenOdd(index)}`} style={{ fontSize: "12px", textAlign: "left" }}>
-                            {formatSize(item.rx + item.tx)}
-                        </td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-    );
-}
-
-function writeSummary(data: ParsedVnstatData) {
+function summaryEntries(data: ParsedVnstatData): ParsedTrafficEntry[] {
 
     const trx = data.summary.totalrx;
     const ttx = data.summary.totaltx;
@@ -95,32 +53,52 @@ function writeSummary(data: ParsedVnstatData) {
         });
     }
 
-    return writeDataTable(i18n.t("Summary"), sum);
+    return sum;
+}
+
+function displayRows(entries: ParsedTrafficEntry[]): BandwidthTableRow[] {
+    return entries.map((item) => ({
+        label: item.label,
+        out: formatSize(item.tx),
+        incoming: formatSize(item.rx),
+        outAverage: formatSpeed(item.tx_avg),
+        inAverage: formatSpeed(item.rx_avg),
+        total: formatSize(item.rx + item.tx),
+    }));
+}
+
+export async function bandwidthTablesData(iface: string, page: "h"|"d"|"m"|"t"|undefined): Promise<BandwidthTableData> {
+    const vnstatData = await getVnstatData(iface);
+    let detailCaption: string;
+    let detailEntries: ParsedTrafficEntry[];
+    if (page === undefined || page === "h") {
+        detailCaption = i18n.t("Recent hours");
+        detailEntries = vnstatData.hour;
+    } else if (page === "d") {
+        detailCaption = i18n.t("Last 30 days");
+        detailEntries = vnstatData.day;
+    } else if (page === "m") {
+        detailCaption = i18n.t("Last 12 months");
+        detailEntries = vnstatData.month;
+    } else {
+        detailCaption = i18n.t("Top 10 days");
+        detailEntries = vnstatData.top;
+    }
+
+    return {
+        columns: {
+            out: i18n.t("Out"),
+            incoming: i18n.t("In"),
+            outAverage: i18n.t("Out_AVG"),
+            inAverage: i18n.t("In_AVG"),
+            total: i18n.t("Total"),
+        },
+        summary: { caption: i18n.t("Summary"), rows: displayRows(summaryEntries(vnstatData)) },
+        detail: { caption: detailCaption, rows: displayRows(detailEntries) },
+    };
 }
 
 export async function bwTables(iface: string, page: "h"|"d"|"m"|"t"|undefined) {
-    const vnstatData = await getVnstatData(iface);
-
-    const renderDataTable = () => {
-        if (page === undefined || page === "h") {
-            return writeDataTable(i18n.t("Recent hours"), vnstatData.hour);
-        } else if (page === "d") {
-            return writeDataTable(i18n.t("Last 30 days"), vnstatData.day);
-        } else if (page === "m") {
-            return writeDataTable(i18n.t("Last 12 months"), vnstatData.month);
-        } else {
-            return writeDataTable(i18n.t("Top 10 days"), vnstatData.top);
-        }
-    };
-
-    return ReactDOMServer.renderToString(
-        <div className="col-sm-12" style={{ paddingLeft: 0, paddingRight: 0 }}>
-            <div className="table-responsive">
-                {writeSummary(vnstatData)}
-            </div>
-            <div className="col-sm-12" style={{ paddingLeft: 0, paddingRight: 0 }}>
-                <div className="table-responsive">{renderDataTable()}</div>
-            </div>
-        </div>,
-    );
+    const data = await bandwidthTablesData(iface, page);
+    return ReactDOMServer.renderToString(<BandwidthTablesView data={data} />);
 }

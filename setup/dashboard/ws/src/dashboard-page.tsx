@@ -2,22 +2,25 @@
 
 import React from "react";
 
-import { dashboardAccountLabel, dashboardConfig } from "./dashboard-config";
+import { dashboardConfig } from "./dashboard-config";
 import i18n, { VALID_LOCALES } from "./i18n";
 import { serviceMap } from "./info";
 import { serializeJsonForScript } from "./utils/html";
-import { DashboardMenu, type DashboardMenuState } from "./widgets/menu";
-import { RutorrentPluginList } from "./widgets/plugin-list";
-import { RemovalModals } from "./widgets/removal-modals";
+import type { ServiceRow } from "./shared/service-control-contract";
+import type { PackageManagementRuntime } from "./shared/package-management-contract";
+import type { UptimeParts } from "./shared/system-summary-contract";
+import type { ServiceControlLabels, ServiceControlTheme } from "./widgets/service-control-island";
+import { SystemLoadValue, UptimeValue } from "./widgets/system-summary-island";
+import { NetworkInterfaceRows } from "./widgets/network-status-island";
+import { BandwidthTablesRoot } from "./widgets/bandwidth-tables-view";
+import { CpuStatusValue } from "./widgets/cpu-status-island";
+import { MemoryStatsRoot } from "./widgets/memory-stats-island";
+import { DiskDataRoot } from "./widgets/disk-data-island";
+import type { DashboardMenuState } from "./widgets/menu";
+import { DashboardHeader, DashboardSidebar, type DashboardChromeProps } from "./widgets/dashboard-chrome";
 import {
-    NetworkInterfacePlaceholder,
-    BandwidthTablePlaceholder,
     ServiceControlPlaceholder,
     PackageManagementPlaceholder,
-    SystemLoadPlaceholder,
-    CpuStatusPlaceholder,
-    DiskStatusPlaceholder,
-    MemoryStatusPlaceholder,
     UptimePlaceholder,
 } from "./widgets/placeholder";
 
@@ -25,12 +28,18 @@ export interface DashboardSsrFragments {
     packageManagementCenterHtml: string;
     runningTaskHtml: string;
     serviceControlHtml: string;
+    serviceControlRows?: ServiceRow[];
+    serviceControlLabels?: ServiceControlLabels;
+    serviceControlTheme?: ServiceControlTheme;
+    uptimeParts?: UptimeParts;
     uptimeHtml: string;
     diskDataHtml: string;
     ramStatsHtml: string;
     loadHtml: string;
     cpuStaticHtml: string;
     networkInterfaces: string[];
+    networkInterfacesLoaded?: boolean;
+    packageManagementRuntime?: PackageManagementRuntime;
 }
 
 export interface DashboardPageProps {
@@ -39,76 +48,130 @@ export interface DashboardPageProps {
     locale: string;
     menuState: DashboardMenuState;
     ssrFragments: DashboardSsrFragments;
+    reactClientBundlePath: string;
+    theme: ServiceControlTheme;
     assetVersions?: { css: string; js: string };
 }
 
 function normalizeBasePath(basePath: string | undefined) {
-    return basePath === "/ws" ? "/ws" : "";
-}
-
-function NetworkInterfaceRows({ interfaces }: { interfaces: string[] }) {
-    if (interfaces.length === 0) {
-        return <NetworkInterfacePlaceholder />;
+    if (typeof basePath !== "string" || basePath === "") {
+        return "";
     }
-    return (
-        <>
-            {interfaces.map((iface) => (
-                <tr key={iface}>
-                    <td style={{ fontSize: "14px", fontWeight: "bold", padding: "2px 2px 2px 12px" }}>{iface}</td>
-                    <td style={{ fontSize: "11px", padding: "2px 2px 2px 12px" }}>
-                        <span className="text-success"><span>0 B/s</span></span>
-                    </td>
-                    <td style={{ fontSize: "11px", padding: "2px 2px 2px 12px" }}>
-                        <span className="text-primary"><span>0 B/s</span></span>
-                    </td>
-                </tr>
-            ))}
-        </>
-    );
+    return basePath === "/ws" ? "/ws" : "";
 }
 
 function dashboardAssetUrl(asset: string, version: string): string {
     return version ? `${asset}?v=${version}` : asset;
 }
 
-function BranchSwitchMenu({ branch }: { branch: string }) {
-    return (
-        <>
-            {branch !== "development" ? (
-                <li><a href="#branchSwitch" data-toggle="modal" data-branch-mode="development" dangerouslySetInnerHTML={{ __html: i18n.t("SWITCH_DEV") }}></a></li>
-            ) : null}
-            {branch !== "master" ? (
-                <li><a href="#branchSwitch" data-toggle="modal" data-branch-mode="master" dangerouslySetInnerHTML={{ __html: i18n.t("SWITCH_MASTER") }}></a></li>
-            ) : null}
-            <li><a href="#branchSwitch" data-toggle="modal" data-branch-mode="other">{i18n.t("BRANCH_OTHER")}</a></li>
-        </>
-    );
-}
-
-export function DashboardPage({ basePath, socketUpgrade = true, locale, menuState, ssrFragments, assetVersions = { css: "", js: "" } }: DashboardPageProps) {
+// The page composes the server-rendered shell and React islands.
+// eslint-disable-next-line complexity
+export function DashboardPage({ basePath, socketUpgrade = true, locale, menuState, ssrFragments, reactClientBundlePath, theme, assetVersions = { css: "", js: "" } }: DashboardPageProps) {
     const config = dashboardConfig();
-    const accountLabel = dashboardAccountLabel(config.username, process.env.QUICKBOX_DEV_SERVER === "1", i18n.t("DEV_ACCOUNT_LABEL"));
     const normalizedBasePath = normalizeBasePath(basePath);
+    const serviceControlLabels = ssrFragments.serviceControlLabels ?? {
+        title: i18n.t("SERVICE_CONTROL_CENTER"),
+        status: i18n.t("SERVICE_STATUS"),
+        restart: i18n.t("RESTART_SERVICES"),
+        enableDisable: i18n.t("ENABLE_DISABLE_SERVICES"),
+        refresh: i18n.t("REFRESH"),
+        enabled: i18n.t("ENABLED"),
+        disabled: i18n.t("DISABLED"),
+        serviceStatusUnconfirmed: i18n.t("SERVICE_STATUS_UNCONFIRMED"),
+        serviceStatusStale: i18n.t("SERVICE_STATUS_STALE"),
+        serviceStatusLastConfirmedTemplate: i18n.t("SERVICE_STATUS_LAST_CONFIRMED", { time: "__SERVICE_STATUS_TIME__" }),
+    };
+    const systemSummaryLabels = {
+        days: i18n.t("DAYS_L"),
+        hours: i18n.t("HOURS_L"),
+        minutes: i18n.t("MINUTES_L"),
+    };
+    const networkInterfacesLoaded = ssrFragments.networkInterfacesLoaded ?? ssrFragments.networkInterfaces.length > 0;
+    const chromeProps: DashboardChromeProps = {
+        locale,
+        config: {
+            username: config.username,
+            version: config.version,
+            branch: config.branch,
+            branchCommit: config.branchCommit,
+            developerLabel: i18n.t("DEV_REPO_TXT", { branch: config.branch }),
+            showDeveloper: config.showDeveloper,
+            hasExternalAuth: config.hasExternalAuth,
+            ssoLogoutUrl: config.ssoLogoutUrl,
+            languages: config.languages,
+            themes: config.themes,
+            bwPages: config.bwPages,
+        },
+        menuState,
+        labels: {
+            language: i18n.t("LANG_SELECT"),
+            theme: i18n.t("THEME_SELECT"),
+            bandwidth: i18n.t("BW_SELECT"),
+            panelConfig: i18n.t("PANEL_CONFIG"),
+            panelReset: i18n.t("PANEL_RESET"),
+            themeChange: i18n.t("THEME_CHANGE_TXT"),
+            cancel: i18n.t("CANCEL"),
+            agree: i18n.t("AGREE"),
+            mainMenu: i18n.t("MAIN_MENU"),
+            pluginMenu: i18n.t("RPLUGIN_MENU"),
+            helpCommands: i18n.t("HELP_COMMANDS"),
+            downloads: i18n.t("DOWNLOADS"),
+            webConsole: i18n.t("WEB_CONSOLE"),
+            quickSystemTips: i18n.t("QUICK_SYSTEM_TIPS"),
+            seedboxCommands: i18n.t("SEEDBOX_COMMANDS"),
+            essentialUserCommands: i18n.t("ESSENTIAL_USER_COMMANDS"),
+            systemUpgrade: i18n.t("SYS_UPGRADE_TXT"),
+            setLanguage: i18n.t("SET_LANG_TXT"),
+            changeInterface: i18n.t("CHANGEINTERFACE_TXT"),
+            cleanMemory: i18n.t("CLEAN_MEM_TXT"),
+            cleanLog: i18n.t("CLEAN_LOG_TXT"),
+            diskTest: i18n.t("DISKTEST_TXT"),
+            appInstall: i18n.t("APP_INSTALL_TXT"),
+            appUninstall: i18n.t("APP_UNINSTALL_TXT"),
+            appUpgrade: i18n.t("APP_UPGRADE_TXT"),
+            changePassword: i18n.t("CHANGEUSERPASS_TXT"),
+            fixDpkg: i18n.t("FIX_DPKG_TXT"),
+            troubleshoot: i18n.t("TROUBLESHOOT_TXT"),
+            restartRtorrent: i18n.t("SCREEN_RTORRNENT_TXT"),
+            switchDev: i18n.t("SWITCH_DEV"),
+            switchMaster: i18n.t("SWITCH_MASTER"),
+            branchOther: i18n.t("BRANCH_OTHER"),
+            branchSwitch: i18n.t("BRANCH_SWITCH"),
+            branchCurrent: i18n.t("BRANCH_CURRENT"),
+            branchTarget: i18n.t("BRANCH_TARGET"),
+            branchLoading: i18n.t("BRANCH_LOADING"),
+            branchListError: i18n.t("BRANCH_LIST_ERROR"),
+            branchWarning: i18n.t("BRANCH_WARNING"),
+            branchLoadFailed: i18n.t("BRANCH_LOAD_FAILED"),
+            branchSelect: i18n.t("BRANCH_SELECT"),
+            branchRetry: i18n.t("BRANCH_RETRY"),
+            branchUpdate: i18n.t("BRANCH_UPDATE"),
+            branchSwitchAction: i18n.t("BRANCH_SWITCH_ACTION"),
+            ssoLogout: i18n.t("SSO_LOGOUT_TXT"),
+            issueReport: i18n.t("ISSUE_REPORT_TXT"),
+        },
+    };
     const runtimeConfig = {
         basePath: normalizedBasePath,
-        socketUpgrade,
         locale,
         locales: VALID_LOCALES,
         serviceKeys: [...serviceMap.keys()],
         messages: {
-            enabled: i18n.t("ENABLED"),
-            disabled: i18n.t("DISABLED"),
-            serviceActionPending: i18n.t("SERVICE_ACTION_PENDING"),
-            refresh: i18n.t("REFRESH"),
             systemResponse: i18n.t("SYSTEM_RESPONSE_TITLE"),
-            serviceStatusUnconfirmed: i18n.t("SERVICE_STATUS_UNCONFIRMED"),
-            serviceStatusStale: i18n.t("SERVICE_STATUS_STALE"),
-            serviceStatusLastConfirmedTemplate: i18n.t("SERVICE_STATUS_LAST_CONFIRMED", { time: "__SERVICE_STATUS_TIME__" }),
-            pluginInstalled: i18n.t("INSTALLED"),
-            pluginUninstalled: i18n.t("UNINSTALLED"),
-            pluginInstalling: i18n.t("INSTALLING"),
-            pluginUninstalling: i18n.t("UNINSTALLING"),
+            closeRefresh: i18n.t("CLOSE_REFRESH"),
+            close: i18n.t("CLOSE"),
+            ...serviceControlLabels,
         },
+        socketUpgrade,
+        serviceTheme: ssrFragments.serviceControlTheme ?? "defaulted",
+        serviceRows: ssrFragments.serviceControlRows ?? [],
+        systemSummary: ssrFragments.uptimeParts
+            ? { uptime: ssrFragments.uptimeParts, labels: systemSummaryLabels }
+            : undefined,
+        networkInterfaces: ssrFragments.networkInterfaces,
+        networkInterfacesLoaded,
+        chrome: chromeProps,
+        ...(ssrFragments.packageManagementRuntime ? { packageManagement: ssrFragments.packageManagementRuntime } : {}),
     };
 
     return (
@@ -127,362 +190,212 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                 <link rel="icon" type="image/png" href="/img/favicon/favicon-16x16.png" sizes="16x16" />
                 <link rel="manifest" href="/img/favicon/manifest.json" />
                 <link rel="mask-icon" href="/img/favicon/safari-pinned-tab.svg" color="#5bbad5" />
-                <link rel="stylesheet" href="/lib/jquery-ui/jquery-ui.min.css" />
-                <link rel="stylesheet" href="/lib/jquery-toggles/toggles-full.css" />
                 <link rel="stylesheet" href="/lib/jquery-gritter/css/jquery.gritter.css" />
-                <link rel="stylesheet" href="/lib/datatables/css/dataTables.bootstrap.min.css" />
-                <link rel="stylesheet" href="/lib/perfect-scrollbar/css/perfect-scrollbar.min.css" />
+                <link rel="stylesheet" href={dashboardAssetUrl("/css/dashboard.css", assetVersions.css)} />
                 <link rel="stylesheet" href="/lib/animate.css/animate.min.css" />
                 <link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css" />
-                <link rel="stylesheet" href="/lib/lobipanel/css/lobipanel.min.css" />
-                <link rel="stylesheet" href="/skins/quick.css" />
-                {/* Page-level rules live in setup/dashboard/css/dashboard.css: a
-                    real stylesheet the browser caches and editors lint as CSS. */}
-                <link rel="stylesheet" href={dashboardAssetUrl("/css/dashboard.css", assetVersions.css)} />
+                <link rel="stylesheet" href="/css/dashboard-foundation.css" />
+                <link rel="stylesheet" href={`/css/dashboard-theme-${theme}.css`} />
+                <link rel="stylesheet" href="/css/react-service-control.css" />
+                <link rel="stylesheet" href="/css/react-package-management.css" />
+                <link rel="stylesheet" href="/css/react-system-response.css" />
+                <link rel="stylesheet" href="/css/react-dashboard-chrome.css" />
+                <style dangerouslySetInnerHTML={{ __html: `
+@keyframes qb-shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+.qb-skeleton {
+    background: linear-gradient(90deg, rgba(128,128,128,0.12) 25%, rgba(128,128,128,0.24) 50%, rgba(128,128,128,0.12) 75%);
+    background-size: 800px 100%;
+    animation: qb-shimmer 1.5s ease-in-out infinite;
+    border-radius: 3px;
+}
+.qb-skeleton-progress {
+    height: 18px;
+    border-radius: 9px;
+}
+.qb-skeleton-btn {
+    height: 26px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+.qb-skeleton-circle {
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+#quickbox-alert-modal .modal-dialog {
+    width: 600px;
+    max-width: calc(100vw - 30px);
+}
+#quickbox-alert-modal .modal-header {
+    align-items: center;
+    display: flex;
+    min-height: 48px;
+    padding: 8px 12px 8px 20px;
+}
+#quickbox-alert-modal .modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 32px;
+}
+#quickbox-alert-modal .quickbox-modal-close {
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    color: #69707a;
+    flex: 0 0 32px;
+    font-size: 22px;
+    height: 32px;
+    line-height: 30px;
+    margin-left: auto;
+    opacity: .65;
+    padding: 0;
+    text-align: center;
+    width: 32px;
+}
+#quickbox-alert-modal .quickbox-modal-close:hover,
+#quickbox-alert-modal .quickbox-modal-close:focus {
+    background: rgba(0, 0, 0, .08);
+    color: #111;
+    opacity: 1;
+    outline: 0;
+}
+#quickbox-alert-modal .modal-footer {
+    padding: 12px 20px;
+}
+#quickbox-alert-modal .modal-footer .btn {
+    min-width: 88px;
+}
+` }} />
                 <script src="/lib/jquery/jquery.min.js"></script>
                 <script dangerouslySetInnerHTML={{ __html: `window.quickboxRuntime = ${serializeJsonForScript(runtimeConfig)};` }} />
             </head>
-            <body className="body">
-                <header>
-                    <div className="headerpanel">
-                        <div className="logopanel">
-                            <h2>
-                                <a href="#"><img src="/img/logo-light.png" alt="QuickBox Seedbox" className="logo-image" width="222" height="50" /></a>
-                            </h2>
-                        </div>
-                        <div className="headerbar">
-                            <a id="menuToggle" className="menutoggle"><i className="fa fa-bars"></i></a>
-                            <div className="header-right">
-                                <ul className="headermenu">
-                                    {config.showDeveloper ? (
-                                        <li className="header-branch">
-                                            <span className="label label-warning" title={i18n.t("DEV_REPO_TXT", { branch: config.branch })}>
-                                                <span className="header-branch-description">{i18n.t("DEV_REPO_TXT", { branch: config.branch })}</span>
-                                                <span className="header-branch-name">{config.branch}</span>
-                                            </span>
-                                        </li>
-                                    ) : null}
-                                    <li>
-                                        <div id="noticePanel" className="btn-group">
-                                            <button className="btn" data-toggle="dropdown" aria-label="QuickBox Lite Menu">
-                                                <i className="fa fa-menu"></i> <span className="header-menu-full">QuickBox Lite Menu</span><span className="header-menu-short">QuickBox</span> <span className="caret"></span>
-                                            </button>
-                                            <div id="noticeDropdown" className="dropdown-menu dm-notice pull-right">
-                                                <div role="tabpanel">
-                                                    <ul className="nav nav-tabs nav-justified" role="tablist">
-                                                        <li className="active"><a data-target="#quickplus" data-toggle="tab">QuickBox+</a></li>
-                                                        <li><a data-target="#dashadjust" data-toggle="tab">Dashboard</a></li>
-                                                        <li><a data-target="#configure" data-toggle="tab">Config</a></li>
-                                                    </ul>
-                                                    <div className="tab-content">
-                                                        <div role="tabpanel" className="tab-pane active" id="quickplus">
-                                                            <ul className="list-group">
-                                                                <li className="list-group-item">
-                                                                    <h5>QuickBox :: <span style={{ color: "#fff", textShadow: "0px 0px 6px #fff" }}>{config.version}</span></h5>
-                                                                    <small><a href="https://github.com/amefs/quickbox-lite/blob/master/README.md" target="_blank" rel="noopener noreferrer">README.md</a></small>
-                                                                    <small><a href={`https://github.com/amefs/quickbox-lite/blob/master/CHANGELOG.md#changelog-${config.version}`} target="_blank" rel="noopener noreferrer">CHANGELOG</a></small>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                        <div role="tabpanel" className="tab-pane" id="dashadjust">
-                                                            <ul className="list-group">
-                                                                <li className="list-group-item">
-                                                                    <div className="row">
-                                                                        <div className="col-xs-12">
-                                                                            <div className="col-xs-12 col-md-6" style={{ padding: 0 }}>
-                                                                                <h5>{i18n.t("LANG_SELECT")}</h5>
-                                                                                <div id="node-language-options"></div>
-                                                                            </div>
-                                                                            <div className="col-xs-12 col-md-6" style={{ padding: 0 }}>
-                                                                                <h5>{i18n.t("THEME_SELECT")}</h5>
-                                                                                <div id="node-theme-options"></div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                        <div role="tabpanel" className="tab-pane" id="configure">
-                                                            <ul className="list-group">
-                                                                <li className="list-group-item">
-                                                                    <div className="row">
-                                                                        <div className="col-xs-12">
-                                                                            <div className="col-xs-12 col-md-6" style={{ padding: 0 }}>
-                                                                                <h5>{i18n.t("BW_SELECT")}</h5>
-                                                                                <div id="node-bw-page-options"></div>
-                                                                            </div>
-                                                                            <div className="col-xs-12 col-md-6" style={{ padding: 0 }}>
-                                                                                <h5>{i18n.t("PANEL_CONFIG")}</h5>
-                                                                                <small><div id="node-panel-reset" style={{ cursor: "pointer" }}>{i18n.t("PANEL_RESET")}</div></small>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
+            <body className="body" data-theme={theme}>
+                <div className="dashboard-layout">
+                    <header id="quickbox-header-root"><DashboardHeader props={chromeProps} /></header>
+                    <section>
+                        <div id="quickbox-sidebar-root" className="leftpanel ps"><DashboardSidebar props={chromeProps} /></div>
+                        <div className="mainpanel">
+                            <div className="contentpanel">
+                                <div id="running_task_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.runningTaskHtml }}></div>
+                                <div className="row">
+                                    <div className="col-md-8" data-inner-id="left-panel-container">
+                                        <div className="panel panel-main panel-inverse" data-inner-id="panel-server-bandwidth-interface">
+                                            <div className="panel-heading">
+                                                <h4 className="panel-title">{i18n.t("BANDWIDTH_DATA")}</h4>
+                                            </div>
+                                            <div className="row panel-footer panel-statistics" style={{ padding: 0 }}>
+                                                <div className="col-md-12">
+                                                    <div className="table-responsive">
+                                                        <table className="table table-hover table-bordered nomargin">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("NETWORK")}</th>
+                                                                    <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("UPLOAD")}</th>
+                                                                    <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("DOWNLOAD")}</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody id="node-network-interface-rows">
+                                                                <NetworkInterfaceRows
+                                                                    interfaces={ssrFragments.networkInterfaces}
+                                                                    loaded={networkInterfacesLoaded}
+                                                                    rates={Object.fromEntries(ssrFragments.networkInterfaces.map((iface) => [iface, { tx: "0 B/s", rx: "0 B/s" }]))}
+                                                                />
+                                                            </tbody>
+                                                        </table>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </li>
-                                    <li className="header-account">
-                                        <div className="btn-group">
-                                            <button type="button" className="btn btn-logged" data-toggle="dropdown">
-                                                <span className="header-username" title={accountLabel}>{accountLabel}</span>
-                                                <span className="caret"></span>
-                                            </button>
-                                            <ul className="dropdown-menu pull-right">
-                                                <BranchSwitchMenu branch={config.branch} />
-                                                {config.hasExternalAuth ? (
-                                                    <li>
-                                                        <a href={`/logout?url=${encodeURIComponent(config.ssoLogoutUrl || "/")}`}>
-                                                            <i className="fa fa-sign-out text-warning"></i>{i18n.t("SSO_LOGOUT_TXT")}
-                                                        </a>
-                                                    </li>
-                                                ) : null}
-                                                <li style={{ borderTop: "1px solid #444" }}>
-                                                    <a href="https://github.com/amefs/quickbox-lite/issues/new" target="_blank" rel="noopener noreferrer"><i className="fa fa-warning text-warning"></i>{i18n.t("ISSUE_REPORT_TXT")}</a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </header>
-                <section className="dashboard-layout">
-                    <div className="leftpanel ps">
-                        <div className="leftpanelinner">
-                            <ul className="nav nav-tabs nav-justified nav-sidebar">
-                                <li className="tooltips active" data-toggle="tooltip" title={i18n.t("MAIN_MENU")} data-placement="bottom"><a data-toggle="tab" data-target="#mainmenu"><i className="tooltips fa fa-ellipsis-h"></i></a></li>
-                                <li id="node-plugin-tab" className="tooltips" data-toggle="tooltip" title={i18n.t("RPLUGIN_MENU")} data-placement="bottom" style={menuState.showPluginTab ? undefined : { display: "none" }}><a data-toggle="tab" data-target="#plugins"><i className="tooltips fa fa-puzzle-piece"></i></a></li>
-                                <li className="tooltips" data-toggle="tooltip" title={i18n.t("HELP_COMMANDS")} data-placement="bottom"><a data-toggle="tab" data-target="#help"><i className="tooltips fa fa-question-circle"></i></a></li>
-                            </ul>
-                            <div className="tab-content">
-                                <div className="tab-pane active" id="mainmenu">
-                                    <h5 className="sidebar-title">{i18n.t("MAIN_MENU")}</h5>
-                                    <ul className="nav nav-pills nav-stacked nav-quirk">
-                                        <DashboardMenu menuState={menuState} />
-                                    </ul>
-                                </div>
-                                <div className="tab-pane" id="plugins">
-                                    <h5 className="sidebar-title">{i18n.t("PLUGIN_MENU")}</h5>
-                                    <ul className="nav nav-pills nav-stacked nav-quirk">
-                                        <li className="nav-parent nav-active">
-                                            <a href="#"><i className="fa fa-puzzle-piece"></i> <span>{i18n.t("PLUGINS")}</span></a>
-                                            <ul id="node-plugin-list" className="children">
-                                                <li className="info-quote"><p className="info-quote">{i18n.t("PMENU_NOTICE_TXT")}</p></li>
-                                                <RutorrentPluginList plugins={menuState.rutorrentPlugins} />
-                                            </ul>
-                                        </li>
-                                    </ul>
-                                </div>
-                                <div className="tab-pane" id="help">
-                                    <h5 className="sidebar-title">{i18n.t("QUICK_SYSTEM_TIPS")}</h5>
-                                    <ul className="nav nav-pills nav-stacked nav-quirk nav-mail">
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box update quickbox</span><br /><small>{i18n.t("SYS_UPGRADE_TXT")}</small></li>
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box lang COUNTRYCODE</span><br /><small>{i18n.t("SET_LANG_TXT")}</small></li>
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box set interface</span><br /><small>{i18n.t("CHANGEINTERFACE_TXT")}</small></li>
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box clean mem</span><br /><small>{i18n.t("CLEAN_MEM_TXT")}</small></li>
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box clean log</span><br /><small>{i18n.t("CLEAN_LOG_TXT")}</small></li>
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box iotest</span><br /><small>{i18n.t("DISKTEST_TXT")}</small></li>
-                                    </ul>
-                                    <h5 className="sidebar-title">{i18n.t("SEEDBOX_COMMANDS")}</h5>
-                                    <ul className="nav nav-pills nav-stacked nav-quirk nav-mail">
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box install APPNAME</span><br /><small>{i18n.t("APP_INSTALL_TXT")}</small></li>
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box remove APPNAME</span><br /><small>{i18n.t("APP_UNINSTALL_TXT")}</small></li>
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box update APPNAME</span><br /><small>{i18n.t("APP_UPGRADE_TXT")}</small></li>
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box set password</span><br /><small>{i18n.t("CHANGEUSERPASS_TXT")}</small></li>
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box fix dpkg</span><br /><small>{i18n.t("FIX_DPKG_TXT")}</small></li>
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>box troubleshoot</span><br /><small>{i18n.t("TROUBLESHOOT_TXT")}</small></li>
-                                    </ul>
-                                    <h5 className="sidebar-title">{i18n.t("ESSENTIAL_USER_COMMANDS")}</h5>
-                                    <ul className="nav nav-pills nav-stacked nav-quirk nav-mail">
-                                        <li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>systemctl restart rtorrent@{config.username}.service</span><br /><small>{i18n.t("SCREEN_RTORRNENT_TXT")}</small></li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mainpanel">
-                        <div className="contentpanel">
-                            <div id="running_task_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.runningTaskHtml }}></div>
-                            <div className="row">
-                                <div className="col-sm-8" data-inner-id="left-panel-container">
-                                    <div className="panel panel-main panel-inverse" data-inner-id="panel-server-bandwidth-interface">
-                                        <div className="panel-heading">
-                                            <h4 className="panel-title">{i18n.t("BANDWIDTH_DATA")}</h4>
-                                        </div>
-                                        <div className="row panel-footer panel-statistics" style={{ padding: 0 }}>
-                                            <div className="col-md-12">
-                                                <div className="table-responsive">
-                                                    <table className="table table-hover table-bordered nomargin">
-                                                        <thead>
-                                                            <tr>
-                                                                <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("NETWORK")}</th>
-                                                                <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("UPLOAD")}</th>
-                                                                <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{i18n.t("DOWNLOAD")}</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody id="node-network-interface-rows">
-                                                            <NetworkInterfaceRows interfaces={ssrFragments.networkInterfaces} />
-                                                        </tbody>
-                                                    </table>
+                                        <div className="panel panel-inverse" data-inner-id="panel-server-bandwidth-details">
+                                            <div className="panel-heading">
+                                                <h4 className="panel-title">{i18n.t("VIEW_ADDITIONAL_BANDWIDTH_DETAILS")}</h4>
+                                            </div>
+                                            <div className="panel-body" style={{ padding: 0 }}>
+                                                <div className="row" style={{ padding: 0, margin: 0 }}>
+                                                    <div id="bw_tables" style={{ padding: 0, margin: 0 }}>
+                                                        <BandwidthTablesRoot data={null} />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+                                        {ssrFragments.serviceControlHtml === "" ? (
+                                            <div id="service_control_widget"><ServiceControlPlaceholder /></div>
+                                        ) : (
+                                            <div id="service_control_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.serviceControlHtml }}></div>
+                                        )}
+                                        {ssrFragments.packageManagementCenterHtml === "" ? (
+                                            <div id="pmc_widget"><PackageManagementPlaceholder /></div>
+                                        ) : (
+                                            <div id="pmc_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.packageManagementCenterHtml }}></div>
+                                        )}
                                     </div>
-                                    <div className="panel panel-inverse" data-inner-id="panel-server-bandwidth-details">
-                                        <div className="panel-heading">
-                                            <h4 className="panel-title">{i18n.t("VIEW_ADDITIONAL_BANDWIDTH_DETAILS")}</h4>
-                                        </div>
-                                        <div className="panel-body" style={{ padding: 0 }}>
-                                            <div className="row" style={{ padding: 0, margin: 0 }}>
-                                                <div id="bw_tables" style={{ padding: 0, margin: 0 }}>
-                                                    <div id="bw_tables_loading"><BandwidthTablePlaceholder /></div>
+                                    <div className="col-md-4 dash-right" data-inner-id="right-panel-container">
+                                        <div className="panel panel-side panel-inverse-full panel-updates" data-inner-id="panel-server-load">
+                                            <div className="panel-heading"><h4 className="panel-title text-success">{i18n.t("SERVER_LOAD")}</h4></div>
+                                            <div className="panel-body">
+                                                <div className="row qb-panel-split">
+                                                    <div className="col-sm-9 qb-panel-main">
+                                                        <h4><span id="cpuload" dangerouslySetInnerHTML={ssrFragments.loadHtml ? { __html: ssrFragments.loadHtml } : undefined}>{ssrFragments.loadHtml ? undefined : <SystemLoadValue text={null} />}</span></h4>
+                                                        <p>{i18n.t("SL_TXT")}</p>
+                                                    </div>
+                                                    <div className="col-sm-3 text-right qb-panel-icon"><i className="fa fa-heartbeat text-danger"></i></div>
+                                                </div>
+                                                <div className="row">
+                                                    <div className="col-sm-12 mt20 text-center qb-uptime">
+                                                        <strong>{i18n.t("UPTIME")}:</strong> <span id="uptime" dangerouslySetInnerHTML={ssrFragments.uptimeHtml ? { __html: ssrFragments.uptimeHtml } : undefined}>{ssrFragments.uptimeHtml ? undefined : ssrFragments.uptimeParts ? <UptimeValue parts={ssrFragments.uptimeParts} labels={systemSummaryLabels} /> : <UptimePlaceholder />}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    {ssrFragments.serviceControlHtml === "" ? (
-                                        <div id="service_control_widget"><ServiceControlPlaceholder /></div>
-                                    ) : (
-                                        <div id="service_control_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.serviceControlHtml }}></div>
-                                    )}
-                                    {ssrFragments.packageManagementCenterHtml === "" ? (
-                                        <div id="pmc_widget"><PackageManagementPlaceholder /></div>
-                                    ) : (
-                                        <div id="pmc_widget" dangerouslySetInnerHTML={{ __html: ssrFragments.packageManagementCenterHtml }}></div>
-                                    )}
-                                </div>
-                                <div className="col-sm-4 dash-right" data-inner-id="right-panel-container">
-                                    <div className="panel panel-side panel-inverse-full panel-updates" data-inner-id="panel-server-load">
-                                        <div className="panel-heading"><h4 className="panel-title text-success">{i18n.t("SERVER_LOAD")}</h4></div>
-                                        <div className="panel-body">
-                                            <div className="row qb-panel-split">
-                                                <div className="col-sm-9 qb-panel-main">
-                                                    <h4><span id="cpuload" dangerouslySetInnerHTML={ssrFragments.loadHtml ? { __html: ssrFragments.loadHtml } : undefined}>{ssrFragments.loadHtml ? undefined : <SystemLoadPlaceholder />}</span></h4>
-                                                    <p>{i18n.t("SL_TXT")}</p>
-                                                </div>
-                                                <div className="col-sm-3 text-right qb-panel-icon"><i className="fa fa-heartbeat text-danger"></i></div>
-                                            </div>
-                                            <div className="mt20 text-center qb-uptime">
-                                                <strong>{i18n.t("UPTIME")}:</strong> <span id="uptime" dangerouslySetInnerHTML={ssrFragments.uptimeHtml ? { __html: ssrFragments.uptimeHtml } : undefined}>{ssrFragments.uptimeHtml ? undefined : <UptimePlaceholder />}</span>
+                                        <div className="panel panel-side panel-inverse" data-inner-id="panel-server-cpu">
+                                            <div className="panel-heading"><h4 className="panel-title">{i18n.t("CPU_STATUS")}</h4></div>
+                                            <div className="panel-body" style={{ overflow: "hidden" }}>
+                                                <span id="node-cpu-static" className="nomargin" style={{ fontSize: "14px" }} dangerouslySetInnerHTML={ssrFragments.cpuStaticHtml ? { __html: ssrFragments.cpuStaticHtml } : undefined}>{ssrFragments.cpuStaticHtml ? undefined : <CpuStatusValue data={null} />}</span>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="panel panel-side panel-inverse" data-inner-id="panel-server-cpu">
-                                        <div className="panel-heading"><h4 className="panel-title">{i18n.t("CPU_STATUS")}</h4></div>
-                                        <div className="panel-body" style={{ overflow: "hidden" }}>
-                                            <span id="node-cpu-static" className="nomargin" style={{ fontSize: "14px" }} dangerouslySetInnerHTML={ssrFragments.cpuStaticHtml ? { __html: ssrFragments.cpuStaticHtml } : undefined}>{ssrFragments.cpuStaticHtml ? undefined : <CpuStatusPlaceholder />}</span>
+                                        <div className="panel panel-side panel-inverse" data-inner-id="panel-server-disk">
+                                            <div className="panel-heading"><h4 className="panel-title">{i18n.t("YOUR_DISK_STATUS")}</h4></div>
+                                            <div className="panel-body"><div id="disk_data" dangerouslySetInnerHTML={ssrFragments.diskDataHtml ? { __html: ssrFragments.diskDataHtml } : undefined}>{ssrFragments.diskDataHtml ? undefined : <DiskDataRoot data={null} />}</div></div>
                                         </div>
-                                    </div>
-                                    <div className="panel panel-side panel-inverse" data-inner-id="panel-server-disk">
-                                        <div className="panel-heading"><h4 className="panel-title">{i18n.t("YOUR_DISK_STATUS")}</h4></div>
-                                        <div className="panel-body"><div id="disk_data" dangerouslySetInnerHTML={ssrFragments.diskDataHtml ? { __html: ssrFragments.diskDataHtml } : undefined}>{ssrFragments.diskDataHtml ? undefined : <DiskStatusPlaceholder />}</div></div>
-                                    </div>
-                                    <div className="panel panel-side panel-inverse" data-inner-id="panel-server-ram">
-                                        <div className="panel-heading"><h4 className="panel-title">{i18n.t("SYSTEM_RAM_STATUS")}</h4></div>
-                                        <div className="panel-body"><div id="meterram" dangerouslySetInnerHTML={ssrFragments.ramStatsHtml ? { __html: ssrFragments.ramStatsHtml } : undefined}>{ssrFragments.ramStatsHtml ? undefined : <MemoryStatusPlaceholder />}</div></div>
-                                    </div>
-                                    <div className="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
-                                        <div className="panel-heading">
-                                            <h4 className="panel-title text-success">
-                                                {i18n.t("RECENT_UPDATES")}{" "}
-                                                <a href={`https://github.com/amefs/quickbox-lite/blob/${config.branch}/CHANGELOG.md#changelog-${config.version.replaceAll(".", "")}`} title={i18n.t("CURRENT_VERSIONS_CHANGELOG")} data-placement="top" className="label label-primary tooltips" style={{ fontSize: "10px", paddingTop: 0, paddingBottom: "0px", top: "-2px", position: "relative" }} target="_blank" rel="noopener noreferrer">
-                                                    QuickBox :: <span style={{ color: "#fff", textShadow: "0px 0px 6px #fff" }}>{config.version}</span>
-                                                </a>
-                                            </h4>
+                                        <div className="panel panel-side panel-inverse" data-inner-id="panel-server-ram">
+                                            <div className="panel-heading"><h4 className="panel-title">{i18n.t("SYSTEM_RAM_STATUS")}</h4></div>
+                                            <div className="panel-body"><div id="meterram" dangerouslySetInnerHTML={ssrFragments.ramStatsHtml ? { __html: ssrFragments.ramStatsHtml } : undefined}>{ssrFragments.ramStatsHtml ? undefined : <MemoryStatsRoot data={null} />}</div></div>
                                         </div>
-                                        <div className="panel-body ps" style={{ maxHeight: "350px", padding: 0 }}>
-                                            <div id="activityfeed"></div>
-                                        </div>
-                                        <div className="panel-footer">
-                                            <button data-click-handler="boxHandler" data-package="quickbox --only-core" data-operation="update" data-toggle="modal" data-target="#sysResponse" className="btn btn-success btn-quirk btn-block">
-                                                <i className="fa fa-bell text-success"></i> {i18n.t("UPDATE")}
-                                            </button>
+                                        <div className="panel panel-inverse" id="project-commits" data-inner-id="panel-server-update">
+                                            <div className="panel-heading">
+                                                <h4 className="panel-title text-success">
+                                                    {i18n.t("RECENT_UPDATES")}{" "}
+                                                    <a href={`https://github.com/amefs/quickbox-lite/blob/${config.branch}/CHANGELOG.md#changelog-${config.version.replaceAll(".", "")}`} title={i18n.t("CURRENT_VERSIONS_CHANGELOG")} data-placement="top" className="label label-primary tooltips" style={{ fontSize: "10px", paddingTop: 0, paddingBottom: "0px", top: "-2px", position: "relative" }} target="_blank" rel="noopener noreferrer">
+                                                        QuickBox :: <span style={{ color: "#fff", textShadow: "0px 0px 6px #fff" }}>{config.version}</span>
+                                                    </a>
+                                                </h4>
+                                            </div>
+                                            <div className="panel-body ps" style={{ maxHeight: "350px", padding: 0 }}>
+                                                <div id="activityfeed"></div>
+                                            </div>
+                                            <div className="panel-footer">
+                                                <button data-click-handler="boxHandler" data-package="quickbox --only-core" data-operation="update" data-toggle="modal" data-target="#sysResponse" className="btn btn-success btn-quirk btn-block">
+                                                    <i className="fa fa-bell text-success"></i> {i18n.t("UPDATE")}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <RemovalModals />
-                    <div className="modal animate__bounceIn animate__animated" id="themeSelectdefaultedConfirm" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="ThemeSelectdefaultedConfirm">
-                        <div className="modal-dialog">
-                            <div className="modal-content">
-                                <div className="modal-header"><button type="button" className="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 className="modal-title" id="ThemeSelectdefaultedConfirm">Defaulted</h4></div>
-                                <div className="modal-body">{i18n.t("THEME_CHANGE_TXT")}</div>
-                                <div className="modal-footer"><button type="button" className="btn btn-default" data-dismiss="modal">{i18n.t("CANCEL")}</button><button type="button" data-theme="defaulted" data-click-handler="themeSelect" id="themeSelectdefaultedGo" className="btn btn-primary">{i18n.t("AGREE")}</button></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="modal animate__bounceIn animate__animated" id="themeSelectsmokedConfirm" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="ThemeSelectsmokedConfirm">
-                        <div className="modal-dialog">
-                            <div className="modal-content">
-                                <div className="modal-header"><button type="button" className="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 className="modal-title" id="ThemeSelectsmokedConfirm">Smoked</h4></div>
-                                <div className="modal-body">{i18n.t("THEME_CHANGE_TXT")}</div>
-                                <div className="modal-footer"><button type="button" className="btn btn-default" data-dismiss="modal">{i18n.t("CANCEL")}</button><button type="button" data-theme="smoked" data-click-handler="themeSelect" id="themeSelectsmokedGo" className="btn btn-primary">{i18n.t("AGREE")}</button></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="modal animate__bounceIn animate__animated" id="taskAbortConfirm" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="taskAbortConfirmTitle">
-                        <div className="modal-dialog">
-                            <div className="modal-content">
-                                <div className="modal-header"><button type="button" className="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 className="modal-title" id="taskAbortConfirmTitle">{i18n.t("TASK_ABORT_CONFIRM_TITLE")}</h4></div>
-                                <div className="modal-body" dangerouslySetInnerHTML={{ __html: i18n.t("TASK_ABORT_CONFIRM_TXT") }} />
-                                <div className="modal-footer"><button type="button" className="btn btn-default" data-dismiss="modal">{i18n.t("CANCEL")}</button><button type="button" data-click-handler="boxHandler" data-package="" data-operation="abort" data-dismiss="modal" id="taskAbortConfirmGo" className="btn btn-danger">{i18n.t("AGREE")}</button></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="modal" id="branchSwitch" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="branchSwitchTitle">
-                        <div className="modal-dialog"><div className="modal-content">
-                            <div className="modal-header"><h4 className="modal-title" id="branchSwitchTitle">{i18n.t("BRANCH_SWITCH")}</h4><button type="button" className="close" data-dismiss="modal" aria-label={i18n.t("CLOSE")}>×</button></div>
-                            <div className="modal-body">
-                                <div className="branch-current"><div className="branch-label">{i18n.t("BRANCH_CURRENT")}</div><div className="branch-value">{config.branch}{config.branchCommit ? <span className="branch-commit">{" "}{config.branchCommit.slice(0, 12)}</span> : null}</div></div>
-                                <div className="branch-label" id="branchTargetLabel">{i18n.t("BRANCH_TARGET")}</div>
-                                <div id="branchFixedTarget" className="branch-value" hidden></div>
-                                <div id="branchSelectContainer" className="branch-select"><select id="branchTarget" aria-labelledby="branchTargetLabel" data-current={config.branch} data-loading={i18n.t("BRANCH_LOADING")} data-failed={i18n.t("BRANCH_LOAD_FAILED")} data-select={i18n.t("BRANCH_SELECT")} className="form-control input-sm" disabled><option>{i18n.t("BRANCH_LOADING")}</option></select></div>
-                                <p id="branchError" className="text-danger" role="alert" hidden>{i18n.t("BRANCH_LIST_ERROR")} <button type="button" id="branchRetry" className="btn btn-link">{i18n.t("BRANCH_RETRY")}</button></p>
-                                <p className="branch-warning">{i18n.t("BRANCH_WARNING")}</p>
-                            </div>
-                            <div className="modal-footer"><button type="button" className="btn btn-default" data-dismiss="modal">{i18n.t("CANCEL")}</button><button type="button" id="branchSwitchGo" data-update={i18n.t("BRANCH_UPDATE")} data-switch={i18n.t("BRANCH_SWITCH_ACTION")} className="btn btn-primary" disabled>{i18n.t("BRANCH_SWITCH_ACTION")}</button></div>
-                        </div></div>
-                    </div>
-                    <div className="modal" id="sysResponse" tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sysResponseTitle" data-backdrop="static" data-keyboard="false">
-                        <div className="modal-dialog">
-                            <div className="modal-content">
-                                <div className="modal-header">
-                                    <h4 className="modal-title" id="sysResponseTitle">{i18n.t("SYSTEM_RESPONSE_TITLE")}</h4>
-                                    <button type="button" className="close" id="sysResponseDismiss" aria-label={i18n.t("CLOSE")}><span aria-hidden="true">&times;</span></button>
-                                </div>
-                                <div className="modal-body" id="sysPre">
-                                    <pre className="sysout"><span id="sshoutput"></span></pre>
-                                </div>
-                                <div className="modal-footer">
-                                    <button type="button" id="sysResponseCloseAction" className="btn btn-primary">{i18n.t("CLOSE_REFRESH")}</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <script src="/lib/jquery-ui/jquery-ui.min.js"></script>
-                <script src="/lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js"></script>
-                <script src="/lib/bootstrap/js/bootstrap.min.js"></script>
-                <script src="/lib/perfect-scrollbar/js/perfect-scrollbar.min.js"></script>
+                        <div id="quickbox-system-response-root" />
+                    </section>
+                </div>
                 <script src="/lib/visibility/visibility.fallback.js"></script>
                 <script src="/lib/visibility/visibility.core.js"></script>
                 <script src="/lib/visibility/visibility.timers.js"></script>
                 <script src="/lib/socket.io/socket.io.min.js"></script>
                 <script src="/lib/ansi_up/ansi_up.min.js"></script>
                 <script src="/lib/lazysizes/lazysizes.min.js" async></script>
-                <script src="/js/quick.js"></script>
-                <script src={dashboardAssetUrl("/js/dashboard.js", assetVersions.js)}></script>
-                <script src="/lib/lobipanel/js/lobipanel.min.js"></script>
-                <script src="/lib/jquery-toggles/toggles.min.js"></script>
-                <script src="/lib/datatables/js/jquery.dataTables.min.js"></script>
-                <script src="/lib/datatables/js/dataTables.bootstrap.min.js"></script>
+                <script type="module" src={reactClientBundlePath}></script>
+                <script type="module" src={dashboardAssetUrl("/js/dashboard.js", assetVersions.js)}></script>
             </body>
         </html>
     );

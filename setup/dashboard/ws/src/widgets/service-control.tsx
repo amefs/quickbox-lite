@@ -2,9 +2,22 @@ import React from "react";
 import ReactDOMServer from "react-dom/server";
 
 import i18n from "../i18n";
+import type { ServiceRow } from "../shared/service-control-contract";
 import { getInstalledPackagesWithServices, isServiceEnabled } from "./panels";
 import { renderServiceBadge } from "./service-status";
 import { getServiceSnapshot } from "./service-state";
+
+export function getServiceControlRows(): ServiceRow[] {
+    return getInstalledPackagesWithServices().flatMap((pkg) =>
+        Object.entries(pkg.services ?? {}).map(([id, info]) => ({
+            id,
+            name: info.name,
+            enabledAtBoot: isServiceEnabled(id, info.username),
+            ...(info.tooltips === undefined ? {} : { tooltip: info.tooltips }),
+            ...(info.tooltipsicon === undefined ? {} : { tooltipIcon: info.tooltipsicon }),
+        })),
+    );
+}
 
 function renderServiceToggle(service: string, username: string) {
     const enabled = isServiceEnabled(service, username);

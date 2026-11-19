@@ -27,10 +27,13 @@
 }
 .header-branch .label {
     display: block;
+    max-width: min(280px, 24vw);
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.5;
+    white-space: nowrap;
 }
+.header-branch-description { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .header-branch-name, .header-menu-short {
     display: none;
 }
@@ -65,12 +68,12 @@
     .headerbar .headermenu > .header-branch {
         padding: 0 4px;
     }
+    .header-branch .label { max-width: min(100px, 25vw); }
     .header-branch-description, .header-menu-full {
         display: none;
     }
-    .header-branch-name, .header-menu-short {
-        display: inline;
-    }
+    .header-branch-name { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+    .header-menu-short { display: inline; }
     .headermenu #noticeDropdown {
         position: fixed;
         top: 64px;
@@ -105,7 +108,7 @@
 }
 /* Side panels: text and decorative icon share one flex row so the icon can
    never squeeze or overlap the text when the right column gets narrow. */
-.qb-panel-split {
+.row.qb-panel-split {
     display: flex;
     align-items: flex-start;
     flex-wrap: nowrap;

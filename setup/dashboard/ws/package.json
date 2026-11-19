@@ -4,7 +4,7 @@
   "description": "QuickBox Status Update WebSocket Interface",
   "main": "dist/server.js",
   "scripts": {
-    "build": "vite build --config build/vite.config.mjs",
+    "build": "vite build --config build/vite.config.mjs && vite build --config build/vite.client.config.mjs",
     "test": "cross-env NODE_ENV=test mocha --exit -r tsx --extensions ts 'tests/**/*.{mts,ts}'",
     "check-type": "tsc --noemit",
     "eslint": "eslint .",
@@ -28,7 +28,9 @@
     "socket.io": "^4.8.4",
     "systeminformation": "^5.33.19",
     "which": "^7.0.0",
-    "ws": "^8.22.1"
+    "ws": "^8.22.1",
+    "@ant-design/cssinjs": "2.1.2",
+    "antd": "6.6.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",

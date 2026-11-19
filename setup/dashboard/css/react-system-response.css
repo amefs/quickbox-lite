@@ -1,0 +1,84 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+
+#sysResponse .qb-system-response-content {
+    padding: 0;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, .6);
+    box-shadow: none;
+}
+
+#sysResponse .qb-system-response-header {
+    min-height: 48px;
+    margin: 0;
+    padding: 8px 20px;
+    border: 0;
+    border-radius: 0;
+    background: rgba(0, 0, 0, .4);
+}
+
+#sysResponse .qb-system-response-title {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 32px;
+}
+
+#sysResponse #sysResponseDismiss {
+    color: #fff;
+}
+
+#sysResponse .qb-system-response-body {
+    padding: 15px;
+    overflow: auto;
+    background: rgba(0, 0, 0, .4);
+}
+
+#sysResponse .qb-system-response-footer {
+    margin: 0;
+    padding: 12px 20px;
+    border: 0;
+    border-radius: 0;
+    background: rgba(0, 0, 0, .4);
+}
+
+#sysResponse .qb-system-response-output {
+    max-height: min(600px, calc(100vh - 220px));
+    overflow: auto;
+}
+
+#sysResponse .sysout {
+    margin: 0;
+    color: rgb(83, 223, 131);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+#sysResponseCloseAction {
+    min-width: 88px;
+}
+
+#quickbox-alert-modal .qb-alert-modal-content {
+    border-radius: 4px;
+}
+
+#quickbox-alert-modal .qb-alert-modal-header {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    margin: 0;
+    padding: 8px 20px;
+}
+
+#quickbox-alert-modal .qb-alert-modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 32px;
+}
+
+#quickbox-alert-modal .modal-footer {
+    padding: 12px 20px;
+}
+
+#quickbox-alert-modal .modal-footer .ant-btn {
+    min-width: 88px;
+}

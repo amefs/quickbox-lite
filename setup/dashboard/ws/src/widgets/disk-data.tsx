@@ -1,100 +1,58 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import React from "react";
-import ReactDOMServer from "react-dom/server";
 import { existsSync } from "fs";
 import fs from "fs/promises";
+import React from "react";
+import ReactDOMServer from "react-dom/server";
 
 import { username } from "../shared/constants";
+import type { DiskDataData, DiskFileSystemRow } from "../shared/disk-data-contract";
 import i18n from "../i18n";
 import { getProcessList, processExistsIn, formatSize } from "../utils/helpers";
-import { type FsSizeData, filterDisplayedFileSystems, getFsSize } from "../utils/disk";
+import { filterDisplayedFileSystems, getFsSize } from "../utils/disk";
+import { DiskDataRoot } from "./disk-data-island";
 
-
-function getProgressColor(percent: number) {
+function getProgressColor(percent: number): DiskFileSystemRow["progressClass"] {
     if (percent >= 90) {
         return "progress-bar-danger";
     }
     if (percent >= 70) {
         return "progress-bar-warning";
     }
-
     return "progress-bar-success";
 }
 
-function getDiskClass(percent: number) {
+function getDiskClass(percent: number): DiskFileSystemRow["diskClass"] {
     if (percent >= 90) {
         return "disk-danger";
     }
     if (percent >= 70) {
         return "disk-warning";
     }
-
     return "disk-good";
 }
 
-async function countTorrent(path: string) {
+async function countTorrent(directory: string) {
     try {
-        const fileList = await fs.readdir(path);
+        const fileList = await fs.readdir(directory);
         return fileList.filter((file) => file.endsWith(".torrent")).length;
-    } catch (ex) {
-        console.error("Failed to count torrent", ex);
+    } catch (error) {
+        console.error("Failed to count torrent", error);
         return 0;
     }
 }
 
-async function exists(path: string) {
+async function exists(target: string) {
     try {
-        await fs.access(path, fs.constants.F_OK);
+        await fs.access(target, fs.constants.F_OK);
         return true;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err) {
+    } catch {
         return false;
     }
 }
 
-function renderFileSystem(data: FsSizeData) {
-    const diskcolor = getProgressColor(data.use);
-    const diskclass = getDiskClass(data.use);
-    return (
-        <div key={data.mount}>
-            <div className="row qb-panel-split">
-                <div className="col-sm-8 qb-panel-main">
-                    <h4>{i18n.t("MOUNT_POINT")}</h4>
-                    <p className="qb-mount-point">{data.mount}</p>
-                    <h4>{i18n.t("DISK_SPACE")}</h4>
-                    <p className="nomargin qb-disk-metrics">
-                        <span className="qb-disk-metric">{i18n.t("FREE")}: {formatSize(data.available)}</span>
-                        <span className="qb-disk-metric">{i18n.t("USED")}: {formatSize(data.used)}</span>
-                        <span className="qb-disk-metric">{i18n.t("SIZE")}: {formatSize(data.size)}</span>
-                    </p>
-                    <br/>
-                    <div className="progress">
-                        <div style={{width: `${data.use}%`}} aria-valuemax={100} aria-valuemin={0} aria-valuenow={data.use} role="progressbar" className={`progress-bar ${diskcolor}`}>
-                            <span className="sr-only">{data.use}% {i18n.t("USED")}</span>
-                        </div>
-                    </div>
-                    <p style={{fontSize: "10px"}}>{i18n.t("PERCENTAGE_TXT", {used: data.use})}</p>
-                </div>
-                <div className="col-sm-4 text-right qb-panel-icon">
-                    <i className={`fa fa-hdd-o ${diskclass}`}></i>
-                </div>
-            </div>
-            <hr/>
-        </div>);
-}
-
-async function renderTorrentInfo() {
-    const torrentElement = (key: string, title: string, loaded: number) => (
-        <div key={key}>
-            <h4>{i18n.t(title)}</h4>
-            <p className="nomargin" dangerouslySetInnerHTML={{__html: i18n.t("TORRENTS_LOADED", {loaded})}}></p>
-        </div>
-    );
-
-    const ret: React.JSX.Element[] = [];
+async function torrentData(): Promise<DiskDataData["torrents"]> {
     const processList = await getProcessList();
-
     const checks = [
         {
             key: "rtorrent",
@@ -128,29 +86,45 @@ async function renderTorrentInfo() {
         },
     ];
 
-    const lockChecks = await Promise.all(checks.map(c => exists(c.lock)));
-    const activeClients = checks.filter((c, i) => lockChecks[i] && processExistsIn(processList, c.process, username));
-    const torrentCounts = await Promise.all(activeClients.map(c => countTorrent(c.path)));
+    const lockChecks = await Promise.all(checks.map((check) => exists(check.lock)));
+    const activeClients = checks.filter((check, index) => lockChecks[index] &&
+        processExistsIn(processList, check.process, username));
+    const torrentCounts = await Promise.all(activeClients.map((client) => countTorrent(client.path)));
 
-    for (let i = 0; i < activeClients.length; i++) {
-        ret.push(torrentElement(activeClients[i].key, activeClients[i].title, torrentCounts[i]));
-    }
+    return activeClients.map((client, index) => ({
+        key: client.key,
+        title: i18n.t(client.title),
+        loadedHtml: i18n.t("TORRENTS_LOADED", { loaded: torrentCounts[index] }),
+    }));
+}
 
-    return (
-        <div>
-            {ret}
-        </div>
-    );
+export async function diskDataData(): Promise<DiskDataData> {
+    const fsData = await getFsSize();
+    const filteredFileSystems = filterDisplayedFileSystems(fsData);
+    const fileSystems = filteredFileSystems.map((filesystem) => ({
+        mount: filesystem.mount,
+        used: formatSize(filesystem.used),
+        available: formatSize(filesystem.available),
+        size: formatSize(filesystem.size),
+        percent: filesystem.use,
+        percentText: i18n.t("PERCENTAGE_TXT", { used: filesystem.use }),
+        progressClass: getProgressColor(filesystem.use),
+        diskClass: getDiskClass(filesystem.use),
+    }));
+    const torrents = await torrentData();
+    return {
+        labels: {
+            mountPoint: i18n.t("MOUNT_POINT"),
+            diskSpace: i18n.t("DISK_SPACE"),
+            free: i18n.t("FREE"),
+            used: i18n.t("USED"),
+            size: i18n.t("SIZE"),
+        },
+        fileSystems,
+        torrents,
+    };
 }
 
 export async function diskData() {
-    const fsData = await getFsSize();
-    const filteredFsData = filterDisplayedFileSystems(fsData);
-    
-    return ReactDOMServer.renderToString(
-        <div>
-            {filteredFsData.map(renderFileSystem)}
-            {await renderTorrentInfo()}
-        </div>,
-    );
+    return ReactDOMServer.renderToString(<DiskDataRoot data={await diskDataData()} />);
 }

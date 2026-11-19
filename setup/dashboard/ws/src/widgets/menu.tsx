@@ -5,7 +5,6 @@ import ReactDOMServer from "react-dom/server";
 
 import i18n from "../i18n";
 import { getPackage } from "../info";
-import { getRutorrentPlugins, type RutorrentPlugin } from "../plugins";
 import { username } from "../shared/constants";
 import { getProcessList, processExistsIn } from "../utils/helpers";
 import { isPackageInstalled } from "./panels";
@@ -23,7 +22,6 @@ export interface DashboardMenuState {
     installedDownloadEntries: MenuEntry[];
     showPluginTab: boolean;
     showWebConsole: boolean;
-    rutorrentPlugins: RutorrentPlugin[];
 }
 
 const menuEntries: MenuEntry[] = [
@@ -99,8 +97,6 @@ export async function resolveDashboardMenuState(): Promise<DashboardMenuState> {
         installedDownloadEntries,
         showPluginTab,
         showWebConsole,
-        // The plugin list only matters while the ruTorrent tab is reachable.
-        rutorrentPlugins: showPluginTab ? getRutorrentPlugins() : [],
     };
 }
 

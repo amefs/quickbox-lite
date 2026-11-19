@@ -3,19 +3,21 @@
 import { Socket } from "socket.io";
 
 import Constant from "../shared/constants";
-import { parseLocale, withLocale } from "../i18n";
-import { widgetsLoad } from "../widgets/load";
+import { parseLocale, VALID_LOCALES, withLocale } from "../i18n";
+import { systemLoadData, widgetsLoad } from "../widgets/load";
 import { netStatus } from "../widgets/network-status";
-import { upTime } from "../widgets/up";
-import { diskData } from "../widgets/disk-data";
-import { ramStats } from "../widgets/memory-stats";
+import { getUptimeParts, upTime } from "../widgets/up";
+import { diskData, diskDataData } from "../widgets/disk-data";
+import { ramStats, ramStatsData } from "../widgets/memory-stats";
 import { getIfaceConfig } from "../utils/vnstat";
-import { bwTables } from "../widgets/bandwidth-tables";
-import { serviceStatus, serviceStatusAll } from "../widgets/service-status";
+import { bandwidthTablesData, bwTables } from "../widgets/bandwidth-tables";
+import { serviceStatus, serviceStatusAll, serviceStatusAllData } from "../widgets/service-status";
 import { readOutputLog } from "../widgets/output-log";
-import { serviceControl } from "../widgets/service-control";
-import { packageManagementCenter } from "../widgets/package-management-center";
 import { runningTask } from "../widgets/running-task";
+import { getServiceControlRows, serviceControl } from "../widgets/service-control";
+import { getPackageManagementData, packageManagementCenter } from "../widgets/package-management-center";
+import { parseServiceRequestV2, type ServiceRequestV2 } from "../shared/service-control-contract";
+import { SYSTEM_LOAD_DATA_URL, SYSTEM_UPTIME_DATA_URL } from "../shared/system-summary-contract";
 
 interface Payload {
     key: string;
@@ -29,7 +31,11 @@ interface LocaleSocketData {
 }
 
 function localeData(client: Socket): LocaleSocketData {
-    return client.data as LocaleSocketData;
+    const withData = client as unknown as { data?: LocaleSocketData };
+    if (withData.data === undefined) {
+        withData.data = {};
+    }
+    return withData.data;
 }
 
 export const parseUrl = (url: string) => {
@@ -54,67 +60,102 @@ export const parseUrl = (url: string) => {
     };
 };
 
+type WidgetHandler = (args: Record<string, string>) => Promise<string | object> | string | object;
 
-type BandwidthPage = "h" | "d" | "m" | "t";
+const validBandwidthPages = ["h", "d", "m", "t"] as const;
+type BandwidthPage = typeof validBandwidthPages[number];
 
-const BANDWIDTH_PAGES: BandwidthPage[] = ["h", "d", "m", "t"];
-
-function parseBandwidthPage(raw: string | undefined): BandwidthPage | undefined {
-    return BANDWIDTH_PAGES.find(page => page === raw);
+function parseBandwidthPage(args: Record<string, string>): BandwidthPage | undefined {
+    const page = args["page"];
+    return validBandwidthPages.includes(page as BandwidthPage) ? page as BandwidthPage : undefined;
 }
 
-function parseOptionalInt(raw: string | undefined): number | undefined {
-    if (!raw) {
-        return undefined;
-    }
-    const parsed = parseInt(raw, 10);
+function parseLogPosition(value: string | undefined) {
+    const parsed = value ? Number.parseInt(value, 10) : undefined;
     return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-const resolveParsedWidget = async (req: ReturnType<typeof parseUrl>): Promise<string|object> => {
-    switch (req.pathname) {
-        case "/node/load":
-            return await widgetsLoad();
-        case "/node/net_status":
-            return await netStatus();
-        case "/node/up":
-            return upTime();
-        case "/node/disk_data":
-            return await diskData();
-        case "/node/ram_stats":
-            return await ramStats();
-        case "/node/bw_tables":
-            return await bwTables(getIfaceConfig(), parseBandwidthPage(req.args["page"]));
-        case "/node/service_status":
-        case "/widgets/service_status":
-            return await serviceStatus(req.args["service"]);
-        case "/node/service_status_all":
-            return await serviceStatusAll();
-        case "/node/service_control":
-        case "/widgets/service_control":
-            return await serviceControl(true);
-        case "/node/pmc":
-        case "/widgets/pmc":
-            return await packageManagementCenter();
-        case "/node/task_status":
-            return await runningTask();
-        case "/db/output.log":
-            return readOutputLog(
-                parseOptionalInt(req.args["offset"]),
-                parseOptionalInt(req.args["length"]),
-                req.args["epoch"],
-            );
-        default:
-            throw new Error(`Unknown widget route: ${req.pathname}`);
-    }
+const widgetHandlers: Partial<Record<string, WidgetHandler>> = {
+    "/node/load": () => widgetsLoad(),
+    "/node/net_status": () => netStatus(),
+    "/node/up": () => upTime(),
+    [SYSTEM_LOAD_DATA_URL]: () => systemLoadData(),
+    [SYSTEM_UPTIME_DATA_URL]: () => getUptimeParts(),
+    "/node/disk_data": () => diskData(),
+    "/node/migration/disk_data": () => diskDataData(),
+    "/node/ram_stats": () => ramStats(),
+    "/node/migration/ram_stats": () => ramStatsData(),
+    "/node/bw_tables": (args) => bwTables(getIfaceConfig(), parseBandwidthPage(args)),
+    "/node/migration/bandwidth": (args) => bandwidthTablesData(getIfaceConfig(), parseBandwidthPage(args)),
+    "/node/service_status": (args) => serviceStatus(args["service"]),
+    "/widgets/service_status": (args) => serviceStatus(args["service"]),
+    "/node/service_status_all": () => serviceStatusAll(),
+    "/node/task_status": () => runningTask(),
+    "/node/service_control": () => serviceControl(true),
+    "/widgets/service_control": () => serviceControl(true),
+    "/node/pmc": () => packageManagementCenter(),
+    "/widgets/pmc": () => packageManagementCenter(),
+    "/node/migration/pmc": () => getPackageManagementData(),
+    "/db/output.log": (args) => readOutputLog(
+        parseLogPosition(args["offset"]),
+        parseLogPosition(args["length"]),
+        args["epoch"],
+    ),
 };
 
-export const resolveWidget = async (url: string): Promise<string|object> => resolveParsedWidget(parseUrl(url));
+export const resolveWidget = async (url: string): Promise<string|object> => {
+    const req = parseUrl(url);
+    const handler = widgetHandlers[req.pathname];
+    if (!handler) {
+        throw new Error(`Unknown widget route: ${req.pathname}`);
+    }
+    return await handler(req.args);
+};
 
 const isValidPayload = (payload: unknown): payload is Payload => {
     return payload !== null && typeof payload === "object" &&
         "key" in payload && typeof (payload as Payload).key === "string" &&
         "url" in payload && typeof (payload as Payload).url === "string";
+};
+
+const isRecord = (payload: unknown): payload is Record<string, unknown> =>
+    payload !== null && typeof payload === "object" && !Array.isArray(payload);
+
+const messageServiceV2 = async (request: ServiceRequestV2, client: Socket) => {
+    const meta = {
+        protocolVersion: 2 as const,
+        key: request.key,
+        url: request.url,
+        requestId: request.requestId,
+        locale: request.locale,
+        generation: request.generation,
+    };
+    try {
+        const response = await withLocale(request.locale, async () => {
+            if (request.key === "SERVICE_CONTROL") {
+                const rows = getServiceControlRows();
+                return rows.length === 0
+                    ? { meta, status: "empty" as const, data: { rows: [] as [] } }
+                    : { meta, status: "success" as const, data: { rows } };
+            }
+            return {
+                meta,
+                status: "success" as const,
+                data: await serviceStatusAllData(),
+            };
+        });
+        client.send(response);
+    } catch {
+        const isControl = request.key === "SERVICE_CONTROL";
+        client.send({
+            meta,
+            status: "error",
+            error: {
+                code: isControl ? "SERVICE_CONTROL_UNAVAILABLE" : "SERVICE_STATUS_UNAVAILABLE",
+                message: isControl ? "Service control data unavailable." : "Service status unavailable.",
+            },
+        });
+    }
 };
 
 const resolvePayloadLocale = (payload: Payload, client: Socket) => {
@@ -124,10 +165,20 @@ const resolvePayloadLocale = (payload: Payload, client: Socket) => {
         data.locale = payloadLocale;
         return payloadLocale;
     }
-    return data.locale ?? "en";
+    const clientLocale = data.locale;
+    return typeof clientLocale === "string" && VALID_LOCALES.includes(clientLocale)
+        ? clientLocale
+        : "en";
 };
 
 const messageHandler = async (payload: unknown, client: Socket) => {
+    if (isRecord(payload) && Object.hasOwn(payload, "protocolVersion")) {
+        const request = parseServiceRequestV2(payload);
+        if (request) {
+            await messageServiceV2(request, client);
+        }
+        return;
+    }
     if (!isValidPayload(payload)) {
         client.send({ key: "", pathName: "", success: false, message: "Invalid payload", response: "" });
         return;
@@ -150,9 +201,9 @@ const messageHandler = async (payload: unknown, client: Socket) => {
         response: "",
     };
     try {
-        const parsed = parseUrl(payload.url);
-        ret.pathName = parsed.pathname;
-        ret.response = await withLocale(resolvePayloadLocale(payload, client), async () => await resolveParsedWidget(parsed));
+        ret.pathName = parseUrl(payload.url).pathname;
+        const locale: string = resolvePayloadLocale(payload, client);
+        ret.response = await withLocale(locale, async () => await resolveWidget(payload.url));
     } catch (error) {
         console.error("[quickbox-ws] widget render failed", payload.url, error);
         ret.message = "Widget render failed";

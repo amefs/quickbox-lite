@@ -42,7 +42,9 @@ describe("controllers/dashboard", () => {
         expect(res.text).to.include('"locales"');
         expect(res.text).to.include('"serviceKeys"');
         expect(res.text).to.include("id=\"bw_tables_loading\"");
-        expect(res.text).to.include('data-click-handler="packageRemove"');
+        expect(res.text).to.include("qb-package-management__table");
+        expect(res.text).to.include("/js/migration/dashboard-client.");
+        expect(res.text).to.not.include('data-click-handler="packageRemove"');
     });
 
     it("should keep locale runtime in sync for query, cookie and accept-language", async () => {

@@ -29,3 +29,8 @@ export async function serviceStatusAll() {
     for (const [service, state] of Object.entries(snapshot)) {badges[service] = renderServiceBadge(state);}
     return { badges, health, retryAfterMs };
 }
+
+export async function serviceStatusAllData() {
+    const { snapshot: states, health, retryAfterMs } = await getServiceHealth();
+    return { states, health, retryAfterMs };
+}
