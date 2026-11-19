@@ -1,12 +1,8 @@
-# Set the default behavior, in case people don't have core.autocrlf set.
-* text=auto
+* text=auto eol=lf
 
-# Explicitly declare text files you want to always be normalized and converted
-# to native line endings on checkout.
-*.md text
-
-# Declare files that will always have LF line endings on checkout.
+*.md text eol=lf
 *.sh text eol=lf
+*.py text eol=lf
 packages/**/* text eol=lf
 setup/lang/**/* text eol=lf
 setup/templates/**/* text eol=lf

@@ -153,6 +153,25 @@ bash <(wget -qO- https://git.io/qbox-lite -o /dev/null) -u demouser -p demo12345
 ```
 
 这段代码的意思是: 用户名为 demouser，密码为 demo123456，ssh 端口修改为1234，安装 BBR，deluge，mktorrent，linuxrar，使用 Cloudflare 的预编译包镜像源，hostname 修改为 vmserver，安装完成后自动重启。
+
+## 恢复之前的 QuickBox 版本
+
+更新会在替换 `/etc/QuickBox` 内容前记录当前分支和提交。以 root 身份查看恢复点或回退版本：
+
+```bash
+box revert --list
+box revert --yes          # 恢复最近一次更新前记录的提交
+box revert --yes COMMIT   # 恢复指定的本地提交
+```
+
+仅支持包含此功能的新版本之间回退；不支持的旧版本会在修改仓库前被拒绝。
+回退后会从选定版本重新安装核心文件和 Dashboard，不执行系统软件包整体升级。
+如果安装失败，命令会返回错误，仓库保持在选定提交。恢复点保存的是 Git 已提交的内容，
+reset 会丢弃未提交的修改。
+
+需要从当前仓库版本重试安装时，使用 `box update quickbox --from-checkout`。
+`box update revert` 支持与 `box revert` 相同的参数。
+
 ## 对 QuickBox Lite 有疑问
 
 如果你对 QuickBox Lite 的功能仍然有疑问或者需要汇报 Bug，请务必先阅读 [Wiki](https://wiki.ptbox.dev)。如果 Wiki 描述仍然不能解决你的疑惑，请尝试在 [issue](https://github.com/amefs/quickbox-lite/issues/new) 中提交你的问题，我会尽力解决这些问题。

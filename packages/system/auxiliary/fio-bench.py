@@ -4,7 +4,6 @@
 
 from __future__ import print_function
 import os
-import shlex
 import subprocess
 import json
 from prettytable import PrettyTable
@@ -32,8 +31,10 @@ I18N = {
     "Run ERROR!": "运行失败!",
     "fio Benchmark tool": "fio 基准测试工具",
     "Use fio to Measure Hard Drive and SSD Performance": "使用 fio 测量 HDD 和 SSD 的性能",
-    "Perform a full test [R/W in Seq Q32T1, 4K Q32T1, Seq, 4K] (Default).": "完整测试 [R/W in Seq Q32T1, 4K Q32T1, Seq, 4K] (默认).",
-    "Available test [1. Seq Q32T1], [2. 4K Q32T1], [3. Seq], [4. 4K].": "可选测试 [1. Seq Q32T1], [2. 4K Q32T1], [3. Seq], [4. 4K].",
+    "Perform a full test [R/W in Seq Q32T1, 4K Q32T1, Seq, 4K] (Default).":
+        "完整测试 [R/W in Seq Q32T1, 4K Q32T1, Seq, 4K] (默认).",
+    "Available test [1. Seq Q32T1], [2. 4K Q32T1], [3. Seq], [4. 4K].":
+        "可选测试 [1. Seq Q32T1], [2. 4K Q32T1], [3. Seq], [4. 4K].",
     "IO test file size (Default 2g)": "IO 测试文件大小 (默认 2g)",
     "IO test file path (Default {})": "IO 测试文件路径 (默认 {})",
     "Save result to file instead of stdout": "将结果保存到文件",
@@ -59,10 +60,6 @@ else:
         return key
 
 
-def bash(cmd):
-    return shlex.os.system(cmd)
-
-
 def format_bytes(size):
     size = float(size)
     power = 2 ** 10
@@ -76,8 +73,9 @@ def format_bytes(size):
     return value, unit
 
 
-def cleanup(filename=None):
-    os.remove(filename)
+def cleanup(filename):
+    if os.path.exists(filename):
+        os.remove(filename)
 
 
 def printResult():
@@ -92,7 +90,7 @@ def printResult():
     print(table.get_string(sortby=_("Test Item"), reversesort=True))
 
 
-def outputResult(filename=None):
+def outputResult(filename):
     if os.path.exists(filename):
         os.remove(filename)
     with open(filename, "w+", encoding="utf-8") as fo:
@@ -142,38 +140,23 @@ class FioTest(object):
         return cmd
 
     def runCmd(self, cmd):
-        result_str = ""
         process = subprocess.Popen(cmd,
                                    shell=True,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
-        out = process.stdout
-        errors = process.stderr
-        err = errors.read()
+        out, err = process.communicate()
         if err:
             print(R + _("Run ERROR!") + N)
             os._exit(1)
-        result_str = out.read().strip()
-        if out:
-            out.close()
-        if errors:
-            errors.close()
 
-        return result_str.decode("utf8")
+        return out.strip().decode("utf8")
 
     def explain(self, result):
-
-        if self.rw == "read" or self.rw == "randread":
-            r = json.loads(result)
-            iops = r["jobs"][0]["read"]["iops"]
-            bw = r["jobs"][0]["read"]["bw"]
-            return iops, bw
-        else:
-            if self.rw == "write" or self.rw == "randwrite":
-                r = json.loads(result)
-                iops = r["jobs"][0]["write"]["iops"]
-                bw = r["jobs"][0]["write"]["bw"]
-                return iops, bw
+        r = json.loads(result)
+        direction = "read" if self.rw in ("read", "randread") else "write"
+        iops = r["jobs"][0][direction]["iops"]
+        bw = r["jobs"][0][direction]["bw"]
+        return iops, bw
 
     def expResult(self, iops, bw):
         name = self.name
