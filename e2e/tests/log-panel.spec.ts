@@ -39,7 +39,7 @@ async function deliverLog(page: Page, content: string, start = 0, epoch = "mobil
 
 async function expectLogInViewport(page: Page) {
     const viewport = page.viewportSize()!;
-    for (const selector of ["#sysResponse .ant-modal", "#sysResponse .modal-title", "#sysResponseDismiss", "#sysPre", "#sysResponseCloseAction"]) {
+    for (const selector of ["#sysResponse .ant-modal", "#sysResponse .ant-modal-title", "#sysResponseDismiss", "#sysPre", "#sysResponseCloseAction"]) {
         const box = await page.locator(selector).boundingBox();
         expect(box).not.toBeNull();
         expect(box!.x).toBeGreaterThanOrEqual(0);
@@ -53,7 +53,7 @@ async function expectLogInViewport(page: Page) {
 // height and font size across siblings, equal min-size rules, and a label that
 // fits without clipping. Theme metrics stay in the theme stylesheets.
 async function expectFooterButtonsConsistent(page: Page) {
-    const buttons = await page.evaluate(() => Array.from(document.querySelectorAll("#sysResponse .modal-footer .btn")).map(el => {
+    const buttons = await page.evaluate(() => Array.from(document.querySelectorAll("#sysResponse .ant-modal-footer .ant-btn")).map(el => {
         const style = getComputedStyle(el);
         const rect = el.getBoundingClientRect();
             const dialog = el.closest("#sysResponse");
@@ -116,9 +116,29 @@ for (const theme of ["smoked", "defaulted"]) {
             await expect(page.locator("#sshoutput")).toContainText("<script>unsafe()</script>");
             await expectLogInViewport(page);
             const output = page.locator("#sysPre");
+            const modalBody = page.locator("#sysResponse .qb-system-response-body");
+            expect(await modalBody.evaluate(el => el.scrollHeight)).toBeLessThanOrEqual(await modalBody.evaluate(el => el.clientHeight));
             expect(await output.evaluate(el => el.scrollHeight)).toBeGreaterThan(await output.evaluate(el => el.clientHeight));
             expect(await output.evaluate(el => el.scrollWidth)).toBeLessThanOrEqual(await output.evaluate(el => el.clientWidth));
             await expect.poll(() => output.evaluate(el => el.scrollHeight - el.scrollTop - el.clientHeight)).toBeLessThan(2);
+            const bounds = await page.evaluate(() => {
+                const body = document.querySelector("#sysResponse .qb-system-response-body")!.getBoundingClientRect();
+                const pre = document.querySelector("#sysPre")!.getBoundingClientRect();
+                const out = document.querySelector("#sshoutput")!;
+                const range = document.createRange();
+                range.selectNodeContents(out.lastChild ?? out);
+                const lastRect = range.getBoundingClientRect();
+                return {
+                    preTop: pre.top,
+                    preBottom: pre.bottom,
+                    bodyTop: body.top,
+                    bodyBottom: body.bottom,
+                    lastBottom: lastRect.bottom,
+                };
+            });
+            expect(bounds.preTop).toBeGreaterThanOrEqual(bounds.bodyTop - 1);
+            expect(bounds.preBottom).toBeLessThanOrEqual(bounds.bodyBottom + 1);
+            expect(bounds.lastBottom).toBeLessThanOrEqual(bounds.preBottom + 2);
             await output.evaluate(el => { el.scrollTop = 0; });
             expect(await output.evaluate(el => el.scrollTop)).toBe(0);
             expect(await output.evaluate(el => getComputedStyle(el).overflowY)).toBe("auto");

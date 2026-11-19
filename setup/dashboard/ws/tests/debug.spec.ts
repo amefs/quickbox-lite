@@ -2,85 +2,33 @@
 
 import "mocha";
 import { expect } from "chai";
-import React from "react";
-import ReactDOMServer from "react-dom/server";
 
-import { DebugPage } from "../src/debug";
+import { getDebugEndpoints, getDebugMeta, getDebugPackages } from "../src/debug-meta";
 
-describe("debug page", () => {
-    it("should render a complete HTML page", () => {
-        const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("<html");
-        expect(html).to.include("QuickBox WS Debug Console");
-        expect(html).to.include("</html>");
+describe("debug metadata", () => {
+    it("should include widget endpoint definitions", () => {
+        const endpoints = getDebugEndpoints();
+        const urls = endpoints.map((ep) => ep.url);
+        expect(urls).to.include("/node/load");
+        expect(urls).to.include("/node/net_status");
+        expect(urls).to.include("/node/up");
+        expect(urls).to.include("/node/disk_data");
+        expect(urls).to.include("/node/ram_stats");
+        expect(urls).to.include("/node/bw_tables?page=h");
+        expect(urls).to.include("/db/output.log");
     });
 
-    it("should contain widget endpoint buttons", () => {
-        const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("System Load");
-        expect(html).to.include("Network Status");
-        expect(html).to.include("Uptime");
-        expect(html).to.include("Disk Data");
-        expect(html).to.include("RAM Stats");
-        expect(html).to.include("Bandwidth");
+    it("should include service status endpoints", () => {
+        const serviceEndpoints = getDebugEndpoints().filter((ep) => ep.category === "service");
+        expect(serviceEndpoints.length).to.be.greaterThan(0);
+        expect(serviceEndpoints.every((ep) => ep.url.startsWith("/node/service_status?service="))).to.equal(true);
     });
 
-    it("should contain service endpoint buttons", () => {
-        const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("endpoint-btn-service");
-    });
-
-    it("should contain auto-refresh controls", () => {
-        const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("auto-refresh-toggle");
-        expect(html).to.include("refresh-interval");
-    });
-
-    it("should contain result panel", () => {
-        const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("result-rendered");
-        expect(html).to.include("result-raw");
-        expect(html).to.include("btn-refresh");
-        expect(html).to.include("btn-raw");
-        expect(html).to.include("btn-history-clear");
-        expect(html).to.include("btn-history-reload");
-    });
-
-    it("should include client-side script", () => {
-        const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("fetchEndpoint");
-        expect(html).to.include("withDebugBase('/debug/node?url=' + encodeURIComponent(requestUrl))");
-        expect(html).to.include("requestHistory");
-        expect(html).to.include("renderHistoryList");
-    });
-
-    it("should derive debug base path for prefixed deployments", () => {
-        const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("var debugBasePath = (function()");
-        expect(html).to.include("foundationCss.href = withDebugBase('/debug/assets/css/dashboard-foundation.css')");
-        expect(html).to.include("themeCss.href = withDebugBase('/debug/assets/css/dashboard-theme-' + debugTheme + '.css')");
-        expect(html).to.not.include("quick.css");
-        expect(html).to.not.include("font-awesome");
-    });
-
-    it("passes the selected theme to the widget preview", () => {
-        const html = ReactDOMServer.renderToString(React.createElement(DebugPage, { theme: "smoked" }));
-        expect(html).to.include('data-theme="smoked"');
-        expect(html).to.include("resultRendered.setAttribute('data-theme', debugTheme)");
-    });
-
-    it("should include CSS styles", () => {
-        const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("debug-container");
-        expect(html).to.include("endpoint-btn");
-    });
-
-    it("should contain data-url attributes with correct widget paths", () => {
-        const html = ReactDOMServer.renderToString(React.createElement(DebugPage));
-        expect(html).to.include("data-url=\"/node/load\"");
-        expect(html).to.include("data-url=\"/node/up\"");
-        expect(html).to.include("data-url=\"/node/ram_stats\"");
-        expect(html).to.include("data-url=\"/node/disk_data\"");
-        expect(html).to.include("data-url=\"/node/net_status\"");
+    it("should build debug meta payload with theme and basePath", () => {
+        const meta = getDebugMeta("smoked", "/ws");
+        expect(meta.theme).to.equal("smoked");
+        expect(meta.basePath).to.equal("/ws");
+        expect(meta.endpoints).to.have.lengthOf(getDebugEndpoints().length);
+        expect(meta.packages).to.deep.equal(getDebugPackages());
     });
 });

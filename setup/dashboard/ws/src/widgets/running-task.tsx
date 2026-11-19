@@ -132,6 +132,7 @@ export function runningTaskData(
         active: true,
         kind,
         operation: operation ?? "",
+        title,
         text: taskText(title, operation),
         viewLogLabel: i18n.t("VIEW_LOG"),
         abortLabel: i18n.t("TASK_ABORT"),

@@ -67,7 +67,6 @@ test.describe("WS Debug Console", () => {
         const text = await response.text();
         // all-running reports 15 days of uptime.
         expect(text).toContain("<b>15</b>");
-        expect(text).toContain("days");
     });
 
     test("should return error for unknown widget", async ({ page }) => {
@@ -77,20 +76,20 @@ test.describe("WS Debug Console", () => {
 });
 
 test.describe("WS API Endpoints", () => {
-    test("should serve the selected theme through dashboard and debug asset routes", async ({ page }) => {
+    test("should serve the selected theme stylesheet and debug metadata", async ({ page }) => {
         await page.goto("/");
         const theme = await page.locator("body").getAttribute("data-theme");
         expect(theme).toMatch(/^(defaulted|smoked)$/);
         const cssPath = `/css/dashboard-theme-${theme}.css`;
         const dashboardCss = await page.request.get(new URL(cssPath, page.url()).href);
-        const debugCssUrl = `${WS_BASE_URL.replace(/\/+$/, "")}/debug/assets${cssPath}`;
-        const debugCss = await page.request.get(debugCssUrl);
+        const debugMeta = await page.request.get(`${WS_BASE_URL.replace(/\/+$/, "")}/debug/meta`);
 
         expect(dashboardCss.status()).toBe(200);
-        expect(debugCss.status()).toBe(200);
-        const [dashboardBody, debugBody] = await Promise.all([dashboardCss.text(), debugCss.text()]);
+        expect(debugMeta.status()).toBe(200);
+        const dashboardBody = await dashboardCss.text();
         expect(dashboardBody).toContain("Reconstructed QuickBox application rules");
-        expect(debugBody).toBe(dashboardBody);
+        const meta = (await debugMeta.json()) as { endpoints: unknown[] };
+        expect(meta.endpoints.length).toBeGreaterThan(0);
     });
 
     test("should return the Node dashboard at the root endpoint", async ({ page }) => {

@@ -43,6 +43,7 @@ for (const theme of ["smoked", "defaulted"]) {
             try {
                 await setMockProfile(page, "long-branch");
                 await page.goto("/?locale=zh");
+                await page.locator(".mainpanel").waitFor({ state: "visible" });
                 const initial = await readLayout(page);
                 expect(initial.documentWidth).toBe(width);
                 expect(initial.mainX).toBe(mobile ? 0 : 280);

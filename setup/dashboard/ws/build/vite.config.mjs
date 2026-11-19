@@ -13,8 +13,7 @@ const dependencyNames = Object.keys(packageJson.dependencies ?? {});
 const builtinNames = new Set(builtinModules.flatMap((name) => [name, `node:${name}`]));
 
 function isExternal(id) {
-    return (id.startsWith("../../lang/lang_") && id.endsWith(".json")) ||
-        builtinNames.has(id) || dependencyNames.some((name) => id === name || id.startsWith(`${name}/`));
+    return builtinNames.has(id) || dependencyNames.some((name) => id === name || id.startsWith(`${name}/`));
 }
 
 function escapeTemplateNewlines(code, fileName) {

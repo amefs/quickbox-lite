@@ -6,7 +6,13 @@ if ($query_string != "") {
   set $no_cache 1;
 }
 
-location ~* ^/(?:skins|lib|fonts|img|js|lang)/.*\.(?:css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|json)$ {
+location ~* ^/(?:assets|css|fonts|img|lang)/.*\.(?:css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map|json|webmanifest|xml)$ {
+    root /srv/dashboard/web/dist;
+    try_files $uri =404;
+    access_log off;
+}
+
+location ~* ^/skins/.*\.css$ {
     root /srv/dashboard;
     try_files $uri =404;
     access_log off;
@@ -65,6 +71,24 @@ location ^~ /ws {
     proxy_set_header Connection "upgrade";
     include /etc/nginx/snippets/quickbox-ws-gateway.conf;
     rewrite ^/ws/(?P<path>.*) /$path break;
+}
+
+location = / {
+    # qb-auth-begin
+    auth_basic "password Required";
+    auth_basic_user_file /etc/htpasswd;
+
+    root /srv/dashboard/web/dist;
+    try_files /index.html =404;
+}
+
+location = /index.html {
+    # qb-auth-begin
+    auth_basic "password Required";
+    auth_basic_user_file /etc/htpasswd;
+
+    root /srv/dashboard/web/dist;
+    try_files $uri =404;
 }
 
 location / {

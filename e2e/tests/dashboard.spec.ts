@@ -201,9 +201,9 @@ test.describe("Bandwidth Page", () => {
         await page.goto("/");
         const bwTables = page.locator("#bw_tables");
         const pageTable = bwTables.locator("table").nth(1);
-        // The initial ready-made HTML contains two skeleton tables, so waiting
-        // for a visible table would read the placeholder caption (empty) and
-        // race against the first WebSocket update.
+        // Wait for the SPA bootstrap to mount the bandwidth tables before
+        // checking that the skeleton placeholder has been replaced by data.
+        await expect(pageTable).toBeVisible({ timeout: 15_000 });
         await expect(bwTables.locator(".qb-skeleton")).toHaveCount(0, { timeout: 15_000 });
 
         // The widget renders two tables: a fixed summary, then the one that

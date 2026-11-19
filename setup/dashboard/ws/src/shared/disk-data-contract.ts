@@ -15,6 +15,7 @@ export interface DiskTorrentRow {
     key: string;
     title: string;
     loadedHtml: string;
+    loaded?: number;
 }
 
 export interface DiskDataData {
@@ -50,8 +51,9 @@ function isFileSystemRow(value: unknown): value is DiskFileSystemRow {
 }
 
 function isTorrentRow(value: unknown): value is DiskTorrentRow {
-    return isRecord(value) && hasOnlyKeys(value, ["key", "title", "loadedHtml"]) &&
-        typeof value.key === "string" && typeof value.title === "string" && typeof value.loadedHtml === "string";
+    return isRecord(value) && hasOnlyKeys(value, ["key", "title", "loadedHtml", "loaded"]) &&
+        typeof value.key === "string" && typeof value.title === "string" && typeof value.loadedHtml === "string" &&
+        (value.loaded === undefined || (typeof value.loaded === "number" && Number.isFinite(value.loaded)));
 }
 
 export function isDiskDataData(value: unknown): value is DiskDataData {

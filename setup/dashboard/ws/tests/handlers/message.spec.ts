@@ -343,7 +343,7 @@ describe("handlers/message", () => {
                 send(data: Record<string, unknown>) {
                     expect(data.success).to.equal(true);
                     expect(data.response).to.be.a("string");
-                    expect(data.response).to.include("组件管理中心");
+                    expect(data.response).to.include("PACKAGE_MANAGEMENT_CENTER");
                     expect((mockClient.data as { locale?: string }).locale).to.equal("zh");
                     done();
                 },
@@ -367,8 +367,8 @@ describe("handlers/message", () => {
                 send(data: Record<string, unknown>) {
                     expect(data.success).to.equal(true);
                     expect(data.response).to.be.a("string");
-                    expect(data.response).to.include("Package Management Center");
-                    expect(data.response).to.not.include("组件管理中心");
+                    expect(data.response).to.include("PACKAGE_MANAGEMENT_CENTER");
+                    expect((mockClient.data as { locale?: string }).locale).to.equal(undefined);
                     done();
                 },
             };

@@ -21,43 +21,35 @@ test.describe("Language Switching", () => {
         await page.request.get(`${WS_BASE_URL}/set?lang=en`);
     });
 
-    test("should switch WS language to Chinese", async ({ page }, testInfo) => {
-        // Set language to Chinese via WS API
+    test("should switch frontend language to Chinese and inspect debug console", async ({ page }, testInfo) => {
+        // Verify /set still normalizes locale for legacy callers
         const setResponse = await page.request.get(`${WS_BASE_URL}/set?lang=zh-cn`);
         expect(setResponse.ok()).toBeTruthy();
         const locale = await setResponse.text();
         expect(locale).toBe("zh");
 
-        // Fetch a widget — its HTML should now contain Chinese text
-        const loadResponse = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/ram_stats`);
-        expect(loadResponse.ok()).toBeTruthy();
-        const html = await loadResponse.text();
-        // Chinese RAM label: "物理内存" or similar
-        // The response should NOT contain the English label after switching
-        expect(html.length).toBeGreaterThan(0);
+        // Switch UI language to Chinese via pure frontend i18n
+        await page.goto("/?locale=zh");
+        await expect(page.locator("#service_control_widget")).toContainText("服务控制中心", { timeout: 10_000 });
+        await expect(page.locator("#meterram")).toContainText("物理内存", { timeout: 10_000 });
 
-        // Load the debug page to verify visually
+        // Load the Ant Design debug page to verify visually
         await page.goto(`${WS_BASE_URL}/debug`);
         await page.locator("[data-url='/node/up']").click();
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
         await snap(page, testInfo, "language-chinese-uptime");
     });
 
-    test("should switch WS language to English", async ({ page }, testInfo) => {
-        // First switch away from English
-        await page.request.get(`${WS_BASE_URL}/set?lang=zh-cn`);
+    test("should switch frontend language to English without reload", async ({ page }, testInfo) => {
+        await page.goto("/?locale=zh");
+        await expect(page.locator("#service_control_widget")).toContainText("服务控制中心", { timeout: 10_000 });
 
-        // Now switch back to English
-        const setResponse = await page.request.get(`${WS_BASE_URL}/set?lang=en`);
-        expect(setResponse.ok()).toBeTruthy();
-        const locale = await setResponse.text();
-        expect(locale).toBe("en");
-
-        // Verify widget uses English
-        const ramResponse = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/ram_stats`);
-        const html = await ramResponse.text();
-        // English labels like "Physical Memory" should be present
-        expect(html).toContain("Physical Memory");
+        // Click English option inside header config menu (without full page reload)
+        await page.evaluate(() => {
+            document.querySelector<HTMLElement>("#node-language-options [data-locale='en']")?.click();
+        });
+        await expect(page.locator("#service_control_widget")).toContainText("Service Control Center", { timeout: 10_000 });
+        await expect(page.locator("#meterram")).toContainText("Physical Memory", { timeout: 10_000 });
         await snap(page, testInfo, "language-english-ram");
     });
 
@@ -268,9 +260,9 @@ test.describe("Command failure dialog", () => {
         await expect(modal.getByRole("button", { name: "Close" })).toBeVisible();
         await expect(modal.getByRole("button", { name: "OK" })).toBeVisible();
         await expectFocusInside(page, "#quickbox-alert-modal");
-        await expect(modal.locator(".modal-body")).toContainText("Invalid payload");
-        await expect(modal.locator(".modal-body code")).toContainText(payload);
-        await expect(modal.locator(".modal-body img")).toHaveCount(0);
+        await expect(modal.locator(".ant-modal-body")).toContainText("Invalid payload");
+        await expect(modal.locator(".ant-modal-body code")).toContainText(payload);
+        await expect(modal.locator(".ant-modal-body img")).toHaveCount(0);
         expect(await page.evaluate(() => (window as unknown as { __qbXss?: number }).__qbXss)).toBeUndefined();
         await expect(page.locator(".bootbox")).toHaveCount(0);
         await snap(page, testInfo, "exec-failure-alert-modal");
@@ -289,9 +281,6 @@ test.describe("Command failure dialog", () => {
             await page.locator("#node-theme-options .qb-chrome-option").filter({
                 has: page.locator(`img[src="/img/themes/opt_${target}.png"]`),
             }).click();
-            const dialog = page.locator(`#themeSelect${target}Confirm`);
-            await expect(dialog).toBeVisible();
-            await page.locator(`#themeSelect${target}Go`).click();
             await expect(page.locator("body")).toHaveAttribute("data-theme", target);
             await expect(page.locator(`link[href="/css/dashboard-theme-${target}.css"]`)).toHaveCount(1);
 
@@ -305,24 +294,18 @@ test.describe("Command failure dialog", () => {
         await page.goto("/");
         await expect(page.locator("#pmc_widget tr[data-row-key]").first()).toBeVisible({ timeout: 10_000 });
         await page.locator("#quickbox-pmc-page-size").selectOption("100");
-        const fixture = await page.evaluate(() => (window as unknown as {
-            quickboxRuntime: {
-                packageManagement: {
-                    data: { rows: { package: string; name: string; descriptionText: string; installed: boolean; boxOnly: boolean }[] };
-                    labels: { installed: string; box: string; install: string };
-                };
-            };
-        }).quickboxRuntime.packageManagement);
+        const renderedRows = await page.locator("#pmc_widget tr[data-row-key]").evaluateAll((rows) =>
+            rows.map((row) => ({
+                package: row.getAttribute("data-row-key") ?? "",
+                text: (row.textContent ?? "").toLocaleLowerCase(),
+            })),
+        );
 
         const smartMatch = (query: string): string[] => {
             const terms = (query.toLocaleLowerCase().match(/"[^"]+"|[^ ]+/g) ?? [])
                 .map((term) => term.startsWith('"') && term.endsWith('"') ? term.slice(1, -1) : term.replace('"', ""));
-            return fixture.data.rows
-                .filter((row) => {
-                    const availability = row.installed ? fixture.labels.installed : row.boxOnly ? fixture.labels.box : fixture.labels.install;
-                    const text = `${row.name} ${row.descriptionText} ${availability}`.toLocaleLowerCase();
-                    return terms.every((term) => text.includes(term));
-                })
+            return renderedRows
+                .filter((row) => terms.every((term) => row.text.includes(term)))
                 .map((row) => row.package)
                 .sort();
         };

@@ -11,6 +11,9 @@ export interface PackageManagementRow {
     descriptionText: string;
     installTooltip: string;
     uninstallHtml?: string;
+    descriptionKey?: string;
+    installTooltipKey?: string;
+    uninstallKey?: string;
     installed: boolean;
     boxOnly: boolean;
 }

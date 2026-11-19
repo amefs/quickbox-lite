@@ -1,0 +1,103 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+
+#quickbox-header-root .qb-chrome-option {
+    cursor: pointer;
+}
+
+#quickbox-header-root .qb-chrome-option:hover,
+#quickbox-header-root .qb-chrome-option:focus {
+    color: #4daf7c;
+}
+
+#quickbox-header-root .qb-chrome-config-col {
+    padding: 0;
+}
+
+#quickbox-header-root .dm-notice .nav-tabs > li > a {
+    display: block;
+}
+
+#quickbox-header-root .dm-notice .tab-pane {
+    background: #222;
+    color: #fff;
+}
+
+#quickbox-header-root .dm-notice .tab-pane:not(.active) {
+    display: none;
+}
+
+#quickbox-header-root .headermenu .btn-group.open > .dropdown-menu {
+    display: block;
+}
+
+#quickbox-header-root .headermenu .dropdown-menu {
+    z-index: 2100;
+}
+
+.qb-theme-confirm-content {
+    border-radius: 2px;
+}
+
+.qb-theme-confirm-wrap .ant-modal-header {
+    margin: 0;
+    padding: 15px;
+}
+
+.qb-theme-confirm-wrap .ant-modal-title {
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.qb-theme-confirm-wrap .ant-modal-body {
+    padding: 15px;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.qb-theme-confirm-wrap .ant-modal-footer {
+    margin: 0;
+    padding: 10px 15px;
+}
+
+.qb-theme-confirm-wrap .ant-btn {
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+#quickbox-sidebar-root .nav-sidebar > li > a {
+    cursor: pointer;
+}
+
+#quickbox-sidebar-root .tab-content > .tab-pane:not(.active) {
+    display: none;
+}
+
+#quickbox-sidebar-root .children {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 200ms ease;
+}
+
+#quickbox-sidebar-root .nav-parent > a {
+    cursor: pointer;
+}
+
+@media (max-width: 480px) {
+    #quickbox-header-root .headermenu .dm-notice {
+        position: fixed;
+        top: 64px;
+        right: 0;
+        left: 0;
+        width: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #quickbox-sidebar-root .children,
+    #quickbox-header-root .qb-theme-confirm-wrap {
+        transition: none;
+        animation: none;
+    }
+}

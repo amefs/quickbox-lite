@@ -4,7 +4,7 @@
   "description": "QuickBox Status Update WebSocket Interface",
   "main": "dist/server.js",
   "scripts": {
-    "build": "vite build --config build/vite.config.mjs && vite build --config build/vite.client.config.mjs",
+    "build": "vite build --config build/vite.config.mjs",
     "test": "cross-env NODE_ENV=test mocha --exit -r tsx --extensions ts 'tests/**/*.{mts,ts}'",
     "check-type": "tsc --noemit",
     "eslint": "eslint .",
@@ -18,10 +18,7 @@
   "author": "TautCony",
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "@ant-design/cssinjs": "2.1.2",
-    "@ant-design/icons": "^6.3.4",
     "ansi_up": "^6.0.6",
-    "antd": "6.6.6",
     "axios": "^1.21.0",
     "bignumber.js": "^11.1.5",
     "express": "^5.3.0",

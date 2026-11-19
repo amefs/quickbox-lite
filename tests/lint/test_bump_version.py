@@ -23,6 +23,8 @@ def test_bump_version_updates_project_files(tmp_path):
         "setup/templates/bash_qb.template",
         "setup/dashboard/ws/package.json",
         "setup/dashboard/ws/package-lock.json",
+        "setup/dashboard/web/package.json",
+        "setup/dashboard/web/package-lock.json",
         "README.md",
         "README_zh.md",
     ]
@@ -50,9 +52,13 @@ def test_bump_version_updates_project_files(tmp_path):
     for name in ["setup/templates/motd/01-custom", "setup/templates/bash_qb.template"]:
         assert "QUICKBOX_VERSION=v9.8.7" in (tmp_path / name).read_text()
     assert json.loads((tmp_path / "setup/dashboard/ws/package.json").read_text())["version"] == "9.8.7"
+    assert json.loads((tmp_path / "setup/dashboard/web/package.json").read_text())["version"] == "9.8.7"
     new_lock = json.loads(lock_path.read_text())
     assert new_lock["version"] == new_lock["packages"][""]["version"] == "9.8.7"
     original_lock["version"] = original_lock["packages"][""]["version"] = "9.8.7"
     assert new_lock == original_lock
+    web_lock = json.loads((tmp_path / "setup/dashboard/web/package-lock.json").read_text())
+    assert web_lock["version"] == web_lock["packages"][""]["version"] == "9.8.7"
     staged = subprocess.check_output(["git", "-C", str(tmp_path), "diff", "--cached", "--name-only"], text=True)
     assert "setup/dashboard/ws/package-lock.json" in staged
+    assert "setup/dashboard/web/package-lock.json" in staged

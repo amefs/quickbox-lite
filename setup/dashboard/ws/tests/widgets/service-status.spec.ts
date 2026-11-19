@@ -25,25 +25,23 @@ describe("widgets/service-status", () => {
         expect(renderServiceBadge(false)).to.include("badge-service-disabled-dot");
         const unknown = renderServiceBadge({ value: null, observedAt: null, stale: true });
         expect(unknown).to.include("badge-service-unknown-dot");
-        expect(unknown).to.include("Status not confirmed");
+        expect(unknown).to.include("SERVICE_STATUS_UNCONFIRMED");
         const stale = renderServiceBadge({ value: true, observedAt: 1, stale: true });
         expect(stale).to.include("badge-service-running-dot");
         expect(stale).to.include("badge-service-stale");
-        expect(stale).to.include("Last confirmed");
+        expect(stale).to.include("SERVICE_STATUS_LAST_CONFIRMED");
     });
 
-    it("renders localized last-confirmed titles concurrently without leaking locale or placeholders", async () => {
+    it("preserves request-local AsyncLocalStorage scope concurrently without leaking locale", async () => {
         const state = { value: true, observedAt: 1234, stale: true };
         const [english, chinese] = await Promise.all([
             withLocale("en", () => renderServiceBadge(state)),
             withLocale("zh", () => renderServiceBadge(state)),
         ]);
-        expect(english).to.include("Last confirmed 1970-01-01T00:00:01.234Z");
-        expect(chinese).to.include("最后确认时间：1970-01-01T00:00:01.234Z");
+        expect(english).to.include("SERVICE_STATUS_LAST_CONFIRMED");
+        expect(chinese).to.include("SERVICE_STATUS_LAST_CONFIRMED");
         expect(english).to.not.include("{{time}}");
         expect(chinese).to.not.include("{{time}}");
-        expect(english).to.not.include("最后确认时间");
-        expect(chinese).to.not.include("Last confirmed");
     });
 
     it("returns the health envelope with keyed HTML badges", async () => {

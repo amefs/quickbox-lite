@@ -95,6 +95,7 @@ async function torrentData(): Promise<DiskDataData["torrents"]> {
         key: client.key,
         title: i18n.t(client.title),
         loadedHtml: i18n.t("TORRENTS_LOADED", { loaded: torrentCounts[index] }),
+        loaded: torrentCounts[index],
     }));
 }
 
