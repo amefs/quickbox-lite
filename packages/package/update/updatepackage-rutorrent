@@ -179,8 +179,8 @@ function _updateApp() {
 	plugin_lib="/usr/local/bin/quickbox/rutorrent/plugins/"
 	rm -rf ${plugin_lib}
 	if [[ ! -d ${plugin_lib} ]]; then
-		mkdir -p ${plugin_lib}
-		cp -R /srv/$APP_NAME/plugins ${plugin_lib}
+		mkdir -p "${plugin_lib}" || return 1
+		cp -R "/srv/${APP_NAME}/plugins/." "${plugin_lib}" || return 1
 
 		wget -t3 -T20 -q -O /tmp/rutorrent-thirdparty-plugins.zip https://codeload.github.com/nelu/rutorrent-thirdparty-plugins/zip/refs/heads/stable >>"${OUTTO}" 2>&1
 		unzip -o /tmp/rutorrent-thirdparty-plugins.zip -d /tmp/ >>"${OUTTO}" 2>&1
@@ -478,5 +478,5 @@ _lockCheck
 _setLock
 _updateInfo
 _installDepends
-_updateApp
+_updateApp || exit 1
 _lockCleanup

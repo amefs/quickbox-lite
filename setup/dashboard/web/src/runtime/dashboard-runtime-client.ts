@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import { useSyncExternalStore } from "react";
 import { io, type Socket } from "socket.io-client";
 
 import type { DashboardBootstrapPayload, WsPushMode } from "../../../ws/src/shared/bootstrap-contract";
@@ -14,6 +15,10 @@ import {
     normalizeBandwidthPage,
 } from "../../../ws/src/shared/widget-streams";
 import type { WsMessageEnvelope } from "../../../ws/src/shared/ws-message";
+import i18n, { setLocale } from "../i18n";
+import { dataIslandBridges } from "./data-slots";
+import { getServiceControlBridge } from "./service-control-client";
+import { systemResponseActions } from "./system-response-client";
 
 interface StatusTask {
     key: string;
@@ -65,14 +70,7 @@ declare global {
         quickboxSetLocale?: (locale: string) => void;
         quickboxWidgetUrl?: (url: string) => string;
         quickboxResetWidgetState?: () => void;
-        quickboxPackageManagementActions?: {
-            run: (action: "install" | "remove", packageName: string) => void;
-        };
         socket?: Socket;
-        packageInstallHandler?: (event: Event) => void;
-        packageRemoveHandler?: (event: Event) => void;
-        serviceUpdateHandler?: (event: Event) => void;
-        boxHandler?: (event: Event) => void;
     }
 }
 
@@ -80,6 +78,77 @@ const LOCALE_ALIASES: Record<string, string> = {
     "zh-cn": "zh",
     "zh-hans-cn": "zh",
 };
+
+let activeExecDispatcher: ((command: string) => boolean) | undefined;
+let activeLocaleUpdater: ((locale: string) => void) | undefined;
+let commandConnected = false;
+const connectionListeners = new Set<() => void>();
+
+function subscribeToConnection(listener: () => void) {
+    connectionListeners.add(listener);
+    return () => { connectionListeners.delete(listener); };
+}
+
+function getCommandConnection() {
+    return commandConnected;
+}
+
+function setCommandConnection(connected: boolean) {
+    if (commandConnected === connected) {return;}
+    commandConnected = connected;
+    connectionListeners.forEach((listener) => { listener(); });
+}
+
+export function useCommandConnection() {
+    return useSyncExternalStore(subscribeToConnection, getCommandConnection);
+}
+
+function notifyCommandConnection(key: "COMMAND_OFFLINE" | "COMMAND_OUTCOME_UNKNOWN") {
+    systemResponseActions.notifyWarning(i18n.t("SYSTEM_RESPONSE_TITLE"), i18n.t(key));
+}
+
+function executeDashboardCommand(command: string, openModal = false) {
+    if (!activeExecDispatcher?.(command)) {
+        notifyCommandConnection("COMMAND_OFFLINE");
+        return;
+    }
+    if (openModal) {systemResponseActions.open();}
+}
+
+export function executePackageAction(action: "install" | "remove", packageName: string) {
+    if (!packageName) {
+        return;
+    }
+    executeDashboardCommand(`${action === "install" ? "installpackage::" : "removepackage::"}${packageName}`, true);
+}
+
+export function executeBoxAction(operation: string, target: string, openModal = false) {
+    executeDashboardCommand(`box:${operation}:${target}`, openModal);
+}
+
+export function abortRunningTask(confirmText: string) {
+    if (window.confirm(confirmText || "Terminate the running task?")) {
+        executeDashboardCommand("box:abort:");
+    }
+}
+
+export function switchDashboardBranch(branch: string) {
+    if (!branch || branch.startsWith("-") || branch.includes(":")) {
+        return;
+    }
+    for (let index = 0; index < branch.length; index += 1) {
+        const code = branch.charCodeAt(index);
+        if (code <= 32 || code === 127) {
+            return;
+        }
+    }
+    executeDashboardCommand(`box:switch-branch:${branch}`, true);
+}
+
+export function updateRuntimeLocale(locale: string) {
+    const selectedLocale = setLocale(locale, true);
+    activeLocaleUpdater?.(selectedLocale);
+}
 
 export function scheduleVisibilityInterval(visibleMs: number, hiddenMs: number, callback: () => void) {
     let timerId: ReturnType<typeof setTimeout> | undefined;
@@ -145,23 +214,9 @@ export function initDashboardRuntime() {
         return supported.includes(primaryLocale) ? primaryLocale : "en";
     }
 
-    function persistLocale(locale: string) {
-        try {
-            localStorage.setItem("quickbox:locale", locale);
-        } catch (error) {
-            console.warn("[ws] failed to persist locale", error);
-        }
-        let cookie = `quickbox_locale=${encodeURIComponent(locale)}; Path=/; SameSite=Lax`;
-        if (window.location.protocol === "https:") {
-            cookie += "; Secure";
-        }
-        document.cookie = cookie;
-    }
-
     const basePath = runtime.basePath ?? "";
     window.quickboxApiBase = basePath;
     window.quickboxLocale = normalizeLocale(window.quickboxLocale);
-    persistLocale(window.quickboxLocale);
 
     window.quickboxWidgetUrl = (url: string) => {
         const separator = url.includes("?") ? "&" : "?";
@@ -192,6 +247,14 @@ export function initDashboardRuntime() {
     });
     window.socket = socket;
 
+    function emitCommand(event: "exec" | "service-action", payload: unknown): boolean {
+        if (!socket.connected) {return false;}
+        socket.emit(event, payload);
+        return true;
+    }
+    setCommandConnection(socket.connected);
+    socket.on("connect", () => { setCommandConnection(true); });
+
     function getBandwidthPage(): string {
         try {
             return normalizeBandwidthPage(localStorage.getItem("bw_tables:page"));
@@ -211,19 +274,23 @@ export function initDashboardRuntime() {
         });
     }
 
-    window.quickboxServiceIsland?.bindTransport({
+    getServiceControlBridge()?.bindTransport({
         isConnected: () => socket.connected,
         pushMode: wsPushMode,
         sendMessage: (request) => { socket.send(request); },
-        executeServiceAction: (request) => { socket.emit("service-action", request); },
+        executeServiceAction: (request) => {
+            const sent = emitCommand("service-action", request);
+            if (!sent) {notifyCommandConnection("COMMAND_OFFLINE");}
+            return sent;
+        },
         notifyStopped: (key) => {
             console.warn(`[ws] stopping updates for ${key}`);
-            window.quickboxSystemResponseIsland?.notifyWarning("QuickBox", `Stopped status updates for ${key}`);
+            systemResponseActions.notifyWarning("QuickBox", `Stopped status updates for ${key}`);
         },
     });
 
     socket.on("service-action-result", (response: unknown) => {
-        window.quickboxServiceIsland?.onActionResult(response);
+        getServiceControlBridge()?.onActionResult(response);
     });
 
     let widgetWriteSource: Record<string, string> = {};
@@ -261,13 +328,13 @@ export function initDashboardRuntime() {
 
     window.quickboxResetWidgetState = resetWidgetWriteState;
 
-    window.quickboxSetLocale = (locale: string) => {
+    const handleLocaleChange = (locale: string) => {
         const nextLocale = normalizeLocale(locale);
         window.quickboxLocale = nextLocale;
-        window.quickboxServiceIsland?.onLocaleChanged(nextLocale);
-        persistLocale(nextLocale);
-        resetWidgetWriteState();
+        getServiceControlBridge()?.onLocaleChanged(nextLocale);
     };
+    activeLocaleUpdater = handleLocaleChange;
+    window.quickboxSetLocale = updateRuntimeLocale;
 
     function fetchJson(url: string): Promise<unknown> {
         return fetch(window.quickboxWidgetUrl ? window.quickboxWidgetUrl(url) : url, { credentials: "same-origin" })
@@ -307,11 +374,10 @@ export function initDashboardRuntime() {
                 id: "#sshoutput",
                 time: 2000,
                 before: (task) => {
-                    const sysIsland = window.quickboxSystemResponseIsland;
-                    if (!sysIsland || !sysIsland.isOpen()) {
+                    if (!systemResponseActions.isOpen()) {
                         return false;
                     }
-                    const cursor = sysIsland.getOutputCursor();
+                    const cursor = systemResponseActions.getOutputCursor();
                     const requestLength = 65536;
                     if (cursor.end >= 0) {
                         task.url = `${OUTPUT_LOG_URL}?offset=${cursor.end}&length=${requestLength}`;
@@ -324,7 +390,7 @@ export function initDashboardRuntime() {
                     return true;
                 },
                 override: (data) => {
-                    window.quickboxSystemResponseIsland?.onMessage(data);
+                    systemResponseActions.onMessage(data);
                 },
             },
         ];
@@ -434,7 +500,7 @@ export function initDashboardRuntime() {
             bootstrapDispatched = true;
             sendSubscribe();
             if (wsPushMode === "push") {
-                window.quickboxServiceIsland?.onConnected(0);
+                getServiceControlBridge()?.onConnected(0);
                 return;
             }
             const bootstrapTasks = statusList.filter((task) => task.bootstrap);
@@ -442,7 +508,7 @@ export function initDashboardRuntime() {
                 queueTask(task, index * 50);
             });
             const serviceStatusDelay = bootstrapTasks.length * 50 + 100;
-            window.quickboxServiceIsland?.onConnected(serviceStatusDelay);
+            getServiceControlBridge()?.onConnected(serviceStatusDelay);
         }
 
         function isPushResponse(response: WsMessageResponse): boolean {
@@ -455,7 +521,8 @@ export function initDashboardRuntime() {
             request: StatusTaskRequest | undefined,
         ): boolean {
             if (isPushResponse(response)) {
-                return response.key === task.key;
+                return response.key === task.key &&
+                    (task.key !== "BANDWIDTH" || response.url === buildStreamUrl(task, getBandwidthPage()));
             }
             return Boolean(
                 request && response.key === task.key &&
@@ -469,21 +536,21 @@ export function initDashboardRuntime() {
             request: StatusTaskRequest | undefined,
         ): boolean {
             const islandHandlers: Partial<Record<string, () => boolean>> = {
-                PMC: () => Boolean(window.quickboxPackageManagementIsland?.onMessage(response.response)),
-                TOP: () => Boolean(window.quickboxSystemSummaryIsland?.onMessage("TOP", response.response)),
-                UPTIME: () => Boolean(window.quickboxSystemSummaryIsland?.onMessage("UPTIME", response.response)),
-                NETWORK: () => Boolean(window.quickboxNetworkIsland?.onMessage(response.response)),
-                BANDWIDTH: () => Boolean(window.quickboxBandwidthIsland?.onMessage(response.response)),
-                RAM_USAGE: () => Boolean(window.quickboxMemoryStatsIsland?.onMessage(response.response)),
-                DISK_USAGE: () => Boolean(window.quickboxDiskDataIsland?.onMessage(response.response)),
-                TASK_STATUS: () => Boolean(window.quickboxRunningTaskIsland?.onMessage(response.response)),
+                PMC: () => dataIslandBridges.packageManagement.onMessage(response.response),
+                TOP: () => dataIslandBridges.systemSummary.onMessage("TOP", response.response),
+                UPTIME: () => dataIslandBridges.systemSummary.onMessage("UPTIME", response.response),
+                NETWORK: () => dataIslandBridges.network.onMessage(response.response),
+                BANDWIDTH: () => dataIslandBridges.bandwidth.onMessage(response.response),
+                RAM_USAGE: () => dataIslandBridges.memoryStats.onMessage(response.response),
+                DISK_USAGE: () => dataIslandBridges.diskData.onMessage(response.response),
+                TASK_STATUS: () => dataIslandBridges.runningTask.onMessage(response.response),
             };
             const handler = islandHandlers[task.key];
             if (!handler) {
                 return false;
             }
             if (isCorrelatedResponse(task, response, request) && handler()) {
-                if (errorCountByKey[task.key]) {
+                if (response.success && errorCountByKey[task.key]) {
                     errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
                 }
                 if (task.key !== "NETWORK" && task.key !== "BANDWIDTH") {
@@ -498,10 +565,10 @@ export function initDashboardRuntime() {
         function recordTaskFailure(failedKey: string, response: WsMessageResponse) {
             errorCountByKey[failedKey] = (errorCountByKey[failedKey] || 0) + 1;
             console.error("[ws] request failed,", response);
-            if (errorCountByKey[failedKey] > 32 && !stoppedKeys[failedKey]) {
+            if (!isPushResponse(response) && errorCountByKey[failedKey] > 32 && !stoppedKeys[failedKey]) {
                 stoppedKeys[failedKey] = true;
                 console.warn(`[ws] stopping updates for ${failedKey}`);
-                window.quickboxSystemResponseIsland?.notifyWarning("QuickBox", `Stopped status updates for ${failedKey}`);
+                systemResponseActions.notifyWarning("QuickBox", `Stopped status updates for ${failedKey}`);
             }
         }
 
@@ -509,7 +576,7 @@ export function initDashboardRuntime() {
             const isServicePush = isPushResponse(response) &&
                 (response.key === "SERVICE_CONTROL" || response.key === "SERVICE_STATUS_ALL");
             if (isServicePush || response.meta?.protocolVersion === 2) {
-                window.quickboxServiceIsland?.onMessage(response);
+                getServiceControlBridge()?.onMessage(response);
                 return;
             }
             const pending = response.requestId ? pendingRequests.get(response.requestId) : undefined;
@@ -522,6 +589,9 @@ export function initDashboardRuntime() {
                 clearPendingRequestById(response.requestId);
             }
             if (!response.success) {
+                if (task && isPushResponse(response) && response.stale) {
+                    dispatchIslandMessage(task, response, request);
+                }
                 recordTaskFailure(task?.key || response.key || "unknown", response);
                 return;
             }
@@ -548,17 +618,15 @@ export function initDashboardRuntime() {
             stoppedKeys = {};
             bootstrapDispatched = false;
             dispatchBootstrapTasks();
-            if (sshOutputTask && window.quickboxSystemResponseIsland?.isOpen()) {
+            if (sshOutputTask && systemResponseActions.isOpen()) {
                 queueTask(sshOutputTask, 0);
             }
         });
         socket.on("disconnect", () => {
             clearAllPendingRequests("socket disconnected");
-            window.quickboxServiceIsland?.onDisconnected();
         });
         socket.on("connect_error", () => {
             clearAllPendingRequests("socket connect error");
-            window.quickboxServiceIsland?.onDisconnected();
         });
 
         if (socket.connected) {
@@ -603,12 +671,20 @@ export function initDashboardRuntime() {
         firstRequest = false;
     }
 
-    function showAlert(alert: Parameters<NonNullable<typeof window.quickboxSystemResponseIsland>["showAlert"]>[0]) {
-        window.quickboxSystemResponseIsland?.showAlert(alert);
-    }
-
     let inflightExecCount = 0;
     let reloadAfterExec = false;
+
+    function handleCommandDisconnect() {
+        setCommandConnection(false);
+        const hadPendingServiceActions = getServiceControlBridge()?.onDisconnected();
+        if (inflightExecCount > 0 || hadPendingServiceActions) {
+            notifyCommandConnection("COMMAND_OUTCOME_UNKNOWN");
+        }
+        inflightExecCount = 0;
+        reloadAfterExec = false;
+    }
+    socket.on("disconnect", handleCommandDisconnect);
+    socket.on("connect_error", handleCommandDisconnect);
 
     function maybeReloadAfterExec() {
         if (reloadAfterExec && inflightExecCount <= 0) {
@@ -620,7 +696,7 @@ export function initDashboardRuntime() {
         inflightExecCount = Math.max(0, inflightExecCount - 1);
         if (response && response.success === false) {
             const rawOutput = response.stdout || response.stderr || "";
-            showAlert({
+            systemResponseActions.showAlert({
                 message: response.message || "",
                 command: response.cmd || "",
                 ...(rawOutput ? { output: rawOutput, outputIsAnsi: true } : {}),
@@ -634,91 +710,21 @@ export function initDashboardRuntime() {
         maybeReloadAfterExec();
     });
 
-    function exec(command: unknown) {
-        if (typeof command !== "string") {
-            showAlert(`Invalid service parameter: '${String(command)}'`);
-            return;
-        }
+    function exec(command: string): boolean {
+        if (!emitCommand("exec", command)) {return false;}
         inflightExecCount += 1;
-        socket.emit("exec", command);
+        return true;
     }
-
-    window.addEventListener("quickbox:branch-switch", (event: Event) => {
-        const detail = (event as CustomEvent<{ branch?: unknown } | undefined>).detail;
-        const branch = detail?.branch;
-        if (typeof branch !== "string" || !branch || branch.startsWith("-") || branch.includes(":")) {
-            return;
-        }
-        for (let index = 0; index < branch.length; index += 1) {
-            const code = branch.charCodeAt(index);
-            if (code <= 32 || code === 127) {
-                return;
-            }
-        }
-        exec(`box:switch-branch:${branch}`);
-    });
-
-    function closestDatasetTarget(initialTarget: EventTarget | null, datasetKey: string): HTMLElement | null {
-        let target = initialTarget instanceof HTMLElement ? initialTarget : null;
-        while (target && target.dataset[datasetKey] === undefined) {
-            target = target.parentElement;
-        }
-        return target;
-    }
-
-    function packageHandler(template: string) {
-        return (event: Event) => {
-            const target = closestDatasetTarget(event.target, "package");
-            if (!target) {
-                return;
-            }
-            exec(`${template}::${target.dataset.package}`);
-        };
-    }
-
-    function serviceUpdateHandler(event: Event) {
-        const target = closestDatasetTarget(event.target, "service");
-        if (!target) {
-            return;
-        }
-        const service = target.dataset.service;
-        const operations = target.dataset.operation || "";
-        for (const operation of operations.split(",")) {
-            exec(`systemctl:${operation}:${service}`);
-        }
-    }
-
-    function boxHandler(event: Event) {
-        const target = closestDatasetTarget(event.target, "package");
-        if (!target) {
-            return;
-        }
-        exec(`box:${target.dataset.operation}:${target.dataset.package}`);
-    }
-
-    window.packageInstallHandler = packageHandler("installpackage");
-    window.packageRemoveHandler = packageHandler("removepackage");
-    window.serviceUpdateHandler = serviceUpdateHandler;
-    window.boxHandler = boxHandler;
-
-    window.quickboxPackageManagementActions = {
-        run: (action, packageName) => {
-            if (typeof packageName !== "string") {
-                return;
-            }
-            window.quickboxSystemResponseIsland?.open();
-            exec(`${action === "install" ? "installpackage::" : "removepackage::"}${packageName}`);
-        },
-    };
+    activeExecDispatcher = exec;
 
     function loadNodeFragments() {
         fetchJson(SYSTEM_STATIC_DATA_URL)
             .then((payload) => {
                 const data = payload as { cpu?: unknown; interfaces?: unknown } | null;
-                if (data?.cpu && !window.quickboxCpuStatusIsland?.onMessage(data.cpu)) {
+                if (data?.cpu && !dataIslandBridges.cpuStatus.onMessage(data.cpu)) {
                     console.warn("[ws] ignored invalid CPU status response", data.cpu);
                 }
-                if (!window.quickboxNetworkIsland?.onInterfaces(data ? data.interfaces : [])) {
+                if (!dataIslandBridges.network.onInterfaces(data ? data.interfaces : [])) {
                     console.warn("[ws] ignored invalid network interface list", data?.interfaces);
                 }
             })
@@ -730,7 +736,7 @@ export function initDashboardRuntime() {
             if (widgetWriteSourceOf("#cpuload") !== "") {
                 return;
             }
-            if (window.quickboxSystemSummaryIsland?.onPrefetch(data)) {
+            if (dataIslandBridges.systemSummary.onPrefetch(data)) {
                 markWidgetWritten("#cpuload", "prefetch");
             }
         }).catch(() => { /* WebSocket will fill in later */ });
@@ -739,7 +745,7 @@ export function initDashboardRuntime() {
             if (widgetWriteSourceOf("#disk_data") !== "") {
                 return;
             }
-            if (window.quickboxDiskDataIsland?.onPrefetch(data)) {
+            if (dataIslandBridges.diskData.onPrefetch(data)) {
                 markWidgetWritten("#disk_data", "prefetch");
             }
         }).catch(() => { /* WebSocket will fill in later */ });
@@ -748,54 +754,20 @@ export function initDashboardRuntime() {
             if (widgetWriteSourceOf("#meterram") !== "") {
                 return;
             }
-            if (window.quickboxMemoryStatsIsland?.onPrefetch(data)) {
+            if (dataIslandBridges.memoryStats.onPrefetch(data)) {
                 markWidgetWritten("#meterram", "prefetch");
             }
         }).catch(() => { /* WebSocket will fill in later */ });
     }
 
-    function bindDomEvents() {
-        document.addEventListener("click", (event) => {
-            const target = event.target;
-            if (!(target instanceof Element)) {
-                return;
-            }
-            const sysResponseTrigger = target.closest("[data-target='#sysResponse'], [data-qb-system-response]");
-            if (sysResponseTrigger instanceof HTMLElement) {
-                window.quickboxSystemResponseIsland?.open();
-            }
-            const taskAbortButton = target.closest("[data-task-abort]");
-            if (taskAbortButton instanceof HTMLElement) {
-                event.preventDefault();
-                if (window.confirm(taskAbortButton.dataset.confirm || "Terminate the running task?")) {
-                    exec("box:abort:");
-                }
-                return;
-            }
-            if (target.closest("[data-click-handler='packageInstall']")) {
-                window.packageInstallHandler?.(event);
-                return;
-            }
-            if (target.closest("[data-click-handler='packageRemove']")) {
-                window.packageRemoveHandler?.(event);
-                return;
-            }
-            if (target.closest("[data-click-handler='serviceUpdate']")) {
-                window.serviceUpdateHandler?.(event);
-                return;
-            }
-            if (target.closest("[data-click-handler='boxHandler']")) {
-                window.boxHandler?.(event);
-            }
-        });
-
+    function startRuntime() {
         loadNodeFragments();
         afterPrerendering(startStatusUpdates);
     }
 
     if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", bindDomEvents);
+        document.addEventListener("DOMContentLoaded", startRuntime);
     } else {
-        bindDomEvents();
+        startRuntime();
     }
 }

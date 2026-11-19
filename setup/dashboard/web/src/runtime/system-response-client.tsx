@@ -7,7 +7,7 @@ import { AnsiUp } from "ansi_up";
 
 import type { DashboardBootstrapPayload } from "../../../ws/src/shared/bootstrap-contract";
 import type { SystemResponseBridge } from "../../../ws/src/shared/system-response-contract";
-import { SystemResponseModal, type SystemResponseSnapshot } from "../components/system-response-modal";
+import { SystemResponseModal, type SystemResponseSnapshot, type SystemLogBlock } from "../components/system-response-modal";
 import { useDashboardTheme } from "./theme-store";
 
 declare global {
@@ -17,6 +17,7 @@ declare global {
 }
 
 const MAX_OUTPUT_LENGTH = 1024 * 1024;
+const OUTPUT_BLOCK_LENGTH = 4096;
 
 interface OutputChunk {
     content: string;
@@ -38,13 +39,31 @@ function parseOutputChunk(value: unknown): OutputChunk | null {
     return value as OutputChunk;
 }
 
+function byteOffsetToStringIndex(value: string, byteOffset: number): number {
+    let bytes = 0;
+    let index = 0;
+    for (const character of value) {
+        if (bytes >= byteOffset) {
+            break;
+        }
+        const codePoint = character.codePointAt(0) ?? 0;
+        const characterBytes = codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4;
+        if (bytes + characterBytes > byteOffset) {
+            break;
+        }
+        bytes += characterBytes;
+        index += character.length;
+    }
+    return index;
+}
+
 function createStore() {
-    let snapshot: SystemResponseSnapshot = { open: false, outputHtml: "", alert: null };
-    let rawContent = "";
+    let snapshot: SystemResponseSnapshot = { open: false, outputBlocks: [], alert: null };
     let endOffset = -1;
     let epoch: string | undefined;
-    let ansi: AnsiUp | undefined;
-    let outputHtml = "";
+    let ansi = new AnsiUp();
+    let outputLength = 0;
+    let blockId = 0;
     const listeners = new Set<() => void>();
     const publish = () => { listeners.forEach((listener) => { listener(); }); };
     const subscribe = (listener: () => void) => {
@@ -53,69 +72,75 @@ function createStore() {
     };
     const getSnapshot = () => snapshot;
 
-    const updateHtml = (nextChunk: string, replaced: boolean) => {
-        if (rawContent.length > MAX_OUTPUT_LENGTH) {
-            rawContent = rawContent.slice(-MAX_OUTPUT_LENGTH);
-            replaced = true;
-        }
-        if (replaced || !ansi) {
+    const appendOutput = (content: string, replace: boolean): SystemLogBlock[] => {
+        const blocks = replace ? [] : [...snapshot.outputBlocks];
+        if (replace) {
+            outputLength = 0;
             ansi = new AnsiUp();
-            outputHtml = ansi.ansi_to_html(rawContent);
-        } else if (nextChunk) {
-            outputHtml += ansi.ansi_to_html(nextChunk);
         }
+        for (let start = 0; start < content.length;) {
+            const tail = blocks.at(-1);
+            const available = OUTPUT_BLOCK_LENGTH - (tail?.length ?? 0);
+            const extendTail = tail && available >= 2;
+            let end = Math.min(start + (extendTail ? available : OUTPUT_BLOCK_LENGTH), content.length);
+            const last = content.charCodeAt(end - 1);
+            if (end < content.length && last >= 0xd800 && last <= 0xdbff) {end -= 1;}
+            const text = content.slice(start, end);
+            const html = ansi.ansi_to_html(text);
+            if (extendTail) {
+                blocks[blocks.length - 1] = { id: tail.id, html: tail.html + html, length: tail.length + text.length };
+            } else {
+                blocks.push({ id: ++blockId, html, length: text.length });
+            }
+            outputLength += text.length;
+            start = end;
+        }
+        let dropped = 0;
+        while (outputLength > MAX_OUTPUT_LENGTH) {
+            outputLength -= blocks[dropped++].length;
+        }
+        return blocks.slice(dropped);
     };
 
     const onMessage = (value: unknown) => {
-        let nextChunk = "";
-        let replaced = false;
         const response = parseOutputChunk(value);
+        let content: string;
+        let replaced = true;
         if (response) {
             const previousEnd = endOffset;
-            if (previousEnd < 0 || response.epoch !== epoch || response.end < previousEnd || response.start > previousEnd) {
-                rawContent = response.content;
-                endOffset = response.end;
-                epoch = response.epoch;
-                replaced = true;
-            } else if (response.end > previousEnd && response.content) {
-                const overlap = Math.max(0, previousEnd - response.start);
-                nextChunk = overlap > 0 ? response.content.slice(overlap) : response.content;
-                rawContent += nextChunk;
-                endOffset = response.end;
-            }
+            replaced = previousEnd < 0 || response.epoch !== epoch || response.end < previousEnd || response.start > previousEnd;
+            if (!replaced && (response.end === previousEnd || !response.content)) {return true;}
+            const overlap = replaced ? 0 : Math.max(0, previousEnd - response.start);
+            content = response.content.slice(byteOffsetToStringIndex(response.content, overlap));
+            endOffset = response.end;
+            epoch = response.epoch;
         } else {
-            rawContent = typeof value === "string" ? value : "";
+            content = typeof value === "string" ? value : "";
             endOffset = -1;
             epoch = undefined;
-            ansi = undefined;
-            replaced = true;
         }
-        updateHtml(nextChunk, replaced);
-        if (nextChunk || replaced) {
-            snapshot = { ...snapshot, outputHtml };
-            publish();
-        }
+        snapshot = { ...snapshot, outputBlocks: appendOutput(content, replaced) };
+        publish();
         return true;
     };
 
     const resetOutput = () => {
-        rawContent = "";
         endOffset = -1;
         epoch = undefined;
-        ansi = undefined;
-        outputHtml = "";
+        ansi = new AnsiUp();
+        outputLength = 0;
     };
 
     const bridge: SystemResponseBridge = {
         open: () => {
             resetOutput();
-            snapshot = { ...snapshot, open: true, outputHtml, alert: null };
+            snapshot = { ...snapshot, open: true, outputBlocks: [], alert: null };
             publish();
         },
         close: () => {
             if (!snapshot.open) {return;}
             resetOutput();
-            snapshot = { ...snapshot, open: false, outputHtml };
+            snapshot = { ...snapshot, open: false, outputBlocks: [] };
             publish();
         },
         isOpen: () => snapshot.open,
@@ -146,6 +171,8 @@ function createStore() {
 }
 
 const systemResponseStore = createStore();
+
+export const systemResponseActions: SystemResponseBridge = systemResponseStore.bridge;
 
 export function registerSystemResponseIsland() {
     window.quickboxSystemResponseIsland = systemResponseStore.bridge;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React from "react";
-import { Trans } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import {
     AppstoreOutlined,
     CodeOutlined,
@@ -12,11 +12,11 @@ import {
     QuestionCircleOutlined,
     WarningOutlined,
 } from "@ant-design/icons";
-import { Button, ConfigProvider, Modal, Tooltip } from "antd";
+import { Button, ConfigProvider, Modal, Switch, Tooltip } from "antd";
 
-import { applyFrontendTheme, getAntdThemeConfig } from "../runtime/theme-store";
+import { selectFrontendTheme, getAntdThemeConfig } from "../runtime/theme-store";
+import { switchDashboardBranch, updateRuntimeLocale, useCommandConnection } from "../runtime/dashboard-runtime-client";
 import { isDashboardTheme, type DashboardTheme } from "../../../ws/src/shared/theme";
-import { setLocale } from "../i18n";
 
 export interface ChromeMenuEntry {
     name: string;
@@ -110,7 +110,105 @@ function applyTheme(theme: string) {
         console.warn("[ws] ignored unknown theme", theme);
         return;
     }
-    applyFrontendTheme(theme);
+    selectFrontendTheme(theme);
+    void fetch(`${window.quickboxApiBase ?? ""}/node/theme`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme }),
+    }).catch((error: unknown) => {
+        console.warn("[ws] failed to persist theme on server", error);
+    });
+}
+
+interface RutorrentPlugin {
+    name: string;
+    label?: string;
+    installed: boolean;
+}
+
+function parseRutorrentPlugins(value: unknown): RutorrentPlugin[] {
+    if (value === null || typeof value !== "object" || !("plugins" in value) || !Array.isArray(value.plugins)) {
+        return [];
+    }
+    return value.plugins.filter((plugin: unknown): plugin is RutorrentPlugin => {
+        if (plugin === null || typeof plugin !== "object") {
+            return false;
+        }
+        const record = plugin as Record<string, unknown>;
+        return typeof record.name === "string" && typeof record.installed === "boolean" &&
+            (record.label === undefined || typeof record.label === "string");
+    });
+}
+
+function RutorrentPluginList({ visible }: { visible: boolean }) {
+    const { t } = useTranslation();
+    const [plugins, setPlugins] = React.useState<RutorrentPlugin[]>([]);
+    const [loading, setLoading] = React.useState(false);
+    const [pendingPlugin, setPendingPlugin] = React.useState<string | null>(null);
+    const [error, setError] = React.useState<string | null>(null);
+
+    const loadPlugins = React.useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`${window.quickboxApiBase ?? ""}/node/plugins`, { credentials: "same-origin" });
+            if (!response.ok) {throw new Error("Plugin list request failed");}
+            setPlugins(parseRutorrentPlugins(await response.json()));
+        } catch {
+            setError(t("PLUGIN_LOAD_FAILED"));
+        } finally {
+            setLoading(false);
+        }
+    }, [t]);
+
+    React.useEffect(() => {
+        if (visible) {void loadPlugins();}
+    }, [loadPlugins, visible]);
+
+    const togglePlugin = async (plugin: RutorrentPlugin) => {
+        setPendingPlugin(plugin.name);
+        setError(null);
+        try {
+            const response = await fetch(`${window.quickboxApiBase ?? ""}/node/plugin`, {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ plugin: plugin.name, action: plugin.installed ? "remove" : "install" }),
+            });
+            if (!response.ok) {throw new Error("Plugin action failed");}
+            await loadPlugins();
+        } catch {
+            setError(t("PLUGIN_ACTION_FAILED"));
+        } finally {
+            setPendingPlugin(null);
+        }
+    };
+
+    return (
+        <>
+            {loading && plugins.length === 0 ? <li className="qb-plugin-status" role="status" style={{ padding: "8px 15px" }}>{t("PLUGIN_LOADING")}</li> : null}
+            {error ? <li className="qb-plugin-status text-danger" role="alert" style={{ padding: "8px 15px" }}>{error}</li> : null}
+            {plugins.map((plugin) => {
+                const isPending = pendingPlugin === plugin.name;
+                return (
+                    <li key={plugin.name} className="qb-plugin-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 15px" }}>
+                        <a href="#" onClick={(event) => { event.preventDefault(); }} style={{ padding: 0 }}>{plugin.label ?? plugin.name}</a>
+                        <Switch
+                            size="small"
+                            checked={plugin.installed}
+                            loading={isPending}
+                            disabled={loading || pendingPlugin !== null}
+                            checkedChildren={t("INSTALLED")}
+                            unCheckedChildren={t("INSTALL")}
+                            aria-label={plugin.label ?? plugin.name}
+                            onChange={() => { void togglePlugin(plugin); }}
+                        />
+                    </li>
+                );
+            })}
+        </>
+    );
 }
 
 function resetPanels() {
@@ -151,6 +249,7 @@ interface BranchSwitchDialogProps {
 }
 
 function BranchSwitchDialog({ open, mode, branch, branchCommit, locale, labels, onCancel, onSwitch }: BranchSwitchDialogProps) {
+    const commandsConnected = useCommandConnection();
     const [branches, setBranches] = React.useState<string[]>([]);
     const [selectedBranch, setSelectedBranch] = React.useState("");
     const [branchesLoading, setBranchesLoading] = React.useState(false);
@@ -205,7 +304,7 @@ function BranchSwitchDialog({ open, mode, branch, branchCommit, locale, labels, 
             wrapProps={{ id: "branchSwitch" }}
             classNames={{ wrapper: "qb-branch-switch-wrap" }}
             onCancel={onCancel}
-            footer={<><Button data-dismiss="modal" onClick={onCancel}>{labels.cancel}</Button><Button id="branchSwitchGo" type="primary" disabled={!isBranchName(targetBranch) || branchesLoading || branchError} data-update={labels.branchUpdate} data-switch={labels.branchSwitchAction} onClick={() => { if (isBranchName(targetBranch)) {onSwitch(targetBranch);} }}>{buttonLabel}</Button></>}
+            footer={<><Button data-dismiss="modal" onClick={onCancel}>{labels.cancel}</Button><Button id="branchSwitchGo" type="primary" disabled={!commandsConnected || !isBranchName(targetBranch) || branchesLoading || branchError} data-update={labels.branchUpdate} data-switch={labels.branchSwitchAction} onClick={() => { if (isBranchName(targetBranch)) {onSwitch(targetBranch);} }}>{buttonLabel}</Button></>}
         >
             <div className="branch-current"><div className="branch-label">{labels.branchCurrent}</div><div className="branch-value">{branch}{branchCommit ? <span className="branch-commit">{" "}{branchCommit.slice(0, 12)}</span> : null}</div></div>
             <div className="branch-label" id="branchTargetLabel">{labels.branchTarget}</div>
@@ -248,12 +347,21 @@ export function DashboardHeader({ props, theme = "defaulted" }: { props: Dashboa
     }, []);
     const confirmBranchSwitch = (targetBranch: string) => {
         closeBranchSwitch();
-        window.quickboxSystemResponseIsland?.open();
-        window.dispatchEvent(new CustomEvent("quickbox:branch-switch", { detail: { branch: targetBranch } }));
+        switchDashboardBranch(targetBranch);
     };
 
     React.useEffect(() => {
+        const wideViewport = window.matchMedia("(min-width: 1280px)");
         const activeAnimations = new WeakMap<HTMLElement, Animation>();
+        const resetOffsets = () => {
+            document.querySelectorAll<HTMLElement>(".mainpanel, .logopanel, .leftpanel, .headerbar").forEach((element) => {
+                activeAnimations.get(element)?.cancel();
+                activeAnimations.delete(element);
+                element.style.removeProperty("left");
+                element.style.removeProperty("margin-left");
+            });
+            document.body.style.removeProperty("overflow");
+        };
         const animateOffset = (element: HTMLElement, property: "left" | "marginLeft", target: number) => {
             const current = getComputedStyle(element).getPropertyValue(property === "marginLeft" ? "margin-left" : property);
             activeAnimations.get(element)?.cancel();
@@ -290,7 +398,12 @@ export function DashboardHeader({ props, theme = "defaulted" }: { props: Dashboa
             animateOffset(main, property, mainOffset);
         };
         document.getElementById("menuToggle")?.addEventListener("click", onMenuToggle);
-        return () => document.getElementById("menuToggle")?.removeEventListener("click", onMenuToggle);
+        wideViewport.addEventListener("change", resetOffsets);
+        return () => {
+            document.getElementById("menuToggle")?.removeEventListener("click", onMenuToggle);
+            wideViewport.removeEventListener("change", resetOffsets);
+            resetOffsets();
+        };
     }, []);
 
     const configTabs = [
@@ -326,14 +439,14 @@ export function DashboardHeader({ props, theme = "defaulted" }: { props: Dashboa
                                                 </div>
                                                 <div role="tabpanel" className={`tab-pane${activeNoticeTab === "dashadjust" ? " active" : ""}`} id="dashadjust">
                                                     <ul className="list-group"><li className="list-group-item"><div className="row"><div className="col-xs-12">
-                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{props.labels.language}</h5><div id="node-language-options">{props.config.languages.map((language) => <small key={language.key}><div className="qb-chrome-option" data-locale={language.key} onClick={() => { setLocale(language.key); window.quickboxSetLocale?.(language.key); }}><img className="lang-flag" src={`/lang/flag_${language.file}.png`} alt="" aria-hidden="true" />{language.title}</div></small>)}</div></div>
-                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{props.labels.theme}</h5><div id="node-theme-options">{props.config.themes.map((theme) => <small key={theme.file}><div className="qb-chrome-option" onClick={() => { setNoticeOpen(false); applyTheme(theme.file); }}><img className="lang-flag" src={`/img/themes/opt_${theme.file}.png`} alt="" aria-hidden="true" />{theme.title}</div></small>)}</div></div>
+                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{props.labels.language}</h5><div id="node-language-options">{props.config.languages.map((language) => <small key={language.key}><div className="qb-chrome-option" role="button" tabIndex={0} data-locale={language.key} onClick={() => { updateRuntimeLocale(language.key); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); updateRuntimeLocale(language.key); } }}><img className="lang-flag" src={`/lang/flag_${language.file}.png`} alt="" aria-hidden="true" />{language.title}</div></small>)}</div></div>
+                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{props.labels.theme}</h5><div id="node-theme-options">{props.config.themes.map((theme) => <small key={theme.file}><div className="qb-chrome-option" role="button" tabIndex={0} onClick={() => { setNoticeOpen(false); applyTheme(theme.file); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setNoticeOpen(false); applyTheme(theme.file); } }}><img className="lang-flag" src={`/img/themes/opt_${theme.file}.png`} alt="" aria-hidden="true" />{theme.title}</div></small>)}</div></div>
                                                     </div></div></li></ul>
                                                 </div>
                                                 <div role="tabpanel" className={`tab-pane${activeNoticeTab === "configure" ? " active" : ""}`} id="configure">
                                                     <ul className="list-group"><li className="list-group-item"><div className="row"><div className="col-xs-12">
                                                         <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{props.labels.bandwidth}</h5><div id="node-bw-page-options">{props.config.bwPages.map((page) => <small key={page.key}><div className="qb-chrome-option" role="button" tabIndex={0} onClick={() => { localStorage.setItem("bw_tables:page", page.key); window.dispatchEvent(new Event("quickbox:bandwidth-page-change")); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); localStorage.setItem("bw_tables:page", page.key); window.dispatchEvent(new Event("quickbox:bandwidth-page-change")); } }}>{page.title}</div></small>)}</div></div>
-                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{props.labels.panelConfig}</h5><small><div id="node-panel-reset" className="qb-chrome-option" onClick={resetPanels}>{props.labels.panelReset}</div></small></div>
+                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{props.labels.panelConfig}</h5><small><div id="node-panel-reset" className="qb-chrome-option" role="button" tabIndex={0} onClick={resetPanels} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); resetPanels(); } }}>{props.labels.panelReset}</div></small></div>
                                                     </div></div></li></ul>
                                                 </div>
                                             </div>
@@ -377,6 +490,7 @@ const helpSections = [
 ];
 
 export function DashboardSidebar({ props, theme = "defaulted" }: { props: DashboardChromeProps; theme?: DashboardTheme }) {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = React.useState("mainmenu");
     const [downloadsOpen, setDownloadsOpen] = React.useState(false);
     const [hoveredLink, setHoveredLink] = React.useState<string | null>(null);
@@ -422,7 +536,7 @@ export function DashboardSidebar({ props, theme = "defaulted" }: { props: Dashbo
                             {props.menuState.showWebConsole ? <li><a href={`/${props.config.username}.console`} target="_blank" rel="noopener noreferrer"><CodeOutlined aria-hidden="true" /> <span>{label("webConsole")}</span></a></li> : null}
                         </ul>
                     </div>
-                    <div className={`tab-pane${activeTab === "plugins" ? " active" : ""}`} id="plugins"><h5 className="sidebar-title">ruTorrent Plugins</h5><ul id="node-plugin-list" className="nav nav-pills nav-stacked nav-quirk"></ul></div>
+                    <div className={`tab-pane${activeTab === "plugins" ? " active" : ""}`} id="plugins"><h5 className="sidebar-title">{t("RPLUGIN_MENU")}</h5><ul id="node-plugin-list" className="nav nav-pills nav-stacked nav-quirk"><RutorrentPluginList visible={activeTab === "plugins" && props.menuState.showPluginTab} /></ul></div>
                     <div className={`tab-pane${activeTab === "help" ? " active" : ""}`} id="help">
                         {helpSections.map((section) => <React.Fragment key={section.titleKey}><h5 className="sidebar-title">{label(section.titleKey as keyof DashboardChromeProps["labels"])}</h5><ul className="nav nav-pills nav-stacked nav-quirk nav-mail">{section.rows.map(([command, translation]) => <li key={command} style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>{command}</span><br /><small>{label(translation as keyof DashboardChromeProps["labels"])}</small></li>)}</ul></React.Fragment>)}
                         <h5 className="sidebar-title">{label("essentialUserCommands")}</h5><ul className="nav nav-pills nav-stacked nav-quirk nav-mail"><li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>systemctl restart rtorrent@{props.config.username}.service</span><br /><small>{label("restartRtorrent")}</small></li></ul>

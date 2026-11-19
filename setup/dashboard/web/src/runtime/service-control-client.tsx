@@ -23,14 +23,15 @@ import { DASHBOARD_STREAM_BY_KEY } from "../../../ws/src/shared/widget-streams";
 import { isWsMessageEnvelope } from "../../../ws/src/shared/ws-message";
 import { ServiceControlIsland } from "../components/service-control-island";
 import { ServiceControlPlaceholder } from "../components/placeholder";
-import { scheduleVisibilityInterval } from "./dashboard-runtime-client";
+import { scheduleVisibilityInterval, useCommandConnection } from "./dashboard-runtime-client";
+import { systemResponseActions } from "./system-response-client";
 import { useDashboardTheme } from "./theme-store";
 
 interface ServiceTransport {
     isConnected: () => boolean;
     pushMode?: WsPushMode;
     sendMessage: (request: ServiceRequestV2) => void;
-    executeServiceAction: (request: { requestId: string; service: string; action: "enable" | "disable" | "restart"; locale: ServiceLocale }) => void;
+    executeServiceAction: (request: { requestId: string; service: string; action: "enable" | "disable" | "restart"; locale: ServiceLocale }) => boolean;
     notifyStopped: (key: string) => void;
 }
 
@@ -48,7 +49,7 @@ interface PendingServiceAction {
 interface ServiceIslandBridge {
     bindTransport: (next: ServiceTransport) => void;
     onConnected: (bootstrapDelayMs: number) => void;
-    onDisconnected: () => void;
+    onDisconnected: () => boolean;
     onMessage: (payload: unknown) => void;
     onActionResult: (payload: unknown) => void;
     onLocaleChanged: (nextLocale: string) => void;
@@ -269,7 +270,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
             }
             publish();
         }
-        if (key !== "SERVICE_STATUS_ALL" && errorCountByKey[key] > 32 && !stoppedKeys.has(key)) {
+        if (transport?.pushMode !== "push" && key !== "SERVICE_STATUS_ALL" && errorCountByKey[key] > 32 && !stoppedKeys.has(key)) {
             stoppedKeys.add(key);
             transport?.notifyStopped(key);
         }
@@ -298,6 +299,10 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
             (payload.key === "SERVICE_CONTROL" || payload.key === "SERVICE_STATUS_ALL")) {
             const key = payload.key;
             if (!payload.success) {
+                if (payload.stale && key === "SERVICE_STATUS_ALL" && isServiceStatusAllData(payload.response)) {
+                    const states = Object.fromEntries(Object.entries(payload.response.states).filter(([id]) => knownServiceIds.has(id)));
+                    snapshot = { ...snapshot, statusById: { ...snapshot.statusById, ...states } };
+                }
                 applyServiceFailure(key);
                 return;
             }
@@ -372,7 +377,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         const output = typeof payload.stderr === "string" && payload.stderr !== ""
             ? payload.stderr
             : typeof payload.stdout === "string" ? payload.stdout : "";
-        window.quickboxSystemResponseIsland?.showAlert({
+        systemResponseActions.showAlert({
             message,
             ...(failedOperation ? { command: failedOperation } : {}),
             ...(output ? { output } : {}),
@@ -424,7 +429,9 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         pendingActionByService.set(serviceId, requestId);
         snapshot = { ...snapshot, pendingById: { ...snapshot.pendingById, [serviceId]: true } };
         markServiceStale(serviceId);
-        transport.executeServiceAction({ requestId, service: serviceId, action, locale });
+        if (!transport.executeServiceAction({ requestId, service: serviceId, action, locale })) {
+            completeAction(requestId, false);
+        }
     };
 
     const finishConfirmedAction = (requestId: string, response: Record<string, unknown>, request: PendingServiceAction) => {
@@ -437,8 +444,8 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         if (response.success === false && !request.failureShown) {
             showActionFailure(response);
         } else if (typeof response.statusError === "string" && response.statusError !== "") {
-            window.quickboxSystemResponseIsland?.showAlert({
-                message: "Service action completed, but its current status could not be confirmed.",
+            systemResponseActions.showAlert({
+                message: i18n.t("SERVICE_ACTION_STATUS_UNCONFIRMED"),
                 output: response.statusError,
             });
         }
@@ -535,6 +542,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
     };
 
     const onDisconnected = () => {
+        const hadPendingActions = serviceActions.size > 0;
         clearPending();
         nextStatusRequestAt = 0;
         if (statusRetryTimer) {
@@ -548,6 +556,11 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
             clearTimeout(bootstrapStatusTimer);
             bootstrapStatusTimer = undefined;
         }
+        if (snapshot.health !== "unavailable" || Object.values(snapshot.statusById).some((state) => !state.stale)) {
+            markAllServiceStatusesStale();
+            publish();
+        }
+        return hadPendingActions;
     };
 
     const onLocaleChanged = (nextLocale: string) => {
@@ -573,7 +586,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
 
 let serviceStore: ReturnType<typeof createServiceControlStore> | undefined;
 
-export function registerServiceControlIsland(bootstrap: DashboardBootstrapPayload) {
+export function registerServiceControlIsland(bootstrap: DashboardBootstrapPayload): ReturnType<typeof createServiceControlStore> {
     const store = createServiceControlStore(bootstrap.serviceRows, window.quickboxLocale ?? "en", bootstrap.serviceKeys);
     serviceStore = store;
     window.quickboxServiceIsland = {
@@ -584,16 +597,19 @@ export function registerServiceControlIsland(bootstrap: DashboardBootstrapPayloa
         onActionResult: store.handleActionResult,
         onLocaleChanged: store.onLocaleChanged,
     };
+    return store;
+}
+
+export function getServiceControlBridge(): ServiceIslandBridge | undefined {
+    return window.quickboxServiceIsland;
 }
 
 export function ServiceControlSlot({ bootstrap, ready = true }: { bootstrap: DashboardBootstrapPayload; ready?: boolean }) {
     const { t } = useTranslation();
-    if (!serviceStore) {
-        registerServiceControlIsland(bootstrap);
-    }
-    const store = serviceStore!;
+    const store = serviceStore ?? registerServiceControlIsland(bootstrap);
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
     const activeTheme = useDashboardTheme(bootstrap.serviceTheme);
+    const commandsConnected = useCommandConnection();
     if (!ready) {
         return <ServiceControlPlaceholder />;
     }
@@ -616,6 +632,7 @@ export function ServiceControlSlot({ bootstrap, ready = true }: { bootstrap: Das
             theme={activeTheme}
             statusById={snapshot.statusById}
             pendingById={snapshot.pendingById}
+            commandsDisabled={!commandsConnected}
             onRefresh={store.executeRefresh}
             onEnabledChange={store.setEnabledAtBoot}
         />

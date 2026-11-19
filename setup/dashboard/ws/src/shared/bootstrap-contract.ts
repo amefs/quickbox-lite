@@ -42,6 +42,7 @@ export type WsPushMode = "push" | "poll";
 export interface DashboardBootstrapPayload {
     basePath: string;
     locales: readonly string[];
+    defaultLocale: string | null;
     serviceKeys: string[];
     socketUpgrade: boolean;
     wsPushMode?: WsPushMode;
@@ -70,6 +71,7 @@ export interface DebugPackageItem {
 export interface DebugMetaPayload {
     basePath: string;
     theme: DashboardTheme;
+    defaultLocale: string | null;
     endpoints: DebugEndpointItem[];
     packages: DebugPackageItem[];
 }

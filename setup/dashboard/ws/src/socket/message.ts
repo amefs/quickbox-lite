@@ -59,7 +59,7 @@ export const parseUrl = (url: string) => {
     };
 };
 
-type WidgetHandler = (args: Record<string, string>) => Promise<string | object> | string | object;
+type WidgetHandler = (args: Record<string, string>, signal?: AbortSignal) => Promise<string | object> | string | object;
 
 const validBandwidthPages = ["h", "d", "m", "t"] as const;
 type BandwidthPage = typeof validBandwidthPages[number];
@@ -78,9 +78,9 @@ const widgetHandlers: Partial<Record<string, WidgetHandler>> = {
     [NETWORK_STATUS_URL]: () => netStatus(),
     [SYSTEM_LOAD_DATA_URL]: () => systemLoadData(),
     [SYSTEM_UPTIME_DATA_URL]: () => getUptimeParts(),
-    [DISK_DATA_URL]: () => diskDataData(),
+    [DISK_DATA_URL]: (_, signal) => diskDataData(signal),
     [RAM_STATS_DATA_URL]: () => ramStatsData(),
-    [BANDWIDTH_DATA_URL]: (args) => bandwidthTablesData(getIfaceConfig(), parseBandwidthPage(args)),
+    [BANDWIDTH_DATA_URL]: (args, signal) => bandwidthTablesData(getIfaceConfig(), parseBandwidthPage(args), signal),
     [TASK_STATUS_DATA_URL]: () => Promise.resolve(runningTaskData()),
     [PACKAGE_MANAGEMENT_DATA_URL]: () => getPackageManagementStateData(),
     [SERVICE_CONTROL_URL]: () => ({ rows: getServiceControlRows() }),
@@ -92,13 +92,13 @@ const widgetHandlers: Partial<Record<string, WidgetHandler>> = {
     ),
 };
 
-export const resolveWidget = async (url: string): Promise<string|object> => {
+export const resolveWidget = async (url: string, signal?: AbortSignal): Promise<string|object> => {
     const req = parseUrl(url);
     const handler = widgetHandlers[req.pathname];
     if (!handler) {
         throw new Error(`Unknown widget route: ${req.pathname}`);
     }
-    return await handler(req.args);
+    return await handler(req.args, signal);
 };
 
 const isValidPayload = (payload: unknown): payload is Payload => {

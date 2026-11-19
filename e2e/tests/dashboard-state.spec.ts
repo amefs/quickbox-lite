@@ -347,6 +347,7 @@ test.describe("service status recovery", () => {
         await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { socket?: { connected?: boolean } }).socket?.connected))).toBe(true);
         await captureNetworkRequests(page);
         await page.evaluate(() => {
+            (window as unknown as { __networkRequests: NetworkRequestFixture[] }).__networkRequests = [];
             const socket = (window as unknown as { socket: { listeners: (event: string) => unknown[] } }).socket;
             for (const listener of socket.listeners("connect")) {
                 if (typeof listener === "function") (listener as () => void)();
@@ -531,7 +532,7 @@ test.describe("PMC widget state", () => {
 });
 
 test.describe("prefetch ordering", () => {
-    test("a late HTTP prefetch does not overwrite data already delivered by WS", async ({ page }) => {
+    test("a late HTTP prefetch cannot overwrite WS data after changing language", async ({ page }) => {
         await page.addInitScript(() => {
             const win = window as unknown as { prefetchControl: PrefetchControl };
             let releaseBody: () => void = () => {};
@@ -581,7 +582,7 @@ test.describe("prefetch ordering", () => {
             await route.fulfill({
                 status: 200,
                 contentType: "application/json",
-                body: JSON.stringify({ text: "STALE-PREFETCH" }),
+                json: { loadavg: [91, 92, 93], processes: 42 },
             });
         });
 
@@ -592,13 +593,18 @@ test.describe("prefetch ordering", () => {
 
         await expect(page.locator("#cpuload")).toHaveAttribute("data-qb-write-source", "ws");
         const wsText = await page.locator("#cpuload").innerText();
-        expect(wsText).not.toContain("STALE-PREFETCH");
+        expect(wsText).not.toContain("91.00");
+        await page.locator("#noticePanel > button").click();
+        await page.locator('#noticeDropdown a[href="#dashadjust"]').click();
+        await page.locator('#node-language-options [data-locale="fr"]').click();
+        await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe("fr");
 
         releasePrefetch();
         await expect.poll(() => page.evaluate(() => {
             return (window as unknown as { prefetchControl: PrefetchControl }).prefetchControl.bodyReady;
         })).toBe(true);
         expect(await page.locator("#cpuload").innerText()).toBe(wsText);
+        await expect(page.locator("#cpuload")).toHaveAttribute("data-qb-write-source", "ws");
 
         await page.evaluate(async () => {
             const control = (window as unknown as { prefetchControl: PrefetchControl }).prefetchControl;
@@ -617,3 +623,120 @@ interface SocketLike {
     off: (event: string, listener: (payload: unknown) => void) => void;
     emit: (event: string, payload?: unknown) => void;
 }
+
+test("disables dashboard commands and marks service status stale while disconnected", async ({ page }) => {
+    await page.goto(`${WS_BASE_URL}?locale=en`);
+    const install = page.locator("#pmc_widget").getByRole("button", { name: "Install", exact: true }).first();
+    await expect(install).toBeEnabled();
+    const badge = page.locator("#appstat_rtorrent [data-observed-at]");
+    await expect(badge).toBeVisible();
+
+    await page.evaluate(() => {
+        const socket = (window as unknown as { socket: { disconnect: () => void } }).socket;
+        socket.disconnect();
+    });
+    await expect(install).toBeDisabled();
+    await expect(badge.locator(".badge-service-stale").first()).toBeVisible();
+    await install.click({ force: true });
+    await expect(page.locator("#sysResponse")).toBeHidden();
+    expect(await page.evaluate(() => {
+        const socket = (window as unknown as { socket: { sendBuffer: { data: unknown[] }[] } }).socket;
+        return socket.sendBuffer.some((packet) => packet.data[0] === "exec");
+    })).toBe(false);
+
+    await page.evaluate(() => (window as unknown as { socket: { connect: () => void } }).socket.connect());
+    await expect(install).toBeEnabled();
+    await expect(badge.locator(".badge-service-stale")).toHaveCount(0);
+    await page.evaluate(() => {
+        const socket = (window as unknown as { socket: SocketLike & { disconnect: () => void } }).socket;
+        const emit = socket.emit.bind(socket);
+        socket.emit = (event, payload) => {
+            if (event !== "exec") {emit(event, payload);}
+        };
+    });
+    await install.click();
+    await expect(page.locator("#sysResponse")).toBeVisible();
+    await page.evaluate(() => (window as unknown as { socket: { disconnect: () => void } }).socket.disconnect());
+    await expect(page.getByText(/connection lost before the operation result could be confirmed/i)).toBeVisible();
+});
+
+test("retries a hanging bootstrap and reads the initial theme from the server", async ({ page }) => {
+    await page.clock.install();
+    let attempts = 0;
+    let finish: () => void = () => {};
+    const firstRequest = new Promise<void>((resolve) => { finish = resolve; });
+    let initialCookie: string | undefined;
+    await page.route("**/node/bootstrap*", async (route) => {
+        attempts += 1;
+        if (attempts === 1) {
+            initialCookie = (await route.request().allHeaders()).cookie;
+            await firstRequest;
+            await route.abort().catch(() => {});
+            return;
+        }
+        const response = await route.fetch();
+        const payload = await response.json() as Record<string, unknown>;
+        await route.fulfill({ response, json: { ...payload, serviceTheme: "smoked" } });
+    });
+    try {
+        await page.goto(`${WS_BASE_URL}?locale=en`);
+        await expect.poll(() => attempts).toBe(1);
+        await page.clock.runFor(10_001);
+        await expect(page.getByRole("alert").filter({ hasText: /timed out/i })).toBeVisible();
+        expect(initialCookie ?? "").not.toContain("quickbox_theme=");
+        await page.getByRole("button", { name: "Reload", exact: true }).click();
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "smoked");
+        await expect(page.locator("#pmc_widget table")).toBeVisible();
+        expect(attempts).toBe(2);
+        expect((await page.context().cookies()).map((cookie) => cookie.name)).not.toContain("quickbox_theme");
+    } finally {
+        finish();
+    }
+});
+
+test("a late bootstrap preserves the theme selected while loading", async ({ page }) => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    await page.route("**/node/bootstrap*", async (route) => {
+        const response = await route.fetch();
+        const payload = await response.json() as Record<string, unknown>;
+        await gate;
+        await route.fulfill({ response, json: { ...payload, serviceTheme: "defaulted" } });
+    });
+    try {
+        await page.goto(WS_BASE_URL);
+        await page.locator("#noticePanel > button").click();
+        await page.locator('#noticeDropdown a[href="#dashadjust"]').click();
+        await page.locator("#node-theme-options .qb-chrome-option").filter({
+            has: page.locator('img[src="/img/themes/opt_smoked.png"]'),
+        }).click();
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "smoked");
+        release();
+        await expect(page.locator("#pmc_widget table")).toBeVisible();
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "smoked");
+    } finally {
+        release();
+    }
+});
+
+test("updates network rates when interfaces join, reset and disappear", async ({ page }) => {
+    await page.route("**/socket.io/**", route => route.abort());
+    await page.goto(WS_BASE_URL);
+    await expect.poll(() => isPackageTableReady(page)).toBe(true);
+    const sendSample = (ts: number, counters: Record<string, number>) => page.evaluate(({ ts, counters }) => {
+        const bridge = (window as unknown as { quickboxNetworkIsland: { onMessage: (value: unknown) => boolean } }).quickboxNetworkIsland;
+        const net = Object.fromEntries(Object.entries(counters).map(([name, value]) => [name, { rx_bytes: value, tx_bytes: value }]));
+        bridge.onMessage({ ts, net });
+    }, { ts, counters });
+    const rows = page.locator("#node-network-interface-rows tr");
+    await sendSample(1, { review0: 10 });
+    await sendSample(2, { review0: 110, review1: 20 });
+    await sendSample(3, { review0: 1110, review1: 1020 });
+    await expect(rows.filter({ hasText: "review0" }).locator("td").nth(1)).toHaveText("1000 B/s");
+    await expect(rows.filter({ hasText: "review1" }).locator("td").nth(1)).toHaveText("1000 B/s");
+    await sendSample(4, { review1: 5 });
+    await expect(rows.filter({ hasText: "review0" })).toHaveCount(0);
+    await expect(rows.filter({ hasText: "review1" }).locator("td").nth(1)).toHaveText("0 B/s");
+    await sendSample(5, { review1: 105 });
+    await expect(rows.filter({ hasText: "review1" }).locator("td").nth(1)).toHaveText("100 B/s");
+});

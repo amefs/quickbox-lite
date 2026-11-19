@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { Request, Response, Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { shouldUpgradeDashboardSocket } from "../auth";
 import { dashboardConfig } from "../services/config/dashboard";
-import { VALID_LOCALES } from "../services/config/locale";
+import { readDefaultLocale, VALID_LOCALES } from "../services/config/locale";
 import { serviceMap } from "../services/packages/info";
 import { resolveDashboardMenuState } from "../services/packages/menu";
 import { getPackageManagementData } from "../services/packages/pmc";
@@ -11,7 +11,7 @@ import { runningTaskData } from "../services/packages/running-task";
 import { getServiceControlRows } from "../services/service/control";
 import { getUptimeParts } from "../services/system/uptime";
 import type { DashboardBootstrapPayload, DashboardChromeData, WsPushMode } from "../shared/bootstrap-contract";
-import { readDashboardTheme, serveDashboardIndex } from "./utils";
+import { readDashboardTheme } from "./utils";
 
 function resolveWsPushMode(): WsPushMode {
     return process.env.QUICKBOX_WS_PUSH_MODE === "poll" ? "poll" : "push";
@@ -46,6 +46,7 @@ export async function buildBootstrapPayload(
     return {
         basePath: basePath === "/ws" ? "/ws" : "",
         locales: VALID_LOCALES,
+        defaultLocale: readDefaultLocale(),
         serviceKeys: [...serviceMap.keys()],
         socketUpgrade: shouldUpgradeDashboardSocket(req.headers),
         wsPushMode: resolveWsPushMode(),
@@ -56,7 +57,7 @@ export async function buildBootstrapPayload(
         },
         networkInterfaces: [],
         networkInterfacesLoaded: false,
-        runningTask: runningTaskData(),
+        runningTask: await runningTaskData(),
         packageManagement: {
             data: packageManagementData,
             theme: dashboardTheme,
@@ -65,19 +66,18 @@ export async function buildBootstrapPayload(
     };
 }
 
-export function mountBootstrapRoutes(router: Router, dashboardDir: string, webIndexHtmlPath: string): void {
-    const serveIndex = serveDashboardIndex(webIndexHtmlPath);
+/**
+ * Bootstrap sub-router (mounted at `/node` and `/ws/node`).
+ *
+ * Routes:
+ *   GET /bootstrap
+ */
+export function createBootstrapRouter(dashboardDir: string, basePath: "" | "/ws" = ""): Router {
+    const router = Router();
 
-    router.get("/", serveIndex);
-    router.get("/index.html", serveIndex);
-    router.get("/ws", serveIndex);
-    router.get("/ws/", serveIndex);
-
-    router.get("/node/bootstrap", async (req: Request, res: Response) => {
-        res.json(await buildBootstrapPayload(dashboardDir, req));
+    router.get("/bootstrap", async (req: Request, res: Response) => {
+        res.json(await buildBootstrapPayload(dashboardDir, req, basePath));
     });
 
-    router.get("/ws/node/bootstrap", async (req: Request, res: Response) => {
-        res.json(await buildBootstrapPayload(dashboardDir, req, "/ws"));
-    });
+    return router;
 }

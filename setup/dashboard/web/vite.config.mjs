@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { createHash } from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
@@ -36,6 +37,9 @@ function cacheBustAssets() {
                 for (const [fileName, hash] of hashes) {
                     html = html.replaceAll(`./${fileName}`, `./${fileName}?v=${hash}`);
                 }
+                const dashboardCss = fs.readFileSync(path.join(webRoot, "public", "css", "dashboard.css"));
+                const cssHash = createHash("sha256").update(dashboardCss).digest("hex").slice(0, 12);
+                html = html.replace("./css/dashboard.css", `/css/dashboard.css?v=${cssHash}`);
                 htmlAsset.source = html;
             }
         },

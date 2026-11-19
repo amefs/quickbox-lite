@@ -5,6 +5,7 @@ import { expect } from "chai";
 import { EventEmitter } from "events";
 import type { Socket } from "socket.io";
 import request from "supertest";
+import sinon from "sinon";
 
 import { app } from "../../src/server";
 import type { DashboardBootstrapPayload } from "../../src/shared/bootstrap-contract";
@@ -299,5 +300,106 @@ describe("socket/push", () => {
         fake.connected = false;
         fake.emit(Constant.EVENT_DISCONNECT);
         expect(manager.getActiveSamplerCount()).to.equal(0);
+    });
+
+    it("keeps the cancelled collection visible until it exits and reuses its sampler on reconnect", async () => {
+        const clock = sinon.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+        let calls = 0;
+        let aborted = false;
+        let release: (() => void) | undefined;
+        const manager = createPushManager([{
+            key: "DISK_USAGE",
+            url: "/node/data/disk_data",
+            visibleMs: 30,
+            hiddenMs: 60,
+            fetch: (_, signal) => {
+                calls += 1;
+                if (calls !== 1) {return Promise.resolve({ sample: calls });}
+                return new Promise((resolve) => {
+                    release = () => { resolve({ sample: 1 }); };
+                    signal.addEventListener("abort", () => { aborted = true; });
+                });
+            },
+        }]);
+        const first = new FakeSocket();
+        const second = new FakeSocket();
+        manager.pushHandler(first as unknown as Socket);
+        manager.pushHandler(second as unknown as Socket);
+        try {
+            first.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push" });
+            await clock.tickAsync(0);
+            first.emit(Constant.EVENT_DISCONNECT);
+            expect(aborted).to.equal(true);
+            expect(manager.getSamplerMetrics()[0]).to.include({ active: 0, inFlight: 1 });
+
+            second.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push" });
+            await clock.tickAsync(90);
+            expect(calls).to.equal(1);
+            expect(manager.getSamplerMetrics()[0]).to.include({ active: 1, inFlight: 1 });
+            release?.();
+            await clock.tickAsync(0);
+            expect(second.sent).to.have.length(1);
+            expect(second.sent[0]).to.deep.include({ success: true, response: { sample: 2 } });
+            await clock.tickAsync(30);
+            expect(calls).to.equal(3);
+            expect(manager.getSamplerMetrics()[0]).to.include({ active: 1, inFlight: 0 });
+        } finally {
+            second.emit(Constant.EVENT_DISCONNECT);
+            release?.();
+            clock.restore();
+        }
+    });
+
+    it("marks timed-out samples stale for all subscribers and resumes after cancellation", async () => {
+        const clock = sinon.useFakeTimers({ now: Date.UTC(2025, 0, 1), toFake: ["setTimeout", "clearTimeout", "Date"] });
+        let samples = 0;
+        let releaseTimedOutSample: (() => void) | undefined;
+        const manager = createPushManager([{
+            key: "DISK_USAGE",
+            url: "/node/data/disk_data",
+            visibleMs: 30,
+            hiddenMs: 60,
+            timeoutMs: 25,
+            fetch: (_, signal) => {
+                samples += 1;
+                if (samples !== 2) {return Promise.resolve({ sample: samples });}
+                return new Promise((resolve) => {
+                    signal.addEventListener("abort", () => {
+                        releaseTimedOutSample = () => { resolve({ sample: 2 }); };
+                    }, { once: true });
+                });
+            },
+        }]);
+        const first = new FakeSocket();
+        const second = new FakeSocket();
+        manager.pushHandler(first as unknown as Socket);
+        manager.pushHandler(second as unknown as Socket);
+        try {
+            first.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push" });
+            await clock.tickAsync(80);
+            expect(samples).to.equal(2);
+            expect(first.sent).to.have.length(2);
+            expect(first.sent[1]).to.deep.include({ success: false, stale: true, response: { sample: 1 } });
+            const [staleSampler] = manager.getSamplerMetrics();
+            expect(staleSampler).to.include({ stream: "DISK_USAGE", active: 1, inFlight: 1, failed: 1 });
+            expect(staleSampler.outcomes).to.deep.equal({ success: 1, error: 0, timeout: 1 });
+            expect(staleSampler.lastSuccessAt).to.be.greaterThan(0);
+
+            second.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push", hidden: true });
+            expect(second.sent[0]).to.deep.include({ success: false, stale: true, response: { sample: 1 } });
+            expect(samples).to.equal(2);
+            expect(releaseTimedOutSample).to.be.a("function");
+            releaseTimedOutSample?.();
+            await clock.tickAsync(0);
+            expect(first.sent[2]).to.deep.include({ success: true, response: { sample: 3 } });
+            expect(first.sent[2]).not.to.have.property("stale");
+            expect(manager.getSamplerMetrics()[0]).to.include({ inFlight: 0, failed: 0 });
+            expect(manager.getSamplerMetrics()[0].outcomes).to.deep.equal({ success: 2, error: 0, timeout: 1 });
+            expect(second.sent.every((message) => (message as { response: { sample: number } }).response.sample !== 2)).to.equal(true);
+        } finally {
+            first.emit(Constant.EVENT_DISCONNECT);
+            second.emit(Constant.EVENT_DISCONNECT);
+            clock.restore();
+        }
     });
 });

@@ -19,6 +19,7 @@ import {
     UptimeSlot,
 } from "./runtime/data-slots";
 import { ServiceControlSlot } from "./runtime/service-control-client";
+import { executeBoxAction, useCommandConnection } from "./runtime/dashboard-runtime-client";
 import { SystemResponseSlot } from "./runtime/system-response-client";
 import { getAntdThemeConfig, useDashboardTheme } from "./runtime/theme-store";
 import { getAntdLocale, normalizeLocale } from "./i18n";
@@ -60,6 +61,7 @@ export interface DashboardAppProps {
 
 export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry = null, onRetryBootstrap }: DashboardAppProps) {
     const activeTheme = useDashboardTheme(bootstrap.serviceTheme);
+    const commandsConnected = useCommandConnection();
     const { t, i18n } = useTranslation();
     const locale = normalizeLocale(i18n.language);
     const { config } = bootstrap.chrome;
@@ -78,7 +80,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
             })),
             bwPages: config.bwPages.map((page) => ({
                 ...page,
-                title: t(BW_PAGE_TITLE_KEYS[page.key] ?? page.key),
+                title: t(BW_PAGE_TITLE_KEYS[page.key]),
             })),
         },
         menuState: bootstrap.chrome.menuState,
@@ -164,7 +166,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                                     type={bootstrapRetry.exhausted ? "error" : "warning"}
                                     showIcon
                                     style={{ marginBottom: 16 }}
-                                    message={t("BACKEND_UNAVAILABLE_TITLE")}
+                                    title={t("BACKEND_UNAVAILABLE_TITLE")}
                                     description={bootstrapRetry.exhausted
                                         ? t("BACKEND_RETRY_EXHAUSTED_DESC", { error: bootstrapRetry.error, max: bootstrapRetry.maxAttempts })
                                         : t("BACKEND_RETRYING_DESC", { error: bootstrapRetry.error, attempt: bootstrapRetry.attempt, max: bootstrapRetry.maxAttempts })}
@@ -249,7 +251,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                                         </Row>
                                         <Row>
                                             <Col span={24} className="mt20 text-center qb-uptime">
-                                                <strong>{pageLabels.uptime}:</strong> <span id="uptime"><UptimeSlot bootstrap={bootstrap} /></span>
+                                                <strong>{pageLabels.uptime}:</strong> <span id="uptime"><UptimeSlot /></span>
                                             </Col>
                                         </Row>
                                     </Card>
@@ -311,12 +313,10 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                                         )}
                                     >
                                         <button
-                                            data-click-handler="boxHandler"
-                                            data-package="quickbox --only-core"
-                                            data-operation="update"
-                                            data-toggle="modal"
-                                            data-target="#sysResponse"
+                                            type="button"
                                             className="btn btn-success btn-quirk btn-block"
+                                            disabled={!commandsConnected}
+                                            onClick={() => { executeBoxAction("update", "quickbox --only-core", true); }}
                                         >
                                             <BellOutlined className="text-success" aria-hidden="true" /> {pageLabels.update}
                                         </button>

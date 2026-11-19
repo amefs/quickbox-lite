@@ -22,6 +22,7 @@ const DEFAULT_SECRET_FILE = "/etc/quickbox/ws.secret";
 /** Pre-migration location, still readable so upgrades keep working mid-flight. */
 const LEGACY_SECRET_FILE = "/srv/dashboard/db/ws.secret";
 const MIN_SECRET_LENGTH = 16;
+const SECRET_CACHE_TTL_MS = 5_000;
 
 /**
  * Read on demand so a rotated secret file is picked up without a restart. A
@@ -29,6 +30,7 @@ const MIN_SECRET_LENGTH = 16;
  * silently disable the gateway instead of keeping the last working one.
  */
 let lastKnownGoodSecret = "";
+let secretCacheExpiresAt = 0;
 
 function isProduction(): boolean {
     return process.env.NODE_ENV === "production";
@@ -63,6 +65,7 @@ export function readGatewaySecret(): GatewaySecretState {
     const fromEnv = process.env.QUICKBOX_WS_GATEWAY_SECRET;
     if (typeof fromEnv === "string" && fromEnv.trim() !== "") {
         lastKnownGoodSecret = fromEnv.trim();
+        secretCacheExpiresAt = Date.now() + SECRET_CACHE_TTL_MS;
         return { secret: lastKnownGoodSecret };
     }
 
@@ -73,6 +76,7 @@ export function readGatewaySecret(): GatewaySecretState {
             const value = readFileSync(secretFile, "utf8").trim();
             if (value !== "") {
                 lastKnownGoodSecret = value;
+                secretCacheExpiresAt = Date.now() + SECRET_CACHE_TTL_MS;
                 return { secret: value };
             }
         } catch {
@@ -80,6 +84,7 @@ export function readGatewaySecret(): GatewaySecretState {
         }
     }
 
+    secretCacheExpiresAt = 0;
     return {
         secret: lastKnownGoodSecret,
         error: `gateway secret is missing, empty or unreadable (${attempted.join(", ")})`,
@@ -87,11 +92,21 @@ export function readGatewaySecret(): GatewaySecretState {
 }
 
 export function getGatewaySecret(): string {
+    const fromEnv = process.env.QUICKBOX_WS_GATEWAY_SECRET;
+    if (typeof fromEnv === "string" && fromEnv.trim() !== "") {
+        lastKnownGoodSecret = fromEnv.trim();
+        secretCacheExpiresAt = Date.now() + SECRET_CACHE_TTL_MS;
+        return lastKnownGoodSecret;
+    }
+    if (lastKnownGoodSecret !== "" && secretCacheExpiresAt > Date.now()) {
+        return lastKnownGoodSecret;
+    }
     return readGatewaySecret().secret;
 }
 
 export function resetGatewaySecretCache(): void {
     lastKnownGoodSecret = "";
+    secretCacheExpiresAt = 0;
 }
 
 export function validateProductionAuth(): string | null {
@@ -140,8 +155,24 @@ export function shouldEnforceOrigin(): boolean {
     return process.env.NODE_ENV !== "test" || process.env.QUICKBOX_WS_ENFORCE_ORIGIN === "1";
 }
 
-export function hasValidGateway(headers: IncomingHttpHeaders, secret = getGatewaySecret()): boolean {
-    return secretsEqual(headerValue(headers, GATEWAY_HEADER), secret);
+export function hasValidGateway(headers: IncomingHttpHeaders, secret?: string): boolean {
+    const provided = headerValue(headers, GATEWAY_HEADER);
+    if (secret !== undefined) {
+        return secretsEqual(provided, secret);
+    }
+    const cachedOrCurrent = getGatewaySecret();
+    if (secretsEqual(provided, cachedOrCurrent)) {
+        return true;
+    }
+    // Re-read on mismatch in case the secret file was rotated within the TTL window.
+    if (secretCacheExpiresAt > 0 && !process.env.QUICKBOX_WS_GATEWAY_SECRET) {
+        secretCacheExpiresAt = 0;
+        const fresh = readGatewaySecret().secret;
+        if (fresh !== cachedOrCurrent) {
+            return secretsEqual(provided, fresh);
+        }
+    }
+    return false;
 }
 
 function normalizeProtocol(protocol: string | undefined): "http:" | "https:" | null {

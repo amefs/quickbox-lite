@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import express, { type Request, type Response, type Router } from "express";
+import express, { Router, type Request, type Response } from "express";
 import * as childProcess from "child_process";
 import path from "path";
 
@@ -15,13 +15,6 @@ import { systemStaticInfoWithProviders } from "../services/system/cpu";
 import { diskDataData } from "../services/system/disk";
 import { systemLoadData } from "../services/system/load";
 import { ramStatsData } from "../services/system/memory";
-import {
-    DISK_DATA_URL,
-    PACKAGE_MANAGEMENT_DATA_URL,
-    RAM_STATS_DATA_URL,
-    SYSTEM_LOAD_DATA_URL,
-    SYSTEM_STATIC_DATA_URL,
-} from "../shared/widget-streams";
 import { isTestMode } from "../testing";
 
 const parseThemeBody = (body: unknown): string | undefined => {
@@ -82,10 +75,27 @@ export const applyPlugin = (execFile: typeof childProcess.execFile) => async (re
     }
 };
 
-export function mountNodeRoutes(router: Router, runExecFile: typeof childProcess.execFile): void {
-    router.get("/node/dashboard_config", getDashboardConfig);
+/**
+ * Node API sub-router (mounted at `/node` and `/ws/node`).
+ *
+ * Routes:
+ *   GET  /dashboard_config
+ *   GET  /branches
+ *   GET  /data/system_static
+ *   GET  /data/system_load
+ *   GET  /data/disk_data
+ *   GET  /data/ram_stats
+ *   GET  /data/pmc
+ *   POST /theme
+ *   GET  /plugins
+ *   POST /plugin
+ */
+export function createNodeRouter(runExecFile: typeof childProcess.execFile): Router {
+    const router = Router();
 
-    router.get("/node/branches", (_req: Request, res: Response) => {
+    router.get("/dashboard_config", getDashboardConfig);
+
+    router.get("/branches", (_req: Request, res: Response) => {
         if (isTestMode()) {
             res.json({ branches: ["master", "development"] });
             return;
@@ -102,21 +112,23 @@ export function mountNodeRoutes(router: Router, runExecFile: typeof childProcess
         });
     });
 
-    router.get(SYSTEM_STATIC_DATA_URL, getSystemStatic);
-    router.get(SYSTEM_LOAD_DATA_URL, async (_req: Request, res: Response) => {
+    router.get("/data/system_static", getSystemStatic);
+    router.get("/data/system_load", async (_req: Request, res: Response) => {
         res.json(await systemLoadData());
     });
-    router.get(DISK_DATA_URL, async (_req: Request, res: Response) => {
+    router.get("/data/disk_data", async (_req: Request, res: Response) => {
         res.json(await diskDataData());
     });
-    router.get(RAM_STATS_DATA_URL, async (_req: Request, res: Response) => {
+    router.get("/data/ram_stats", async (_req: Request, res: Response) => {
         res.json(await ramStatsData());
     });
-    router.get(PACKAGE_MANAGEMENT_DATA_URL, (_req: Request, res: Response) => {
+    router.get("/data/pmc", (_req: Request, res: Response) => {
         res.json(getPackageManagementStateData());
     });
 
-    router.post("/node/theme", express.json(), applyTheme(runExecFile));
-    router.get("/node/plugins", getPlugins);
-    router.post("/node/plugin", express.json(), applyPlugin(runExecFile));
+    router.post("/theme", express.json(), applyTheme(runExecFile));
+    router.get("/plugins", getPlugins);
+    router.post("/plugin", express.json(), applyPlugin(runExecFile));
+
+    return router;
 }

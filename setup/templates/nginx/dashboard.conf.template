@@ -79,6 +79,7 @@ location = / {
     auth_basic_user_file /etc/htpasswd;
 
     root /srv/dashboard/web/dist;
+    expires -1;
     try_files /index.html =404;
 }
 
@@ -88,6 +89,7 @@ location = /index.html {
     auth_basic_user_file /etc/htpasswd;
 
     root /srv/dashboard/web/dist;
+    expires -1;
     try_files $uri =404;
 }
 

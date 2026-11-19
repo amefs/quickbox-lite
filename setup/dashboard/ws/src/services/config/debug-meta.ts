@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { packageList } from "../packages/info";
+import { readDefaultLocale } from "./locale";
 import type { DebugEndpointItem, DebugMetaPayload, DebugPackageItem } from "../../shared/bootstrap-contract";
 import type { DashboardTheme } from "../../shared/theme";
 import {
@@ -48,6 +49,7 @@ export function getDebugMeta(theme: DashboardTheme = "defaulted", basePath = "")
     return {
         basePath: basePath === "/ws" ? "/ws" : "",
         theme,
+        defaultLocale: readDefaultLocale(),
         endpoints: getDebugEndpoints(),
         packages: getDebugPackages(),
     };

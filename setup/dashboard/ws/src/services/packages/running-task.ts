@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { readdirSync, readFileSync } from "fs";
+import { readFileSync } from "fs";
+import { readdir, readFile } from "fs/promises";
 
 import type { RunningTaskData, RunningTaskOperation } from "../../shared/running-task-contract";
 
@@ -37,51 +38,55 @@ const OPERATION_PATTERNS: readonly (readonly [RegExp, RunningTaskOperation])[] =
  * cannot be identified or candidate scripts disagree. Callers fall back to a
  * generic label rather than letting process directory order choose the verb.
  */
-export function detectRunningTaskOperation(
-    readDir: (dir: string) => string[] = (dir) => readdirSync(dir),
-    readCmdline: (pid: string) => string = (pid) => readFileSync(`/proc/${pid}/cmdline`, "utf8"),
-): RunningTaskOperation | null {
+export async function detectRunningTaskOperation(
+    readDir: (dir: string) => string[] | Promise<string[]> = (dir) => readdir(dir),
+    readCmdline: (pid: string) => string | Promise<string> = (pid) => readFile(`/proc/${pid}/cmdline`, "utf8"),
+): Promise<RunningTaskOperation | null> {
     let entries: string[];
     try {
-        entries = readDir("/proc");
+        entries = await readDir("/proc");
     } catch {
         return null;
     }
 
     let detected: RunningTaskOperation | null = null;
-    for (const entry of entries) {
-        if (!/^[0-9]+$/.test(entry)) {
-            continue;
+    const pids = entries.filter((entry) => /^[0-9]+$/.test(entry));
+    for (let index = 0; index < pids.length; index += 64) {
+        const cmdlines = await Promise.all(pids.slice(index, index + 64).map(async (pid) => {
+            try {
+                return await readCmdline(pid);
+            } catch {
+                // The process exited between the directory scan and this read.
+                return null;
+            }
+        }));
+        for (const cmdline of cmdlines) {
+            if (cmdline === null) {
+                continue;
+            }
+            const [shell, script] = cmdline.split("\0");
+            if (!/^(?:\/(?:usr\/)?bin\/)?bash$/.test(shell) || !script) {
+                continue;
+            }
+            const operation = OPERATION_PATTERNS.find(([pattern]) => pattern.test(script))?.[1];
+            if (!operation) {
+                continue;
+            }
+            if (detected !== null && detected !== operation) {
+                return null;
+            }
+            detected = operation;
         }
-        let cmdline: string;
-        try {
-            cmdline = readCmdline(entry);
-        } catch {
-            // The process exited between the directory scan and this read.
-            continue;
-        }
-        const [shell, script] = cmdline.split("\0");
-        if (!/^(?:\/(?:usr\/)?bin\/)?bash$/.test(shell) || !script) {
-            continue;
-        }
-        const operation = OPERATION_PATTERNS.find(([pattern]) => pattern.test(script))?.[1];
-        if (!operation) {
-            continue;
-        }
-        if (detected !== null && detected !== operation) {
-            return null;
-        }
-        detected = operation;
     }
     return detected;
 }
 
 // qbUpdate takes the lock under its own name; "QuickBox is running" would not
 // tell the user that the panel itself is being updated.
-export function runningTaskData(
+export async function runningTaskData(
     readTitle: () => string | null = readRunningTaskTitle,
-    detectOperation: () => RunningTaskOperation | null = detectRunningTaskOperation,
-): RunningTaskData {
+    detectOperation: () => RunningTaskOperation | null | Promise<RunningTaskOperation | null> = detectRunningTaskOperation,
+): Promise<RunningTaskData> {
     const title = readTitle();
     if (title === null || title === "") {
         return {
@@ -91,7 +96,7 @@ export function runningTaskData(
         };
     }
 
-    const operation = detectOperation();
+    const operation = await detectOperation();
     const kind = operation ?? (title === "QuickBox" ? "update" : "package");
     return {
         active: true,

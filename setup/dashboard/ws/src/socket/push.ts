@@ -31,7 +31,8 @@ export interface PushSpec {
     hiddenMs: number;
     dedupe?: boolean;
     paramKey?: (state: ClientPushState) => string;
-    fetch?: (param: string) => Promise<unknown>;
+    fetch?: (param: string, signal: AbortSignal) => Promise<unknown>;
+    timeoutMs?: number;
     fingerprint?: (data: unknown) => string;
 }
 
@@ -44,19 +45,38 @@ export interface ClientPushState {
     lastSentAt: Map<string, number>;
 }
 
+type SampleResult = "success" | "error" | "timeout";
+
+interface SampleStats {
+    outcomes: Record<SampleResult, number>;
+    lastSuccessAt: number;
+}
+
+interface SamplerMetrics extends SampleStats {
+    stream: string;
+    active: number;
+    inFlight: number;
+    failed: number;
+}
+
 interface SharedSampler {
     id: string;
     spec: PushSpec;
+    stats: SampleStats;
     param: string;
     subscribers: Set<ClientPushState>;
     timer?: ReturnType<typeof setTimeout>;
     nextScheduledAt: number;
     inFlight?: Promise<void>;
+    controller?: AbortController;
     pendingForce: boolean;
     taskActive: boolean;
     lastData?: unknown;
     lastFetchedAt: number;
+    failed: boolean;
 }
+
+const SAMPLE_TIMEOUT_MS = 8_000;
 
 function stableDigest(data: unknown): string {
     try {
@@ -125,6 +145,7 @@ function sendPushPayload(
     data: unknown,
     success = true,
     message = "",
+    stale = false,
 ): void {
     state.client.send(createWsMessageEnvelope({
         push: true,
@@ -134,6 +155,7 @@ function sendPushPayload(
         success,
         message,
         response: data,
+        stale,
     }));
 }
 
@@ -165,29 +187,36 @@ function deliverToSubscriber(
     sendPushPayload(state, sampler.spec, sampler.param, data);
 }
 
-function deliverErrorToSubscriber(state: ClientPushState, sampler: SharedSampler, now: number): void {
+function deliverErrorToSubscriber(state: ClientPushState, sampler: SharedSampler, now: number, force = false): void {
     if (state.mode !== "push" || !state.client.connected) {
         return;
     }
     state.lastDigest.delete(sampler.id);
-    if (state.hidden) {
+    if (!force && state.hidden) {
         const lastSent = state.lastSentAt.get(sampler.spec.key) ?? 0;
         if (now - lastSent < sampler.spec.hiddenMs) {
             return;
         }
     }
     state.lastSentAt.set(sampler.spec.key, now);
-    sendPushPayload(state, sampler.spec, sampler.param, "", false, "Widget render failed");
+    const stale = sampler.lastData !== undefined;
+    sendPushPayload(state, sampler.spec, sampler.param, sampler.lastData ?? "", false, "Widget render failed", stale);
 }
 
 export interface PushManager {
     pushHandler: (client: Socket, next?: (err?: Error) => void) => void;
     notifyPushSubscribers: (keys?: string[]) => void;
+    resetPushSamplers: () => void;
     getActiveSamplerCount: () => number;
+    getSamplerMetrics: () => SamplerMetrics[];
 }
 
 export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
     const samplers = new Map<string, SharedSampler>();
+    const streams = specs.map((spec) => ({
+        spec,
+        stats: { outcomes: { success: 0, error: 0, timeout: 0 }, lastSuccessAt: 0 },
+    }));
 
     function tightenSamplerSchedule(sampler: SharedSampler, now: number): void {
         if (sampler.timer === undefined || sampler.subscribers.size === 0) {
@@ -213,11 +242,31 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
             }
             return sampler.inFlight;
         }
-        const task = (async () => {
+        const controller = new AbortController();
+        sampler.controller = controller;
+        const reportFailure = (error: unknown, result: "error" | "timeout") => {
+            sampler.failed = true;
+            sampler.stats.outcomes[result] += 1;
+            console.error(`[quickbox-ws] push failed for ${sampler.id}`, error);
+            const now = Date.now();
+            for (const subscriber of sampler.subscribers) {
+                deliverErrorToSubscriber(subscriber, sampler, now, result === "timeout");
+            }
+        };
+        const timeout = setTimeout(() => {
+            if (controller.signal.aborted) {return;}
+            const error = new Error("Widget collection timed out");
+            controller.abort(error);
+            reportFailure(error, "timeout");
+        }, sampler.spec.timeoutMs ?? SAMPLE_TIMEOUT_MS);
+
+        const task = Promise.resolve().then(async () => {
             try {
+                controller.signal.throwIfAborted();
                 const data = sampler.spec.fetch
-                    ? await sampler.spec.fetch(sampler.param)
-                    : await resolveWidget(buildPushUrl(sampler.spec, sampler.param));
+                    ? await sampler.spec.fetch(sampler.param, controller.signal)
+                    : await resolveWidget(buildPushUrl(sampler.spec, sampler.param), controller.signal);
+                if (controller.signal.aborted) {return;}
                 if (sampler.subscribers.size === 0) {
                     return;
                 }
@@ -226,6 +275,7 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
                     sampler.taskActive = Boolean((data as { active?: unknown }).active);
                 }
                 const now = Date.now();
+                sampler.failed = false;
                 sampler.lastData = data;
                 sampler.lastFetchedAt = now;
                 const digest = sampler.spec.dedupe
@@ -237,20 +287,24 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
                 if (!prevTaskActive && sampler.taskActive) {
                     tightenSamplerSchedule(sampler, now);
                 }
+                sampler.stats.outcomes.success += 1;
+                sampler.stats.lastSuccessAt = now;
             } catch (error) {
-                console.error(`[quickbox-ws] push failed for ${sampler.id}`, error);
-                const now = Date.now();
-                for (const subscriber of sampler.subscribers) {
-                    deliverErrorToSubscriber(subscriber, sampler, now);
-                }
+                if (!controller.signal.aborted) {reportFailure(error, "error");}
             } finally {
+                clearTimeout(timeout);
                 sampler.inFlight = undefined;
-                if (sampler.pendingForce && sampler.subscribers.size > 0) {
+                sampler.controller = undefined;
+                if (sampler.subscribers.size === 0) {
+                    samplers.delete(sampler.id);
+                } else if (sampler.pendingForce) {
                     sampler.pendingForce = false;
                     void runSampler(sampler, true);
+                } else if (sampler.timer === undefined) {
+                    scheduleSampler(sampler, resolveSamplerIntervalMs(sampler));
                 }
             }
-        })();
+        });
         sampler.inFlight = task;
         return task;
     }
@@ -261,39 +315,32 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
             sampler.timer = undefined;
             sampler.nextScheduledAt = 0;
         }
-        if (sampler.subscribers.size === 0) {
-            samplers.delete(sampler.id);
-            return;
-        }
         sampler.nextScheduledAt = Date.now() + delayMs;
         sampler.timer = setTimeout(() => {
             sampler.timer = undefined;
             sampler.nextScheduledAt = 0;
-            if (sampler.subscribers.size === 0) {
-                samplers.delete(sampler.id);
-                return;
-            }
-            void runSampler(sampler).finally(() => {
-                if (sampler.timer === undefined && sampler.subscribers.size > 0) {
-                    scheduleSampler(sampler, resolveSamplerIntervalMs(sampler));
-                }
-            });
+            void runSampler(sampler);
         }, delayMs);
     }
 
+    function stopIdleSampler(sampler: SharedSampler): void {
+        if (sampler.timer !== undefined) {
+            clearTimeout(sampler.timer);
+            sampler.timer = undefined;
+            sampler.nextScheduledAt = 0;
+        }
+        sampler.pendingForce = false;
+        if (sampler.inFlight) {
+            sampler.controller?.abort();
+        } else {
+            samplers.delete(sampler.id);
+        }
+    }
+
     function detachClientFromSamplers(state: ClientPushState): void {
-        for (const [id, sampler] of samplers.entries()) {
-            if (!sampler.subscribers.delete(state)) {
-                continue;
-            }
-            if (sampler.subscribers.size === 0) {
-                if (sampler.timer !== undefined) {
-                    clearTimeout(sampler.timer);
-                    sampler.timer = undefined;
-                    sampler.nextScheduledAt = 0;
-                }
-                sampler.pendingForce = false;
-                samplers.delete(id);
+        for (const sampler of samplers.values()) {
+            if (sampler.subscribers.delete(state) && sampler.subscribers.size === 0) {
+                stopIdleSampler(sampler);
             }
         }
     }
@@ -307,7 +354,7 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
         const now = Date.now();
         let staleScheduleIndex = 0;
 
-        specs.forEach((spec, index) => {
+        streams.forEach(({ spec, stats }, index) => {
             const param = spec.paramKey ? spec.paramKey(state) : "";
             const id = getSamplerId(spec, param);
             desiredIds.add(id);
@@ -318,12 +365,14 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
                 sampler = {
                     id,
                     spec,
+                    stats,
                     param,
                     subscribers: new Set(),
                     nextScheduledAt: 0,
                     pendingForce: false,
                     taskActive: false,
                     lastFetchedAt: 0,
+                    failed: false,
                 };
                 samplers.set(id, sampler);
             }
@@ -337,7 +386,12 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
             if (isNewSampler) {
                 scheduleSampler(sampler, index * 40);
             } else if (shouldRefresh) {
-                if (sampler.lastData !== undefined && now - sampler.lastFetchedAt < spec.visibleMs) {
+                if (sampler.failed) {
+                    deliverErrorToSubscriber(state, sampler, now, true);
+                }
+                if (sampler.controller?.signal.aborted) {
+                    sampler.pendingForce = true;
+                } else if (!sampler.failed && sampler.lastData !== undefined && now - sampler.lastFetchedAt < spec.visibleMs) {
                     const digest = spec.dedupe
                         ? (spec.fingerprint ? spec.fingerprint(sampler.lastData) : stableDigest(sampler.lastData))
                         : undefined;
@@ -356,13 +410,7 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
 
         for (const [id, sampler] of samplers.entries()) {
             if (!desiredIds.has(id) && sampler.subscribers.delete(state) && sampler.subscribers.size === 0) {
-                if (sampler.timer !== undefined) {
-                    clearTimeout(sampler.timer);
-                    sampler.timer = undefined;
-                    sampler.nextScheduledAt = 0;
-                }
-                sampler.pendingForce = false;
-                samplers.delete(id);
+                stopIdleSampler(sampler);
             }
         }
     }
@@ -380,8 +428,42 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
         }
     }
 
+    function resetPushSamplers(): void {
+        for (const sampler of samplers.values()) {
+            sampler.lastData = undefined;
+            sampler.lastFetchedAt = 0;
+            sampler.failed = false;
+            for (const subscriber of sampler.subscribers) {
+                subscriber.lastDigest.delete(sampler.id);
+            }
+            if (sampler.subscribers.size > 0) {
+                void runSampler(sampler, true);
+            }
+        }
+    }
+
     function getActiveSamplerCount(): number {
-        return samplers.size;
+        return [...samplers.values()].filter((sampler) => sampler.subscribers.size > 0).length;
+    }
+
+    function getSamplerMetrics(): SamplerMetrics[] {
+        return streams.map(({ spec, stats }) => {
+            const snapshot = {
+                stream: spec.key,
+                active: 0,
+                inFlight: 0,
+                failed: 0,
+                lastSuccessAt: stats.lastSuccessAt,
+                outcomes: { ...stats.outcomes },
+            };
+            for (const sampler of samplers.values()) {
+                if (sampler.stats !== stats) {continue;}
+                snapshot.active += Number(sampler.subscribers.size > 0);
+                snapshot.inFlight += Number(sampler.inFlight !== undefined);
+                snapshot.failed += Number(sampler.subscribers.size > 0 && sampler.failed);
+            }
+            return snapshot;
+        });
     }
 
     function pushHandler(client: Socket, next?: (err?: Error) => void): void {
@@ -441,14 +523,18 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
     return {
         pushHandler,
         notifyPushSubscribers,
+        resetPushSamplers,
         getActiveSamplerCount,
+        getSamplerMetrics,
     };
 }
 
 const defaultPushManager = createPushManager(PUSH_SPECS);
 
 export const notifyPushSubscribers = defaultPushManager.notifyPushSubscribers;
+export const resetPushSamplers = defaultPushManager.resetPushSamplers;
 export const getActiveSamplerCount = defaultPushManager.getActiveSamplerCount;
+export const getSamplerMetrics = defaultPushManager.getSamplerMetrics;
 export const pushHandler = defaultPushManager.pushHandler;
 
 export default pushHandler;

@@ -5,6 +5,8 @@ import { LoadingOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 
 import type { RunningTaskData, RunningTaskOperation } from "../../../ws/src/shared/running-task-contract";
+import { abortRunningTask, useCommandConnection } from "../runtime/dashboard-runtime-client";
+import { systemResponseActions } from "../runtime/system-response-client";
 
 const OPERATION_TEXT: Record<RunningTaskOperation, string> = {
     install: "TASK_INSTALL_TXT",
@@ -14,6 +16,7 @@ const OPERATION_TEXT: Record<RunningTaskOperation, string> = {
 
 export function RunningTaskIsland({ data }: { data: RunningTaskData | null }) {
     const { t } = useTranslation();
+    const commandsConnected = useCommandConnection();
     if (!data || !data.active) {
         return null;
     }
@@ -41,14 +44,17 @@ export function RunningTaskIsland({ data }: { data: RunningTaskData | null }) {
                     type="button"
                     className="btn btn-xs btn-default"
                     data-qb-system-response=""
+                    onClick={() => { systemResponseActions.open(); }}
                 >
                     {viewLogLabel}
                 </button>
                 <button
                     type="button"
                     className="btn btn-xs btn-danger"
+                    disabled={!commandsConnected}
                     data-task-abort=""
                     data-confirm={abortConfirm}
+                    onClick={() => { abortRunningTask(abortConfirm); }}
                 >
                     {abortLabel}
                 </button>

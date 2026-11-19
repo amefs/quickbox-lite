@@ -157,4 +157,21 @@ describe("widgets/output-log", () => {
             fs.rmSync(directory, { recursive: true, force: true });
         }
     });
+
+    it("should align chunk boundaries on complete UTF-8 characters", () => {
+        const content = "中文日志测试\n"; // Each Chinese character is 3 UTF-8 bytes
+        withLogFile(content, (logPath) => {
+            // Request 4 bytes from 0: should return only the first 3-byte character "中"
+            const first = readOutputLogAtPath(logPath, 0, 4);
+            expect(first.content).to.equal("中");
+            expect(first.start).to.equal(0);
+            expect(first.end).to.equal(3);
+
+            // Next incremental read from first.end (3) with length 5: should return "文" (bytes 3..6)
+            const second = readOutputLogAtPath(logPath, first.end, 5);
+            expect(second.content).to.equal("文");
+            expect(second.start).to.equal(3);
+            expect(second.end).to.equal(6);
+        });
+    });
 });

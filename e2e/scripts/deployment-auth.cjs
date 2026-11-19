@@ -70,7 +70,7 @@ async function verifySingleBasicLogin(browser, entryPath) {
     }
     await page.reload();
     await connected();
-    const results = await Promise.all(['/node/dashboard_config', '/node/system_static', '/node/ram_stats']
+    const results = await Promise.all(['/node/dashboard_config', '/node/data/system_static', '/node/data/ram_stats']
       .map((target) => request(page, target)));
     assert.deepEqual(results, [200, 200, 200]);
     const challenges = fs.readFileSync(path.join(directory, 'browser-access.log'), 'utf8').split('\n')

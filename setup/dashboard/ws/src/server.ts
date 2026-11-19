@@ -17,6 +17,7 @@ import { isTestMode } from "./testing";
 import { createAppRouter } from "./routes";
 
 const FATAL_EXIT_GRACE_MS = 1000;
+let fatalExitStarted = false;
 
 /**
  * Records a fatal condition and leaves the process promptly and non-zero.
@@ -25,6 +26,7 @@ const FATAL_EXIT_GRACE_MS = 1000;
  * here — a detached updater may still own them.
  */
 function fatalExit(context: string, error?: unknown): void {
+    fatalExitStarted = true;
     let detail = "";
     if (error instanceof Error) {
         detail = `${error.name}: ${error.message}`;
@@ -51,7 +53,6 @@ process.on("uncaughtException", (error) => {
 
 const app = express();
 app.set("trust proxy", "loopback");
-app.use(gatewayAuthMiddleware);
 
 const dashboardDir = path.resolve(__dirname, "..", "..");
 
@@ -76,9 +77,12 @@ for (const socketServer of [io, wsPathIo]) {
 app.use(createAppRouter({
     dashboardDir,
     skinsDir: isTestMode() ? process.env.QUICKBOX_TEST_SKINS_DIR : undefined,
+    authMiddleware: gatewayAuthMiddleware,
+    socketServers: [io, wsPathIo],
+    isHealthy: () => !fatalExitStarted,
 }));
 
-export { app };
+export { app, server };
 
 if (process.env.NODE_ENV !== "test" || process.env.MOCK_ENABLED === "1") {
     if (assertProductionAuth() !== null) {

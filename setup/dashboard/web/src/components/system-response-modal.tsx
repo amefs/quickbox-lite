@@ -11,9 +11,15 @@ export interface SystemResponseAlertView extends SystemResponseAlert {
     outputHtml?: string;
 }
 
+export interface SystemLogBlock {
+    id: number;
+    html: string;
+    length: number;
+}
+
 export interface SystemResponseSnapshot {
     open: boolean;
-    outputHtml: string;
+    outputBlocks: SystemLogBlock[];
     alert: SystemResponseAlertView | null;
 }
 
@@ -26,27 +32,53 @@ export interface SystemResponseModalProps {
     onCloseAlert: () => void;
 }
 
-export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onClose, onCloseRefresh, onCloseAlert }: SystemResponseModalProps) {
+const LogBlock = React.memo(function LogBlock({ block }: { block: SystemLogBlock }) {
+    return <span data-log-block={block.id} dangerouslySetInnerHTML={{ __html: block.html }} />;
+});
+
+function SystemLogOutput({ open, blocks }: { open: boolean; blocks: SystemLogBlock[] }) {
     const outputRef = React.useRef<HTMLDivElement>(null);
     const outputScroll = React.useRef({ top: 0, height: 0, clientHeight: 0 });
-    const previousOutput = React.useRef("");
+    const previousBlocks = React.useRef<SystemLogBlock[]>([]);
+
     React.useLayoutEffect(() => {
         const output = outputRef.current;
-        if (!snapshot.open) {
+        if (!open) {
             outputScroll.current = { top: 0, height: 0, clientHeight: 0 };
-            previousOutput.current = snapshot.outputHtml;
+            previousBlocks.current = blocks;
             return;
         }
-        if (!output) {return;}
-        if (previousOutput.current !== snapshot.outputHtml) {
+        if (!output) {
+            return;
+        }
+        if (previousBlocks.current !== blocks) {
             const previous = outputScroll.current;
             const distanceFromBottom = previous.height - previous.top - previous.clientHeight;
             output.scrollTop = previous.height === 0 || distanceFromBottom < 2 ? output.scrollHeight : previous.top;
-            previousOutput.current = snapshot.outputHtml;
+            previousBlocks.current = blocks;
         }
         outputScroll.current = { top: output.scrollTop, height: output.scrollHeight, clientHeight: output.clientHeight };
-    }, [snapshot.outputHtml, snapshot.open]);
+    }, [blocks, open]);
 
+    return (
+        <div
+            id="sysPre"
+            ref={outputRef}
+            className="qb-system-response-output"
+            style={{ height: "min(600px, calc(100vh - 220px))", overflowY: "auto", overflowAnchor: "none" }}
+            onScroll={(event) => {
+                const output = event.currentTarget;
+                outputScroll.current = { top: output.scrollTop, height: output.scrollHeight, clientHeight: output.clientHeight };
+            }}
+        >
+            <pre className="sysout">
+                <span id="sshoutput">{blocks.map((block) => <LogBlock key={block.id} block={block} />)}</span>
+            </pre>
+        </div>
+    );
+}
+
+export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onClose, onCloseRefresh, onCloseAlert }: SystemResponseModalProps) {
     return (
         <ConfigProvider theme={getAntdThemeConfig(theme, { borderRadius: 4 })}>
             <Modal
@@ -89,12 +121,7 @@ export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onC
                     </Button>
                 )}
             >
-                <div id="sysPre" ref={outputRef} className="qb-system-response-output" style={{ height: "min(600px, calc(100vh - 220px))", overflowY: "auto" }} onScroll={(event) => {
-                    const output = event.currentTarget;
-                    outputScroll.current = { top: output.scrollTop, height: output.scrollHeight, clientHeight: output.clientHeight };
-                }}>
-                    <pre className="sysout"><span id="sshoutput" dangerouslySetInnerHTML={{ __html: snapshot.outputHtml }} /></pre>
-                </div>
+                <SystemLogOutput open={snapshot.open} blocks={snapshot.outputBlocks} />
             </Modal>
             <Modal
                 open={snapshot.alert !== null}

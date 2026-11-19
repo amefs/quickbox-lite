@@ -242,6 +242,17 @@ export async function getServiceHealth() {
     const retries = [systemd, processes].filter(c => c.retryAt > Date.now()).map(c => c.retryAt - Date.now());
     return { snapshot, health: health, retryAfterMs: retries.length ? Math.min(...retries) : 0 };
 }
+export function getServiceCollectorMetrics() {
+    const now = Date.now();
+    return ([["systemd", systemd], ["process", processes]] as const).map(([collector, cache]) => {
+        const timedOut = cache.promise !== undefined && now >= cache.inFlightDeadline;
+        const status = cache.failed || timedOut ? "unavailable"
+            : cache.refreshedAt === 0 ? "unknown"
+                : cache.partialFailed ? "degraded" : "ok";
+        return { collector, status, lastRefreshAt: cache.refreshedAt };
+    });
+}
+
 export function invalidateServiceState() {
     for (const [branch, cache] of [["systemd", systemd], ["process", processes]] as const) {
         cache.generation += 1;
