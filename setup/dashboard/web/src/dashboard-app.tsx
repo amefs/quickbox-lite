@@ -6,7 +6,7 @@ import { Alert, Button, Card, Col, ConfigProvider, Layout, Row } from "antd";
 import { useTranslation } from "react-i18next";
 
 import type { DashboardBootstrapPayload } from "../../ws/src/shared/bootstrap-contract";
-import { DashboardHeader, DashboardSidebar, type DashboardChromeProps } from "./components/dashboard-layout";
+import { DashboardHeader, DashboardSidebar } from "./components/dashboard-layout";
 import {
     BandwidthTablesSlot,
     CpuStatusSlot,
@@ -23,27 +23,6 @@ import { executeBoxAction, useCommandConnection, type BackendRetryState } from "
 import { SystemResponseSlot } from "./runtime/system-response-client";
 import { getAntdThemeConfig, useDashboardTheme } from "./runtime/theme-store";
 import { getAntdLocale, normalizeLocale } from "./i18n";
-
-const LANGUAGE_TITLES: Record<string, string> = {
-    da: "Dansk",
-    de: "Deutsch",
-    en: "English",
-    es: "Español",
-    fr: "Français",
-    zh: "中文 (简体)",
-};
-
-const THEME_TITLES: Record<string, string> = {
-    defaulted: "Defaulted",
-    smoked: "Smoked",
-};
-
-const BW_PAGE_TITLE_KEYS: Record<"t" | "h" | "d" | "m", string> = {
-    t: "Top 10 days",
-    h: "Recent hours",
-    d: "Last 30 days",
-    m: "Last 12 months",
-};
 
 export interface DashboardAppProps {
     bootstrap: DashboardBootstrapPayload;
@@ -66,101 +45,18 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = 
             : t("BACKEND_RETRYING_DESC", { error, attempt, max: maxAttempts });
     }
     const locale = normalizeLocale(i18n.language);
-    const { config } = bootstrap.chrome;
-    const chromeProps: DashboardChromeProps = {
-        locale,
-        config: {
-            ...config,
-            developerLabel: t("DEV_REPO_TXT", { branch: config.branch }),
-            languages: config.languages.map((language) => ({
-                ...language,
-                title: LANGUAGE_TITLES[language.key] ?? language.key,
-            })),
-            themes: config.themes.map((theme) => ({
-                ...theme,
-                title: THEME_TITLES[theme.file] ?? theme.file,
-            })),
-            bwPages: config.bwPages.map((page) => ({
-                ...page,
-                title: t(BW_PAGE_TITLE_KEYS[page.key]),
-            })),
-        },
-        menuState: bootstrap.chrome.menuState,
-        labels: {
-            language: t("LANG_SELECT"),
-            theme: t("THEME_SELECT"),
-            bandwidth: t("BW_SELECT"),
-            panelConfig: t("PANEL_CONFIG"),
-            panelReset: t("PANEL_RESET"),
-            themeChange: t("THEME_CHANGE_TXT"),
-            cancel: t("CANCEL"),
-            agree: t("AGREE"),
-            mainMenu: t("MAIN_MENU"),
-            pluginMenu: t("RPLUGIN_MENU"),
-            helpCommands: t("HELP_COMMANDS"),
-            downloads: t("DOWNLOADS"),
-            webConsole: t("WEB_CONSOLE"),
-            quickSystemTips: t("QUICK_SYSTEM_TIPS"),
-            seedboxCommands: t("SEEDBOX_COMMANDS"),
-            essentialUserCommands: t("ESSENTIAL_USER_COMMANDS"),
-            systemUpgrade: t("SYS_UPGRADE_TXT"),
-            setLanguage: t("SET_LANG_TXT"),
-            changeInterface: t("CHANGEINTERFACE_TXT"),
-            cleanMemory: t("CLEAN_MEM_TXT"),
-            cleanLog: t("CLEAN_LOG_TXT"),
-            diskTest: t("DISKTEST_TXT"),
-            appInstall: t("APP_INSTALL_TXT"),
-            appUninstall: t("APP_UNINSTALL_TXT"),
-            appUpgrade: t("APP_UPGRADE_TXT"),
-            changePassword: t("CHANGEUSERPASS_TXT"),
-            fixDpkg: t("FIX_DPKG_TXT"),
-            troubleshoot: t("TROUBLESHOOT_TXT"),
-            restartRtorrent: t("SCREEN_RTORRNENT_TXT"),
-            switchDev: t("SWITCH_DEV"),
-            switchMaster: t("SWITCH_MASTER"),
-            branchOther: t("BRANCH_OTHER"),
-            branchSwitch: t("BRANCH_SWITCH"),
-            branchCurrent: t("BRANCH_CURRENT"),
-            branchTarget: t("BRANCH_TARGET"),
-            branchLoading: t("BRANCH_LOADING"),
-            branchListError: t("BRANCH_LIST_ERROR"),
-            branchWarning: t("BRANCH_WARNING"),
-            branchLoadFailed: t("BRANCH_LOAD_FAILED"),
-            branchSelect: t("BRANCH_SELECT"),
-            branchRetry: t("BRANCH_RETRY"),
-            branchUpdate: t("BRANCH_UPDATE"),
-            branchSwitchAction: t("BRANCH_SWITCH_ACTION"),
-            ssoLogout: t("SSO_LOGOUT_TXT"),
-            issueReport: t("ISSUE_REPORT_TXT"),
-        },
-    };
-    const pageLabels = {
-        bandwidthData: t("BANDWIDTH_DATA"),
-        network: t("NETWORK"),
-        upload: t("UPLOAD"),
-        download: t("DOWNLOAD"),
-        bandwidthDetails: t("VIEW_ADDITIONAL_BANDWIDTH_DETAILS"),
-        serverLoad: t("SERVER_LOAD"),
-        serverLoadText: t("SL_TXT"),
-        uptime: t("UPTIME"),
-        cpuStatus: t("CPU_STATUS"),
-        diskStatus: t("YOUR_DISK_STATUS"),
-        ramStatus: t("SYSTEM_RAM_STATUS"),
-        recentUpdates: t("RECENT_UPDATES"),
-        changelogTitle: t("CURRENT_VERSIONS_CHANGELOG"),
-        update: t("UPDATE"),
-    };
+    const { config, menuState } = bootstrap.chrome;
 
     return (
         <ConfigProvider locale={getAntdLocale(locale)} theme={getAntdThemeConfig(activeTheme)}>
             <Layout className="dashboard-layout" style={{ background: "transparent" }}>
                 <header id="quickbox-header-root">
                     <h1 className="sr-only">QuickBox Dashboard</h1>
-                    <DashboardHeader props={chromeProps} theme={activeTheme} />
+                    <DashboardHeader config={config} theme={activeTheme} />
                 </header>
                 <Layout style={{ background: "transparent" }}>
                     <div id="quickbox-sidebar-root" className="leftpanel ps">
-                        <DashboardSidebar props={chromeProps} theme={activeTheme} />
+                        <DashboardSidebar username={config.username} menuState={menuState} theme={activeTheme} />
                     </div>
                     <Layout.Content className="mainpanel" style={{ background: "transparent" }}>
                         <div className="contentpanel">
@@ -189,7 +85,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = 
                                         data-inner-id="panel-server-bandwidth-interface"
                                         classNames={{ header: "panel-heading", body: "panel-footer panel-statistics" }}
                                         styles={{ body: { padding: 0 } }}
-                                        title={<h2 className="panel-title">{pageLabels.bandwidthData}</h2>}
+                                        title={<h2 className="panel-title">{t("BANDWIDTH_DATA")}</h2>}
                                     >
                                         <Row>
                                             <Col span={24}>
@@ -197,9 +93,9 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = 
                                                     <table className="table table-hover table-bordered nomargin">
                                                         <thead>
                                                             <tr>
-                                                                <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{pageLabels.network}</th>
-                                                                <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{pageLabels.upload}</th>
-                                                                <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{pageLabels.download}</th>
+                                                                <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{t("NETWORK")}</th>
+                                                                <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{t("UPLOAD")}</th>
+                                                                <th style={{ width: "33%", padding: "4px 4px 4px 12px" }}>{t("DOWNLOAD")}</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody id="node-network-interface-rows">
@@ -216,7 +112,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = 
                                         data-inner-id="panel-server-bandwidth-details"
                                         classNames={{ header: "panel-heading", body: "panel-body" }}
                                         styles={{ body: { padding: 0 } }}
-                                        title={<h2 className="panel-title">{pageLabels.bandwidthDetails}</h2>}
+                                        title={<h2 className="panel-title">{t("VIEW_ADDITIONAL_BANDWIDTH_DETAILS")}</h2>}
                                     >
                                         <div id="bw_tables" style={{ padding: 0, margin: 0 }}>
                                             <BandwidthTablesSlot />
@@ -235,12 +131,12 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = 
                                         className="panel panel-side panel-inverse-full panel-updates"
                                         data-inner-id="panel-server-load"
                                         classNames={{ header: "panel-heading", body: "panel-body" }}
-                                        title={<h2 className="panel-title text-success">{pageLabels.serverLoad}</h2>}
+                                        title={<h2 className="panel-title text-success">{t("SERVER_LOAD")}</h2>}
                                     >
                                         <Row className="qb-panel-split">
                                             <Col xs={24} md={18} className="qb-panel-main">
                                                 <div className="qb-stat-heading"><span id="cpuload"><SystemLoadSlot /></span></div>
-                                                <p>{pageLabels.serverLoadText}</p>
+                                                <p>{t("SL_TXT")}</p>
                                             </Col>
                                             <Col xs={24} md={6} className="text-right qb-panel-icon">
                                                 <span role="img" aria-hidden="true" className="anticon text-danger">
@@ -253,7 +149,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = 
                                         </Row>
                                         <Row>
                                             <Col span={24} className="mt20 text-center qb-uptime">
-                                                <strong>{pageLabels.uptime}:</strong> <span id="uptime"><UptimeSlot /></span>
+                                                <strong>{t("UPTIME")}:</strong> <span id="uptime"><UptimeSlot /></span>
                                             </Col>
                                         </Row>
                                     </Card>
@@ -263,7 +159,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = 
                                         data-inner-id="panel-server-cpu"
                                         classNames={{ header: "panel-heading", body: "panel-body" }}
                                         styles={{ body: { overflow: "hidden" } }}
-                                        title={<h2 className="panel-title">{pageLabels.cpuStatus}</h2>}
+                                        title={<h2 className="panel-title">{t("CPU_STATUS")}</h2>}
                                     >
                                         <span id="node-cpu-static" className="nomargin" style={{ fontSize: "14px" }}>
                                             <CpuStatusSlot />
@@ -274,7 +170,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = 
                                         className="panel panel-side panel-inverse"
                                         data-inner-id="panel-server-disk"
                                         classNames={{ header: "panel-heading", body: "panel-body" }}
-                                        title={<h2 className="panel-title">{pageLabels.diskStatus}</h2>}
+                                        title={<h2 className="panel-title">{t("YOUR_DISK_STATUS")}</h2>}
                                     >
                                         <div id="disk_data">
                                             <DiskDataSlot />
@@ -285,7 +181,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = 
                                         className="panel panel-side panel-inverse"
                                         data-inner-id="panel-server-ram"
                                         classNames={{ header: "panel-heading", body: "panel-body" }}
-                                        title={<h2 className="panel-title">{pageLabels.ramStatus}</h2>}
+                                        title={<h2 className="panel-title">{t("SYSTEM_RAM_STATUS")}</h2>}
                                     >
                                         <div id="meterram">
                                             <MemoryStatsSlot />
@@ -299,10 +195,10 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = 
                                         classNames={{ header: "panel-heading", body: "panel-footer" }}
                                         title={(
                                             <h2 className="panel-title text-success">
-                                                {pageLabels.recentUpdates}{" "}
+                                                {t("RECENT_UPDATES")}{" "}
                                                 <a
                                                     href={`https://github.com/amefs/quickbox-lite/blob/${config.branch}/CHANGELOG.md#changelog-${config.version.replaceAll(".", "")}`}
-                                                    title={pageLabels.changelogTitle}
+                                                    title={t("CURRENT_VERSIONS_CHANGELOG")}
                                                     data-placement="top"
                                                     className="label label-primary tooltips"
                                                     style={{ fontSize: "10px", paddingTop: 0, paddingBottom: "0px", top: "-2px", position: "relative" }}
@@ -320,7 +216,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = 
                                             disabled={!commandsConnected}
                                             onClick={() => { executeBoxAction("update", "quickbox --only-core", true); }}
                                         >
-                                            <BellOutlined className="text-success" aria-hidden="true" /> {pageLabels.update}
+                                            <BellOutlined className="text-success" aria-hidden="true" /> {t("UPDATE")}
                                         </button>
                                     </Card>
                                 </Col>

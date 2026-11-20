@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React, { useSyncExternalStore } from "react";
-import { useTranslation } from "react-i18next";
-import { toString as mdastToString } from "mdast-util-to-string";
-import remarkParse from "remark-parse";
-import { unified } from "unified";
 
 import { isBandwidthTableData, type BandwidthIslandBridge, type BandwidthTableData } from "../../../ws/src/shared/bandwidth-contract";
 import type { DashboardBootstrapPayload } from "../../../ws/src/shared/bootstrap-contract";
@@ -23,7 +19,6 @@ import {
     isPackageManagementStateData,
     type PackageManagementBridge,
     type PackageManagementData,
-    type PackageManagementRow,
 } from "../../../ws/src/shared/package-management-contract";
 import { isRunningTaskData, type RunningTaskBridge, type RunningTaskData } from "../../../ws/src/shared/running-task-contract";
 import {
@@ -270,54 +265,14 @@ export function NetworkInterfaceRowsSlot() {
     return <NetworkInterfaceRows interfaces={state.interfaces} loaded={state.loaded} rates={state.rates} />;
 }
 
-const markdownTextParser = unified().use(remarkParse);
-
-function markdownToPlainText(markdown: string): string {
-    return mdastToString(markdownTextParser.parse(markdown)).replace(/\s+/g, " ").trim();
-}
-
 export function PackageManagementSlot({ bootstrap, ready = true }: { bootstrap: DashboardBootstrapPayload; ready?: boolean }) {
-    const { t } = useTranslation();
     const data = useSyncExternalStore(packageStore.subscribe, packageStore.getSnapshot, packageStore.getSnapshot);
     const activeTheme = useDashboardTheme(bootstrap.serviceTheme);
-    const localizedData = React.useMemo<PackageManagementData | null>(() => {
-        if (!data) {
-            return null;
-        }
-        return {
-            ...data,
-            rows: data.rows.map((row) => {
-                const descriptionSource = row.descriptionKey ? t(row.descriptionKey) : (row.descriptionText ?? "");
-                return {
-                    ...row,
-                    descriptionText: markdownToPlainText(descriptionSource),
-                    installTooltip: row.installTooltipKey ? t(row.installTooltipKey) : (row.installTooltip ?? ""),
-                };
-            }),
-        };
-    }, [data, t]);
-    const localizedLabels = {
-        title: t("PACKAGE_MANAGEMENT_CENTER"),
-        name: t("NAME"),
-        details: t("DETAILS"),
-        availability: t("AVAILABILITY"),
-        installed: t("INSTALLED"),
-        install: t("INSTALL"),
-        box: t("BOX"),
-        notice: t("PMC_NOTICE_TXT"),
-        clearLockText: t("CLEAR_LOCK_TXT"),
-        clearLock: t("CLEAR_LOCK"),
-        viewLog: t("VIEW_LOG"),
-        uninstallTitle: t("UNINSTALL_TITLE"),
-        cancel: t("CANCEL"),
-        agree: t("AGREE"),
-    };
     return (
         <PackageManagementCenterView
-            data={ready ? localizedData : null}
-            labels={localizedLabels}
+            data={ready ? data : null}
             theme={activeTheme}
-            onPackageAction={(action, row: PackageManagementRow) => { executePackageAction(action, row.package); }}
+            onPackageAction={(action, row) => { executePackageAction(action, row.package); }}
         />
     );
 }
@@ -333,12 +288,6 @@ export function SystemLoadSlot() {
 }
 
 export function UptimeSlot() {
-    const { t } = useTranslation();
     const state = useSyncExternalStore(systemSummaryStore.subscribe, systemSummaryStore.getSnapshot, systemSummaryStore.getSnapshot);
-    const labels = {
-        days: t("DAYS_L"),
-        hours: t("HOURS_L"),
-        minutes: t("MINUTES_L"),
-    };
-    return <UptimeValue parts={state.uptime} labels={labels} />;
+    return <UptimeValue parts={state.uptime} />;
 }

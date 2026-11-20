@@ -70,11 +70,12 @@ function normalizeMemoryStats(payload: MemoryStatsPayload): Omit<MemoryStatsData
     };
 }
 
-function Progress({ data, label, usedLabel }: { data: MemoryProgress | null; label: string; usedLabel: string }) {
+function Progress({ data, labelKey }: { data: MemoryProgress; labelKey: string } | { data: null; labelKey?: string }) {
+    const { t } = useTranslation();
     return (
         <div className="progress progress-striped">
-            {data ? <div style={{ width: `${data.percent}%` }} aria-label={label} aria-valuemax={100} aria-valuemin={0} aria-valuenow={data.percent} role="progressbar" className={`progress-bar ${data.colorClass}`}>
-                <span className="sr-only">{data.percent}% {usedLabel}</span>
+            {data ? <div style={{ width: `${data.percent}%` }} aria-label={t(labelKey)} aria-valuemax={100} aria-valuemin={0} aria-valuenow={data.percent} role="progressbar" className={`progress-bar ${data.colorClass}`}>
+                <span className="sr-only">{data.percent}% {t("USED")}</span>
             </div> : <div className="qb-skeleton" style={{ height: "100%" }} />}
         </div>
     );
@@ -84,72 +85,61 @@ export function MemoryStatsRoot({ data: payload }: { data: MemoryStatsPayload | 
     const { t } = useTranslation();
     const commandsConnected = useCommandConnection();
     const data = payload ? normalizeMemoryStats(payload) : null;
-    const labels = {
-        physical: t("PHYSICAL_MEMORY_TITLE"),
-        physicalUsed: t("PHYSICAL_MEMORY_USED_TXT"),
-        physicalIdle: t("PHYSICAL_MEMORY_IDLE_TXT"),
-        cached: t("CACHED_MEMORY_TITLE"),
-        real: t("REAL_MEMORY_TITLE"),
-        swap: t("SWAP_TITLE"),
-        used: t("USED"),
-        totalRam: t("TOTAL_RAM"),
-        clearCache: t("CLEAR_CACHE"),
-    };
     return (
         <div aria-busy={!data}>
             <div className="row">
                 <div className="col-sm-12">
                     {data ? (
-                        <p style={{ fontSize: "10px" }}>{labels.physical}: {data.physical.percent}%<br />
-                            {labels.physicalUsed}: <span style={{ color: "#eb4549" }}>{data.physical.used}</span>{"  | "}{labels.physicalIdle}: <span style={{ color: "#eb4549" }}>{data.physical.free}</span>
+                        <p style={{ fontSize: "10px" }}>{t("PHYSICAL_MEMORY_TITLE")}: {data.physical.percent}%<br />
+                            {t("PHYSICAL_MEMORY_USED_TXT")}: <span style={{ color: "#eb4549" }}>{data.physical.used}</span>{"  | "}{t("PHYSICAL_MEMORY_IDLE_TXT")}: <span style={{ color: "#eb4549" }}>{data.physical.free}</span>
                         </p>
                     ) : (
                         <p style={{ fontSize: "10px" }} aria-hidden="true"><SkeletonText width="48%" /><br /><SkeletonText width="75%" /></p>
                     )}
-                    <Progress data={data?.physical ?? null} label={labels.physical} usedLabel={labels.used} />
+                    <Progress data={data?.physical ?? null} labelKey="PHYSICAL_MEMORY_TITLE" />
                 </div>
                 {!data && [0, 1].map((index) => (
                     <div key={index} className="col-sm-12" style={{ paddingTop: "10px" }} aria-hidden="true">
                         <p style={{ fontSize: "10px" }}><SkeletonText width="65%" /></p>
-                        <Progress data={null} label="" usedLabel="" />
+                        <Progress data={null} />
                     </div>
                 ))}
                 {data?.cached ? (
                     <div className="col-sm-12" style={{ paddingTop: "10px" }}>
-                        <p style={{ fontSize: "10px" }}>{labels.cached}: {data.cached.percent}%<br />
+                        <p style={{ fontSize: "10px" }}>{t("CACHED_MEMORY_TITLE")}: {data.cached.percent}%<br />
                             {data.cached.used !== undefined ? t("CACHED_MEMORY_USAGE_TXT", { cached: data.cached.used }) : data.cached.description}
                             {" | "}
                             {data.cached.buffered !== undefined ? t("CACHED_MEMORY_BUFFERS_TXT", { buffered: data.cached.buffered }) : data.cached.buffersDescription}
                         </p>
-                        <Progress data={data.cached} label={labels.cached} usedLabel={labels.used} />
+                        <Progress data={data.cached} labelKey="CACHED_MEMORY_TITLE" />
                     </div>
                 ) : null}
                 {data?.real ? (
                     <div className="col-sm-12" style={{ paddingTop: "10px" }}>
-                        <p style={{ fontSize: "10px" }}>{labels.real}: {data.real.percent}%<br />
+                        <p style={{ fontSize: "10px" }}>{t("REAL_MEMORY_TITLE")}: {data.real.percent}%<br />
                             {data.real.used !== undefined ? t("REAL_MEMORY_USAGE_TXT", { used: data.real.used }) : data.real.description}
                             {" | "}
                             {data.real.free !== undefined ? t("REAL_MEMORY_FREE_TXT", { free: data.real.free }) : data.real.freeDescription}
                         </p>
-                        <Progress data={data.real} label={labels.real} usedLabel={labels.used} />
+                        <Progress data={data.real} labelKey="REAL_MEMORY_TITLE" />
                     </div>
                 ) : null}
                 {data?.swap ? (
                     <div className="col-sm-12" style={{ paddingTop: "10px" }}>
                         <p style={{ fontSize: "10px" }}>
-                            {labels.swap}: {data.swap.percent}%<br />
+                            {t("SWAP_TITLE")}: {data.swap.percent}%<br />
                             {data.swap.total !== undefined ? `${t("SWAP_TOTAL_TXT")}: ${t("TOTAL_L", { total: data.swap.total })}` : data.swap.totalDescription}
                             {" | "}
                             {data.swap.used !== undefined ? t("SWAP_USED_TXT", { used: data.swap.used }) : data.swap.usedDescription}
                             {" | "}
                             {data.swap.free !== undefined ? t("SWAP_IDLE_TXT", { free: data.swap.free }) : data.swap.freeDescription}
                         </p>
-                        <Progress data={data.swap} label={labels.swap} usedLabel={labels.used} />
+                        <Progress data={data.swap} labelKey="SWAP_TITLE" />
                     </div>
                 ) : null}
             </div>
             <hr />
-            <h3>{labels.totalRam}</h3>
+            <h3>{t("TOTAL_RAM")}</h3>
             <div className="nomargin qb-stat-heading">
                 {data?.total ?? <SkeletonText width="35%" />}
                 <button
@@ -158,7 +148,7 @@ export function MemoryStatsRoot({ data: payload }: { data: MemoryStatsPayload | 
                     disabled={!data || !commandsConnected}
                     onClick={() => { executeBoxAction("clean", "mem", true); }}
                 >
-                    {labels.clearCache}
+                    {t("CLEAR_CACHE")}
                 </button>
             </div>
         </div>

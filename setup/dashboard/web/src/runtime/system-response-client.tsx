@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React, { useSyncExternalStore } from "react";
-import { useTranslation } from "react-i18next";
 import { notification } from "antd";
 import { AnsiUp } from "ansi_up";
 
@@ -179,7 +178,6 @@ export function registerSystemResponseIsland() {
 }
 
 export function SystemResponseSlot({ bootstrap }: { bootstrap: DashboardBootstrapPayload }) {
-    const { t } = useTranslation();
     registerSystemResponseIsland();
     const snapshot = useSyncExternalStore(
         systemResponseStore.subscribe,
@@ -191,12 +189,6 @@ export function SystemResponseSlot({ bootstrap }: { bootstrap: DashboardBootstra
         <SystemResponseModal
             snapshot={snapshot}
             theme={activeTheme}
-            labels={{
-                title: t("SYSTEM_RESPONSE_TITLE"),
-                closeRefresh: t("CLOSE_REFRESH"),
-                close: t("CLOSE"),
-                ok: "OK",
-            }}
             onClose={systemResponseStore.bridge.close}
             onCloseRefresh={() => { systemResponseStore.bridge.close(); window.location.reload(); }}
             onCloseAlert={systemResponseStore.bridge.closeAlert}

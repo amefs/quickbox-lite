@@ -16,12 +16,6 @@ export interface SystemLoadData {
     processes: number;
 }
 
-export interface SystemSummaryLabels {
-    days: string;
-    hours: string;
-    minutes: string;
-}
-
 export interface SystemSummaryRuntime {
     uptime: UptimeParts;
 }

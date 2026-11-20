@@ -178,6 +178,7 @@ test.describe("Widget Rendering", () => {
         await page.goto("/");
         const ramStats = page.locator("#meterram");
         await expect(ramStats).not.toBeEmpty({ timeout: 15_000 });
+        await expect(ramStats.locator(".progress-bar").first()).toBeAttached({ timeout: 15_000 });
         expect(await ramStats.locator(".progress-bar").count()).toBeGreaterThan(0);
         await snap(page, testInfo, "ram-stats-widget");
     });

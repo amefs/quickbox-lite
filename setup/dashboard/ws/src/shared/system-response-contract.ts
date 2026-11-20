@@ -17,10 +17,3 @@ export interface SystemResponseBridge {
     closeAlert: () => void;
     notifyWarning: (title: string, description: string) => void;
 }
-
-export interface SystemResponseLabels {
-    title: string;
-    closeRefresh: string;
-    close: string;
-    ok: string;
-}

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Button, ConfigProvider, Modal } from "antd";
 
-import type { SystemResponseAlert, SystemResponseLabels } from "../../../ws/src/shared/system-response-contract";
+import type { SystemResponseAlert } from "../../../ws/src/shared/system-response-contract";
 import type { DashboardTheme } from "../../../ws/src/shared/theme";
 import { getAntdThemeConfig } from "../runtime/theme-store";
 
@@ -25,7 +26,6 @@ export interface SystemResponseSnapshot {
 
 export interface SystemResponseModalProps {
     snapshot: SystemResponseSnapshot;
-    labels: SystemResponseLabels;
     theme?: DashboardTheme;
     onClose: () => void;
     onCloseRefresh: () => void;
@@ -78,18 +78,19 @@ function SystemLogOutput({ open, blocks }: { open: boolean; blocks: SystemLogBlo
     );
 }
 
-export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onClose, onCloseRefresh, onCloseAlert }: SystemResponseModalProps) {
+export function SystemResponseModal({ snapshot, theme = "defaulted", onClose, onCloseRefresh, onCloseAlert }: SystemResponseModalProps) {
+    const { t } = useTranslation();
     return (
         <ConfigProvider theme={getAntdThemeConfig(theme, { borderRadius: 4 })}>
             <Modal
                 open={snapshot.open}
-                title={labels.title}
+                title={t("SYSTEM_RESPONSE_TITLE")}
                 width={600}
                 centered
                 zIndex={2200}
                 transitionName=""
                 closable
-                closeIcon={<span id="sysResponseDismiss" aria-label={labels.close}>&times;</span>}
+                closeIcon={<span id="sysResponseDismiss" aria-label={t("CLOSE")}>&times;</span>}
                 keyboard
                 mask={{ closable: false }}
                 onCancel={onClose}
@@ -117,7 +118,7 @@ export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onC
                         className="btn btn-xs btn-danger"
                         onClick={onCloseRefresh}
                     >
-                        {labels.closeRefresh}
+                        {t("CLOSE_REFRESH")}
                     </Button>
                 )}
             >
@@ -125,7 +126,7 @@ export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onC
             </Modal>
             <Modal
                 open={snapshot.alert !== null}
-                title={labels.title}
+                title={t("SYSTEM_RESPONSE_TITLE")}
                 width={600}
                 centered
                 zIndex={2210}
@@ -138,7 +139,7 @@ export function SystemResponseModal({ snapshot, labels, theme = "defaulted", onC
                     header: "qb-alert-modal-header",
                     title: "qb-alert-modal-title",
                 }}
-                footer={<Button type="primary" onClick={onCloseAlert}>{labels.ok}</Button>}
+                footer={<Button type="primary" onClick={onCloseAlert}>OK</Button>}
             >
                 {snapshot.alert ? (
                     <>
