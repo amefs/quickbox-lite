@@ -7,31 +7,81 @@ export interface NetworkInterfaceInfo {
 }
 
 const DOWN_OPER_STATES = new Set(["down", "notpresent", "lowerlayerdown"]);
+const MACOS_SYSTEM_INTERFACE_PREFIXES = ["awdl", "llw", "utun"];
+const LINUX_SYSTEM_INTERFACE_PREFIXES = [
+    "docker",
+    "veth",
+    "br-",
+    "virbr",
+    "cni",
+    "flannel",
+    "cali",
+    "podman",
+];
 
-export function isActiveNetworkInterface(networkInterface: NetworkInterfaceInfo): boolean {
-    const iface = typeof networkInterface.iface === "string" ? networkInterface.iface.trim() : "";
-    if (!iface || iface.toLowerCase() === "lo") {
+function normalizeInterfaceName(value?: string): string {
+    return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeOperstate(value?: string): string {
+    return typeof value === "string"
+        ? value.trim().toLowerCase().replace(/[\s_-]+/g, "")
+        : "";
+}
+
+function isLoopbackInterface(iface: string): boolean {
+    const normalized = iface.toLowerCase();
+    return normalized === "lo" || normalized === "lo0";
+}
+
+export function isActiveNetworkInterface(
+    networkInterface: NetworkInterfaceInfo,
+    platform: NodeJS.Platform = process.platform,
+    monitoredInterfaces: ReadonlySet<string> = new Set(),
+): boolean {
+    const iface = normalizeInterfaceName(networkInterface.iface);
+    if (!iface || isLoopbackInterface(iface)) {
         return false;
     }
     if (networkInterface.internal === true) {
         return false;
     }
-    const operstate = typeof networkInterface.operstate === "string"
-        ? networkInterface.operstate.trim().toLowerCase()
-        : "";
-    if (operstate === "") {
-        return true;
+    const operstate = normalizeOperstate(networkInterface.operstate);
+    if (operstate !== "" && DOWN_OPER_STATES.has(operstate)) {
+        return false;
     }
-    return !DOWN_OPER_STATES.has(operstate);
+    return !isSystemManagedInterface(iface, platform, monitoredInterfaces);
 }
 
-export function listActiveInterfaceNames(interfaces: NetworkInterfaceInfo[]): string[] {
+function isSystemManagedInterface(
+    iface: string,
+    platform: NodeJS.Platform,
+    monitoredInterfaces: ReadonlySet<string>,
+): boolean {
+    if ([...monitoredInterfaces].some((monitoredInterface) => normalizeInterfaceName(monitoredInterface) === iface)) {
+        return false;
+    }
+
+    const prefixes = platform === "darwin"
+        ? MACOS_SYSTEM_INTERFACE_PREFIXES
+        : platform === "linux"
+            ? LINUX_SYSTEM_INTERFACE_PREFIXES
+            : [];
+
+    return prefixes.some((prefix) => iface.toLowerCase().startsWith(prefix));
+}
+
+export function listActiveInterfaceNames(
+    interfaces: NetworkInterfaceInfo[],
+    platform: NodeJS.Platform = process.platform,
+    monitoredInterfaces: ReadonlySet<string> = new Set(),
+): string[] {
     const uniqueNames = new Set<string>();
     for (const networkInterface of interfaces) {
-        if (!isActiveNetworkInterface(networkInterface)) {
+        if (!isActiveNetworkInterface(networkInterface, platform, monitoredInterfaces)) {
             continue;
         }
-        const iface = networkInterface.iface?.trim();
+        const iface = normalizeInterfaceName(networkInterface.iface);
         if (iface) {
             uniqueNames.add(iface);
         }

@@ -21,6 +21,24 @@ test.describe("Dashboard Loading", () => {
         await expect(page.locator("[data-inner-id='right-panel-container']")).toBeVisible();
     });
 
+    test("renders the dashboard while the remote font stylesheet is pending", async ({ page }) => {
+        let release: () => void = () => {};
+        const gate = new Promise<void>(resolve => { release = resolve; });
+        const fontUrl = "https://fonts.googleapis.com/**";
+        await page.route(fontUrl, async route => {
+            await gate;
+            await route.fulfill({ contentType: "text/css", body: "" });
+        });
+        try {
+            const fontRequest = page.waitForRequest(fontUrl);
+            await page.goto("/", { waitUntil: "commit" });
+            await fontRequest;
+            await expect(page.locator("[data-inner-id='panel-server-bandwidth-interface']")).toBeVisible();
+        } finally {
+            release();
+        }
+    });
+
     test("should display panel headings", async ({ page }) => {
         await page.goto("/");
         await expect(page.locator("[data-inner-id='panel-server-bandwidth-interface']")).toBeVisible();

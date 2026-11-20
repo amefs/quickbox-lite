@@ -32,12 +32,14 @@ export interface ServiceControlLabels {
     serviceStatusLastConfirmedTemplate: string;
 }
 
+export type ServiceTooltipIcon = "info" | "usb";
+
 export interface ServiceRow {
     id: string;
     name: string;
     enabledAtBoot: boolean;
     tooltip?: string;
-    tooltipIcon?: string;
+    tooltipIcon?: ServiceTooltipIcon;
 }
 
 export interface ServiceState {
@@ -112,7 +114,7 @@ function isServiceRow(value: unknown): value is ServiceRow {
         return false;
     }
     return (value.tooltip === undefined || typeof value.tooltip === "string") &&
-        (value.tooltipIcon === undefined || typeof value.tooltipIcon === "string");
+        (value.tooltipIcon === undefined || value.tooltipIcon === "info" || value.tooltipIcon === "usb");
 }
 
 function isResponseMeta(value: unknown): value is ServiceResponseMeta {

@@ -10,7 +10,7 @@ export function getServiceControlRows(): ServiceRow[] {
             name: info.name,
             enabledAtBoot: isServiceEnabled(id, info.username),
             ...(info.tooltips === undefined ? {} : { tooltip: info.tooltips }),
-            ...(info.tooltipsicon === undefined ? {} : { tooltipIcon: info.tooltipsicon }),
+            ...(info.tooltipIcon === undefined ? {} : { tooltipIcon: info.tooltipIcon }),
         })),
     );
 }

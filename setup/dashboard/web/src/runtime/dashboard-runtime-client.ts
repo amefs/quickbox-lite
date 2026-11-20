@@ -79,6 +79,15 @@ const LOCALE_ALIASES: Record<string, string> = {
     "zh-hans-cn": "zh",
 };
 
+export interface BackendRetryState {
+    error: string;
+    attempt: number;
+    maxAttempts: number;
+    exhausted: boolean;
+}
+
+const MAX_SOCKET_RETRIES = 3;
+
 let activeExecDispatcher: ((command: string) => boolean) | undefined;
 let activeLocaleUpdater: ((locale: string) => void) | undefined;
 let commandConnected = false;
@@ -193,7 +202,7 @@ function afterPrerendering(callback: () => void) {
     callback();
 }
 
-export function initDashboardRuntime() {
+export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryState | null) => void) {
     const runtime = window.quickboxRuntime as RuntimeGlobals | undefined;
     if (!runtime) {
         return;
@@ -244,8 +253,42 @@ export function initDashboardRuntime() {
     const socket = io(location.origin, {
         path: `${window.quickboxApiBase}/socket.io`,
         upgrade: runtime.socketUpgrade !== false,
+        autoConnect: false,
+        reconnectionAttempts: MAX_SOCKET_RETRIES,
+        timeout: 10000,
     });
     window.socket = socket;
+
+    let reconnectAttempt = 0;
+    let connectionError = "";
+    function reportConnectionRetry(exhausted: boolean) {
+        onConnectionRetry({
+            error: connectionError,
+            attempt: exhausted ? reconnectAttempt : Math.max(1, reconnectAttempt),
+            maxAttempts: MAX_SOCKET_RETRIES,
+            exhausted,
+        });
+    }
+
+    socket.on("disconnect", (reason) => {
+        reconnectAttempt = 0;
+        connectionError = reason;
+        reportConnectionRetry(!socket.active);
+    });
+    socket.on("connect_error", (error) => {
+        const status = "description" in error ? error.description : undefined;
+        connectionError = typeof status === "number" && status > 0
+            ? `${error.message} (${status})`
+            : error.message;
+        reportConnectionRetry(!socket.active);
+    });
+    socket.io.on("reconnect_attempt", (attempt) => {
+        reconnectAttempt = attempt;
+        reportConnectionRetry(false);
+    });
+    socket.io.on("reconnect_failed", () => {
+        reportConnectionRetry(true);
+    });
 
     function emitCommand(event: "exec" | "service-action", payload: unknown): boolean {
         if (!socket.connected) {return false;}
@@ -253,7 +296,11 @@ export function initDashboardRuntime() {
         return true;
     }
     setCommandConnection(socket.connected);
-    socket.on("connect", () => { setCommandConnection(true); });
+    socket.on("connect", () => {
+        reconnectAttempt = 0;
+        onConnectionRetry(null);
+        setCommandConnection(true);
+    });
 
     function getBandwidthPage(): string {
         try {
@@ -770,4 +817,12 @@ export function initDashboardRuntime() {
     } else {
         startRuntime();
     }
+    socket.connect();
+
+    return () => {
+        if (socket.connected) {return;}
+        reconnectAttempt = 0;
+        reportConnectionRetry(false);
+        socket.disconnect().connect();
+    };
 }

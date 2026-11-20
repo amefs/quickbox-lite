@@ -83,28 +83,13 @@
         margin-right: 0;
     }
 }
-@keyframes qb-shimmer {
-    0% { background-position: -400px 0; }
-    100% { background-position: 400px 0; }
-}
 .qb-skeleton {
-    background: linear-gradient(90deg, rgba(128,128,128,0.12) 25%, rgba(128,128,128,0.24) 50%, rgba(128,128,128,0.12) 75%);
-    background-size: 800px 100%;
-    animation: qb-shimmer 1.5s ease-in-out infinite;
+    background: rgba(128, 128, 128, 0.2);
     border-radius: 3px;
-}
-.qb-skeleton-progress {
-    height: 18px;
-    border-radius: 9px;
 }
 .qb-skeleton-btn {
     height: 26px;
-    border-radius: 4px;
-    flex-shrink: 0;
-}
-.qb-skeleton-circle {
-    border-radius: 50%;
-    flex-shrink: 0;
+    border-radius: 9999px;
 }
 /* Side panels: text and decorative icon share one flex row so the icon can
    never squeeze or overlap the text when the right column gets narrow. */
@@ -262,6 +247,19 @@ body[data-theme="smoked"] .panel.ant-card {
     margin-top: 1.5555px;
     transition: all 0.2s ease-out 0s;
 }
+.nav-quirk > li > a > .qb-sidebar-expand-icon {
+    position: absolute;
+    top: 14px;
+    right: 15px;
+    width: auto;
+    margin: 0;
+    font-size: 13px;
+    color: #bdc3d1;
+    transition: transform 0.2s ease-out;
+}
+.nav-quirk > li.nav-active > a > .qb-sidebar-expand-icon {
+    transform: rotate(180deg);
+}
 .nav-quirk > li > a:hover > .anticon,
 .nav-quirk > li.active > a > .anticon {
     color: #4daf7c;
@@ -272,11 +270,38 @@ body[data-theme="smoked"] .panel.ant-card {
 .qb-uptime {
     overflow-wrap: anywhere;
 }
+.qb-stat-heading {
+    color: var(--qb-heading-color);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 8.5px 0;
+}
 .qb-mount-point {
-    color: #eb4549;
+    color: #b82e3c;
     font-weight: normal;
     font-size: 14px;
     overflow-wrap: anywhere;
+}
+body[data-theme="smoked"] .qb-mount-point {
+    color: #ff727a;
+}
+body[data-theme="smoked"] .panel-statistics .text-primary,
+body[data-theme="smoked"] #bw_tables .text-primary {
+    color: #7cb9e4;
+}
+body[data-theme="smoked"] [data-inner-id="panel-server-load"] .panel-body p {
+    color: #aaa;
+}
+#project-commits .label-primary {
+    background-color: #2574ab;
+    color: #fff;
+}
+#project-commits .btn-success {
+    background-color: #247448;
+}
+#project-commits .btn-success:not(:disabled):is(:hover, :focus, :active) {
+    background-color: #1d603c;
 }
 .qb-disk-metrics {
     display: flex;

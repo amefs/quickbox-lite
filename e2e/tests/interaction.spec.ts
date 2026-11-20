@@ -21,6 +21,28 @@ test.describe("Language Switching", () => {
         await page.request.get(`${WS_BASE_URL}/set?lang=en`);
     });
 
+    test("localizes package table controls, result counts and empty results", async ({ page }) => {
+        await page.goto("/?locale=zh");
+        const table = page.locator("#pmc_widget");
+        const search = table.getByRole("textbox", { name: "搜索：" });
+        const pageSize = table.getByRole("combobox", { name: "每页条数" });
+        const status = table.getByRole("status");
+        await expect(pageSize).toHaveValue("10");
+        await expect(status).toHaveText(/显示第 1 至 10 条，共 \d+ 条记录/);
+        await expect(table.getByRole("link", { name: "第 2 页" })).toBeVisible();
+        await expect(table.getByRole("link", { name: "下一页" })).toBeVisible();
+
+        await search.fill("no-such-package-123");
+        await expect(status).toHaveText("共 0 条记录");
+        await expect(table.getByText("未找到匹配的记录。")).toBeVisible();
+
+        await page.locator("#node-language-options [data-locale='fr']").evaluate((element) => (element as HTMLElement).click());
+        await expect(table.getByRole("textbox", { name: "Rechercher :" })).toHaveValue("no-such-package-123");
+        await expect(table.getByRole("combobox", { name: "Entrées par page" })).toHaveValue("10");
+        await expect(status).toHaveText("0 entrée");
+        await expect(table.getByText("Aucun résultat ne correspond à la recherche.")).toBeVisible();
+    });
+
     test("should switch frontend language to Chinese and inspect debug console", async ({ page }, testInfo) => {
         // Verify /set still normalizes locale for legacy callers
         const setResponse = await page.request.get(`${WS_BASE_URL}/set?lang=zh-cn`);
@@ -328,7 +350,7 @@ test.describe("Command failure dialog", () => {
                 has: page.locator(`img[src="/img/themes/opt_${target}.png"]`),
             }).click();
             await expect(page.locator("body")).toHaveAttribute("data-theme", target);
-            await expect(page.locator('link[href$="dashboard-theme.css"]')).toHaveCount(1);
+            await expect(page.locator('link[href*="/css/dashboard-theme.css"]')).toHaveCount(1);
             await expect(page.locator(".panel").first()).toHaveCSS(
                 "background-color",
                 target === "smoked" ? "rgb(34, 34, 34)" : "rgb(255, 255, 255)",
@@ -336,7 +358,7 @@ test.describe("Command failure dialog", () => {
 
             await page.reload({ waitUntil: "domcontentloaded" });
             await expect(page.locator("body")).toHaveAttribute("data-theme", target);
-            await expect(page.locator('link[href$="dashboard-theme.css"]')).toHaveCount(1);
+            await expect(page.locator('link[href*="/css/dashboard-theme.css"]')).toHaveCount(1);
         }
     });
 
@@ -368,5 +390,54 @@ test.describe("Command failure dialog", () => {
                 { message: `search ${JSON.stringify(query)}` },
             ).toEqual(expected);
         }
+    });
+
+    test("package management toolbar and table remain usable on a narrow screen", async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto("/?locale=zh");
+        await expect(page.locator("#pmc_widget tr[data-row-key]").first()).toBeVisible({ timeout: 10_000 });
+        const toolbar = page.locator(".qb-package-management__toolbar");
+        const scroller = page.locator(".qb-package-management__table-scroll");
+        const toolbarIsStacked = () => toolbar.evaluate((element) => {
+            const [pageSize, search] = element.querySelectorAll("label");
+            return search.getBoundingClientRect().top >= pageSize.getBoundingClientRect().bottom;
+        });
+        const layout = await page.evaluate(() => {
+            const filter = document.querySelector<HTMLElement>(".qb-package-management__search")!;
+            const input = document.querySelector<HTMLInputElement>("#dataTable1-search")!;
+            const container = document.querySelector<HTMLElement>(".qb-package-management__table-scroll")!;
+            const table = container.querySelector("table")!;
+            const detail = document.querySelector<HTMLElement>("#pmc_widget .ant-table-tbody > tr > td:nth-child(2)")!;
+            return {
+                filterWidth: filter.getBoundingClientRect().width,
+                inputWidth: input.getBoundingClientRect().width,
+                tableWidth: table.getBoundingClientRect().width,
+                viewportWidth: container.clientWidth,
+                scrollWidth: container.scrollWidth,
+                detailWrap: getComputedStyle(detail).overflowWrap,
+            };
+        });
+        await expect.poll(toolbarIsStacked).toBe(true);
+        expect(layout.inputWidth).toBeGreaterThan(200);
+        expect(layout.inputWidth).toBeLessThan(layout.filterWidth);
+        expect(layout.tableWidth).toBeGreaterThan(layout.viewportWidth);
+        expect(layout.scrollWidth).toBeGreaterThan(layout.viewportWidth);
+        expect(layout.detailWrap).toBe("anywhere");
+        await scroller.evaluate((element) => { element.scrollLeft = element.scrollWidth; });
+        expect(await scroller.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await expect.poll(toolbarIsStacked).toBe(false);
+        await expect.poll(() => scroller.evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
+        const [name, details, availability] = await scroller.locator("thead th").evaluateAll((cells) =>
+            cells.map((cell) => cell.getBoundingClientRect().width),
+        );
+        const total = name + details + availability;
+        expect(name / total).toBeCloseTo(0.15, 2);
+        expect(details / total).toBeGreaterThan(0.7);
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        await expect.poll(toolbarIsStacked).toBe(true);
+        await expect.poll(() => scroller.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeGreaterThan(0);
     });
 });

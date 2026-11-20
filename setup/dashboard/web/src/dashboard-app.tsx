@@ -19,7 +19,7 @@ import {
     UptimeSlot,
 } from "./runtime/data-slots";
 import { ServiceControlSlot } from "./runtime/service-control-client";
-import { executeBoxAction, useCommandConnection } from "./runtime/dashboard-runtime-client";
+import { executeBoxAction, useCommandConnection, type BackendRetryState } from "./runtime/dashboard-runtime-client";
 import { SystemResponseSlot } from "./runtime/system-response-client";
 import { getAntdThemeConfig, useDashboardTheme } from "./runtime/theme-store";
 import { getAntdLocale, normalizeLocale } from "./i18n";
@@ -45,24 +45,26 @@ const BW_PAGE_TITLE_KEYS: Record<"t" | "h" | "d" | "m", string> = {
     m: "Last 12 months",
 };
 
-export interface BootstrapRetryState {
-    error: string;
-    attempt: number;
-    maxAttempts: number;
-    exhausted: boolean;
-}
-
 export interface DashboardAppProps {
     bootstrap: DashboardBootstrapPayload;
     bootstrapReady?: boolean;
-    bootstrapRetry?: BootstrapRetryState | null;
-    onRetryBootstrap?: () => void;
+    backendRetry?: BackendRetryState | null;
+    onRetryBackend?: () => void;
 }
 
-export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry = null, onRetryBootstrap }: DashboardAppProps) {
+export function DashboardApp({ bootstrap, bootstrapReady = true, backendRetry = null, onRetryBackend }: DashboardAppProps) {
     const activeTheme = useDashboardTheme(bootstrap.serviceTheme);
     const commandsConnected = useCommandConnection();
     const { t, i18n } = useTranslation();
+    let retryDescription: string | undefined;
+    if (backendRetry) {
+        const { error, attempt, maxAttempts, exhausted } = backendRetry;
+        retryDescription = exhausted
+            ? attempt === 0
+                ? t("BACKEND_DISCONNECTED_DESC", { error })
+                : t("BACKEND_RETRY_EXHAUSTED_DESC", { error, max: attempt })
+            : t("BACKEND_RETRYING_DESC", { error, attempt, max: maxAttempts });
+    }
     const locale = normalizeLocale(i18n.language);
     const { config } = bootstrap.chrome;
     const chromeProps: DashboardChromeProps = {
@@ -153,6 +155,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
         <ConfigProvider locale={getAntdLocale(locale)} theme={getAntdThemeConfig(activeTheme)}>
             <Layout className="dashboard-layout" style={{ background: "transparent" }}>
                 <header id="quickbox-header-root">
+                    <h1 className="sr-only">QuickBox Dashboard</h1>
                     <DashboardHeader props={chromeProps} theme={activeTheme} />
                 </header>
                 <Layout style={{ background: "transparent" }}>
@@ -161,18 +164,16 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                     </div>
                     <Layout.Content className="mainpanel" style={{ background: "transparent" }}>
                         <div className="contentpanel">
-                            {bootstrapRetry ? (
+                            {backendRetry ? (
                                 <Alert
-                                    type={bootstrapRetry.exhausted ? "error" : "warning"}
+                                    type={backendRetry.exhausted ? "error" : "warning"}
                                     showIcon
                                     style={{ marginBottom: 16 }}
                                     title={t("BACKEND_UNAVAILABLE_TITLE")}
-                                    description={bootstrapRetry.exhausted
-                                        ? t("BACKEND_RETRY_EXHAUSTED_DESC", { error: bootstrapRetry.error, max: bootstrapRetry.maxAttempts })
-                                        : t("BACKEND_RETRYING_DESC", { error: bootstrapRetry.error, attempt: bootstrapRetry.attempt, max: bootstrapRetry.maxAttempts })}
-                                    action={onRetryBootstrap ? (
-                                        <Button size="small" type="primary" danger={bootstrapRetry.exhausted} onClick={onRetryBootstrap}>
-                                            {t("RETRY")}
+                                    description={retryDescription}
+                                    action={onRetryBackend ? (
+                                        <Button size="small" type="primary" danger={backendRetry.exhausted} onClick={onRetryBackend}>
+                                            {t(bootstrapReady ? "BACKEND_RECONNECT" : "RETRY")}
                                         </Button>
                                     ) : undefined}
                                 />
@@ -188,7 +189,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                                         data-inner-id="panel-server-bandwidth-interface"
                                         classNames={{ header: "panel-heading", body: "panel-footer panel-statistics" }}
                                         styles={{ body: { padding: 0 } }}
-                                        title={<h4 className="panel-title">{pageLabels.bandwidthData}</h4>}
+                                        title={<h2 className="panel-title">{pageLabels.bandwidthData}</h2>}
                                     >
                                         <Row>
                                             <Col span={24}>
@@ -215,7 +216,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                                         data-inner-id="panel-server-bandwidth-details"
                                         classNames={{ header: "panel-heading", body: "panel-body" }}
                                         styles={{ body: { padding: 0 } }}
-                                        title={<h4 className="panel-title">{pageLabels.bandwidthDetails}</h4>}
+                                        title={<h2 className="panel-title">{pageLabels.bandwidthDetails}</h2>}
                                     >
                                         <div id="bw_tables" style={{ padding: 0, margin: 0 }}>
                                             <BandwidthTablesSlot />
@@ -234,17 +235,18 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                                         className="panel panel-side panel-inverse-full panel-updates"
                                         data-inner-id="panel-server-load"
                                         classNames={{ header: "panel-heading", body: "panel-body" }}
-                                        title={<h4 className="panel-title text-success">{pageLabels.serverLoad}</h4>}
+                                        title={<h2 className="panel-title text-success">{pageLabels.serverLoad}</h2>}
                                     >
                                         <Row className="qb-panel-split">
                                             <Col xs={24} md={18} className="qb-panel-main">
-                                                <h4><span id="cpuload"><SystemLoadSlot /></span></h4>
+                                                <div className="qb-stat-heading"><span id="cpuload"><SystemLoadSlot /></span></div>
                                                 <p>{pageLabels.serverLoadText}</p>
                                             </Col>
                                             <Col xs={24} md={6} className="text-right qb-panel-icon">
                                                 <span role="img" aria-hidden="true" className="anticon text-danger">
-                                                    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" focusable="false">
-                                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35zm-7.4-9.85h3.2l1.4-2.8 2.1 5.6 1.7-3.4 1.2 1.6h4.2v-1.5h-3.4l-2-2.6-1.7 3.4-2.1-5.6-2 4.1H4.6v1.2z" />
+                                                    <svg viewBox="0 0 512 512" width="1em" height="1em" fill="currentColor" focusable="false">
+                                                        {/* Font Awesome Free 6.7.2 heart-pulse, CC BY 4.0: https://fontawesome.com/license/free */}
+                                                        <path d="M228.3 469.1L47.6 300.4c-4.2-3.9-8.2-8.1-11.9-12.4l87 0c22.6 0 43-13.6 51.7-34.5l10.5-25.2 49.3 109.5c3.8 8.5 12.1 14 21.4 14.1s17.8-5 22-13.3L320 253.7l1.7 3.4c9.5 19 28.9 31 50.1 31l104.5 0c-3.7 4.3-7.7 8.5-11.9 12.4L283.7 469.1c-7.5 7-17.4 10.9-27.7 10.9s-20.2-3.9-27.7-10.9zM503.7 240l-132 0c-3 0-5.8-1.7-7.2-4.4l-23.2-46.3c-4.1-8.1-12.4-13.3-21.5-13.3s-17.4 5.1-21.5 13.3l-41.4 82.8L205.9 158.2c-3.9-8.7-12.7-14.3-22.2-14.1s-18.1 5.9-21.8 14.8l-31.8 76.3c-1.2 3-4.2 4.9-7.4 4.9L16 240c-2.6 0-5 .4-7.3 1.1C3 225.2 0 208.2 0 190.9l0-5.8c0-69.9 50.5-129.5 119.4-141C165 36.5 211.4 51.4 244 84l12 12 12-12c32.6-32.6 79-47.5 124.6-39.9C461.5 55.6 512 115.2 512 185.1l0 5.8c0 16.9-2.8 33.5-8.3 49.1z" />
                                                     </svg>
                                                 </span>
                                             </Col>
@@ -261,7 +263,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                                         data-inner-id="panel-server-cpu"
                                         classNames={{ header: "panel-heading", body: "panel-body" }}
                                         styles={{ body: { overflow: "hidden" } }}
-                                        title={<h4 className="panel-title">{pageLabels.cpuStatus}</h4>}
+                                        title={<h2 className="panel-title">{pageLabels.cpuStatus}</h2>}
                                     >
                                         <span id="node-cpu-static" className="nomargin" style={{ fontSize: "14px" }}>
                                             <CpuStatusSlot />
@@ -272,7 +274,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                                         className="panel panel-side panel-inverse"
                                         data-inner-id="panel-server-disk"
                                         classNames={{ header: "panel-heading", body: "panel-body" }}
-                                        title={<h4 className="panel-title">{pageLabels.diskStatus}</h4>}
+                                        title={<h2 className="panel-title">{pageLabels.diskStatus}</h2>}
                                     >
                                         <div id="disk_data">
                                             <DiskDataSlot />
@@ -283,7 +285,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                                         className="panel panel-side panel-inverse"
                                         data-inner-id="panel-server-ram"
                                         classNames={{ header: "panel-heading", body: "panel-body" }}
-                                        title={<h4 className="panel-title">{pageLabels.ramStatus}</h4>}
+                                        title={<h2 className="panel-title">{pageLabels.ramStatus}</h2>}
                                     >
                                         <div id="meterram">
                                             <MemoryStatsSlot />
@@ -296,7 +298,7 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                                         data-inner-id="panel-server-update"
                                         classNames={{ header: "panel-heading", body: "panel-footer" }}
                                         title={(
-                                            <h4 className="panel-title text-success">
+                                            <h2 className="panel-title text-success">
                                                 {pageLabels.recentUpdates}{" "}
                                                 <a
                                                     href={`https://github.com/amefs/quickbox-lite/blob/${config.branch}/CHANGELOG.md#changelog-${config.version.replaceAll(".", "")}`}
@@ -307,9 +309,9 @@ export function DashboardApp({ bootstrap, bootstrapReady = true, bootstrapRetry 
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                 >
-                                                    QuickBox :: <span style={{ color: "#fff", textShadow: "0px 0px 6px #fff" }}>{config.version}</span>
+                                                    QuickBox :: {config.version}
                                                 </a>
-                                            </h4>
+                                            </h2>
                                         )}
                                     >
                                         <button

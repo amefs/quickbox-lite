@@ -39,7 +39,6 @@ import { DiskDataRoot } from "../components/disk-data-island";
 import { MemoryStatsRoot } from "../components/memory-stats-island";
 import { NetworkInterfaceRows } from "../components/network-status-island";
 import { PackageManagementCenterView } from "../components/package-management-center-view";
-import { PackageManagementPlaceholder, UptimePlaceholder } from "../components/placeholder";
 import { RunningTaskIsland } from "../components/running-task-island";
 import { SystemLoadValue, UptimeValue } from "../components/system-summary-island";
 import { executePackageAction } from "./dashboard-runtime-client";
@@ -297,7 +296,6 @@ export function PackageManagementSlot({ bootstrap, ready = true }: { bootstrap: 
             }),
         };
     }, [data, t]);
-    if (!ready || !localizedData) {return <PackageManagementPlaceholder />;}
     const localizedLabels = {
         title: t("PACKAGE_MANAGEMENT_CENTER"),
         name: t("NAME"),
@@ -313,13 +311,10 @@ export function PackageManagementSlot({ bootstrap, ready = true }: { bootstrap: 
         uninstallTitle: t("UNINSTALL_TITLE"),
         cancel: t("CANCEL"),
         agree: t("AGREE"),
-        empty: "No matching records found.",
-        searchPlaceholder: "Search:",
-        total: "entries",
     };
     return (
         <PackageManagementCenterView
-            data={localizedData}
+            data={ready ? localizedData : null}
             labels={localizedLabels}
             theme={activeTheme}
             onPackageAction={(action, row: PackageManagementRow) => { executePackageAction(action, row.package); }}
@@ -345,5 +340,5 @@ export function UptimeSlot() {
         hours: t("HOURS_L"),
         minutes: t("MINUTES_L"),
     };
-    return state.uptime ? <UptimeValue parts={state.uptime} labels={labels} /> : <UptimePlaceholder />;
+    return <UptimeValue parts={state.uptime} labels={labels} />;
 }

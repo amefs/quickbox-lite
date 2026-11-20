@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
     ArrowLeftOutlined,
     BugOutlined,
@@ -17,6 +18,7 @@ import {
     ConfigProvider,
     Empty,
     Layout,
+    Result,
     Row,
     Segmented,
     Select,
@@ -50,8 +52,8 @@ import { DiskDataRoot } from "./components/disk-data-island";
 import { MemoryStatsRoot } from "./components/memory-stats-island";
 import { RunningTaskIsland } from "./components/running-task-island";
 import { SystemLoadValue, UptimeValue } from "./components/system-summary-island";
-import { getAntdLocale } from "./i18n";
-import { selectFrontendTheme, getAntdThemeConfig } from "./runtime/theme-store";
+import i18n, { type DashboardLocale, detectInitialLocale, getAntdLocale, setLocale } from "./i18n";
+import { applyFrontendTheme, selectFrontendTheme, getAntdThemeConfig } from "./runtime/theme-store";
 
 interface DebugHistoryEntry {
     id: number;
@@ -108,7 +110,7 @@ function formatRawPretty(rawText: string): string {
     }
 }
 
-export function DebugApp({ meta, locale }: { meta: DebugMetaPayload; locale: string }) {
+function DebugApp({ meta, locale }: { meta: DebugMetaPayload; locale: string }) {
     const [theme, setTheme] = React.useState<DashboardTheme>(meta.theme);
     const [selectedEndpoint, setSelectedEndpoint] = React.useState<DebugEndpointItem | null>(null);
     const [viewMode, setViewMode] = React.useState<"rendered" | "raw">("rendered");
@@ -482,6 +484,62 @@ export function DebugApp({ meta, locale }: { meta: DebugMetaPayload; locale: str
                     </Typography.Text>
                 </Layout.Footer>
             </Layout>
+        </ConfigProvider>
+    );
+}
+
+export default function DebugRoot({ basePath, initialLocale, initialTheme }: {
+    basePath: string;
+    initialLocale: DashboardLocale;
+    initialTheme: DashboardTheme;
+}) {
+    const { t } = useTranslation();
+    const [meta, setMeta] = React.useState<DebugMetaPayload | null>(null);
+    const [error, setError] = React.useState<string | null>(null);
+
+    const loadMeta = React.useCallback(async () => {
+        setError(null);
+        try {
+            const response = await fetch(`${basePath}/debug/meta`, {
+                credentials: "same-origin",
+            });
+            if (!response.ok) {
+                throw new Error(`Debug metadata failed (${response.status})`);
+            }
+            const payload = (await response.json()) as DebugMetaPayload;
+            setLocale(detectInitialLocale(payload.defaultLocale));
+            applyFrontendTheme(payload.theme);
+            document.title = "QuickBox WS Debug Console";
+            setMeta(payload);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            console.error("[quickbox-web] Failed to load debug console", err);
+            setError(message);
+        }
+    }, [basePath]);
+
+    React.useEffect(() => {
+        void loadMeta();
+    }, [loadMeta]);
+
+    if (meta) {
+        return <DebugApp meta={meta} locale={i18n.language} />;
+    }
+
+    return (
+        <ConfigProvider locale={getAntdLocale(initialLocale)} theme={getAntdThemeConfig(initialTheme)}>
+            <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+                {error ? (
+                    <Result
+                        status="500"
+                        title={t("BACKEND_UNAVAILABLE_TITLE")}
+                        subTitle={t("BACKEND_RETRY_EXHAUSTED_DESC", { error, max: 1 })}
+                        extra={<Button type="primary" onClick={() => void loadMeta()}>{t("RETRY")}</Button>}
+                    />
+                ) : (
+                    <Spin size="large" />
+                )}
+            </div>
         </ConfigProvider>
     );
 }

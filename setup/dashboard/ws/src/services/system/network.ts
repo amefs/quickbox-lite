@@ -2,6 +2,7 @@
 import { readFile } from "fs/promises";
 import si from "systeminformation";
 import { listActiveInterfaceNames } from "../../utils/network-interfaces";
+import { getIfaceConfig } from "../../utils/vnstat";
 
 const INTERFACE_CACHE_TTL_MS = 30_000;
 let cachedInterfaces: string[] = [];
@@ -13,7 +14,7 @@ async function enuminterface() {
         return cachedInterfaces;
     }
     const interfaces = await si.networkInterfaces();
-    cachedInterfaces = listActiveInterfaceNames(interfaces);
+    cachedInterfaces = listActiveInterfaceNames(interfaces, process.platform, new Set([getIfaceConfig()]));
     if (useCache) {
         interfacesExpiresAt = Date.now() + INTERFACE_CACHE_TTL_MS;
     }

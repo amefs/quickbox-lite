@@ -58,7 +58,7 @@ async function isPackageTableReady(page: Page): Promise<boolean> {
         const win = window as unknown as { quickboxPackageManagementIsland?: { onMessage?: unknown } };
         return typeof win.quickboxPackageManagementIsland?.onMessage === "function" &&
             document.querySelector("#pmc_widget #dataTable1-search") !== null &&
-            document.querySelector("#pmc_widget .ant-table-tbody") !== null;
+            document.querySelector("#pmc_widget [aria-busy='false'] .ant-table-tbody") !== null;
     });
 }
 
@@ -498,7 +498,7 @@ test.describe("PMC widget state", () => {
 
         // The React island remains mounted while fresh package data is applied.
         await expect(page.locator("#pmc_widget .qb-package-management__table")).toHaveCount(1);
-        await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
+        await expect(page.locator("#pmc_widget .qb-package-management__toolbar")).toHaveCount(1);
     });
 
     test("keeps the current page when refreshed package data is unchanged", async ({ page }) => {
@@ -513,7 +513,7 @@ test.describe("PMC widget state", () => {
         expect(await publishPackageData(page)).toBe(true);
 
         expect((await readPackageTableState(page))?.page).toBe(1);
-        await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
+        await expect(page.locator("#pmc_widget .qb-package-management__toolbar")).toHaveCount(1);
     });
 
     test("clamps the current page when refreshed package data has fewer rows", async ({ page }) => {
@@ -527,7 +527,7 @@ test.describe("PMC widget state", () => {
         expect(await publishPackageData(page, 8)).toBe(true);
         await expect.poll(async () => (await readPackageTableState(page))?.page).toBe(0);
         expect((await readPackageTableState(page))?.search).toBe("");
-        await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
+        await expect(page.locator("#pmc_widget .qb-package-management__toolbar")).toHaveCount(1);
     });
 });
 
@@ -637,6 +637,8 @@ test("disables dashboard commands and marks service status stale while disconnec
     });
     await expect(install).toBeDisabled();
     await expect(badge.locator(".badge-service-stale").first()).toBeVisible();
+    const backendAlert = page.getByRole("alert").filter({ hasText: "Backend service unavailable" });
+    await expect(backendAlert).toContainText("The connection to the QuickBox backend was closed");
     await install.click({ force: true });
     await expect(page.locator("#sysResponse")).toBeHidden();
     expect(await page.evaluate(() => {
@@ -644,8 +646,9 @@ test("disables dashboard commands and marks service status stale while disconnec
         return socket.sendBuffer.some((packet) => packet.data[0] === "exec");
     })).toBe(false);
 
-    await page.evaluate(() => (window as unknown as { socket: { connect: () => void } }).socket.connect());
+    await backendAlert.getByRole("button", { name: "Reconnect" }).click();
     await expect(install).toBeEnabled();
+    await expect(backendAlert).toHaveCount(0);
     await expect(badge.locator(".badge-service-stale")).toHaveCount(0);
     await page.evaluate(() => {
         const socket = (window as unknown as { socket: SocketLike & { disconnect: () => void } }).socket;
@@ -658,6 +661,47 @@ test("disables dashboard commands and marks service status stale while disconnec
     await expect(page.locator("#sysResponse")).toBeVisible();
     await page.evaluate(() => (window as unknown as { socket: { disconnect: () => void } }).socket.disconnect());
     await expect(page.getByText(/connection lost before the operation result could be confirmed/i)).toBeVisible();
+});
+
+test("reports a backend outage after startup and stops after three reconnect attempts", async ({ page }) => {
+    await page.clock.install();
+    await page.goto(`${WS_BASE_URL}?locale=en`);
+    const search = page.locator("#dataTable1-search");
+    await search.fill("emby");
+    const install = page.locator('#pmc_widget tr[data-row-key="emby"]').getByRole("button", { name: "Install", exact: true });
+    await expect(install).toBeEnabled();
+    const documentId = await page.evaluate(() => performance.timeOrigin);
+
+    let outage = true;
+    let failedHandshakes = 0;
+    await page.route("**/socket.io/**", async (route) => {
+        const params = new URL(route.request().url()).searchParams;
+        if (outage && params.get("transport") === "polling" && !params.has("sid")) {
+            failedHandshakes += 1;
+            await route.fulfill({ status: 502 });
+        } else {
+            await route.continue();
+        }
+    });
+    await page.evaluate(() => {
+        const socket = (window as unknown as { socket: { io: { engine: { close: () => void } } } }).socket;
+        socket.io.engine.close();
+    });
+    const alert = page.getByRole("alert").filter({ hasText: "Backend service unavailable" });
+    await expect(alert).toContainText("Retrying (1/3)");
+    await expect(install).toBeDisabled();
+    await expect(alert).toContainText("after 3 attempts. Automatic refresh has stopped.", { timeout: 15_000 });
+    await expect(alert).toContainText("502");
+    expect(failedHandshakes).toBe(3);
+    await page.clock.runFor(20_000);
+    expect(failedHandshakes).toBe(3);
+
+    outage = false;
+    await alert.getByRole("button", { name: "Reconnect" }).click();
+    await expect(alert).toHaveCount(0);
+    await expect(install).toBeEnabled();
+    await expect(search).toHaveValue("emby");
+    expect(await page.evaluate(() => performance.timeOrigin)).toBe(documentId);
 });
 
 test("retries a hanging bootstrap and reads the initial theme from the server", async ({ page }) => {
@@ -681,16 +725,38 @@ test("retries a hanging bootstrap and reads the initial theme from the server", 
     try {
         await page.goto(`${WS_BASE_URL}?locale=en`);
         await expect.poll(() => attempts).toBe(1);
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "defaulted");
         await page.clock.runFor(10_001);
         await expect(page.getByRole("alert").filter({ hasText: /timed out/i })).toBeVisible();
         expect(initialCookie ?? "").not.toContain("quickbox_theme=");
         await page.getByRole("button", { name: "Reload", exact: true }).click();
         await expect(page.locator("body")).toHaveAttribute("data-theme", "smoked");
-        await expect(page.locator("#pmc_widget table")).toBeVisible();
+        await expect(page.locator("#pmc_widget [aria-busy='false'] table")).toBeVisible();
         expect(attempts).toBe(2);
         expect((await page.context().cookies()).map((cookie) => cookie.name)).not.toContain("quickbox_theme");
     } finally {
         finish();
+    }
+});
+
+test("uses the theme cookie before bootstrap, then applies the server theme", async ({ page }) => {
+    await page.context().addCookies([{ name: "quickbox_theme", value: "smoked", url: WS_BASE_URL }]);
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    await page.route("**/node/bootstrap*", async (route) => {
+        const response = await route.fetch();
+        const payload = await response.json() as Record<string, unknown>;
+        await gate;
+        await route.fulfill({ response, json: { ...payload, serviceTheme: "defaulted" } });
+    });
+    try {
+        await page.goto(WS_BASE_URL);
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "smoked");
+        release();
+        await expect(page.locator("#pmc_widget [aria-busy='false'] table")).toBeVisible();
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "defaulted");
+    } finally {
+        release();
     }
 });
 
@@ -712,7 +778,7 @@ test("a late bootstrap preserves the theme selected while loading", async ({ pag
         }).click();
         await expect(page.locator("body")).toHaveAttribute("data-theme", "smoked");
         release();
-        await expect(page.locator("#pmc_widget table")).toBeVisible();
+        await expect(page.locator("#pmc_widget [aria-busy='false'] table")).toBeVisible();
         await expect(page.locator("body")).toHaveAttribute("data-theme", "smoked");
     } finally {
         release();

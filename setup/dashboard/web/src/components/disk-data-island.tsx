@@ -5,7 +5,7 @@ import { Trans, useTranslation } from "react-i18next";
 
 import type { DiskDataData, DiskDataPayload, DiskDataRawData, DiskFileSystemRow } from "../../../ws/src/shared/disk-data-contract";
 import { formatSize } from "../utils/format";
-import { DiskStatusPlaceholder } from "./placeholder";
+import { SkeletonText } from "./placeholder";
 
 function getProgressColor(percent: number): DiskFileSystemRow["progressClass"] {
     if (percent >= 90) {
@@ -60,31 +60,30 @@ function HddIcon({ className }: { className: string }) {
     );
 }
 
-function FileSystemRow({ data, labels }: { data: DiskFileSystemRow; labels: DiskDataData["labels"] }) {
+function FileSystemRow({ data, labels }: { data: DiskFileSystemRow | null; labels: DiskDataData["labels"] }) {
     const { t } = useTranslation();
-    const percentText = t("PERCENTAGE_TXT", { used: data.percent });
     return (
-        <div>
+        <div aria-hidden={data ? undefined : true}>
             <div className="row qb-panel-split">
                 <div className="col-sm-8 qb-panel-main">
-                    <h4>{labels.mountPoint}</h4>
-                    <p className="qb-mount-point">{data.mount}</p>
-                    <h4>{labels.diskSpace}</h4>
+                    <h3 className="qb-stat-heading">{labels.mountPoint}</h3>
+                    <p className="qb-mount-point">{data?.mount ?? <SkeletonText width="65%" />}</p>
+                    <h3 className="qb-stat-heading">{labels.diskSpace}</h3>
                     <p className="nomargin qb-disk-metrics">
-                        <span className="qb-disk-metric">{labels.free}: {data.available}</span>
-                        <span className="qb-disk-metric">{labels.used}: {data.used}</span>
-                        <span className="qb-disk-metric">{labels.size}: {data.size}</span>
+                        <span className="qb-disk-metric">{labels.free}: {data?.available ?? <SkeletonText width="8ch" />}</span>
+                        <span className="qb-disk-metric">{labels.used}: {data?.used ?? <SkeletonText width="8ch" />}</span>
+                        <span className="qb-disk-metric">{labels.size}: {data?.size ?? <SkeletonText width="8ch" />}</span>
                     </p>
                     <br />
                     <div className="progress">
-                        <div style={{ width: `${data.percent}%` }} aria-valuemax={100} aria-valuemin={0} aria-valuenow={data.percent} role="progressbar" className={`progress-bar ${data.progressClass}`}>
+                        {data ? <div style={{ width: `${data.percent}%` }} aria-label={`${labels.diskSpace}: ${data.mount}`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={data.percent} role="progressbar" className={`progress-bar ${data.progressClass}`}>
                             <span className="sr-only">{data.percent}% {labels.used}</span>
-                        </div>
+                        </div> : <div className="qb-skeleton" style={{ height: "100%" }} />}
                     </div>
-                    <p style={{ fontSize: "10px" }}>{percentText}</p>
+                    <p style={{ fontSize: "10px" }}>{data ? t("PERCENTAGE_TXT", { used: data.percent }) : <SkeletonText width="45%" />}</p>
                 </div>
                 <div className="col-sm-4 text-right qb-panel-icon">
-                    <HddIcon className={data.diskClass} />
+                    <HddIcon className={data?.diskClass ?? ""} />
                 </div>
             </div>
             <hr />
@@ -99,9 +98,9 @@ const TORRENT_TITLE_KEYS: Record<string, string> = {
     qbittorrent: "QTORRENTS_TITLE",
 };
 
-function DiskDataView({ data: payload }: { data: DiskDataPayload }) {
+export function DiskDataRoot({ data: payload }: { data: DiskDataPayload | null }) {
     const { t } = useTranslation();
-    const data = normalizeDiskData(payload);
+    const data = payload ? normalizeDiskData(payload) : null;
     const labels = {
         mountPoint: t("MOUNT_POINT"),
         diskSpace: t("DISK_SPACE"),
@@ -110,19 +109,24 @@ function DiskDataView({ data: payload }: { data: DiskDataPayload }) {
         size: t("SIZE"),
     };
     return (
-        <div>
-            {data.fileSystems.map((filesystem) => (
+        <div aria-busy={!data}>
+            {data ? data.fileSystems.map((filesystem) => (
                 <FileSystemRow key={filesystem.mount} data={filesystem} labels={labels} />
-            ))}
+            )) : [0, 1].map((index) => <FileSystemRow key={index} data={null} labels={labels} />)}
             <div>
-                {data.torrents.map((torrent) => {
+                {!data ? (
+                    <div aria-hidden="true">
+                        <h3 className="qb-stat-heading"><SkeletonText width="45%" /></h3>
+                        <p className="nomargin"><SkeletonText width="36%" /></p>
+                    </div>
+                ) : data.torrents.map((torrent) => {
                     const titleKey = Object.hasOwn(TORRENT_TITLE_KEYS, torrent.key)
                         ? TORRENT_TITLE_KEYS[torrent.key]
                         : (torrent.title ?? torrent.key);
                     const title = t(titleKey);
                     return (
                         <div key={torrent.key}>
-                            <h4>{title}</h4>
+                            <h3 className="qb-stat-heading">{title}</h3>
                             <p className="nomargin"><Trans i18nKey="TORRENTS_LOADED" values={{ loaded: torrent.loaded }} /></p>
                         </div>
                     );
@@ -130,8 +134,4 @@ function DiskDataView({ data: payload }: { data: DiskDataPayload }) {
             </div>
         </div>
     );
-}
-
-export function DiskDataRoot({ data }: { data: DiskDataPayload | null }) {
-    return data ? <DiskDataView data={data} /> : <DiskStatusPlaceholder />;
 }

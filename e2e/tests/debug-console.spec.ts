@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { createHash } from "node:crypto";
 
 import {
     WS_BASE_URL,
@@ -114,18 +115,32 @@ test.describe("WS Debug Console", () => {
 });
 
 test.describe("WS API Endpoints", () => {
-    test("should serve the selected theme stylesheet and debug metadata", async ({ page }) => {
+    test("should serve versioned dashboard stylesheets and debug metadata", async ({ page }) => {
         await page.goto("/");
         const theme = await page.locator("body").getAttribute("data-theme");
         expect(theme).toMatch(/^(defaulted|smoked)$/);
-        const cssPath = "/css/dashboard-theme.css";
-        const dashboardCss = await page.request.get(new URL(cssPath, page.url()).href);
+        const stylesheets = await page.locator('link[rel="stylesheet"]').evaluateAll((links) =>
+            links.map((link) => new URL((link as HTMLLinkElement).href))
+                .filter((url) => url.origin === location.origin)
+                .map((url) => url.href),
+        );
+        expect(stylesheets).toEqual(expect.arrayContaining([
+            expect.stringContaining("/css/dashboard-theme.css"),
+            expect.stringContaining("/css/package-management.css"),
+        ]));
+        for (const href of stylesheets) {
+            const response = await page.request.get(href);
+            expect(response.ok(), href).toBeTruthy();
+            const body = await response.body();
+            const url = new URL(href);
+            expect(url.searchParams.get("v"), href).toBe(createHash("sha256").update(body).digest("hex").slice(0, 12));
+            if (url.pathname.endsWith("/css/dashboard-theme.css")) {
+                expect(body.toString()).toContain("Reconstructed QuickBox application rules");
+            }
+        }
         const debugMeta = await page.request.get(`${WS_BASE_URL.replace(/\/+$/, "")}/debug/meta`);
 
-        expect(dashboardCss.status()).toBe(200);
         expect(debugMeta.status()).toBe(200);
-        const dashboardBody = await dashboardCss.text();
-        expect(dashboardBody).toContain("Reconstructed QuickBox application rules");
         const meta = (await debugMeta.json()) as { endpoints: unknown[] };
         expect(meta.endpoints.length).toBeGreaterThan(0);
     });
