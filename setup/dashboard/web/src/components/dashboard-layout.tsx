@@ -15,85 +15,25 @@ import {
 } from "@ant-design/icons";
 import { Button, ConfigProvider, Modal, Switch, Tooltip } from "antd";
 
+import { BANDWIDTH_PAGE_TITLE_KEYS, normalizeLocale } from "../i18n";
 import { selectFrontendTheme, getAntdThemeConfig } from "../runtime/theme-store";
 import { switchDashboardBranch, updateRuntimeLocale, useCommandConnection } from "../runtime/dashboard-runtime-client";
+import type { DashboardChromeConfig, DashboardChromeMenuState } from "../../../ws/src/shared/bootstrap-contract";
 import { isDashboardTheme, type DashboardTheme } from "../../../ws/src/shared/theme";
 
-export interface ChromeMenuEntry {
-    name: string;
-    url: string;
-    logo?: string;
-}
+const LANGUAGE_TITLES: Record<string, string> = {
+    da: "Dansk",
+    de: "Deutsch",
+    en: "English",
+    es: "Español",
+    fr: "Français",
+    zh: "中文 (简体)",
+};
 
-export interface DashboardChromeProps {
-    locale: string;
-    config: {
-        username: string;
-        version: string;
-        branch: string;
-        branchCommit?: string;
-        developerLabel: string;
-        showDeveloper: boolean;
-        hasExternalAuth: boolean;
-        ssoLogoutUrl: string;
-        languages: { file: string; key: string; title: string }[];
-        themes: { file: string; title: string }[];
-        bwPages: { key: string; title: string }[];
-    };
-    menuState: {
-        installedMenuEntries: ChromeMenuEntry[];
-        installedDownloadEntries: ChromeMenuEntry[];
-        showPluginTab: boolean;
-        showWebConsole: boolean;
-    };
-    labels: {
-        language: string;
-        theme: string;
-        bandwidth: string;
-        panelConfig: string;
-        panelReset: string;
-        themeChange: string;
-        cancel: string;
-        agree: string;
-        mainMenu: string;
-        pluginMenu: string;
-        helpCommands: string;
-        downloads: string;
-        webConsole: string;
-        quickSystemTips: string;
-        seedboxCommands: string;
-        essentialUserCommands: string;
-        systemUpgrade: string;
-        setLanguage: string;
-        changeInterface: string;
-        cleanMemory: string;
-        cleanLog: string;
-        diskTest: string;
-        appInstall: string;
-        appUninstall: string;
-        appUpgrade: string;
-        changePassword: string;
-        fixDpkg: string;
-        troubleshoot: string;
-        restartRtorrent: string;
-        switchDev: string;
-        switchMaster: string;
-        branchOther: string;
-        branchSwitch: string;
-        branchCurrent: string;
-        branchTarget: string;
-        branchLoading: string;
-        branchListError: string;
-        branchWarning: string;
-        branchLoadFailed: string;
-        branchSelect: string;
-        branchRetry: string;
-        branchUpdate: string;
-        branchSwitchAction: string;
-        ssoLogout: string;
-        issueReport: string;
-    };
-}
+const THEME_TITLES: Record<string, string> = {
+    defaulted: "Defaulted",
+    smoked: "Smoked",
+};
 
 const usernameUrl = (url: string, username: string) => url.replaceAll("$username$", username);
 
@@ -243,13 +183,13 @@ interface BranchSwitchDialogProps {
     mode: string;
     branch: string;
     branchCommit?: string;
-    locale: string;
-    labels: DashboardChromeProps["labels"];
     onCancel: () => void;
     onSwitch: (branch: string) => void;
 }
 
-function BranchSwitchDialog({ open, mode, branch, branchCommit, locale, labels, onCancel, onSwitch }: BranchSwitchDialogProps) {
+function BranchSwitchDialog({ open, mode, branch, branchCommit, onCancel, onSwitch }: BranchSwitchDialogProps) {
+    const { t, i18n } = useTranslation();
+    const locale = normalizeLocale(i18n.language);
     const commandsConnected = useCommandConnection();
     const [branches, setBranches] = React.useState<string[]>([]);
     const [selectedBranch, setSelectedBranch] = React.useState("");
@@ -293,38 +233,52 @@ function BranchSwitchDialog({ open, mode, branch, branchCommit, locale, labels, 
     }, [fixedTarget, loadBranches, open]);
 
     const targetBranch = fixedTarget ? mode : selectedBranch;
-    const buttonLabel = !fixedTarget && selectedBranch === branch ? labels.branchUpdate : labels.branchSwitchAction;
 
     return (
         <Modal
             open={open}
-            title={labels.branchSwitch}
+            title={t("BRANCH_SWITCH")}
             width={500}
             centered
             zIndex={2200}
             wrapProps={{ id: "branchSwitch" }}
             classNames={{ wrapper: "qb-branch-switch-wrap" }}
             onCancel={onCancel}
-            footer={<><Button data-dismiss="modal" onClick={onCancel}>{labels.cancel}</Button><Button id="branchSwitchGo" type="primary" disabled={!commandsConnected || !isBranchName(targetBranch) || branchesLoading || branchError} data-update={labels.branchUpdate} data-switch={labels.branchSwitchAction} onClick={() => { if (isBranchName(targetBranch)) {onSwitch(targetBranch);} }}>{buttonLabel}</Button></>}
+            footer={(
+                <>
+                    <Button data-dismiss="modal" onClick={onCancel}>{t("CANCEL")}</Button>
+                    <Button
+                        id="branchSwitchGo"
+                        type="primary"
+                        disabled={!commandsConnected || !isBranchName(targetBranch) || branchesLoading || branchError}
+                        data-update={t("BRANCH_UPDATE")}
+                        data-switch={t("BRANCH_SWITCH_ACTION")}
+                        onClick={() => { if (isBranchName(targetBranch)) {onSwitch(targetBranch);} }}
+                    >
+                        {t(!fixedTarget && selectedBranch === branch ? "BRANCH_UPDATE" : "BRANCH_SWITCH_ACTION")}
+                    </Button>
+                </>
+            )}
         >
-            <div className="branch-current"><div className="branch-label">{labels.branchCurrent}</div><div className="branch-value">{branch}{branchCommit ? <span className="branch-commit">{" "}{branchCommit.slice(0, 12)}</span> : null}</div></div>
-            <div className="branch-label" id="branchTargetLabel">{labels.branchTarget}</div>
+            <div className="branch-current"><div className="branch-label">{t("BRANCH_CURRENT")}</div><div className="branch-value">{branch}{branchCommit ? <span className="branch-commit">{" "}{branchCommit.slice(0, 12)}</span> : null}</div></div>
+            <div className="branch-label" id="branchTargetLabel">{t("BRANCH_TARGET")}</div>
             <div id="branchFixedTarget" className="branch-value" hidden={!fixedTarget}>{fixedTarget ? mode : ""}</div>
             <div id="branchSelectContainer" className="branch-select" hidden={fixedTarget}>
                 <select id="branchTarget" aria-labelledby="branchTargetLabel" data-current={branch} className="form-control input-sm" disabled={fixedTarget || branchesLoading || branchError} value={selectedBranch} onChange={(event) => { setSelectedBranch(event.target.value); }}>
-                    {branchesLoading ? <option value="">{labels.branchLoading}</option> : null}
-                    {branchError ? <option value="">{labels.branchLoadFailed}</option> : null}
-                    {!branchesLoading && !branchError ? <option value="">{labels.branchSelect}</option> : null}
+                    {branchesLoading ? <option value="">{t("BRANCH_LOADING")}</option> : null}
+                    {branchError ? <option value="">{t("BRANCH_LOAD_FAILED")}</option> : null}
+                    {!branchesLoading && !branchError ? <option value="">{t("BRANCH_SELECT")}</option> : null}
                     {branches.map((remoteBranch) => <option key={remoteBranch} value={remoteBranch}>{remoteBranch}</option>)}
                 </select>
             </div>
-            <p id="branchError" className="text-danger" role="alert" hidden={!branchError}>{labels.branchListError} <button type="button" id="branchRetry" className="btn btn-link" onClick={() => {void loadBranches();}}>{labels.branchRetry}</button></p>
-            <p className="branch-warning">{labels.branchWarning}</p>
+            <p id="branchError" className="text-danger" role="alert" hidden={!branchError}>{t("BRANCH_LIST_ERROR")} <button type="button" id="branchRetry" className="btn btn-link" onClick={() => {void loadBranches();}}>{t("BRANCH_RETRY")}</button></p>
+            <p className="branch-warning">{t("BRANCH_WARNING")}</p>
         </Modal>
     );
 }
 
-export function DashboardHeader({ props, theme = "defaulted" }: { props: DashboardChromeProps; theme?: DashboardTheme }) {
+export function DashboardHeader({ config, theme = "defaulted" }: { config: DashboardChromeConfig; theme?: DashboardTheme }) {
+    const { t } = useTranslation();
     const [noticeOpen, setNoticeOpen] = React.useState(false);
     const [accountOpen, setAccountOpen] = React.useState(false);
     const [activeNoticeTab, setActiveNoticeTab] = React.useState("quickplus");
@@ -423,7 +377,7 @@ export function DashboardHeader({ props, theme = "defaulted" }: { props: Dashboa
                     <a id="menuToggle" className="menutoggle" href="#" aria-label="Toggle sidebar"><MenuOutlined aria-hidden="true" /></a>
                     <div className="header-right">
                         <ul className="headermenu">
-                            {props.config.showDeveloper ? <li className="header-branch"><div className="btn-group"><span className="label label-warning" title={props.config.branch}><span className="header-branch-description">{props.config.developerLabel}</span><span className="header-branch-name">{props.config.branch}</span></span></div></li> : null}
+                            {config.showDeveloper ? <li className="header-branch"><div className="btn-group"><span className="label label-warning" title={config.branch}><span className="header-branch-description">{t("DEV_REPO_TXT", { branch: config.branch })}</span><span className="header-branch-name">{config.branch}</span></span></div></li> : null}
                             <li>
                                 <div id="noticePanel" className={`btn-group${noticeOpen ? " open" : ""}`} ref={noticeRef}>
                                     <button className="btn" type="button" aria-expanded={noticeOpen} aria-controls="noticeDropdown" onClick={() => { setNoticeOpen((open) => !open); }}>
@@ -436,18 +390,18 @@ export function DashboardHeader({ props, theme = "defaulted" }: { props: Dashboa
                                             </ul>
                                             <div className="tab-content">
                                                 <div role="tabpanel" className={`tab-pane${activeNoticeTab === "quickplus" ? " active" : ""}`} id="quickplus">
-                                                    <ul className="list-group"><li className="list-group-item"><h5>QuickBox :: <span style={{ color: "#fff", textShadow: "0px 0px 6px #fff" }}>{props.config.version}</span></h5><small><a href="https://github.com/amefs/quickbox-lite/blob/master/README.md" target="_blank" rel="noopener noreferrer">README.md</a></small><small><a href={`https://github.com/amefs/quickbox-lite/blob/master/CHANGELOG.md#changelog-${props.config.version}`} target="_blank" rel="noopener noreferrer">CHANGELOG</a></small></li></ul>
+                                                    <ul className="list-group"><li className="list-group-item"><h5>QuickBox :: <span style={{ color: "#fff", textShadow: "0px 0px 6px #fff" }}>{config.version}</span></h5><small><a href="https://github.com/amefs/quickbox-lite/blob/master/README.md" target="_blank" rel="noopener noreferrer">README.md</a></small><small><a href={`https://github.com/amefs/quickbox-lite/blob/master/CHANGELOG.md#changelog-${config.version}`} target="_blank" rel="noopener noreferrer">CHANGELOG</a></small></li></ul>
                                                 </div>
                                                 <div role="tabpanel" className={`tab-pane${activeNoticeTab === "dashadjust" ? " active" : ""}`} id="dashadjust">
                                                     <ul className="list-group"><li className="list-group-item"><div className="row"><div className="col-xs-12">
-                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{props.labels.language}</h5><div id="node-language-options">{props.config.languages.map((language) => <small key={language.key}><div className="qb-chrome-option" role="button" tabIndex={0} data-locale={language.key} onClick={() => { updateRuntimeLocale(language.key); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); updateRuntimeLocale(language.key); } }}><img className="lang-flag" src={`/lang/flag_${language.file}.png`} alt="" aria-hidden="true" />{language.title}</div></small>)}</div></div>
-                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{props.labels.theme}</h5><div id="node-theme-options">{props.config.themes.map((theme) => <small key={theme.file}><div className="qb-chrome-option" role="button" tabIndex={0} onClick={() => { setNoticeOpen(false); applyTheme(theme.file); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setNoticeOpen(false); applyTheme(theme.file); } }}><img className="lang-flag" src={`/img/themes/opt_${theme.file}.png`} alt="" aria-hidden="true" />{theme.title}</div></small>)}</div></div>
+                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{t("LANG_SELECT")}</h5><div id="node-language-options">{config.languages.map((language) => <small key={language.key}><div className="qb-chrome-option" role="button" tabIndex={0} data-locale={language.key} onClick={() => { updateRuntimeLocale(language.key); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); updateRuntimeLocale(language.key); } }}><img className="lang-flag" src={`/lang/flag_${language.file}.png`} alt="" aria-hidden="true" />{LANGUAGE_TITLES[language.key] ?? language.key}</div></small>)}</div></div>
+                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{t("THEME_SELECT")}</h5><div id="node-theme-options">{config.themes.map((theme) => <small key={theme.file}><div className="qb-chrome-option" role="button" tabIndex={0} onClick={() => { setNoticeOpen(false); applyTheme(theme.file); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setNoticeOpen(false); applyTheme(theme.file); } }}><img className="lang-flag" src={`/img/themes/opt_${theme.file}.png`} alt="" aria-hidden="true" />{THEME_TITLES[theme.file] ?? theme.file}</div></small>)}</div></div>
                                                     </div></div></li></ul>
                                                 </div>
                                                 <div role="tabpanel" className={`tab-pane${activeNoticeTab === "configure" ? " active" : ""}`} id="configure">
                                                     <ul className="list-group"><li className="list-group-item"><div className="row"><div className="col-xs-12">
-                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{props.labels.bandwidth}</h5><div id="node-bw-page-options">{props.config.bwPages.map((page) => <small key={page.key}><div className="qb-chrome-option" role="button" tabIndex={0} onClick={() => { localStorage.setItem("bw_tables:page", page.key); window.dispatchEvent(new Event("quickbox:bandwidth-page-change")); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); localStorage.setItem("bw_tables:page", page.key); window.dispatchEvent(new Event("quickbox:bandwidth-page-change")); } }}>{page.title}</div></small>)}</div></div>
-                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{props.labels.panelConfig}</h5><small><div id="node-panel-reset" className="qb-chrome-option" role="button" tabIndex={0} onClick={resetPanels} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); resetPanels(); } }}>{props.labels.panelReset}</div></small></div>
+                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{t("BW_SELECT")}</h5><div id="node-bw-page-options">{config.bwPages.map((page) => <small key={page.key}><div className="qb-chrome-option" role="button" tabIndex={0} onClick={() => { localStorage.setItem("bw_tables:page", page.key); window.dispatchEvent(new Event("quickbox:bandwidth-page-change")); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); localStorage.setItem("bw_tables:page", page.key); window.dispatchEvent(new Event("quickbox:bandwidth-page-change")); } }}>{t(BANDWIDTH_PAGE_TITLE_KEYS[page.key])}</div></small>)}</div></div>
+                                                        <div className="col-xs-12 col-md-6 qb-chrome-config-col"><h5>{t("PANEL_CONFIG")}</h5><small><div id="node-panel-reset" className="qb-chrome-option" role="button" tabIndex={0} onClick={resetPanels} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); resetPanels(); } }}>{t("PANEL_RESET")}</div></small></div>
                                                     </div></div></li></ul>
                                                 </div>
                                             </div>
@@ -457,13 +411,13 @@ export function DashboardHeader({ props, theme = "defaulted" }: { props: Dashboa
                             </li>
                             <li>
                                 <div className={`header-account btn-group${accountOpen ? " open" : ""}`} ref={accountRef}>
-                                    <button type="button" className="btn btn-logged" aria-expanded={accountOpen} aria-controls="quickboxAccountDropdown" onClick={() => { setAccountOpen((open) => !open); }}><span className="header-username">{props.config.username.trim() || "QuickBox"}</span><span className="caret"></span></button>
+                                    <button type="button" className="btn btn-logged" aria-expanded={accountOpen} aria-controls="quickboxAccountDropdown" onClick={() => { setAccountOpen((open) => !open); }}><span className="header-username">{config.username.trim() || "QuickBox"}</span><span className="caret"></span></button>
                                     <ul id="quickboxAccountDropdown" className="dropdown-menu pull-right">
-                                        {props.config.branch !== "development" ? <li><a href="#branchSwitch" data-branch-mode="development" onClick={(event) => { event.preventDefault(); openBranchSwitch("development"); }}><Trans i18nKey="SWITCH_DEV" defaults={props.labels.switchDev} /></a></li> : null}
-                                        {props.config.branch !== "master" ? <li><a href="#branchSwitch" data-branch-mode="master" onClick={(event) => { event.preventDefault(); openBranchSwitch("master"); }}><Trans i18nKey="SWITCH_MASTER" defaults={props.labels.switchMaster} /></a></li> : null}
-                                        <li><a href="#branchSwitch" data-branch-mode="other" onClick={(event) => { event.preventDefault(); openBranchSwitch("other"); }}>{props.labels.branchOther}</a></li>
-                                        {props.config.hasExternalAuth ? <li><a href={`/logout?url=${encodeURIComponent(props.config.ssoLogoutUrl || "/")}`}><LogoutOutlined className="text-warning" aria-hidden="true" /> {props.labels.ssoLogout}</a></li> : null}
-                                        <li style={{ borderTop: "1px solid #444" }}><a href="https://github.com/amefs/quickbox-lite/issues/new" target="_blank" rel="noopener noreferrer"><WarningOutlined className="text-warning" aria-hidden="true" /> {props.labels.issueReport}</a></li>
+                                        {config.branch !== "development" ? <li><a href="#branchSwitch" data-branch-mode="development" onClick={(event) => { event.preventDefault(); openBranchSwitch("development"); }}><Trans i18nKey="SWITCH_DEV" /></a></li> : null}
+                                        {config.branch !== "master" ? <li><a href="#branchSwitch" data-branch-mode="master" onClick={(event) => { event.preventDefault(); openBranchSwitch("master"); }}><Trans i18nKey="SWITCH_MASTER" /></a></li> : null}
+                                        <li><a href="#branchSwitch" data-branch-mode="other" onClick={(event) => { event.preventDefault(); openBranchSwitch("other"); }}>{t("BRANCH_OTHER")}</a></li>
+                                        {config.hasExternalAuth ? <li><a href={`/logout?url=${encodeURIComponent(config.ssoLogoutUrl || "/")}`}><LogoutOutlined className="text-warning" aria-hidden="true" /> {t("SSO_LOGOUT_TXT")}</a></li> : null}
+                                        <li style={{ borderTop: "1px solid #444" }}><a href="https://github.com/amefs/quickbox-lite/issues/new" target="_blank" rel="noopener noreferrer"><WarningOutlined className="text-warning" aria-hidden="true" /> {t("ISSUE_REPORT_TXT")}</a></li>
                                     </ul>
                                 </div>
                             </li>
@@ -473,10 +427,8 @@ export function DashboardHeader({ props, theme = "defaulted" }: { props: Dashboa
                 <BranchSwitchDialog
                     open={branchModalOpen}
                     mode={branchMode}
-                    branch={props.config.branch}
-                    branchCommit={props.config.branchCommit}
-                    locale={props.locale}
-                    labels={props.labels}
+                    branch={config.branch}
+                    branchCommit={config.branchCommit}
                     onCancel={closeBranchSwitch}
                     onSwitch={confirmBranchSwitch}
                 />
@@ -486,19 +438,38 @@ export function DashboardHeader({ props, theme = "defaulted" }: { props: Dashboa
 }
 
 const helpSections = [
-    { titleKey: "quickSystemTips", rows: [["box update quickbox", "systemUpgrade"], ["box lang COUNTRYCODE", "setLanguage"], ["box set interface", "changeInterface"], ["box clean mem", "cleanMemory"], ["box clean log", "cleanLog"], ["box iotest", "diskTest"]] },
-    { titleKey: "seedboxCommands", rows: [["box install APPNAME", "appInstall"], ["box remove APPNAME", "appUninstall"], ["box update APPNAME", "appUpgrade"], ["box set password", "changePassword"], ["box fix dpkg", "fixDpkg"], ["box troubleshoot", "troubleshoot"]] },
-];
+    {
+        titleKey: "QUICK_SYSTEM_TIPS",
+        rows: [
+            ["box update quickbox", "SYS_UPGRADE_TXT"],
+            ["box lang COUNTRYCODE", "SET_LANG_TXT"],
+            ["box set interface", "CHANGEINTERFACE_TXT"],
+            ["box clean mem", "CLEAN_MEM_TXT"],
+            ["box clean log", "CLEAN_LOG_TXT"],
+            ["box iotest", "DISKTEST_TXT"],
+        ],
+    },
+    {
+        titleKey: "SEEDBOX_COMMANDS",
+        rows: [
+            ["box install APPNAME", "APP_INSTALL_TXT"],
+            ["box remove APPNAME", "APP_UNINSTALL_TXT"],
+            ["box update APPNAME", "APP_UPGRADE_TXT"],
+            ["box set password", "CHANGEUSERPASS_TXT"],
+            ["box fix dpkg", "FIX_DPKG_TXT"],
+            ["box troubleshoot", "TROUBLESHOOT_TXT"],
+        ],
+    },
+] as const;
 
-export function DashboardSidebar({ props, theme = "defaulted" }: { props: DashboardChromeProps; theme?: DashboardTheme }) {
+export function DashboardSidebar({ username, menuState, theme = "defaulted" }: { username: string; menuState: DashboardChromeMenuState; theme?: DashboardTheme }) {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = React.useState("mainmenu");
     const [downloadsOpen, setDownloadsOpen] = React.useState(false);
     const [hoveredLink, setHoveredLink] = React.useState<string | null>(null);
     const [downloadsHeight, setDownloadsHeight] = React.useState(0);
     const downloadsMenuRef = React.useRef<HTMLUListElement>(null);
-    const label = (key: keyof DashboardChromeProps["labels"]) => props.labels[key];
-    const href = (url: string) => usernameUrl(url, props.config.username);
+    const href = (url: string) => usernameUrl(url, username);
     React.useLayoutEffect(() => {
         const submenu = downloadsMenuRef.current;
         if (!downloadsOpen || !submenu) {
@@ -519,28 +490,41 @@ export function DashboardSidebar({ props, theme = "defaulted" }: { props: Dashbo
                 window.cancelAnimationFrame(secondFrame);
             }
         };
-    }, [downloadsOpen, props.menuState.installedDownloadEntries.length]);
+    }, [downloadsOpen, menuState.installedDownloadEntries.length]);
     return (
         <ConfigProvider theme={getAntdThemeConfig(theme)}>
             <div className="leftpanelinner">
                 <ul className="nav nav-tabs nav-justified nav-sidebar">
-                    <li className={`tooltips${activeTab === "mainmenu" ? " active" : ""}`}><Tooltip title={label("mainMenu")} placement="bottom" color="#222"><a href="#mainmenu" aria-label={label("mainMenu")} aria-current={activeTab === "mainmenu" ? "location" : undefined} data-target="#mainmenu" onClick={(event) => { event.preventDefault(); setActiveTab("mainmenu"); }}><EllipsisOutlined className="tooltips" aria-hidden="true" /></a></Tooltip></li>
-                    <li id="node-plugin-tab" className={`tooltips${activeTab === "plugins" ? " active" : ""}`} style={props.menuState.showPluginTab ? undefined : { display: "none" }}><Tooltip title={label("pluginMenu")} placement="bottom" color="#222"><a href="#plugins" aria-label={label("pluginMenu")} aria-current={activeTab === "plugins" ? "location" : undefined} data-target="#plugins" onClick={(event) => { event.preventDefault(); setActiveTab("plugins"); }}><AppstoreOutlined className="tooltips" aria-hidden="true" /></a></Tooltip></li>
-                    <li className={`tooltips${activeTab === "help" ? " active" : ""}`}><Tooltip title={label("helpCommands")} placement="bottom" color="#222"><a href="#help" aria-label={label("helpCommands")} aria-current={activeTab === "help" ? "location" : undefined} data-target="#help" onClick={(event) => { event.preventDefault(); setActiveTab("help"); }}><QuestionCircleOutlined className="tooltips" aria-hidden="true" /></a></Tooltip></li>
+                    <li className={`tooltips${activeTab === "mainmenu" ? " active" : ""}`}><Tooltip title={t("MAIN_MENU")} placement="bottom" color="#222"><a href="#mainmenu" aria-label={t("MAIN_MENU")} aria-current={activeTab === "mainmenu" ? "location" : undefined} data-target="#mainmenu" onClick={(event) => { event.preventDefault(); setActiveTab("mainmenu"); }}><EllipsisOutlined className="tooltips" aria-hidden="true" /></a></Tooltip></li>
+                    <li id="node-plugin-tab" className={`tooltips${activeTab === "plugins" ? " active" : ""}`} style={menuState.showPluginTab ? undefined : { display: "none" }}><Tooltip title={t("RPLUGIN_MENU")} placement="bottom" color="#222"><a href="#plugins" aria-label={t("RPLUGIN_MENU")} aria-current={activeTab === "plugins" ? "location" : undefined} data-target="#plugins" onClick={(event) => { event.preventDefault(); setActiveTab("plugins"); }}><AppstoreOutlined className="tooltips" aria-hidden="true" /></a></Tooltip></li>
+                    <li className={`tooltips${activeTab === "help" ? " active" : ""}`}><Tooltip title={t("HELP_COMMANDS")} placement="bottom" color="#222"><a href="#help" aria-label={t("HELP_COMMANDS")} aria-current={activeTab === "help" ? "location" : undefined} data-target="#help" onClick={(event) => { event.preventDefault(); setActiveTab("help"); }}><QuestionCircleOutlined className="tooltips" aria-hidden="true" /></a></Tooltip></li>
                 </ul>
                 <div className="tab-content">
                     <div className={`tab-pane${activeTab === "mainmenu" ? " active" : ""}`} id="mainmenu">
-                        <h2 className="sidebar-title">{label("mainMenu")}</h2>
+                        <h2 className="sidebar-title">{t("MAIN_MENU")}</h2>
                         <ul className="nav nav-pills nav-stacked nav-quirk">
-                            {props.menuState.installedMenuEntries.map((entry) => <li key={`menu-${entry.name}`} className={hoveredLink === entry.name ? "nav-hover" : ""} onMouseEnter={() => { setHoveredLink(entry.name); }} onMouseLeave={() => { setHoveredLink(null); }}><a className="grayscale" href={href(entry.url)} target="_blank" rel="noopener noreferrer">{entry.logo ? <img src={entry.logo} className="brand-ico" width={18} height={18} alt="" aria-hidden="true" /> : null}<span>{entry.name}</span></a></li>)}
-                            {props.menuState.installedDownloadEntries.length ? <li className={`nav-parent${downloadsOpen ? " nav-active" : ""}`}><a href="#" aria-expanded={downloadsOpen} onClick={(event) => { event.preventDefault(); setDownloadsOpen((open) => !open); }}><DownloadOutlined aria-hidden="true" /> <span>{label("downloads")}</span><DownOutlined className="qb-sidebar-expand-icon" aria-hidden="true" /></a><ul ref={downloadsMenuRef} className="children" aria-hidden={!downloadsOpen} style={{ maxHeight: `${downloadsHeight}px` }}>{props.menuState.installedDownloadEntries.map((entry) => <li key={`download-${entry.name}`}><a href={href(entry.url)} tabIndex={downloadsOpen ? undefined : -1} target="_blank" rel="noopener noreferrer">{entry.name}</a></li>)}</ul></li> : null}
-                            {props.menuState.showWebConsole ? <li><a href={`/${props.config.username}.console`} target="_blank" rel="noopener noreferrer"><CodeOutlined aria-hidden="true" /> <span>{label("webConsole")}</span></a></li> : null}
+                            {menuState.installedMenuEntries.map((entry) => <li key={`menu-${entry.name}`} className={hoveredLink === entry.name ? "nav-hover" : ""} onMouseEnter={() => { setHoveredLink(entry.name); }} onMouseLeave={() => { setHoveredLink(null); }}><a className="grayscale" href={href(entry.url)} target="_blank" rel="noopener noreferrer">{entry.logo ? <img src={entry.logo} className="brand-ico" width={18} height={18} alt="" aria-hidden="true" /> : null}<span>{entry.name}</span></a></li>)}
+                            {menuState.installedDownloadEntries.length ? <li className={`nav-parent${downloadsOpen ? " nav-active" : ""}`}><a href="#" aria-expanded={downloadsOpen} onClick={(event) => { event.preventDefault(); setDownloadsOpen((open) => !open); }}><DownloadOutlined aria-hidden="true" /> <span>{t("DOWNLOADS")}</span><DownOutlined className="qb-sidebar-expand-icon" aria-hidden="true" /></a><ul ref={downloadsMenuRef} className="children" aria-hidden={!downloadsOpen} style={{ maxHeight: `${downloadsHeight}px` }}>{menuState.installedDownloadEntries.map((entry) => <li key={`download-${entry.name}`}><a href={href(entry.url)} tabIndex={downloadsOpen ? undefined : -1} target="_blank" rel="noopener noreferrer">{entry.name}</a></li>)}</ul></li> : null}
+                            {menuState.showWebConsole ? <li><a href={`/${username}.console`} target="_blank" rel="noopener noreferrer"><CodeOutlined aria-hidden="true" /> <span>{t("WEB_CONSOLE")}</span></a></li> : null}
                         </ul>
                     </div>
-                    <div className={`tab-pane${activeTab === "plugins" ? " active" : ""}`} id="plugins"><h2 className="sidebar-title">{t("RPLUGIN_MENU")}</h2><ul id="node-plugin-list" className="nav nav-pills nav-stacked nav-quirk"><RutorrentPluginList visible={activeTab === "plugins" && props.menuState.showPluginTab} /></ul></div>
+                    <div className={`tab-pane${activeTab === "plugins" ? " active" : ""}`} id="plugins"><h2 className="sidebar-title">{t("RPLUGIN_MENU")}</h2><ul id="node-plugin-list" className="nav nav-pills nav-stacked nav-quirk"><RutorrentPluginList visible={activeTab === "plugins" && menuState.showPluginTab} /></ul></div>
                     <div className={`tab-pane${activeTab === "help" ? " active" : ""}`} id="help">
-                        {helpSections.map((section) => <React.Fragment key={section.titleKey}><h2 className="sidebar-title">{label(section.titleKey as keyof DashboardChromeProps["labels"])}</h2><ul className="nav nav-pills nav-stacked nav-quirk nav-mail">{section.rows.map(([command, translation]) => <li key={command} style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>{command}</span><br /><small>{label(translation as keyof DashboardChromeProps["labels"])}</small></li>)}</ul></React.Fragment>)}
-                        <h2 className="sidebar-title">{label("essentialUserCommands")}</h2><ul className="nav nav-pills nav-stacked nav-quirk nav-mail"><li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>systemctl restart rtorrent@{props.config.username}.service</span><br /><small>{label("restartRtorrent")}</small></li></ul>
+                        {helpSections.map((section) => (
+                            <React.Fragment key={section.titleKey}>
+                                <h2 className="sidebar-title">{t(section.titleKey)}</h2>
+                                <ul className="nav nav-pills nav-stacked nav-quirk nav-mail">
+                                    {section.rows.map(([command, translationKey]) => (
+                                        <li key={command} style={{ padding: "7px" }}>
+                                            <span style={{ fontSize: "12px", color: "#eee" }}>{command}</span>
+                                            <br />
+                                            <small>{t(translationKey)}</small>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </React.Fragment>
+                        ))}
+                        <h2 className="sidebar-title">{t("ESSENTIAL_USER_COMMANDS")}</h2><ul className="nav nav-pills nav-stacked nav-quirk nav-mail"><li style={{ padding: "7px" }}><span style={{ fontSize: "12px", color: "#eee" }}>systemctl restart rtorrent@{username}.service</span><br /><small>{t("SCREEN_RTORRNENT_TXT")}</small></li></ul>
                     </div>
                 </div>
             </div>

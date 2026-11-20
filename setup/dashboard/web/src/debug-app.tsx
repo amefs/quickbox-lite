@@ -79,7 +79,7 @@ function renderDataPreview(url: string, rawText: string): React.ReactNode | null
         return <SystemLoadValue data={parsed} />;
     }
     if (pathname === SYSTEM_UPTIME_DATA_URL && isUptimeParts(parsed)) {
-        return <UptimeValue parts={parsed} labels={{ days: "days", hours: "hrs", minutes: "min" }} />;
+        return <UptimeValue parts={parsed} />;
     }
     if (pathname === SYSTEM_STATIC_DATA_URL && parsed && typeof parsed === "object" && "cpu" in parsed) {
         const cpu = (parsed as { cpu?: unknown }).cpu;

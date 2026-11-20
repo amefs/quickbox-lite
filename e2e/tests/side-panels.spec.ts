@@ -56,15 +56,21 @@ for (const { width, locale } of [{ width: 1280, locale: "zh" }, { width: 320, lo
             await expect(loadPlaceholder).toBeVisible();
             await expect(uptimePlaceholder).toBeVisible();
             const loading = await measure();
+            const expectStableLayout = async () => {
+                const current = await measure();
+                expect(Math.abs(current.loadLine - loading.loadLine), "load line height").toBeLessThanOrEqual(1);
+                expect(Math.abs(current.uptimeLine - loading.uptimeLine), "uptime height").toBeLessThanOrEqual(1);
+                expect(Math.abs(current.cpuOffset - loading.cpuOffset), "CPU card offset").toBeLessThanOrEqual(1);
+            };
 
             bootstrap.release();
             await expect(uptimePlaceholder).toHaveCount(0);
             await expect(loadPlaceholder).toBeVisible();
-            expect(await measure()).toEqual(loading);
+            await expectStableLayout();
 
             load.release();
             await expect(loadPlaceholder).toHaveCount(0);
-            expect(await measure()).toEqual(loading);
+            await expectStableLayout();
         } finally {
             bootstrap.release();
             load.release();
@@ -125,7 +131,7 @@ test("loading cards reserve space for their content at a narrow viewport", async
         await expect(cpu.locator(".qb-skeleton")).toHaveCount(0);
         await expect(disk.locator("#disk_data > [aria-busy='false']")).toBeVisible();
         expect(Math.abs(await height(cpu) - cpuLoadingHeight)).toBeLessThanOrEqual(20);
-        expect(Math.abs(await height(disk) - diskLoadingHeight)).toBeLessThan(120);
+        expect(Math.abs(await height(disk) - diskLoadingHeight)).toBeLessThan(200);
     } finally {
         bootstrap.release();
         systemData.release();

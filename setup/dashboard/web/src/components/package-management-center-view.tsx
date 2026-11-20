@@ -3,11 +3,13 @@
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import Markdown from "react-markdown";
+import { toString as mdastToString } from "mdast-util-to-string";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
 import { Button, ConfigProvider, Input, Modal, Table, Tooltip, type TableProps } from "antd";
 
 import type {
     PackageManagementData,
-    PackageManagementLabels,
     PackageManagementRow,
     PackageManagementTheme,
 } from "../../../ws/src/shared/package-management-contract";
@@ -25,14 +27,20 @@ const INLINE_MARKDOWN_COMPONENTS = {
     ),
 };
 
+const markdownTextParser = unified().use(remarkParse);
+
+function markdownToPlainText(markdown: string): string {
+    return mdastToString(markdownTextParser.parse(markdown)).replace(/\s+/g, " ").trim();
+}
+
 export interface PackageManagementCenterProps {
     data: PackageManagementData | null;
-    labels: PackageManagementLabels;
     theme: PackageManagementTheme;
     onPackageAction?: (action: "install" | "remove", row: PackageManagementRow) => void;
 }
 
-export function PackageManagementCenterView({ data, labels, theme, onPackageAction }: PackageManagementCenterProps) {
+export function PackageManagementCenterView({ data, theme, onPackageAction }: PackageManagementCenterProps) {
+    const { t } = useTranslation();
     const loading = data === null;
     const [search, setSearch] = React.useState("");
     const [page, setPage] = React.useState(1);
@@ -68,14 +76,21 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
         }
     };
 
+    const rows = React.useMemo(() => data?.rows.map((row) => ({
+        ...row,
+        descriptionText: markdownToPlainText(row.descriptionKey ? t(row.descriptionKey) : (row.descriptionText ?? "")),
+    })), [data, t]);
+
     React.useEffect(() => {
         setNoticeVisible(true);
-    }, [data]);
+    }, [rows]);
+
+    const availabilityText = (row: PackageManagementRow) => t(row.installed ? "INSTALLED" : row.boxOnly ? "BOX" : "INSTALL");
 
     const searchTerms = (search.toLocaleLowerCase().match(/"[^"]+"|[^ ]+/g) ?? [])
         .map((term) => term.startsWith('"') && term.endsWith('"') ? term.slice(1, -1) : term.replace('"', ""));
-    const filteredRows = (data?.rows ?? []).filter((row) => {
-        const searchable = `${row.name} ${row.descriptionText} ${row.installed ? labels.installed : row.boxOnly ? labels.box : labels.install}`.toLocaleLowerCase();
+    const filteredRows = (rows ?? []).filter((row) => {
+        const searchable = `${row.name} ${row.descriptionText} ${availabilityText(row)}`.toLocaleLowerCase();
         return searchTerms.every((term) => searchable.includes(term));
     });
     React.useEffect(() => {
@@ -85,23 +100,22 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
 
     const sortedRows = [...filteredRows].sort((left, right) => {
         const leftValue = sortKey === "availability"
-            ? (left.installed ? labels.installed : left.boxOnly ? labels.box : labels.install)
-            : (left[sortKey] ?? "");
+            ? availabilityText(left)
+            : left[sortKey];
         const rightValue = sortKey === "availability"
-            ? (right.installed ? labels.installed : right.boxOnly ? labels.box : labels.install)
-            : (right[sortKey] ?? "");
+            ? availabilityText(right)
+            : right[sortKey];
         const comparison = leftValue.localeCompare(rightValue, undefined, { sensitivity: "base" });
         return sortOrder === "ascend" ? comparison : -comparison;
     });
     const pageRows = sortedRows.slice((page - 1) * pageSize, page * pageSize);
-    const { t } = useTranslation();
     const commandsConnected = useCommandConnection();
     const pageCount = Math.ceil(filteredRows.length / pageSize);
     const rangeStart = filteredRows.length === 0 ? 0 : (page - 1) * pageSize + 1;
     const rangeEnd = Math.min(page * pageSize, filteredRows.length);
     const columns: NonNullable<TableProps<PackageManagementRow>["columns"]> = [
         {
-            title: labels.name,
+            title: t("NAME"),
             dataIndex: "name",
             key: "name",
             width: "var(--qb-pmc-name-width)",
@@ -110,7 +124,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
             render: (_value, row) => row.name,
         },
         {
-            title: labels.details,
+            title: t("DETAILS"),
             dataIndex: "descriptionText",
             key: "descriptionText",
             sorter: true,
@@ -126,7 +140,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
             ),
         },
         {
-            title: labels.availability,
+            title: t("AVAILABILITY"),
             key: "availability",
             width: "var(--qb-pmc-availability-width)",
             sorter: true,
@@ -142,16 +156,16 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                             disabled={!commandsConnected}
                             onClick={() => { if (canRemove) { setConfirmRow(row); } }}
                         >
-                            {labels.installed}
+                            {t("INSTALLED")}
                         </Button>
                     );
                 }
                 if (row.boxOnly) {
                     return (
-                        <Tooltip title={row.installTooltip} placement="top" classNames={{ root: "qb-package-tooltip-popup" }}>
+                        <Tooltip title={row.installTooltipKey ? t(row.installTooltipKey) : row.installTooltip} placement="top" classNames={{ root: "qb-package-tooltip-popup" }}>
                             <span>
                                 <Button size="small" danger disabled className="btn btn-xs btn-danger disabled tooltips package-action-btn">
-                                    {labels.box}
+                                    {t("BOX")}
                                 </Button>
                             </span>
                         </Tooltip>
@@ -164,7 +178,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                         disabled={!commandsConnected}
                         onClick={() => onPackageAction?.("install", row)}
                     >
-                        {labels.install}
+                        {t("INSTALL")}
                     </Button>
                 );
             },
@@ -185,12 +199,12 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
     return (
         <ConfigProvider theme={getAntdThemeConfig(theme, { colorPrimary: "#2574ab", fontFamily: '"Open Sans"', borderRadius: 3, controlHeightSM: 24 })}>
             <div className={`panel panel-main panel-inverse qb-package-management qb-package-management--${theme}`} data-inner-id="panel-server-package-management" aria-busy={loading}>
-                <div className="panel-heading"><h2 className="panel-title">{labels.title}</h2></div>
+                <div className="panel-heading"><h2 className="panel-title">{t("PACKAGE_MANAGEMENT_CENTER")}</h2></div>
                 <div className="panel-body text-center" style={{ padding: 0 }} inert={loading}>
                     {noticeVisible ? (
                         <div className="alert alert-danger">
                             <button type="button" className="close" aria-label={t("CLOSE")} onClick={() => { setNoticeVisible(false); }}><span aria-hidden="true">&times;</span></button>
-                            <div style={{ textAlign: "center" }}><Trans i18nKey="PMC_NOTICE_TXT" defaults={labels.notice} /></div>
+                            <div style={{ textAlign: "center" }}><Trans i18nKey="PMC_NOTICE_TXT" /></div>
                         </div>
                     ) : null}
                     <div className="qb-package-management__toolbar">
@@ -221,7 +235,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                             />
                         </label>
                     </div>
-                    <div className="qb-package-management__table-scroll" role="region" aria-label={labels.title} tabIndex={0}>
+                    <div className="qb-package-management__table-scroll" role="region" aria-label={t("PACKAGE_MANAGEMENT_CENTER")} tabIndex={0}>
                         <Table<PackageManagementRow>
                             className="qb-package-management__table"
                             rowKey="package"
@@ -245,7 +259,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                         />
                     </div>
                     <div className="qb-package-management__pagination">
-                        <div role="status">{loading ? <SkeletonText width="14ch" /> : t("PMC_RESULT_RANGE", { start: rangeStart, end: rangeEnd, count: filteredRows.length })}</div>
+                        <div role="status">{loading ? <SkeletonText width="14ch" /> : t("PMC_RESULT_RANGE", { start: rangeStart, end: rangeEnd, total: filteredRows.length })}</div>
                         <ul id="dataTable1_paginate" className="pagination">
                             <li className={`paginate_button previous ${page <= 1 ? "disabled" : ""}`}>
                                 <a href="#" aria-label={t("PMC_PREVIOUS_PAGE")} aria-disabled={page <= 1} tabIndex={page <= 1 ? -1 : 0} onClick={(event) => { event.preventDefault(); if (page > 1) { setPage(page - 1); } }}>{t("PMC_PREVIOUS")}</a>
@@ -263,14 +277,14 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                     {data?.installLockExists ? (
                         <div className="qb-package-management__lock">
                             <hr />
-                            <span><Trans i18nKey="CLEAR_LOCK_TXT" defaults={labels.clearLockText} /></span>&nbsp; &nbsp; &nbsp; &nbsp;
+                            <span><Trans i18nKey="CLEAR_LOCK_TXT" /></span>&nbsp; &nbsp; &nbsp; &nbsp;
                             <Button
                                 size="small"
                                 className="btn btn-xs btn-default"
                                 disabled={!commandsConnected}
                                 onClick={() => { executeBoxAction("fix", "dpkg", true); }}
                             >
-                                {labels.clearLock}
+                                {t("CLEAR_LOCK")}
                             </Button>
                             {" "}
                             <Button
@@ -280,7 +294,7 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                                 data-qb-system-response
                                 onClick={() => { systemResponseActions.open(); }}
                             >
-                                {labels.viewLog}
+                                {t("VIEW_LOG")}
                             </Button>
                         </div>
                     ) : null}
@@ -289,16 +303,16 @@ export function PackageManagementCenterView({ data, labels, theme, onPackageActi
                     open={confirmRow !== null}
                     centered
                     zIndex={2200}
-                    title={confirmRow ? `${labels.uninstallTitle} ${confirmRow.name}?` : ""}
+                    title={confirmRow ? `${t("UNINSTALL_TITLE")} ${confirmRow.name}?` : ""}
                     onCancel={() => { setConfirmRow(null); }}
                     wrapProps={{ onKeyDownCapture: containConfirmTab }}
                     footer={[
-                        <Button key="cancel" onClick={() => { setConfirmRow(null); }}>{labels.cancel}</Button>,
+                        <Button key="cancel" onClick={() => { setConfirmRow(null); }}>{t("CANCEL")}</Button>,
                         <Button key="confirm" type="primary" disabled={!commandsConnected} onClick={() => {
                             const selected = confirmRow;
                             setConfirmRow(null);
                             if (selected) {onPackageAction?.("remove", selected);}
-                        }}>{labels.agree}</Button>,
+                        }}>{t("AGREE")}</Button>,
                     ]}
                     destroyOnHidden
                 >

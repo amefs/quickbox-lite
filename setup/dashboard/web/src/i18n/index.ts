@@ -10,6 +10,7 @@ import esES from "antd/locale/es_ES";
 import frFR from "antd/locale/fr_FR";
 import zhCN from "antd/locale/zh_CN";
 
+import type { BandwidthPage } from "../../../ws/src/shared/bandwidth-contract";
 import da from "./locales/lang_da.json";
 import de from "./locales/lang_de.json";
 import en from "./locales/lang_en.json";
@@ -21,6 +22,13 @@ export type DashboardLocale = "da" | "de" | "en" | "es" | "fr" | "zh";
 
 export const VALID_LOCALES: readonly DashboardLocale[] = ["da", "de", "en", "es", "fr", "zh"];
 export const DEFAULT_LOCALE: DashboardLocale = "en";
+
+export const BANDWIDTH_PAGE_TITLE_KEYS: Record<BandwidthPage, string> = {
+    t: "Top 10 days",
+    h: "Recent hours",
+    d: "Last 30 days",
+    m: "Last 12 months",
+};
 
 const localeAliases: Record<string, DashboardLocale> = {
     "zh-cn": "zh",

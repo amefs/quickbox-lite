@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React, { useSyncExternalStore } from "react";
-import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
 import {
@@ -604,27 +603,13 @@ export function getServiceControlBridge(): ServiceIslandBridge | undefined {
 }
 
 export function ServiceControlSlot({ bootstrap, ready = true }: { bootstrap: DashboardBootstrapPayload; ready?: boolean }) {
-    const { t } = useTranslation();
     const store = serviceStore ?? registerServiceControlIsland(bootstrap);
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
     const activeTheme = useDashboardTheme(bootstrap.serviceTheme);
     const commandsConnected = useCommandConnection();
-    const labels = {
-        title: t("SERVICE_CONTROL_CENTER"),
-        status: t("SERVICE_STATUS"),
-        restart: t("RESTART_SERVICES"),
-        enableDisable: t("ENABLE_DISABLE_SERVICES"),
-        refresh: t("REFRESH"),
-        enabled: t("ENABLED"),
-        disabled: t("DISABLED"),
-        serviceStatusUnconfirmed: t("SERVICE_STATUS_UNCONFIRMED"),
-        serviceStatusStale: t("SERVICE_STATUS_STALE"),
-        serviceStatusLastConfirmedTemplate: t("SERVICE_STATUS_LAST_CONFIRMED", { time: "__SERVICE_STATUS_TIME__" }),
-    };
     return (
         <ServiceControlIsland
             rows={snapshot.rows}
-            labels={labels}
             theme={activeTheme}
             statusById={snapshot.statusById}
             pendingById={snapshot.pendingById}

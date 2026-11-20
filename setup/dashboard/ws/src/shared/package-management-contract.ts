@@ -23,23 +23,6 @@ export interface PackageManagementStateData {
     installLockExists: boolean;
 }
 
-export interface PackageManagementLabels {
-    title: string;
-    name: string;
-    details: string;
-    availability: string;
-    installed: string;
-    install: string;
-    box: string;
-    notice: string;
-    clearLockText: string;
-    clearLock: string;
-    viewLog: string;
-    uninstallTitle: string;
-    cancel: string;
-    agree: string;
-}
-
 export interface PackageManagementData {
     rows: PackageManagementRow[];
     installLockExists: boolean;

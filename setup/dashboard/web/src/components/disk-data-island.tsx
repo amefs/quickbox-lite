@@ -3,7 +3,7 @@
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import type { DiskDataData, DiskDataPayload, DiskDataRawData, DiskFileSystemRow } from "../../../ws/src/shared/disk-data-contract";
+import type { DiskDataPayload, DiskDataRawData, DiskFileSystemRow } from "../../../ws/src/shared/disk-data-contract";
 import { formatSize } from "../utils/format";
 import { SkeletonText } from "./placeholder";
 
@@ -60,24 +60,24 @@ function HddIcon({ className }: { className: string }) {
     );
 }
 
-function FileSystemRow({ data, labels }: { data: DiskFileSystemRow | null; labels: DiskDataData["labels"] }) {
+function FileSystemRow({ data }: { data: DiskFileSystemRow | null }) {
     const { t } = useTranslation();
     return (
         <div aria-hidden={data ? undefined : true}>
             <div className="row qb-panel-split">
                 <div className="col-sm-8 qb-panel-main">
-                    <h3 className="qb-stat-heading">{labels.mountPoint}</h3>
+                    <h3 className="qb-stat-heading">{t("MOUNT_POINT")}</h3>
                     <p className="qb-mount-point">{data?.mount ?? <SkeletonText width="65%" />}</p>
-                    <h3 className="qb-stat-heading">{labels.diskSpace}</h3>
+                    <h3 className="qb-stat-heading">{t("DISK_SPACE")}</h3>
                     <p className="nomargin qb-disk-metrics">
-                        <span className="qb-disk-metric">{labels.free}: {data?.available ?? <SkeletonText width="8ch" />}</span>
-                        <span className="qb-disk-metric">{labels.used}: {data?.used ?? <SkeletonText width="8ch" />}</span>
-                        <span className="qb-disk-metric">{labels.size}: {data?.size ?? <SkeletonText width="8ch" />}</span>
+                        <span className="qb-disk-metric">{t("FREE")}: {data?.available ?? <SkeletonText width="8ch" />}</span>
+                        <span className="qb-disk-metric">{t("USED")}: {data?.used ?? <SkeletonText width="8ch" />}</span>
+                        <span className="qb-disk-metric">{t("SIZE")}: {data?.size ?? <SkeletonText width="8ch" />}</span>
                     </p>
                     <br />
                     <div className="progress">
-                        {data ? <div style={{ width: `${data.percent}%` }} aria-label={`${labels.diskSpace}: ${data.mount}`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={data.percent} role="progressbar" className={`progress-bar ${data.progressClass}`}>
-                            <span className="sr-only">{data.percent}% {labels.used}</span>
+                        {data ? <div style={{ width: `${data.percent}%` }} aria-label={`${t("DISK_SPACE")}: ${data.mount}`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={data.percent} role="progressbar" className={`progress-bar ${data.progressClass}`}>
+                            <span className="sr-only">{data.percent}% {t("USED")}</span>
                         </div> : <div className="qb-skeleton" style={{ height: "100%" }} />}
                     </div>
                     <p style={{ fontSize: "10px" }}>{data ? t("PERCENTAGE_TXT", { used: data.percent }) : <SkeletonText width="45%" />}</p>
@@ -101,18 +101,11 @@ const TORRENT_TITLE_KEYS: Record<string, string> = {
 export function DiskDataRoot({ data: payload }: { data: DiskDataPayload | null }) {
     const { t } = useTranslation();
     const data = payload ? normalizeDiskData(payload) : null;
-    const labels = {
-        mountPoint: t("MOUNT_POINT"),
-        diskSpace: t("DISK_SPACE"),
-        free: t("FREE"),
-        used: t("USED"),
-        size: t("SIZE"),
-    };
     return (
         <div aria-busy={!data}>
             {data ? data.fileSystems.map((filesystem) => (
-                <FileSystemRow key={filesystem.mount} data={filesystem} labels={labels} />
-            )) : [0, 1].map((index) => <FileSystemRow key={index} data={null} labels={labels} />)}
+                <FileSystemRow key={filesystem.mount} data={filesystem} />
+            )) : [0, 1].map((index) => <FileSystemRow key={index} data={null} />)}
             <div>
                 {!data ? (
                     <div aria-hidden="true">

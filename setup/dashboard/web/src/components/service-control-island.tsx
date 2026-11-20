@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { InfoCircleOutlined, SyncOutlined, UsbOutlined } from "@ant-design/icons";
 import { Button, ConfigProvider, Switch, Tooltip } from "antd";
 
@@ -9,24 +10,10 @@ import type { DashboardTheme } from "../../../ws/src/shared/theme";
 import { getAntdThemeConfig } from "../runtime/theme-store";
 import { SkeletonText } from "./placeholder";
 
-export interface ServiceControlLabels {
-    title: string;
-    status: string;
-    restart: string;
-    enableDisable: string;
-    refresh: string;
-    enabled: string;
-    disabled: string;
-    serviceStatusUnconfirmed: string;
-    serviceStatusStale: string;
-    serviceStatusLastConfirmedTemplate: string;
-}
-
 export type ServiceControlTheme = DashboardTheme;
 
 export interface ServiceControlIslandProps {
     rows: ServiceRow[];
-    labels: ServiceControlLabels;
     theme: ServiceControlTheme;
     statusById: Record<string, ServiceState>;
     pendingById?: Record<string, boolean>;
@@ -36,13 +23,14 @@ export interface ServiceControlIslandProps {
     onEnabledChange?: (serviceId: string, enabled: boolean) => void;
 }
 
-function ServiceBadge({ status, labels }: { status: ServiceState | undefined; labels: ServiceControlLabels }) {
+function ServiceBadge({ status }: { status: ServiceState | undefined }) {
+    const { t } = useTranslation();
     const current = status ?? { value: null, observedAt: null, stale: true };
     const state = current.value === null ? "unknown" : current.value ? "running" : "disabled";
     const confirmed = current.observedAt === null
-        ? labels.serviceStatusUnconfirmed
-        : labels.serviceStatusLastConfirmedTemplate.replace("__SERVICE_STATUS_TIME__", new Date(current.observedAt).toISOString());
-    const title = current.stale ? `${confirmed}; ${labels.serviceStatusStale}` : current.value === null ? confirmed : undefined;
+        ? t("SERVICE_STATUS_UNCONFIRMED")
+        : t("SERVICE_STATUS_LAST_CONFIRMED", { time: new Date(current.observedAt).toISOString() });
+    const title = current.stale ? `${confirmed}; ${t("SERVICE_STATUS_STALE")}` : current.value === null ? confirmed : undefined;
     return (
         <span title={title} aria-label={title ?? `${state} service`} data-observed-at={current.observedAt ?? undefined}>
             <span className={`badge badge-service-${state}-dot${current.stale ? " badge-service-stale" : ""}`}></span>
@@ -51,21 +39,22 @@ function ServiceBadge({ status, labels }: { status: ServiceState | undefined; la
     );
 }
 
-export function ServiceControlIsland({ rows, labels, theme, statusById, pendingById = {}, commandsDisabled, loading = false, onRefresh, onEnabledChange }: ServiceControlIslandProps) {
+export function ServiceControlIsland({ rows, theme, statusById, pendingById = {}, commandsDisabled, loading = false, onRefresh, onEnabledChange }: ServiceControlIslandProps) {
+    const { t } = useTranslation();
     return (
         <ConfigProvider theme={getAntdThemeConfig(theme, { borderRadius: 2, fontFamily: "inherit" })}>
             <div className={`panel panel-inverse qb-service-control qb-service-control--${theme}`} data-inner-id="panel-server-service-control" aria-busy={loading}>
                 <div className="panel-heading">
-                    <h2 className="panel-title">{labels.title}</h2>
+                    <h2 className="panel-title">{t("SERVICE_CONTROL_CENTER")}</h2>
                 </div>
                 <div className="panel-body" style={{ padding: 0 }}>
                     <div className="table-responsive">
                         <table className="table table-hover nomargin" style={{ fontSize: "14px" }}>
                             <thead>
                                 <tr>
-                                    <th className="text-center">{labels.status}</th>
-                                    <th className="text-center">{labels.restart}</th>
-                                    <th className="text-center">{labels.enableDisable}</th>
+                                    <th className="text-center">{t("SERVICE_STATUS")}</th>
+                                    <th className="text-center">{t("RESTART_SERVICES")}</th>
+                                    <th className="text-center">{t("ENABLE_DISABLE_SERVICES")}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -82,7 +71,7 @@ export function ServiceControlIsland({ rows, labels, theme, statusById, pendingB
                                 )) : rows.map((row) => (
                                     <tr key={row.id}>
                                         <td>
-                                            <span id={`appstat_${row.id}`}><ServiceBadge status={statusById[row.id]} labels={labels} /></span>
+                                            <span id={`appstat_${row.id}`}><ServiceBadge status={statusById[row.id]} /></span>
                                             {" "}
                                             {row.name}
                                             {row.tooltip ? (
@@ -108,7 +97,7 @@ export function ServiceControlIsland({ rows, labels, theme, statusById, pendingB
                                                 disabled={commandsDisabled || pendingById[row.id]}
                                                 onClick={() => onRefresh?.(row.id)}
                                             >
-                                                <SyncOutlined className="text-info" spin={pendingById[row.id]} aria-hidden="true" /> {labels.refresh}
+                                                <SyncOutlined className="text-info" spin={pendingById[row.id]} aria-hidden="true" /> {t("REFRESH")}
                                             </Button>
                                         </td>
                                         <td className="text-center">
@@ -116,8 +105,8 @@ export function ServiceControlIsland({ rows, labels, theme, statusById, pendingB
                                                 <Switch
                                                     className="qb-service-switch"
                                                     checked={row.enabledAtBoot}
-                                                    checkedChildren={labels.enabled}
-                                                    unCheckedChildren={labels.disabled}
+                                                    checkedChildren={t("ENABLED")}
+                                                    unCheckedChildren={t("DISABLED")}
                                                     aria-label={row.name}
                                                     loading={pendingById[row.id]}
                                                     disabled={commandsDisabled || pendingById[row.id]}

@@ -269,6 +269,7 @@ body[data-theme="smoked"] .panel.ant-card {
 }
 .qb-uptime {
     overflow-wrap: anywhere;
+    min-height: 2.85em;
 }
 .qb-stat-heading {
     color: var(--qb-heading-color);
@@ -302,6 +303,10 @@ body[data-theme="smoked"] [data-inner-id="panel-server-load"] .panel-body p {
 }
 #project-commits .btn-success:not(:disabled):is(:hover, :focus, :active) {
     background-color: #1d603c;
+}
+#node-cpu-static {
+    display: block;
+    min-height: 9em;
 }
 .qb-disk-metrics {
     display: flex;

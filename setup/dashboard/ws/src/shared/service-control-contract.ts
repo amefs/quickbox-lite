@@ -19,19 +19,6 @@ export interface ServiceRequestV2 {
     generation: number;
 }
 
-export interface ServiceControlLabels {
-    title: string;
-    status: string;
-    restart: string;
-    enableDisable: string;
-    refresh: string;
-    enabled: string;
-    disabled: string;
-    serviceStatusUnconfirmed: string;
-    serviceStatusStale: string;
-    serviceStatusLastConfirmedTemplate: string;
-}
-
 export type ServiceTooltipIcon = "info" | "usb";
 
 export interface ServiceRow {

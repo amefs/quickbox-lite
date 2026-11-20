@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 
+import type { DashboardBootstrapPayload } from "../../setup/dashboard/ws/src/shared/bootstrap-contract";
 import {
     WS_BASE_URL,
     expectFocusInside,
@@ -32,14 +33,17 @@ test.describe("Language Switching", () => {
         await expect(table.getByRole("link", { name: "第 2 页" })).toBeVisible();
         await expect(table.getByRole("link", { name: "下一页" })).toBeVisible();
 
+        await search.fill("PeerBanHelper");
+        await expect(status).toHaveText("显示第 1 至 1 条，共 1 条记录");
+
         await search.fill("no-such-package-123");
-        await expect(status).toHaveText("共 0 条记录");
+        await expect(status).toHaveText("显示第 0 至 0 条，共 0 条记录");
         await expect(table.getByText("未找到匹配的记录。")).toBeVisible();
 
         await page.locator("#node-language-options [data-locale='fr']").evaluate((element) => (element as HTMLElement).click());
         await expect(table.getByRole("textbox", { name: "Rechercher :" })).toHaveValue("no-such-package-123");
         await expect(table.getByRole("combobox", { name: "Entrées par page" })).toHaveValue("10");
-        await expect(status).toHaveText("0 entrée");
+        await expect(status).toHaveText("Entrées 0 à 0 sur 0");
         await expect(table.getByText("Aucun résultat ne correspond à la recherche.")).toBeVisible();
     });
 
@@ -56,22 +60,52 @@ test.describe("Language Switching", () => {
         await expect(page.locator("#meterram")).toContainText("物理内存", { timeout: 10_000 });
 
         // Load the Ant Design debug page to verify visually
-        await page.goto(`${WS_BASE_URL}/debug`);
+        await page.goto(`${WS_BASE_URL}/debug?locale=zh`);
         await page.locator("[data-url='/node/data/system_uptime']").click();
-        await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
+        await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).toMatch(/\d+天\d+小时\d+分/);
         await snap(page, testInfo, "language-chinese-uptime");
     });
 
     test("should switch frontend language to English without reload", async ({ page }, testInfo) => {
+        await page.route("**/node/bootstrap*", async (route) => {
+            const response = await route.fetch();
+            const payload = await response.json() as DashboardBootstrapPayload;
+            payload.chrome.config.hasExternalAuth = true;
+            await route.fulfill({ response, json: payload });
+        });
         await page.goto("/?locale=zh");
         await expect(page.locator("#service_control_widget")).toContainText("服务控制中心", { timeout: 10_000 });
+        await expect(page.getByRole("heading", { name: "带宽数据" })).toBeVisible();
+        await expect(page.getByRole("link", { name: "主菜单" })).toBeVisible();
+        const diskData = page.locator("#disk_data");
+        await expect(diskData.getByRole("heading", { name: "挂载点" }).first()).toBeVisible();
+        await expect(diskData.getByRole("progressbar", { name: /^磁盘空间:/ }).first()).toBeVisible();
+        await expect(page.locator("#uptime")).toHaveText(/\d+天\d+小时\d+分/);
+        await expect(page.getByRole("heading", { name: "组件管理中心" })).toBeVisible();
 
-        // Click English option inside header config menu (without full page reload)
-        await page.evaluate(() => {
-            document.querySelector<HTMLElement>("#node-language-options [data-locale='en']")?.click();
-        });
+        const accountButton = page.locator(".header-account button");
+        const accountMenu = page.locator("#quickboxAccountDropdown");
+        await accountButton.click();
+        await expect(accountMenu.getByRole("link", { name: "单点登出" })).toBeVisible();
+
+        await page.locator("#noticePanel > button").click();
+        await page.locator('#noticeDropdown a[href="#dashadjust"]').click();
+        await expect(page.getByRole("heading", { name: "选择语言" })).toBeVisible();
+        await page.locator("#node-language-options [data-locale='en']").click();
+        await expect(page.getByRole("heading", { name: "Select Language" })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Bandwidth Data" })).toBeVisible();
+        await expect(page.getByRole("link", { name: "Main Menu" })).toBeVisible();
+        await expect(diskData.getByRole("heading", { name: "Mount Point" }).first()).toBeVisible();
+        await expect(diskData.getByRole("progressbar", { name: /^Disk Space:/ }).first()).toBeVisible();
+        await expect(page.locator("#uptime")).toHaveText(/\d+days\d+hrs\d+min/);
+        await expect(page.getByRole("heading", { name: "Package Management Center" })).toBeVisible();
         await expect(page.locator("#service_control_widget")).toContainText("Service Control Center", { timeout: 10_000 });
         await expect(page.locator("#meterram")).toContainText("Physical Memory", { timeout: 10_000 });
+
+        await accountButton.click();
+        await expect(accountMenu.getByRole("link", { name: "SSO Logout" })).toBeVisible();
+        await expect(accountMenu.getByRole("link", { name: "Switch to development" }).locator("code")).toHaveText("development");
+        await accountButton.click();
         await snap(page, testInfo, "language-english-ram");
     });
 
