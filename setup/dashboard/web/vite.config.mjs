@@ -6,42 +6,50 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import ts from "typescript";
+import { buildDashboardReact } from "./build/react.mjs";
 
 const webRoot = path.dirname(fileURLToPath(import.meta.url));
 const sourceRoot = `${path.join(webRoot, "src")}${path.sep}`;
+const target = "es2022";
 
 function cacheBustAssets() {
     return {
         name: "cache-bust-assets",
         enforce: "post",
-        generateBundle(_options, bundle) {
-            const hashes = new Map();
-            for (const chunk of Object.values(bundle)) {
-                if (chunk.type === "chunk") {
-                    const hash = createHash("sha256").update(chunk.code).digest("hex").slice(0, 8);
-                    hashes.set(chunk.fileName, hash);
+        generateBundle: {
+            order: "post",
+            handler(_options, bundle) {
+                const hashes = new Map();
+                for (const chunk of Object.values(bundle)) {
+                    if (chunk.type === "chunk") {
+                        const hash = createHash("sha256").update(chunk.code).digest("hex").slice(0, 8);
+                        hashes.set(chunk.fileName, hash);
+                    }
                 }
-            }
-            for (const chunk of Object.values(bundle)) {
-                if (chunk.type !== "chunk") {
-                    continue;
+                for (const chunk of Object.values(bundle)) {
+                    if (chunk.type !== "chunk") {
+                        continue;
+                    }
+                    for (const [fileName, hash] of hashes) {
+                        const baseName = path.posix.basename(fileName);
+                        chunk.code = chunk.code.replaceAll(`./${baseName}`, `./${baseName}?v=${hash}`);
+                    }
                 }
-                for (const [fileName, hash] of hashes) {
-                    const baseName = path.posix.basename(fileName);
-                    chunk.code = chunk.code.replaceAll(`./${baseName}`, `./${baseName}?v=${hash}`);
+                const htmlAsset = bundle["index.html"];
+                if (htmlAsset?.type === "asset" && typeof htmlAsset.source === "string") {
+                    let html = htmlAsset.source.replace(/^  (<(?:script|link)\b)/gm, "    $1");
+                    for (const [fileName, hash] of hashes) {
+                        html = html.replaceAll(`./${fileName}`, `./${fileName}?v=${hash}`);
+                    }
+                    html = html.replace(/href="\.\/(css\/[\w-]+\.css)"/g, (_attribute, fileName) => {
+                        const stylesheet = fs.readFileSync(path.join(webRoot, "public", fileName));
+                        const hash = createHash("sha256").update(stylesheet).digest("hex").slice(0, 12);
+                        const prefix = fileName === "css/dashboard.css" ? "/" : "./";
+                        return `href="${prefix}${fileName}?v=${hash}"`;
+                    });
+                    htmlAsset.source = html;
                 }
-            }
-            const htmlAsset = bundle["index.html"];
-            if (htmlAsset?.type === "asset" && typeof htmlAsset.source === "string") {
-                let html = htmlAsset.source.replace(/^  (<(?:script|link)\b)/gm, "    $1");
-                for (const [fileName, hash] of hashes) {
-                    html = html.replaceAll(`./${fileName}`, `./${fileName}?v=${hash}`);
-                }
-                const dashboardCss = fs.readFileSync(path.join(webRoot, "public", "css", "dashboard.css"));
-                const cssHash = createHash("sha256").update(dashboardCss).digest("hex").slice(0, 12);
-                html = html.replace("./css/dashboard.css", `/css/dashboard.css?v=${cssHash}`);
-                htmlAsset.source = html;
-            }
+            },
         },
     };
 }
@@ -100,7 +108,7 @@ function separateModules() {
     };
 }
 
-export default defineConfig({
+const config = {
     root: webRoot,
     base: "./",
     configFile: false,
@@ -109,7 +117,7 @@ export default defineConfig({
         cacheBustAssets(),
     ],
     build: {
-        target: "es2022",
+        target,
         minify: true,
         outDir: path.join(webRoot, "dist"),
         emptyOutDir: true,
@@ -127,25 +135,12 @@ export default defineConfig({
                 entryFileNames: "assets/[name].js",
                 chunkFileNames: "assets/[name].js",
                 assetFileNames: "assets/[name][extname]",
-                manualChunks(id) {
-                    const normalizedId = id.replaceAll("\\", "/");
-                    if (
-                        normalizedId.includes("/src/i18n/") ||
-                        normalizedId.includes("node_modules/i18next") ||
-                        normalizedId.includes("node_modules/react-i18next")
-                    ) {
-                        return "i18n";
-                    }
-                    if (normalizedId.includes("node_modules/antd") || normalizedId.includes("node_modules/@ant-design") || normalizedId.includes("node_modules/@rc-component")) {
-                        return "antd";
-                    }
-                    if (normalizedId.includes("node_modules/react") || normalizedId.includes("node_modules/react-dom") || normalizedId.includes("node_modules/scheduler")) {
-                        return "react";
-                    }
-                    if (normalizedId.includes("node_modules/")) {
-                        return "vendor";
-                    }
-                    return undefined;
+                codeSplitting: {
+                    groups: [
+                        { name: "i18n", test: /(?:[/\\]src[/\\]i18n[/\\]|[/\\]node_modules[/\\](?:i18next|react-i18next)[/\\])/, priority: 2 },
+                        { name: "antd", test: /[/\\]node_modules[/\\](?:antd|@ant-design|@rc-component)[/\\]/, priority: 1, entriesAware: true },
+                        { name: "vendor", test: /[/\\]node_modules[/\\]/, entriesAware: true },
+                    ],
                 },
             },
         },
@@ -161,4 +156,23 @@ export default defineConfig({
             "/debug/node": "http://127.0.0.1:8575",
         },
     },
+};
+
+export default defineConfig(async ({ command }) => {
+    if (command !== "build") {
+        return config;
+    }
+    const react = await buildDashboardReact(webRoot, target);
+    return {
+        ...config,
+        plugins: [...config.plugins, ...react.plugins],
+        build: {
+            ...config.build,
+            rolldownOptions: {
+                ...config.build.rolldownOptions,
+                external: ["react"],
+                output: { ...config.build.rolldownOptions.output, paths: { react: react.url } },
+            },
+        },
+    };
 });

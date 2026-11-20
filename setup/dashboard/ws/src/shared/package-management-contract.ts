@@ -38,9 +38,6 @@ export interface PackageManagementLabels {
     uninstallTitle: string;
     cancel: string;
     agree: string;
-    empty: string;
-    searchPlaceholder: string;
-    total: string;
 }
 
 export interface PackageManagementData {

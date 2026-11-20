@@ -3,7 +3,7 @@
 import React from "react";
 
 import type { SystemLoadData, UptimeParts } from "../../../ws/src/shared/system-summary-contract";
-import { SystemLoadPlaceholder } from "./placeholder";
+import { SkeletonText } from "./placeholder";
 
 export function formatSystemLoad(data: SystemLoadData): string {
     if (Array.isArray(data.loadavg)) {
@@ -13,18 +13,24 @@ export function formatSystemLoad(data: SystemLoadData): string {
 }
 
 export function SystemLoadValue({ data }: { data: SystemLoadData | null }) {
-    return data === null ? <SystemLoadPlaceholder /> : <>{formatSystemLoad(data)}</>;
+    return data === null ? <SkeletonText width="75%" /> : <>{formatSystemLoad(data)}</>;
 }
 
 export function UptimeValue({ parts, labels }: {
-    parts: UptimeParts;
+    parts: UptimeParts | null;
     labels: { days: string; hours: string; minutes: string };
 }) {
+    const loading = parts === null;
+    const placeholderDigits = "\u2007\u2007";
     return (
-        <span style={{ fontSize: "14px" }}>
-            <b>{parts.days}</b><small>{labels.days}</small>
-            <b>{parts.hours}</b><small>{labels.hours}</small>
-            <b>{parts.minutes}</b><small>{labels.minutes}</small>
+        <span
+            className={loading ? "qb-skeleton" : undefined}
+            aria-hidden={loading || undefined}
+            style={{ fontSize: "14px", color: loading ? "transparent" : undefined }}
+        >
+            <b>{parts?.days ?? placeholderDigits}</b><small>{labels.days}</small>
+            <b>{parts?.hours ?? placeholderDigits}</b><small>{labels.hours}</small>
+            <b>{parts?.minutes ?? placeholderDigits}</b><small>{labels.minutes}</small>
         </span>
     );
 }

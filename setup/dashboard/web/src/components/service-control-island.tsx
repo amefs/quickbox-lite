@@ -7,6 +7,7 @@ import { Button, ConfigProvider, Switch, Tooltip } from "antd";
 import type { ServiceRow, ServiceState } from "../../../ws/src/shared/service-control-contract";
 import type { DashboardTheme } from "../../../ws/src/shared/theme";
 import { getAntdThemeConfig } from "../runtime/theme-store";
+import { SkeletonText } from "./placeholder";
 
 export interface ServiceControlLabels {
     title: string;
@@ -30,6 +31,7 @@ export interface ServiceControlIslandProps {
     statusById: Record<string, ServiceState>;
     pendingById?: Record<string, boolean>;
     commandsDisabled: boolean;
+    loading?: boolean;
     onRefresh?: (serviceId: string) => void;
     onEnabledChange?: (serviceId: string, enabled: boolean) => void;
 }
@@ -49,12 +51,12 @@ function ServiceBadge({ status, labels }: { status: ServiceState | undefined; la
     );
 }
 
-export function ServiceControlIsland({ rows, labels, theme, statusById, pendingById = {}, commandsDisabled, onRefresh, onEnabledChange }: ServiceControlIslandProps) {
+export function ServiceControlIsland({ rows, labels, theme, statusById, pendingById = {}, commandsDisabled, loading = false, onRefresh, onEnabledChange }: ServiceControlIslandProps) {
     return (
         <ConfigProvider theme={getAntdThemeConfig(theme, { borderRadius: 2, fontFamily: "inherit" })}>
-            <div className={`panel panel-inverse qb-service-control qb-service-control--${theme}`} data-inner-id="panel-server-service-control">
+            <div className={`panel panel-inverse qb-service-control qb-service-control--${theme}`} data-inner-id="panel-server-service-control" aria-busy={loading}>
                 <div className="panel-heading">
-                    <h4 className="panel-title">{labels.title}</h4>
+                    <h2 className="panel-title">{labels.title}</h2>
                 </div>
                 <div className="panel-body" style={{ padding: 0 }}>
                     <div className="table-responsive">
@@ -67,7 +69,17 @@ export function ServiceControlIsland({ rows, labels, theme, statusById, pendingB
                                 </tr>
                             </thead>
                             <tbody>
-                                {rows.map((row) => (
+                                {loading ? [0, 1, 2].map((index) => (
+                                    <tr key={index} aria-hidden="true">
+                                        <td><SkeletonText width="8ch" /></td>
+                                        <td className="text-center"><SkeletonText width="6ch" /></td>
+                                        <td className="text-center">
+                                            <div className="toggle-wrapper text-center">
+                                                <div className="qb-skeleton qb-skeleton-btn" />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )) : rows.map((row) => (
                                     <tr key={row.id}>
                                         <td>
                                             <span id={`appstat_${row.id}`}><ServiceBadge status={statusById[row.id]} labels={labels} /></span>
@@ -82,7 +94,7 @@ export function ServiceControlIsland({ rows, labels, theme, statusById, pendingB
                                                         classNames={{ root: "qb-service-tooltip-popup" }}
                                                     >
                                                         <span className="qb-service-tooltip" data-placement="right">
-                                                            {row.tooltipIcon === "fa-usb" ? <UsbOutlined aria-hidden="true" /> : <InfoCircleOutlined aria-hidden="true" />}
+                                                            {row.tooltipIcon === "usb" ? <UsbOutlined aria-hidden="true" /> : <InfoCircleOutlined aria-hidden="true" />}
                                                         </span>
                                                     </Tooltip>
                                                 </>

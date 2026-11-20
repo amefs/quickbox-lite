@@ -4,6 +4,7 @@ import { readFile } from "fs/promises";
 import os from "os";
 import si from "systeminformation";
 import { listActiveInterfaceNames } from "../../utils/network-interfaces";
+import { getIfaceConfig } from "../../utils/vnstat";
 import type { CpuStaticData } from "../../shared/cpu-status-contract";
 
 export type CpuStaticInfo = CpuStaticData;
@@ -83,7 +84,7 @@ export async function getNetworkInterfaces() {
     try {
         const interfaces = await withTimeout(si.networkInterfaces(), [], NETWORK_INTERFACES_TIMEOUT_MS);
         const list = Array.isArray(interfaces) ? interfaces : [interfaces];
-        return listActiveInterfaceNames(list);
+        return listActiveInterfaceNames(list, process.platform, new Set([getIfaceConfig()]));
     } catch {
         return [];
     }

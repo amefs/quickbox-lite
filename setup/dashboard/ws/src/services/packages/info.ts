@@ -2,6 +2,7 @@
 import pkgList from "../../../config/packages.json";
 
 import { username } from "../../shared/constants";
+import type { ServiceTooltipIcon } from "../../shared/service-control-contract";
 
 export const packageMap: Record<string, Service> = {};
 export const packageList = pkgList as Service[];
@@ -13,7 +14,7 @@ export interface ServiceDetail {
     systemdUnit?: string;
     params?: string[];
     tooltips?: string;
-    tooltipsicon?: string;
+    tooltipIcon?: ServiceTooltipIcon;
 }
 
 type ServiceDetailList = Record<string, ServiceDetail>;

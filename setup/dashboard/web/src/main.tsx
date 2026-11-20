@@ -2,19 +2,16 @@
 
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { Button, ConfigProvider, Result, Spin } from "antd";
-import { useTranslation } from "react-i18next";
 
-import type { DashboardBootstrapPayload, DebugMetaPayload } from "../../ws/src/shared/bootstrap-contract";
+import type { DashboardBootstrapPayload } from "../../ws/src/shared/bootstrap-contract";
 import type { DashboardTheme } from "../../ws/src/shared/theme";
-import { DashboardApp, type BootstrapRetryState } from "./dashboard-app";
-import { DebugApp } from "./debug-app";
-import i18n, { detectInitialLocale, getAntdLocale, setLocale, VALID_LOCALES } from "./i18n";
-import { initDashboardRuntime } from "./runtime/dashboard-runtime-client";
+import { DashboardApp } from "./dashboard-app";
+import i18n, { detectInitialLocale, setLocale, VALID_LOCALES } from "./i18n";
+import { initDashboardRuntime, type BackendRetryState } from "./runtime/dashboard-runtime-client";
 import { registerDataIslands } from "./runtime/data-slots";
 import { registerServiceControlIsland } from "./runtime/service-control-client";
 import { registerSystemResponseIsland } from "./runtime/system-response-client";
-import { applyFrontendTheme, getAntdThemeConfig, getSelectedDashboardTheme } from "./runtime/theme-store";
+import { applyFrontendTheme, getSelectedDashboardTheme } from "./runtime/theme-store";
 
 function detectBasePath(): string {
     return window.location.pathname === "/ws" || window.location.pathname.startsWith("/ws/") ? "/ws" : "";
@@ -101,8 +98,10 @@ function DashboardRoot({ basePath }: { basePath: string }) {
         createFallbackBootstrap(basePath, initialTheme),
     );
     const [bootstrapReady, setBootstrapReady] = React.useState(false);
-    const [bootstrapRetry, setBootstrapRetry] = React.useState<BootstrapRetryState | null>(null);
+    const [bootstrapRetry, setBootstrapRetry] = React.useState<BackendRetryState | null>(null);
+    const [connectionRetry, setConnectionRetry] = React.useState<BackendRetryState | null>(null);
     const runtimeStartedRef = React.useRef(false);
+    const reconnectRef = React.useRef<(() => void) | undefined>(undefined);
     const retryTimerRef = React.useRef<number | null>(null);
     const bootstrapRequestRef = React.useRef<AbortController | null>(null);
 
@@ -148,7 +147,7 @@ function DashboardRoot({ basePath }: { basePath: string }) {
 
             if (!runtimeStartedRef.current) {
                 runtimeStartedRef.current = true;
-                initDashboardRuntime();
+                reconnectRef.current = initDashboardRuntime(setConnectionRetry);
             }
         } catch (error) {
             if (bootstrapRequestRef.current !== controller) {return;}
@@ -199,77 +198,29 @@ function DashboardRoot({ basePath }: { basePath: string }) {
         <DashboardApp
             bootstrap={bootstrap}
             bootstrapReady={bootstrapReady}
-            bootstrapRetry={bootstrapRetry}
-            onRetryBootstrap={() => void loadBootstrap(0)}
+            backendRetry={bootstrapRetry ?? connectionRetry}
+            onRetryBackend={bootstrapReady ? reconnectRef.current : () => void loadBootstrap(0)}
         />
     );
 }
 
-function DebugRoot({ basePath }: { basePath: string }) {
-    const { t } = useTranslation();
-    const initialLocale = React.useMemo(() => detectInitialLocale(), []);
-    const initialTheme = React.useMemo(() => detectInitialTheme(), []);
-    const [meta, setMeta] = React.useState<DebugMetaPayload | null>(null);
-    const [error, setError] = React.useState<string | null>(null);
-
-    const loadMeta = React.useCallback(async () => {
-        setError(null);
-        try {
-            const response = await fetch(`${basePath}/debug/meta`, {
-                credentials: "same-origin",
-            });
-            if (!response.ok) {
-                throw new Error(`Debug metadata failed (${response.status})`);
-            }
-            const payload = (await response.json()) as DebugMetaPayload;
-            setLocale(detectInitialLocale(payload.defaultLocale));
-            applyFrontendTheme(payload.theme);
-            document.title = "QuickBox WS Debug Console";
-            setMeta(payload);
-        } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            console.error("[quickbox-web] Failed to load debug console", err);
-            setError(message);
-        }
-    }, [basePath]);
-
-    React.useEffect(() => {
-        setLocale(initialLocale);
-        applyFrontendTheme(initialTheme);
-        void loadMeta();
-    }, [initialLocale, initialTheme, loadMeta]);
-
-    if (meta) {
-        return <DebugApp meta={meta} locale={i18n.language} />;
-    }
-
-    return (
-        <ConfigProvider locale={getAntdLocale(initialLocale)} theme={getAntdThemeConfig(initialTheme)}>
-            <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-                {error ? (
-                    <Result
-                        status="500"
-                        title={t("BACKEND_UNAVAILABLE_TITLE")}
-                        subTitle={t("BACKEND_RETRY_EXHAUSTED_DESC", { error, max: 1 })}
-                        extra={<Button type="primary" onClick={() => void loadMeta()}>{t("RETRY")}</Button>}
-                    />
-                ) : (
-                    <Spin size="large" />
-                )}
-            </div>
-        </ConfigProvider>
-    );
-}
+const DebugRoot = React.lazy(() => import("./debug-app"));
 
 function startApp() {
     const mount = document.getElementById("root");
     if (!mount) {
         return;
     }
-    setLocale(detectInitialLocale());
-    applyFrontendTheme(detectInitialTheme());
+    const initialLocale = detectInitialLocale();
+    const initialTheme = detectInitialTheme();
+    setLocale(initialLocale);
+    applyFrontendTheme(initialTheme);
     const basePath = detectBasePath();
-    createRoot(mount).render(isDebugRoute() ? <DebugRoot basePath={basePath} /> : <DashboardRoot basePath={basePath} />);
+    createRoot(mount).render(isDebugRoute() ? (
+        <React.Suspense fallback={null}>
+            <DebugRoot basePath={basePath} initialLocale={initialLocale} initialTheme={initialTheme} />
+        </React.Suspense>
+    ) : <DashboardRoot basePath={basePath} />);
 }
 
 startApp();

@@ -11,7 +11,7 @@ import type {
     BandwidthTableData,
 } from "../../../ws/src/shared/bandwidth-contract";
 import { formatSize, formatSpeed } from "../utils/format";
-import { BandwidthTablePlaceholder } from "./placeholder";
+import { SkeletonText } from "./placeholder";
 
 const SUMMARY_LABEL_KEYS: Record<BandwidthSummaryLabel, string> = {
     hour: "This hour",
@@ -50,9 +50,10 @@ interface DisplayRow {
     txAvg: number;
 }
 
-function DataTable({ captionKey, rows }: {
+function DataTable({ captionKey, rows, placeholderRows = 0 }: {
     captionKey: string;
     rows: DisplayRow[];
+    placeholderRows?: number;
 }) {
     const { t } = useTranslation();
     const evenOdd = (index: number) => index % 2 === 1 ? "odd" : "even";
@@ -69,6 +70,13 @@ function DataTable({ captionKey, rows }: {
                 </tr>
             </thead>
             <tbody>
+                {Array.from({ length: placeholderRows }, (_row, index) => (
+                    <tr key={index} aria-hidden="true">
+                        {[0, 1, 2, 3, 4, 5].map((column) => (
+                            <td key={column} style={{ fontSize: "12px" }}><SkeletonText width={column === 0 ? "75%" : "60%"} /></td>
+                        ))}
+                    </tr>
+                ))}
                 {rows.map((row, index) => (
                     <tr key={index}>
                         <td className={`label_${evenOdd(index)}`} style={{ fontSize: "12px", textAlign: "right" }}><b>{row.label}</b></td>
@@ -84,17 +92,18 @@ function DataTable({ captionKey, rows }: {
     );
 }
 
-export function BandwidthTablesView({ data }: { data: BandwidthTableData }) {
+export function BandwidthTablesRoot({ data }: { data: BandwidthTableData | null }) {
     const { t, i18n } = useTranslation();
-    const summaryRows: DisplayRow[] = data.summary.map((row: BandwidthSummaryRow) => ({
+    const summaryRows: DisplayRow[] = (data?.summary ?? []).map((row: BandwidthSummaryRow) => ({
         label: t(SUMMARY_LABEL_KEYS[row.label]),
         rx: row.rx,
         tx: row.tx,
         rxAvg: row.rxAvg,
         txAvg: row.txAvg,
     }));
-    const detailRows: DisplayRow[] = data.detail.map((row: BandwidthDetailRow) => ({
-        label: formatDetailTime(row.time, data.page, i18n.language),
+    const page = data?.page ?? "t";
+    const detailRows: DisplayRow[] = (data?.detail ?? []).map((row: BandwidthDetailRow) => ({
+        label: formatDetailTime(row.time, page, i18n.language),
         rx: row.rx,
         tx: row.tx,
         rxAvg: row.rxAvg,
@@ -102,21 +111,15 @@ export function BandwidthTablesView({ data }: { data: BandwidthTableData }) {
     }));
 
     return (
-        <div className="col-sm-12" style={{ paddingLeft: 0, paddingRight: 0 }}>
+        <div id={data ? undefined : "bw_tables_loading"} className="col-sm-12" style={{ paddingLeft: 0, paddingRight: 0 }} aria-busy={!data}>
             <div className="table-responsive">
-                <DataTable captionKey="Summary" rows={summaryRows} />
+                <DataTable captionKey="Summary" rows={summaryRows} placeholderRows={data ? 0 : 4} />
             </div>
             <div className="col-sm-12" style={{ paddingLeft: 0, paddingRight: 0 }}>
                 <div className="table-responsive">
-                    <DataTable captionKey={DETAIL_CAPTION_KEYS[data.page]} rows={detailRows} />
+                    <DataTable captionKey={DETAIL_CAPTION_KEYS[page]} rows={detailRows} placeholderRows={data ? 0 : 1} />
                 </div>
             </div>
         </div>
     );
-}
-
-export function BandwidthTablesRoot({ data }: { data: BandwidthTableData | null }) {
-    return data
-        ? <BandwidthTablesView data={data} />
-        : <div id="bw_tables_loading"><BandwidthTablePlaceholder /></div>;
 }

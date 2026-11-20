@@ -740,48 +740,6 @@ a.text-danger:focus{
   display: inline-block;
   margin-right: 5px;
 }
-#dataTable1_length{
-  font-size: 12px;
-  margin-top: 17px;
-}
-#dataTable1_filter{
-  font-size: 12px;
-  margin-top: 17px;
-  text-align: center;
-}
-#dataTable1_info{
-  font-size: 11px;
-  margin: 17px 0;
-}
-#dataTable1_paginate{
-  margin: 17px 17px 17px 0;
-  display: inline-flex;
-  float: right;
-}
-.dataTables_length label{
-  margin-bottom: 20px;
-}
-.dataTables_filter label{
-  margin-bottom: 20px;
-}
-.dataTables_filter .form-control{
-  font-size: inherit;
-  height: 38px;
-  padding: 10px 12px;
-}
-.dataTables_paginate .pagination > .paginate_button > a{
-  padding: 5px 7px 4px;
-}
-.dataTables_paginate .pagination > .paginate_button.next,
-.dataTables_paginate .pagination > .paginate_button.previous{
-  font-family: 'Open Sans', 'Helvetica Neue', Helvetica, sans-serif;
-  font-size: 12px;
-  text-transform: uppercase;
-}
-.dataTables_paginate .pagination > .paginate_button.next > a,
-.dataTables_paginate .pagination > .paginate_button.previous > a{
-  padding: 5px 7px 4px;
-}
 @media (min-width: 992px){
 body{
     overflow: visible !important;
@@ -1368,14 +1326,7 @@ blockquote{
   position: relative;
 }
 .nav-quirk > li.nav-parent > a:after{
-  content: '\f107';
-  font-family: 'FontAwesome';
-  font-size: 16px;
-  font-weight: 400;
-  color: #bdc3d1;
-  position: absolute;
-  top: 10px;
-  right: 15px;
+  content: none;
 }
 .nav-quirk > li.nav-active > ul{
   display: block;
@@ -1536,6 +1487,7 @@ blockquote{
   right: 0;
 }
 .sidebar-title{
+  margin: 8.5px 0;
   text-transform: uppercase;
   font-size: 11px;
   color: #9fa8bc;
@@ -1785,15 +1737,6 @@ img.grayscale:hover{
 .disk-danger{
   color: rgba(229,88,105,1);
   text-shadow: 0 0 0 rgba(229,88,105,0.2), 0 0 10px rgba(229,88,105,0.2), 0 0 15px rgba(229,88,105,0.2), 0 0 20px rgba(229,88,105,0.2), 0 0 35px rgba(229,88,105,0.2), 0 0 40px rgba(229,88,105,0.2), 0 0 50px rgba(229,88,105,0.2), 0 0 75px rgba(229,88,105,0.2);
-}
-div.dataTables_paginate{
-  text-align: unset;
-}
-div.dataTables_filter{
-  text-align: unset;
-}
-div.dataTables_info{
-  padding-top: 0;
 }
 div.exec-output span{
   display: block;

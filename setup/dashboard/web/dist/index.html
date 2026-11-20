@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="QuickBox Lite dashboard" />
     <meta name="author" content="quickbox-lite" />
     <title>Quickbox Dashboard</title>
@@ -14,22 +14,27 @@
     <link rel="icon" type="image/png" href="./img/favicon/favicon-16x16.png" sizes="16x16" />
     <link rel="manifest" href="./img/favicon/manifest.json" />
     <link rel="mask-icon" href="./img/favicon/safari-pinned-tab.svg" color="#5bbad5" />
-    <link rel="stylesheet" href="/css/dashboard.css?v=9c708119439b" />
-    <link rel="stylesheet" href="./css/dashboard-foundation.css" />
-    <link id="qb-theme-stylesheet" rel="stylesheet" href="./css/dashboard-theme.css" />
-    <link rel="stylesheet" href="./css/service-control.css" />
-    <link rel="stylesheet" href="./css/package-management.css" />
-    <link rel="stylesheet" href="./css/system-response.css" />
-    <link rel="stylesheet" href="./css/dashboard-layout.css" />
-    <style>@keyframes qb-shimmer{0%{background-position:-400px 0}to{background-position:400px 0}}.qb-skeleton{background:linear-gradient(90deg,#8080801f 25%,#8080803d 50%,#8080801f 75%) 0 0/800px 100%;border-radius:3px;animation:1.5s ease-in-out infinite qb-shimmer}.qb-skeleton-progress{border-radius:9px;height:18px}.qb-skeleton-btn{border-radius:4px;flex-shrink:0;height:26px}.qb-skeleton-circle{border-radius:50%;flex-shrink:0}</style>
-    <script type="module" crossorigin src="./assets/index.js?v=2f716c3c"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,600,600italic,700,700italic,300italic,300&amp;display=swap" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="/css/dashboard.css?v=bbad64c7ad7e" />
+    <link rel="stylesheet" href="./css/dashboard-foundation.css?v=7ce83ea341c2" />
+    <link id="qb-theme-stylesheet" rel="stylesheet" href="./css/dashboard-theme.css?v=6621b25c95ee" />
+    <link rel="stylesheet" href="./css/service-control.css?v=a34953640159" />
+    <link rel="stylesheet" href="./css/package-management.css?v=ff4c5f5c60c4" />
+    <link rel="stylesheet" href="./css/system-response.css?v=b1c29c636a0d" />
+    <link rel="stylesheet" href="./css/dashboard-layout.css?v=0f10c5fb471e" />
+    <script type="module" crossorigin src="./assets/index.js?v=b381675a"></script>
     <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime.js?v=fe614f90">
-    <link rel="modulepreload" crossorigin href="./assets/antd.js?v=c605da00">
-    <link rel="modulepreload" crossorigin href="./assets/i18n.js?v=5e4db650">
-    <link rel="modulepreload" crossorigin href="./assets/vendor.js?v=8921fe56">
-    <link rel="modulepreload" crossorigin href="./assets/react.js?v=5f785065">
+    <link rel="modulepreload" crossorigin href="./assets/antd~index.js?v=8c03b902">
+    <link rel="modulepreload" crossorigin href="./assets/i18n.js?v=f316f378">
+    <link rel="modulepreload" crossorigin href="./assets/vendor~index.js?v=619ade83">
 </head>
-<body class="body" data-theme="defaulted">
+<body class="body">
+    <script>
+        (function () {
+            var match = /(?:^|;\s*)quickbox_theme=(smoked|defaulted)(?:;|$)/.exec(document.cookie);
+            document.body.setAttribute("data-theme", match ? match[1] : "defaulted");
+        })();
+    </script>
     <div id="root"></div>
 </body>
 </html>

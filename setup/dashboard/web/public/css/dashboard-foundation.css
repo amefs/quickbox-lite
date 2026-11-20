@@ -1,7 +1,5 @@
 /* QuickBox dashboard foundation. These are the shell primitives used by the
    current dashboard markup; this file does not import Bootstrap. */
-@import url(https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,600,600italic,700,700italic,300italic,300&display=swap);
-
 @font-face {
     font-family: "Glyphicons Halflings";
     src: url("/fonts/glyphicons-halflings-regular.woff2") format("woff2");
@@ -101,7 +99,7 @@ body {
     margin: 0;
     background-color: var(--qb-page-background);
     color: var(--qb-page-color);
-    font-family: "Open Sans";
+    font-family: "Open Sans", "Helvetica Neue", Helvetica, sans-serif;
     font-size: 16px;
     font-weight: 400;
     line-height: 1.42857;

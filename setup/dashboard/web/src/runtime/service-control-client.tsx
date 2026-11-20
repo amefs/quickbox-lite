@@ -22,7 +22,6 @@ import type { DashboardBootstrapPayload, WsPushMode } from "../../../ws/src/shar
 import { DASHBOARD_STREAM_BY_KEY } from "../../../ws/src/shared/widget-streams";
 import { isWsMessageEnvelope } from "../../../ws/src/shared/ws-message";
 import { ServiceControlIsland } from "../components/service-control-island";
-import { ServiceControlPlaceholder } from "../components/placeholder";
 import { scheduleVisibilityInterval, useCommandConnection } from "./dashboard-runtime-client";
 import { systemResponseActions } from "./system-response-client";
 import { useDashboardTheme } from "./theme-store";
@@ -610,9 +609,6 @@ export function ServiceControlSlot({ bootstrap, ready = true }: { bootstrap: Das
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
     const activeTheme = useDashboardTheme(bootstrap.serviceTheme);
     const commandsConnected = useCommandConnection();
-    if (!ready) {
-        return <ServiceControlPlaceholder />;
-    }
     const labels = {
         title: t("SERVICE_CONTROL_CENTER"),
         status: t("SERVICE_STATUS"),
@@ -632,7 +628,8 @@ export function ServiceControlSlot({ bootstrap, ready = true }: { bootstrap: Das
             theme={activeTheme}
             statusById={snapshot.statusById}
             pendingById={snapshot.pendingById}
-            commandsDisabled={!commandsConnected}
+            commandsDisabled={!ready || !commandsConnected}
+            loading={!ready}
             onRefresh={store.executeRefresh}
             onEnabledChange={store.setEnabledAtBoot}
         />

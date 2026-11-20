@@ -13,6 +13,125 @@ test.beforeEach(async ({ page }) => {
     await resetMockProfile(page);
 });
 
+function pauseRequest() {
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    return { gate, release };
+}
+
+for (const { width, locale } of [{ width: 1280, locale: "zh" }, { width: 320, locale: "fr" }]) {
+    test(`server load keeps its height while data loads at ${width}px (${locale})`, async ({ page }) => {
+        const bootstrap = pauseRequest();
+        const load = pauseRequest();
+        const socket = pauseRequest();
+        await page.setViewportSize({ width, height: 900 });
+        await page.route("https://fonts.googleapis.com/**", route => route.abort());
+        await page.route("**/node/bootstrap*", async route => {
+            await bootstrap.gate;
+            await route.continue();
+        });
+        await page.route("**/node/data/system_load*", async route => {
+            await load.gate;
+            await route.continue();
+        });
+        await page.route("**/socket.io/**", async route => {
+            await socket.gate;
+            await route.continue();
+        });
+
+        const loadPlaceholder = page.locator("#cpuload .qb-skeleton");
+        const uptimePlaceholder = page.locator("#uptime .qb-skeleton");
+        const measure = () => page.evaluate(() => {
+            const loadCard = document.querySelector("[data-inner-id='panel-server-load']")!.getBoundingClientRect();
+            const cpuCard = document.querySelector("[data-inner-id='panel-server-cpu']")!.getBoundingClientRect();
+            return {
+                loadLine: document.querySelector("#cpuload")!.parentElement!.getBoundingClientRect().height,
+                uptimeLine: document.querySelector(".qb-uptime")!.getBoundingClientRect().height,
+                cpuOffset: cpuCard.top - loadCard.top,
+            };
+        });
+
+        try {
+            await page.goto(`/?locale=${locale}`);
+            await expect(loadPlaceholder).toBeVisible();
+            await expect(uptimePlaceholder).toBeVisible();
+            const loading = await measure();
+
+            bootstrap.release();
+            await expect(uptimePlaceholder).toHaveCount(0);
+            await expect(loadPlaceholder).toBeVisible();
+            expect(await measure()).toEqual(loading);
+
+            load.release();
+            await expect(loadPlaceholder).toHaveCount(0);
+            expect(await measure()).toEqual(loading);
+        } finally {
+            bootstrap.release();
+            load.release();
+            socket.release();
+        }
+    });
+}
+
+test("loading cards reserve space for their content at a narrow viewport", async ({ page }) => {
+    const bootstrap = pauseRequest();
+    const systemData = pauseRequest();
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.route("https://fonts.googleapis.com/**", route => route.abort());
+    await page.route("**/node/bootstrap*", async route => {
+        await bootstrap.gate;
+        await route.continue();
+    });
+    await page.route(/\/node\/data\/(system_static|disk_data|ram_stats)\?/, async route => {
+        await systemData.gate;
+        await route.continue();
+    });
+    await page.route("**/socket.io/**", async route => {
+        await systemData.gate;
+        await route.continue();
+    });
+
+    const packages = page.locator("[data-inner-id='panel-server-package-management']");
+    const services = page.locator("[data-inner-id='panel-server-service-control']");
+    const cpu = page.locator("[data-inner-id='panel-server-cpu']");
+    const disk = page.locator("[data-inner-id='panel-server-disk']");
+    const height = (panel: typeof packages) => panel.evaluate(element => element.getBoundingClientRect().height);
+
+    try {
+        await page.goto("/?locale=fr");
+        await expect(packages).toHaveAttribute("aria-busy", "true");
+        await expect(services).toHaveAttribute("aria-busy", "true");
+        await expect(packages.locator("#dataTable1-search")).toBeDisabled();
+        const memoryLines = page.locator("#meterram p").first().locator(".qb-skeleton");
+        await expect(memoryLines).toHaveCount(2);
+        const firstLine = (await memoryLines.first().boundingBox())!;
+        const secondLine = (await memoryLines.last().boundingBox())!;
+        expect(secondLine.y).toBeGreaterThan(firstLine.y + firstLine.height);
+        const packageLoadingHeight = await height(packages);
+        const serviceLoadingHeader = await height(services.locator("thead"));
+
+        bootstrap.release();
+        await expect(packages).toHaveAttribute("aria-busy", "false");
+        await expect(services).toHaveAttribute("aria-busy", "false");
+        await expect(packages.locator("tbody tr.ant-table-row")).toHaveCount(10);
+        expect(Math.abs(await height(packages) - packageLoadingHeight)).toBeLessThanOrEqual(25);
+        expect(await height(services.locator("thead"))).toBe(serviceLoadingHeader);
+
+        await expect(cpu.locator(".qb-skeleton")).toHaveCount(3);
+        const cpuLoadingHeight = await height(cpu);
+        const diskLoadingHeight = await height(disk);
+
+        systemData.release();
+        await expect(cpu.locator(".qb-skeleton")).toHaveCount(0);
+        await expect(disk.locator("#disk_data > [aria-busy='false']")).toBeVisible();
+        expect(Math.abs(await height(cpu) - cpuLoadingHeight)).toBeLessThanOrEqual(20);
+        expect(Math.abs(await height(disk) - diskLoadingHeight)).toBeLessThan(120);
+    } finally {
+        bootstrap.release();
+        systemData.release();
+    }
+});
+
 async function readPanels(page: Page) {
     return page.evaluate(() => {
         const rect = (selector: string) => {
@@ -58,7 +177,7 @@ for (const theme of ["smoked", "defaulted"]) {
             try {
                 await setMockProfile(page, "partial-running");
                 await page.goto("/?locale=zh");
-                await expect(page.locator("#disk_data .qb-disk-metric").first()).toBeVisible();
+                await expect(page.locator("#disk_data [aria-busy='false'] .qb-disk-metric").first()).toBeVisible();
 
                 const layout = await readPanels(page);
 
