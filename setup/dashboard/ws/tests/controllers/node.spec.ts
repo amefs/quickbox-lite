@@ -48,7 +48,7 @@ describe("controllers/node", () => {
             calls.push(args);
             const callback = args.at(-1) as (error: Error | null, stdout: string, stderr: string) => void;
             callback(null, "abc\trefs/heads/master\ndef\trefs/heads/feature/test\n", "");
-            return {} as childProcess.ChildProcess;
+            return {} as unknown as childProcess.ChildProcess;
         }) as typeof childProcess.execFile;
         const res = await request(createControllerTestApp(execFile)).get("/node/branches");
         expect(res.status).to.equal(200);

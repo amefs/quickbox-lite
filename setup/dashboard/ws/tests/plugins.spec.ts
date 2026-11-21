@@ -30,7 +30,7 @@ describe("plugins", () => {
             if (callback) {
                 callback(null, "", "");
             }
-            return {} as childProcess.ChildProcess;
+            return {} as unknown as childProcess.ChildProcess;
         }) as typeof childProcess.execFile;
 
         await applyRutorrentPluginActionWithExecFile("rss", "install", execFileStub);
