@@ -5,6 +5,11 @@ import { getDebugMeta } from "../services/config/debug-meta";
 import { resolveWidget } from "../socket/message";
 import { readDashboardTheme, serveDashboardIndex } from "./utils";
 
+function parseLogPosition(value?: string): number | undefined {
+    const position = Number.parseInt(value ?? "", 10);
+    return Number.isSafeInteger(position) ? position : undefined;
+}
+
 /**
  * Debug console sub-router (mounted at `/debug` and `/ws/debug`).
  *
@@ -38,7 +43,14 @@ export function createDebugRouter(dashboardDir: string, webIndexHtmlPath: string
             res.status(400).json({ error: "url query param required, e.g. /debug/node?url=/node/up" });
             return;
         }
-        res.send(await resolveWidget(url));
+        const { pathname, searchParams } = new URL(url, "http://localhost");
+        const { page, offset, length, epoch } = Object.fromEntries(searchParams);
+        res.send(await resolveWidget(pathname, {
+            page,
+            offset: parseLogPosition(offset),
+            length: parseLogPosition(length),
+            epoch,
+        }));
     });
 
     return router;

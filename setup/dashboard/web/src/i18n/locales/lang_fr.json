@@ -254,5 +254,6 @@
   "SERVICE_ACTION_REASON_TIMEOUT": "délai d’attente dépassé",
   "SERVICE_ACTION_REASON_BUSY": "trop de commandes en cours",
   "SERVICE_ACTION_REASON_INVALID": "action de service invalide",
+  "SERVICE_ACTION_REASON_NOT_ENABLED": "activez ce service avant de le redémarrer",
   "SERVICE_ACTION_REASON_UNKNOWN": "échec de l’action sur le service"
 }

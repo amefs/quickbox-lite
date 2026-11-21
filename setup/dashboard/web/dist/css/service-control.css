@@ -17,7 +17,31 @@
     --qb-switch-handle-background: #333;
 }
 
-.qb-service-control .ant-btn.qb-service-refresh {
+.qb-service-control .table-responsive {
+    container-type: inline-size;
+}
+
+.qb-service-control .table > tbody > tr > td:first-child {
+    padding-inline-start: 12px;
+}
+
+.qb-service-control .table > thead > tr > th,
+.qb-service-control .table > tbody > tr > td:first-child {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.qb-service-control .qb-service-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.qb-service-control .qb-service-name > :first-child {
+    flex: none;
+}
+
+.qb-service-control .ant-btn.qb-service-restart {
     box-sizing: border-box;
     display: inline-block;
     height: 23.5px;
@@ -34,15 +58,15 @@
     white-space: nowrap;
 }
 
-.qb-service-control .ant-btn.qb-service-refresh:hover,
-.qb-service-control .ant-btn.qb-service-refresh:focus-visible {
+.qb-service-control .ant-btn.qb-service-restart:hover,
+.qb-service-control .ant-btn.qb-service-restart:focus-visible {
     border-color: var(--qb-button-hover-border);
     color: var(--qb-button-hover-color);
     background: var(--qb-button-hover-background);
     box-shadow: none;
 }
 
-.qb-service-control .ant-btn.qb-service-refresh:active {
+.qb-service-control .ant-btn.qb-service-restart:active {
     border-color: var(--qb-button-hover-border);
     color: var(--qb-button-hover-color);
     background: var(--qb-button-hover-background);
@@ -55,6 +79,39 @@
     width: 100px;
     min-height: 31px;
     margin-right: 5px;
+}
+
+@container (max-width: 480px) {
+    .qb-service-control .table {
+        table-layout: fixed;
+    }
+
+    .qb-service-control .table > thead > tr > th {
+        letter-spacing: normal;
+    }
+
+    .qb-service-control .table > thead > tr > th:nth-child(2) {
+        width: 28%;
+    }
+
+    .qb-service-control .table > thead > tr > th:last-child {
+        width: 110px;
+    }
+
+    .qb-service-control .ant-btn.qb-service-restart {
+        display: inline-flex;
+        gap: 3px;
+        max-inline-size: 100%;
+        height: auto;
+        min-height: 23.5px;
+        padding-inline: 3px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .qb-service-control .toggle-wrapper {
+        margin-right: 0;
+    }
 }
 
 .qb-service-control .qb-service-switch.ant-switch {

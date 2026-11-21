@@ -138,6 +138,35 @@ test("loading cards reserve space for their content at a narrow viewport", async
     }
 });
 
+for (const locale of ["zh", "fr"]) {
+    test(`service controls fit a 320px viewport (${locale})`, async ({ page }) => {
+        await page.setViewportSize({ width: 320, height: 800 });
+        await setMockProfile(page, "all-running");
+        await page.goto(`/?locale=${locale}`);
+        const services = page.locator("#service_control_widget");
+        await expect(services.getByRole("switch", { name: "File Browser" })).toBeVisible();
+
+        const layout = await services.locator(".table-responsive").evaluate(table => {
+            const { left, right } = table.getBoundingClientRect();
+            const controls = Array.from(table.querySelectorAll("tbody button"));
+            return {
+                overflow: table.scrollWidth - table.clientWidth,
+                clippedCells: Array.from(table.querySelectorAll("th, td")).filter(cell => cell.scrollWidth > cell.clientWidth).length,
+                clippedControls: controls.filter(control => {
+                    const bounds = control.getBoundingClientRect();
+                    return bounds.left < left || bounds.right > right;
+                }).length,
+                badgeInset: table.querySelector("tbody .badge")!.getBoundingClientRect().left - left,
+            };
+        });
+
+        expect(layout.overflow).toBe(0);
+        expect(layout.clippedCells).toBe(0);
+        expect(layout.clippedControls).toBe(0);
+        expect(layout.badgeInset).toBeGreaterThanOrEqual(10);
+    });
+}
+
 async function readPanels(page: Page) {
     return page.evaluate(() => {
         const rect = (selector: string) => {

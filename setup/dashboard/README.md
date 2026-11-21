@@ -7,6 +7,8 @@ The Realtime CPU/Network Graph are removed. Data refresh rate is slightly reduce
 
 The dashboard disables Socket.IO management actions while disconnected. If the connection drops before an operation returns a result, check the task or service status before retrying. Service badges mark their last confirmed status as stale during the outage.
 
+The status badge reports whether a service is running. The switch shows whether it is enabled at boot. Restart is available for enabled services. Use the switch to enable and start a disabled service.
+
 ## Default dashboard language
 
 Set the server default with `box lang <language>`. The dashboard reads that

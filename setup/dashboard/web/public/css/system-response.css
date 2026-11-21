@@ -2,9 +2,14 @@
 
 #sysResponse .qb-system-response-content {
     padding: 0;
+    border: 2px solid rgba(0, 0, 0, .2);
     border-radius: 4px;
-    background: rgba(0, 0, 0, .6);
-    box-shadow: none;
+    background: rgba(0, 0, 0, .76);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, .5);
+}
+
+#sysResponse :is(.qb-system-response-header, .qb-system-response-body, .qb-system-response-footer) {
+    background: transparent;
 }
 
 #sysResponse .qb-system-response-header {
@@ -13,7 +18,6 @@
     padding: 8px 20px;
     border: 0;
     border-radius: 0;
-    background: rgba(0, 0, 0, .4);
 }
 
 #sysResponse .qb-system-response-title {
@@ -28,9 +32,8 @@
 }
 
 #sysResponse .qb-system-response-body {
-    padding: 15px;
-    overflow: auto;
-    background: rgba(0, 0, 0, .4);
+    padding: 16px;
+    overflow: hidden;
 }
 
 #sysResponse .qb-system-response-footer {
@@ -38,7 +41,6 @@
     padding: 12px 20px;
     border: 0;
     border-radius: 0;
-    background: rgba(0, 0, 0, .4);
 }
 
 #sysResponse .qb-system-response-output {

@@ -4,22 +4,26 @@ import React, { useSyncExternalStore } from "react";
 import i18n from "../i18n";
 
 import {
-    SERVICE_CONTROL_URL,
-    SERVICE_STATUS_ALL_URL,
-    isServiceControlData,
-    isServiceResponseV2,
+    SERVICE_LOCALES,
+    SERVICE_STREAM_URLS,
+    isServiceDataMessage,
+    isServiceKey,
     isServiceStatusAllData,
-    type ServiceControlData,
+    type ServiceActionCompleteResult,
+    type ServiceActionConfirmedResult,
+    type ServiceActionName,
+    type ServiceActionRequest,
+    type ServiceActionResult,
+    type ServiceDataMessage,
+    type ServiceKey,
     type ServiceLocale,
-    type ServiceRequestV2,
-    type ServiceResponseV2,
     type ServiceRow,
     type ServiceState,
     type ServiceStatusAllData,
 } from "../../../ws/src/shared/service-control-contract";
 import type { DashboardBootstrapPayload, WsPushMode } from "../../../ws/src/shared/bootstrap-contract";
 import { DASHBOARD_STREAM_BY_KEY } from "../../../ws/src/shared/widget-streams";
-import { isWsMessageEnvelope } from "../../../ws/src/shared/ws-message";
+import type { WsWidgetRequest, WsWidgetResponse } from "../../../ws/src/shared/ws-message";
 import { ServiceControlIsland } from "../components/service-control-island";
 import { scheduleVisibilityInterval, useCommandConnection } from "./dashboard-runtime-client";
 import { systemResponseActions } from "./system-response-client";
@@ -28,13 +32,13 @@ import { useDashboardTheme } from "./theme-store";
 interface ServiceTransport {
     isConnected: () => boolean;
     pushMode?: WsPushMode;
-    sendMessage: (request: ServiceRequestV2) => void;
-    executeServiceAction: (request: { requestId: string; service: string; action: "enable" | "disable" | "restart"; locale: ServiceLocale }) => boolean;
+    sendMessage: (request: WsWidgetRequest) => void;
+    executeServiceAction: (request: ServiceActionRequest) => boolean;
     notifyStopped: (key: string) => void;
 }
 
 interface PendingRequest {
-    request: ServiceRequestV2;
+    key: ServiceKey;
     timeout: ReturnType<typeof setTimeout>;
 }
 
@@ -48,8 +52,8 @@ interface ServiceIslandBridge {
     bindTransport: (next: ServiceTransport) => void;
     onConnected: (bootstrapDelayMs: number) => void;
     onDisconnected: () => boolean;
-    onMessage: (payload: unknown) => void;
-    onActionResult: (payload: unknown) => void;
+    onMessage: (payload: WsWidgetResponse) => void;
+    onActionResult: (payload: ServiceActionResult) => void;
     onLocaleChanged: (nextLocale: string) => void;
 }
 
@@ -72,31 +76,13 @@ const SERVICE_STATUS_INTERVAL_MS = DASHBOARD_STREAM_BY_KEY.SERVICE_STATUS_ALL.vi
 const SERVICE_STATUS_MAX_RETRY_MS = DASHBOARD_STREAM_BY_KEY.SERVICE_STATUS_ALL.hiddenMs;
 
 function normalizeLocale(value: string): ServiceLocale {
-    return (["da", "de", "en", "es", "fr", "zh"] as const).includes(value as ServiceLocale)
-        ? value as ServiceLocale
-        : "en";
+    return SERVICE_LOCALES.find(locale => locale === value) ?? "en";
 }
 
-function hasOnlyKnownServiceIds(response: ServiceResponseV2, knownServiceIds: Set<string>) {
-    if (response.status === "error") {
-        return true;
-    }
-    if ("rows" in response.data) {
-        return response.data.rows.every((row) => knownServiceIds.has(row.id));
-    }
-    return Object.keys(response.data.states).every((serviceId) => knownServiceIds.has(serviceId));
-}
-
-function matchesPendingRequest(
-    response: ServiceResponseV2,
-    pending: PendingRequest,
-    generation: number,
-    locale: ServiceLocale,
-) {
-    const request = pending.request;
-    return response.meta.key === request.key && response.meta.url === request.url &&
-        response.meta.locale === request.locale && response.meta.generation === request.generation &&
-        request.generation === generation && request.locale === locale;
+function hasOnlyKnownServiceIds(message: ServiceDataMessage, knownServiceIds: Set<string>) {
+    return message.key === "SERVICE_CONTROL"
+        ? message.response.rows.every(row => knownServiceIds.has(row.id))
+        : Object.keys(message.response.states).every(id => knownServiceIds.has(id));
 }
 
 function createServiceControlStore(initialRows: ServiceRow[], initialLocale: string, serviceKeys: string[]) {
@@ -108,7 +94,6 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
     };
     let snapshot = serverSnapshot;
     let locale = normalizeLocale(initialLocale);
-    let generation = 0;
     let requestSequence = 0;
     let transport: ServiceTransport | undefined;
     let statusRetryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -118,7 +103,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
     let scheduled = false;
     const listeners = new Set<() => void>();
     const pendingById = new Map<string, PendingRequest>();
-    const pendingByKey = new Map<ServiceRequestV2["key"], string>();
+    const pendingByKey = new Map<ServiceKey, string>();
     const errorCountByKey: Record<string, number> = {};
     const stoppedKeys = new Set<string>();
     const serviceActions = new Map<string, PendingServiceAction>();
@@ -147,8 +132,8 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         }
         clearTimeout(pending.timeout);
         pendingById.delete(requestId);
-        if (pendingByKey.get(pending.request.key) === requestId) {
-            pendingByKey.delete(pending.request.key);
+        if (pendingByKey.get(pending.key) === requestId) {
+            pendingByKey.delete(pending.key);
         }
     };
 
@@ -186,10 +171,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         }, SERVICE_STATUS_INTERVAL_MS);
     };
 
-    const handleStatusData = (data: Extract<ServiceResponseV2, { status: "success" }> ["data"]) => {
-        if (!("states" in data)) {
-            return;
-        }
+    const handleStatusData = (data: ServiceStatusAllData) => {
         snapshot = {
             ...snapshot,
             statusById: { ...snapshot.statusById, ...data.states },
@@ -205,7 +187,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         }
     };
 
-    const sendRequest = (key: ServiceRequestV2["key"]) => {
+    const sendRequest = (key: ServiceKey) => {
         if (transport?.pushMode === "push") {
             return;
         }
@@ -222,19 +204,12 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         if (!transport?.isConnected() || stoppedKeys.has(key) || pendingByKey.has(key)) {
             return;
         }
-        const request: ServiceRequestV2 = {
-            protocolVersion: 2,
-            key,
-            url: key === "SERVICE_CONTROL" ? SERVICE_CONTROL_URL : SERVICE_STATUS_ALL_URL,
-            requestId: `${key}:${++requestSequence}`,
-            locale,
-            generation,
-        };
+        const requestId = `${key}:${++requestSequence}`;
         const timeout = setTimeout(() => {
-            if (!pendingById.has(request.requestId)) {
+            if (!pendingById.has(requestId)) {
                 return;
             }
-            clearPendingRequest(request.requestId);
+            clearPendingRequest(requestId);
             if (transport?.isConnected()) {
                 if (key === "SERVICE_STATUS_ALL") {
                     errorCountByKey[key] = (errorCountByKey[key] ?? 0) + 1;
@@ -246,9 +221,9 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
                 }
             }
         }, REQUEST_TIMEOUT_MS);
-        pendingById.set(request.requestId, { request, timeout });
-        pendingByKey.set(key, request.requestId);
-        transport.sendMessage(request);
+        pendingById.set(requestId, { key, timeout });
+        pendingByKey.set(key, requestId);
+        transport.sendMessage({ type: "request", key, url: SERVICE_STREAM_URLS[key], requestId });
     };
 
     const applyServiceRows = (rowsData: ServiceRow[]) => {
@@ -259,7 +234,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         snapshot = { ...snapshot, rows };
     };
 
-    const applyServiceFailure = (key: ServiceRequestV2["key"]) => {
+    const applyServiceFailure = (key: ServiceKey) => {
         errorCountByKey[key] = (errorCountByKey[key] ?? 0) + 1;
         if (key === "SERVICE_STATUS_ALL") {
             markAllServiceStatusesStale();
@@ -274,61 +249,48 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         }
     };
 
-    const applyServiceSuccess = (key: ServiceRequestV2["key"], data: ServiceControlData | ServiceStatusAllData) => {
+    const applyServiceSuccess = (message: ServiceDataMessage) => {
+        const { key, response } = message;
         if (errorCountByKey[key]) {
             errorCountByKey[key] = Math.max(0, errorCountByKey[key] - 1);
         }
-        if ("rows" in data) {
-            if (!data.rows.every((row) => knownServiceIds.has(row.id))) {
-                return;
-            }
-            applyServiceRows(data.rows);
+        if (key === "SERVICE_CONTROL") {
+            applyServiceRows(response.rows);
         } else {
-            if (!Object.keys(data.states).every((id) => knownServiceIds.has(id))) {
-                return;
-            }
-            handleStatusData(data);
+            handleStatusData(response);
         }
         publish();
     };
 
-    const handleMessage = (payload: unknown) => {
-        if (transport?.pushMode === "push" && isWsMessageEnvelope(payload) && payload.push === true &&
-            (payload.key === "SERVICE_CONTROL" || payload.key === "SERVICE_STATUS_ALL")) {
-            const key = payload.key;
-            if (!payload.success) {
-                if (payload.stale && key === "SERVICE_STATUS_ALL" && isServiceStatusAllData(payload.response)) {
-                    const states = Object.fromEntries(Object.entries(payload.response.states).filter(([id]) => knownServiceIds.has(id)));
-                    snapshot = { ...snapshot, statusById: { ...snapshot.statusById, ...states } };
-                }
-                applyServiceFailure(key);
-                return;
+    const handleMessage = (payload: WsWidgetResponse) => {
+        if (!isServiceKey(payload.key) || payload.url !== SERVICE_STREAM_URLS[payload.key]) {
+            return;
+        }
+        const { key, response } = payload;
+        if (payload.type === "reply" && pendingById.get(payload.requestId)?.key !== key) {
+            return;
+        }
+
+        if (!payload.success) {
+            if (payload.type === "reply") {
+                clearPendingRequest(payload.requestId);
             }
-            if (key === "SERVICE_CONTROL" && isServiceControlData(payload.response)) {
-                applyServiceSuccess(key, payload.response);
-            } else if (key === "SERVICE_STATUS_ALL" && isServiceStatusAllData(payload.response)) {
-                applyServiceSuccess(key, payload.response);
+            if (payload.type === "push" && payload.stale && key === "SERVICE_STATUS_ALL" && isServiceStatusAllData(response)) {
+                const states = Object.fromEntries(Object.entries(response.states).filter(([id]) => knownServiceIds.has(id)));
+                snapshot = { ...snapshot, statusById: { ...snapshot.statusById, ...states } };
             }
+            applyServiceFailure(key);
             return;
         }
-        if (!isServiceResponseV2(payload)) {
+
+        const message = { key, response };
+        if (!isServiceDataMessage(message) || !hasOnlyKnownServiceIds(message, knownServiceIds)) {
             return;
         }
-        const response: ServiceResponseV2 = payload;
-        if (!hasOnlyKnownServiceIds(response, knownServiceIds)) {
-            return;
+        if (payload.type === "reply") {
+            clearPendingRequest(payload.requestId);
         }
-        const pending = pendingById.get(response.meta.requestId);
-        if (!pending || !matchesPendingRequest(response, pending, generation, locale)) {
-            return;
-        }
-        const request = pending.request;
-        clearPendingRequest(request.requestId);
-        if (response.status === "error") {
-            applyServiceFailure(request.key);
-            return;
-        }
-        applyServiceSuccess(request.key, response.data);
+        applyServiceSuccess(message);
     };
 
     const markServiceStale = (serviceId: string) => {
@@ -350,31 +312,31 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         if (rawMessage === "Invalid service action") {
             return i18n.t("SERVICE_ACTION_REASON_INVALID");
         }
+        if (rawMessage === "Service is not enabled") {
+            return i18n.t("SERVICE_ACTION_REASON_NOT_ENABLED");
+        }
         return rawMessage || i18n.t("SERVICE_ACTION_REASON_UNKNOWN");
     };
 
-    const formatActionLabel = (action: unknown): string => {
+    const formatActionLabel = (action: string): string => {
         if (action === "enable") {return i18n.t("SERVICE_ACTION_ENABLE");}
         if (action === "disable") {return i18n.t("SERVICE_ACTION_DISABLE");}
         if (action === "restart") {return i18n.t("SERVICE_ACTION_RESTART");}
         return "";
     };
 
-    const showActionFailure = (payload: Record<string, unknown>) => {
-        const serviceId = typeof payload.service === "string" ? payload.service : "";
+    const showActionFailure = (payload: ServiceActionResult) => {
+        const serviceId = payload.service;
         const serviceName = snapshot.rows.find((row) => row.id === serviceId)?.name || serviceId;
         const actionLabel = formatActionLabel(payload.action);
-        const rawMessage = typeof payload.message === "string" ? payload.message : "";
-        const reason = formatActionReason(rawMessage);
+        const reason = formatActionReason(payload.message);
         const message = serviceName && actionLabel
             ? i18n.t("SERVICE_ACTION_FAILED", { action: actionLabel, service: serviceName, reason })
             : reason;
-        const failedOperation = typeof payload.failedOperation === "string" && payload.failedOperation !== ""
+        const failedOperation = payload.failedOperation
             ? (serviceId ? `systemctl ${payload.failedOperation} ${serviceId}` : `systemctl ${payload.failedOperation}`)
             : "";
-        const output = typeof payload.stderr === "string" && payload.stderr !== ""
-            ? payload.stderr
-            : typeof payload.stdout === "string" ? payload.stdout : "";
+        const output = payload.stderr || payload.stdout;
         systemResponseActions.showAlert({
             message,
             ...(failedOperation ? { command: failedOperation } : {}),
@@ -385,7 +347,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
     const completeAction = (
         requestId: string,
         refresh = true,
-        statusData?: { states: Record<string, ServiceState>; health: ServiceControlSnapshot["health"]; retryAfterMs: number },
+        statusData?: ServiceStatusAllData,
     ) => {
         const request = serviceActions.get(requestId);
         if (!request) {
@@ -417,7 +379,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         }
     };
 
-    const executeServiceAction = (serviceId: string, action: "enable" | "disable" | "restart") => {
+    const executeServiceAction = (serviceId: string, action: ServiceActionName) => {
         if (!transport?.isConnected() || pendingActionByService.has(serviceId)) {
             return;
         }
@@ -432,63 +394,52 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         }
     };
 
-    const finishConfirmedAction = (requestId: string, response: Record<string, unknown>, request: PendingServiceAction) => {
-        if (typeof response.enabled === "boolean") {
+    const finishConfirmedAction = (requestId: string, response: ServiceActionConfirmedResult, request: PendingServiceAction) => {
+        if (response.enabled !== undefined) {
+            const enabled = response.enabled;
             snapshot = {
                 ...snapshot,
-                rows: snapshot.rows.map((row) => row.id === request.serviceId ? { ...row, enabledAtBoot: response.enabled as boolean } : row),
+                rows: snapshot.rows.map((row) => row.id === request.serviceId ? { ...row, enabledAtBoot: enabled } : row),
             };
         }
-        if (response.success === false && !request.failureShown) {
+        if (!response.success && !request.failureShown) {
             showActionFailure(response);
-        } else if (typeof response.statusError === "string" && response.statusError !== "") {
+        } else if (response.statusError) {
             systemResponseActions.showAlert({
                 message: i18n.t("SERVICE_ACTION_STATUS_UNCONFIRMED"),
                 output: response.statusError,
             });
         }
-        const statusData = response.statusData;
-        const confirmedStatus = statusData !== null && typeof statusData === "object" && !Array.isArray(statusData)
-            ? statusData as { states?: Record<string, ServiceState>; health?: ServiceControlSnapshot["health"]; retryAfterMs?: number }
-            : undefined;
-        if (confirmedStatus?.states && confirmedStatus.health && typeof confirmedStatus.retryAfterMs === "number") {
-            completeAction(requestId, true, {
-                states: confirmedStatus.states,
-                health: confirmedStatus.health,
-                retryAfterMs: confirmedStatus.retryAfterMs,
-            });
-        } else {
-            completeAction(requestId);
-        }
+        completeAction(requestId, true, response.statusData);
     };
 
-    const handleActionComplete = (response: Record<string, unknown>, request: PendingServiceAction) => {
+    const handleActionComplete = (response: ServiceActionCompleteResult, request: PendingServiceAction) => {
         markServiceStale(request.serviceId);
-        if (response.success === false && !request.failureShown) {
+        if (!response.success && !request.failureShown) {
             request.failureShown = true;
             showActionFailure(response);
         }
     };
 
-    const handleActionResult = (payload: unknown) => {
-        if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
-            return;
-        }
-        const response = payload as Record<string, unknown>;
-        if (typeof response.requestId !== "string" || typeof response.service !== "string") {
+    const handleActionResult = (response: ServiceActionResult) => {
+        if (!response.requestId) {
             return;
         }
         const request = serviceActions.get(response.requestId);
         if (!request || request.serviceId !== response.service) {
             return;
         }
-        if (response.phase === "action-complete") {
-            handleActionComplete(response, request);
-        } else if (response.phase === "status-confirmed") {
-            finishConfirmedAction(response.requestId, response, request);
-        } else if (response.phase === undefined) {
-            showActionFailure(response);
-            completeAction(response.requestId);
+        switch (response.phase) {
+            case "action-complete":
+                handleActionComplete(response, request);
+                break;
+            case "status-confirmed":
+                finishConfirmedAction(response.requestId, response, request);
+                break;
+            case "rejected":
+                showActionFailure(response);
+                completeAction(response.requestId);
+                break;
         }
     };
 
@@ -496,7 +447,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         executeServiceAction(serviceId, enabledAtBoot ? "enable" : "disable");
     };
 
-    const executeRefresh = (serviceId: string) => {
+    const restartService = (serviceId: string) => {
         executeServiceAction(serviceId, "restart");
     };
 
@@ -514,7 +465,6 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
     };
 
     const onConnected = (bootstrapDelayMs: number) => {
-        generation += 1;
         clearPending();
         nextStatusRequestAt = 0;
         if (statusRetryTimer) {
@@ -563,7 +513,6 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
 
     const onLocaleChanged = (nextLocale: string) => {
         locale = normalizeLocale(nextLocale);
-        generation += 1;
         clearPending();
     };
 
@@ -578,7 +527,7 @@ function createServiceControlStore(initialRows: ServiceRow[], initialLocale: str
         handleMessage,
         handleActionResult,
         setEnabledAtBoot,
-        executeRefresh,
+        restartService,
     };
 }
 
@@ -615,7 +564,7 @@ export function ServiceControlSlot({ bootstrap, ready = true }: { bootstrap: Das
             pendingById={snapshot.pendingById}
             commandsDisabled={!ready || !commandsConnected}
             loading={!ready}
-            onRefresh={store.executeRefresh}
+            onRestart={store.restartService}
             onEnabledChange={store.setEnabledAtBoot}
         />
     );

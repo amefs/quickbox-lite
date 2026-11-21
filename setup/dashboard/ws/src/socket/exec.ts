@@ -15,6 +15,13 @@ import { runMockCommand } from "../testing/mock-adapter";
 import { serviceMap } from "../services/packages/info";
 import { invalidateInstalledPackagesCache, isServiceEnabled } from "../services/packages/panels";
 import { serviceStatusAllData } from "../services/service/status";
+import type {
+    ServiceActionCompleteResult,
+    ServiceActionConfirmedResult,
+    ServiceActionName,
+    ServiceActionRejectedResult,
+} from "../shared/service-control-contract";
+import type { WsExecResult } from "../shared/ws-message";
 import { notifyPushSubscribers } from "./push";
 
 let baseDir = __dirname;
@@ -65,7 +72,7 @@ const serviceActionOperations = {
     restart: ["restart"],
 } as const;
 
-function isServiceAction(value: string): value is keyof typeof serviceActionOperations {
+function isServiceAction(value: string): value is ServiceActionName {
     return Object.prototype.hasOwnProperty.call(serviceActionOperations, value);
 }
 
@@ -364,11 +371,22 @@ function executeServiceCommand(payload: string): Promise<{ success: boolean; mes
     });
 }
 
-interface ServiceActionPayload {
-    requestId?: unknown;
-    service?: unknown;
-    action?: unknown;
-    locale?: unknown;
+interface ParsedServiceActionRequest {
+    requestId?: string;
+    service: string;
+    action: string;
+}
+
+function parseServiceActionRequest(payload: unknown): ParsedServiceActionRequest {
+    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+        return { service: "", action: "" };
+    }
+    const record = payload as Record<string, unknown>;
+    return {
+        requestId: typeof record.requestId === "string" ? record.requestId : undefined,
+        service: typeof record.service === "string" ? record.service : "",
+        action: typeof record.action === "string" ? record.action : "",
+    };
 }
 
 async function confirmServiceStatus() {
@@ -384,95 +402,108 @@ async function confirmServiceStatus() {
 }
 
 async function serviceActionHandler(payload: unknown, client: Socket) {
-    const request = payload !== null && typeof payload === "object" ? payload as ServiceActionPayload : {};
-    const response: {
-        requestId?: string;
-        service: string;
-        action: string;
-        success: boolean;
-        message: string;
-        phase?: "action-complete" | "status-confirmed";
-        statusError?: string;
-        failedOperation?: string;
-        completedOperations: string[];
-        stdout: string;
-        stderr: string;
-        enabled?: boolean;
-        statusData?: Awaited<ReturnType<typeof serviceStatusAllData>>;
-    } = {
-        requestId: typeof request.requestId === "string" ? request.requestId : undefined,
-        service: typeof request.service === "string" ? request.service : "",
-        action: typeof request.action === "string" ? request.action : "",
+    const request = parseServiceActionRequest(payload);
+    const baseResult = {
+        requestId: request.requestId,
+        service: request.service,
+        action: request.action,
         success: false,
         message: "Invalid service action",
-        completedOperations: [],
+        completedOperations: [] as string[],
         stdout: "",
         stderr: "",
     };
+    const rejectAction = (message: string) => {
+        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, {
+            ...baseResult,
+            phase: "rejected",
+            success: false,
+            message,
+        } satisfies ServiceActionRejectedResult);
+    };
 
-    if (!serviceMap.has(response.service) || !isServiceAction(response.action)) {
-        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
+    const service = serviceMap.get(request.service);
+    if (!service || !isServiceAction(request.action)) {
+        rejectAction("Invalid service action");
         return;
     }
-    const operations = serviceActionOperations[response.action];
-    if (serviceActionsInFlight.has(response.service)) {
-        response.message = "A service action is already in progress";
-        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
+    const operations = serviceActionOperations[request.action];
+    if (serviceActionsInFlight.has(request.service)) {
+        rejectAction("A service action is already in progress");
+        return;
+    }
+    if (request.action === "restart" && !isServiceEnabled(request.service, service.username)) {
+        rejectAction("Service is not enabled");
+        notifyPushSubscribers(["SERVICE_CONTROL"]);
         return;
     }
     if (!tryAcquireExecSlot(client)) {
-        response.message = "Too many commands in progress";
-        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
+        rejectAction("Too many commands in progress");
         return;
     }
 
-    serviceActionsInFlight.add(response.service);
+    let actionSuccess = true;
+    let actionMessage = "Service action completed";
+    let failedOperation: string | undefined;
+    const completedOperations: string[] = [];
+    let stdout = "";
+    let stderr = "";
+
+    serviceActionsInFlight.add(request.service);
     try {
         try {
-            response.success = true;
-            response.message = "Service action completed";
             for (const operation of operations) {
-                const result = await executeServiceCommand(`systemctl:${operation}:${response.service}`);
-                response.stdout += result.stdout;
-                response.stderr += result.stderr;
+                const result = await executeServiceCommand(`systemctl:${operation}:${request.service}`);
+                stdout += result.stdout;
+                stderr += result.stderr;
                 if (!result.success) {
-                    response.success = false;
-                    response.failedOperation = operation;
-                    response.message = result.message || `systemctl ${operation} failed`;
+                    actionSuccess = false;
+                    failedOperation = operation;
+                    actionMessage = result.message || `systemctl ${operation} failed`;
                     break;
                 }
-                response.completedOperations.push(operation);
+                completedOperations.push(operation);
             }
         } finally {
             releaseExecSlot(client);
         }
 
-        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, { ...response, phase: "action-complete" });
+        const actionResult: ServiceActionCompleteResult = {
+            ...baseResult,
+            phase: "action-complete",
+            success: actionSuccess,
+            message: actionMessage,
+            ...(failedOperation !== undefined ? { failedOperation } : {}),
+            completedOperations,
+            stdout,
+            stderr,
+        };
+        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, actionResult);
 
-        response.phase = "status-confirmed";
+        const confirmedResult: ServiceActionConfirmedResult = {
+            ...actionResult,
+            phase: "status-confirmed",
+        };
         try {
-            response.statusData = await confirmServiceStatus();
-            const detail = serviceMap.get(response.service);
-            if (detail) {
-                response.enabled = isServiceEnabled(response.service, detail.username);
-            }
+            confirmedResult.statusData = await confirmServiceStatus();
+            confirmedResult.enabled = isServiceEnabled(request.service, service.username);
         } catch (error) {
-            response.statusError = error instanceof Error ? error.message : "Service status refresh failed";
-            console.error(`[quickbox-ws] failed to refresh service state after ${response.action}:${response.service}`, error);
+            confirmedResult.statusError = error instanceof Error ? error.message : "Service status refresh failed";
+            console.error(`[quickbox-ws] failed to refresh service state after ${request.action}:${request.service}`, error);
         }
+        client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, confirmedResult);
     } finally {
-        serviceActionsInFlight.delete(response.service);
+        serviceActionsInFlight.delete(request.service);
     }
-    client.emit(Constant.EVENT_SERVICE_ACTION_RESULT, response);
     notifyPushSubscribers(["SERVICE_STATUS_ALL", "SERVICE_CONTROL"]);
 }
 
 const execHandler = (payload: unknown, client: Socket) => {
     if (typeof payload !== "string") {
-        client.emit(Constant.EVENT_EXEC, { cmd: "", success: false, message: "Invalid payload", stdout: "", stderr: "" });
+        client.emit(Constant.EVENT_EXEC, { cmd: "", success: false, message: "Invalid payload", stdout: "", stderr: "" } satisfies WsExecResult);
         return;
     }
-    const ret = {
+    const ret: WsExecResult = {
         cmd: payload,
         success: true,
         message: "",

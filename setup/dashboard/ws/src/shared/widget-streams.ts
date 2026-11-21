@@ -2,8 +2,8 @@
 
 export const NETWORK_STATUS_URL = "/node/net_status" as const;
 export const TASK_STATUS_DATA_URL = "/node/data/task_status" as const;
-export const SERVICE_CONTROL_URL = "/node/v2/service_control" as const;
-export const SERVICE_STATUS_ALL_URL = "/node/v2/service_status_all" as const;
+export const SERVICE_CONTROL_URL = "/node/data/service_control" as const;
+export const SERVICE_STATUS_ALL_URL = "/node/data/service_status_all" as const;
 export const RAM_STATS_DATA_URL = "/node/data/ram_stats" as const;
 export const DISK_DATA_URL = "/node/data/disk_data" as const;
 export const PACKAGE_MANAGEMENT_DATA_URL = "/node/data/pmc" as const;
@@ -11,7 +11,6 @@ export const SYSTEM_UPTIME_DATA_URL = "/node/data/system_uptime" as const;
 export const SYSTEM_LOAD_DATA_URL = "/node/data/system_load" as const;
 export const SYSTEM_STATIC_DATA_URL = "/node/data/system_static" as const;
 export const BANDWIDTH_DATA_URL = "/node/data/bandwidth" as const;
-export const BANDWIDTH_DATA_URL_TEMPLATE = `${BANDWIDTH_DATA_URL}?page={0}` as const;
 export const OUTPUT_LOG_URL = "/db/output.log" as const;
 
 export type BandwidthPage = "h" | "d" | "m" | "t";
@@ -39,7 +38,6 @@ export type DashboardStreamKey =
 export interface DashboardStreamConfig {
     key: DashboardStreamKey;
     url: string;
-    urlTemplate?: string;
     elementId?: string;
     group: "widget" | "service";
     bootstrap?: boolean;
@@ -137,7 +135,6 @@ export const DASHBOARD_STREAMS: readonly DashboardStreamConfig[] = [
     {
         key: "BANDWIDTH",
         url: BANDWIDTH_DATA_URL,
-        urlTemplate: BANDWIDTH_DATA_URL_TEMPLATE,
         elementId: "#bw_tables",
         group: "widget",
         bootstrap: true,
@@ -150,11 +147,4 @@ export const DASHBOARD_STREAMS: readonly DashboardStreamConfig[] = [
 export const DASHBOARD_STREAM_BY_KEY: Record<DashboardStreamKey, DashboardStreamConfig> = Object.fromEntries(
     DASHBOARD_STREAMS.map((stream) => [stream.key, stream]),
 ) as Record<DashboardStreamKey, DashboardStreamConfig>;
-
-export function buildStreamUrl(stream: Pick<DashboardStreamConfig, "url" | "urlTemplate">, param?: string): string {
-    if (stream.urlTemplate && param) {
-        return stream.urlTemplate.replace("{0}", param);
-    }
-    return stream.url;
-}
 

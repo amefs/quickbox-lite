@@ -2,24 +2,23 @@
 
 import { SERVICE_CONTROL_URL, SERVICE_STATUS_ALL_URL } from "./widget-streams";
 
-export { SERVICE_CONTROL_URL, SERVICE_STATUS_ALL_URL };
+export const SERVICE_STREAM_URLS = {
+    SERVICE_CONTROL: SERVICE_CONTROL_URL,
+    SERVICE_STATUS_ALL: SERVICE_STATUS_ALL_URL,
+} as const;
 export const SERVICE_LOCALES = ["da", "de", "en", "es", "fr", "zh"] as const;
 
+export type ServiceKey = keyof typeof SERVICE_STREAM_URLS;
 export type ServiceLocale = typeof SERVICE_LOCALES[number];
-export type ServiceTarget =
-    | { key: "SERVICE_CONTROL"; url: typeof SERVICE_CONTROL_URL }
-    | { key: "SERVICE_STATUS_ALL"; url: typeof SERVICE_STATUS_ALL_URL };
-
-export interface ServiceRequestV2 {
-    protocolVersion: 2;
-    key: ServiceTarget["key"];
-    url: ServiceTarget["url"];
-    requestId: string;
-    locale: ServiceLocale;
-    generation: number;
-}
-
 export type ServiceTooltipIcon = "info" | "usb";
+export type ServiceActionName = "enable" | "disable" | "restart";
+
+export interface ServiceActionRequest {
+    requestId?: string;
+    service: string;
+    action: ServiceActionName;
+    locale?: ServiceLocale;
+}
 
 export interface ServiceRow {
     id: string;
@@ -35,88 +34,7 @@ export interface ServiceState {
     stale: boolean;
 }
 
-export interface ServiceResponseMeta extends Omit<ServiceRequestV2, "url" | "key"> {
-    key: ServiceTarget["key"];
-    url: ServiceTarget["url"];
-}
-
-export type ServiceResponseV2 =
-    | {
-        meta: ServiceResponseMeta & { key: "SERVICE_CONTROL"; url: typeof SERVICE_CONTROL_URL };
-        status: "success";
-        data: { rows: [ServiceRow, ...ServiceRow[]] };
-    }
-    | {
-        meta: ServiceResponseMeta & { key: "SERVICE_CONTROL"; url: typeof SERVICE_CONTROL_URL };
-        status: "empty";
-        data: { rows: [] };
-    }
-    | {
-        meta: ServiceResponseMeta & { key: "SERVICE_STATUS_ALL"; url: typeof SERVICE_STATUS_ALL_URL };
-        status: "success";
-        data: {
-            states: Record<string, ServiceState>;
-            health: "ok" | "degraded" | "unavailable";
-            retryAfterMs: number;
-        };
-    }
-    | {
-        meta: ServiceResponseMeta;
-        status: "error";
-        error: { code: string; message: string };
-    };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    value !== null && typeof value === "object" && !Array.isArray(value);
-
-const hasExactKeys = (value: Record<string, unknown>, expected: string[]) => {
-    const keys = Object.keys(value);
-    return keys.length === expected.length && expected.every((key) => Object.hasOwn(value, key));
-};
-
-const hasOnlyKeys = (value: Record<string, unknown>, allowed: string[]) =>
-    Object.keys(value).every((key) => allowed.includes(key));
-
-export function parseServiceRequestV2(value: unknown): ServiceRequestV2 | null {
-    if (!isRecord(value) || !hasExactKeys(value, ["protocolVersion", "key", "url", "requestId", "locale", "generation"])) {
-        return null;
-    }
-    if (!((value.key === "SERVICE_CONTROL" && value.url === SERVICE_CONTROL_URL) ||
-        (value.key === "SERVICE_STATUS_ALL" && value.url === SERVICE_STATUS_ALL_URL))) {
-        return null;
-    }
-    if (value.protocolVersion !== 2 || typeof value.requestId !== "string" ||
-        !value.requestId.startsWith(`${value.key}:`) || value.requestId.length === value.key.length + 1 ||
-        typeof value.locale !== "string" || !SERVICE_LOCALES.includes(value.locale as ServiceLocale) ||
-        typeof value.generation !== "number" || !Number.isSafeInteger(value.generation) || value.generation < 0) {
-        return null;
-    }
-    return value as unknown as ServiceRequestV2;
-}
-
-function isServiceRow(value: unknown): value is ServiceRow {
-    if (!isRecord(value) || typeof value.id !== "string" || value.id.length === 0 ||
-        typeof value.name !== "string" || typeof value.enabledAtBoot !== "boolean" ||
-        !hasOnlyKeys(value, ["id", "name", "enabledAtBoot", "tooltip", "tooltipIcon"])) {
-        return false;
-    }
-    return (value.tooltip === undefined || typeof value.tooltip === "string") &&
-        (value.tooltipIcon === undefined || value.tooltipIcon === "info" || value.tooltipIcon === "usb");
-}
-
-function isResponseMeta(value: unknown): value is ServiceResponseMeta {
-    if (!isRecord(value)) {
-        return false;
-    }
-    return hasExactKeys(value, ["protocolVersion", "key", "url", "requestId", "locale", "generation"]) &&
-        value.protocolVersion === 2 && typeof value.requestId === "string" && value.requestId.length > 0 &&
-        typeof value.locale === "string" && SERVICE_LOCALES.includes(value.locale as ServiceLocale) &&
-        typeof value.generation === "number" && Number.isSafeInteger(value.generation) && value.generation >= 0 &&
-        ((value.key === "SERVICE_CONTROL" && value.url === SERVICE_CONTROL_URL) ||
-            (value.key === "SERVICE_STATUS_ALL" && value.url === SERVICE_STATUS_ALL_URL));
-}
-
-export interface ServiceControlData {
+interface ServiceControlData {
     rows: ServiceRow[];
 }
 
@@ -126,49 +44,122 @@ export interface ServiceStatusAllData {
     retryAfterMs: number;
 }
 
-export function isServiceControlData(value: unknown): value is ServiceControlData {
-    return isRecord(value) && hasExactKeys(value, ["rows"]) &&
-        Array.isArray(value.rows) && value.rows.every(isServiceRow);
+interface ServiceDataByKey {
+    SERVICE_CONTROL: ServiceControlData;
+    SERVICE_STATUS_ALL: ServiceStatusAllData;
 }
 
-function isServiceControlDataResponse(value: Record<string, unknown>, status: "success" | "empty") {
-    if (!hasExactKeys(value, ["meta", "status", "data"]) || !isServiceControlData(value.data)) {
-        return false;
-    }
-    return status === "empty" ? value.data.rows.length === 0 : value.data.rows.length > 0;
+export type ServiceDataMessage = {
+    [Key in ServiceKey]: { key: Key; response: ServiceDataByKey[Key] };
+}[ServiceKey];
+
+interface ServiceActionResultBase {
+    requestId?: string;
+    service: string;
+    action: string;
+    success: boolean;
+    message: string;
+    failedOperation?: string;
+    completedOperations: string[];
+    stdout: string;
+    stderr: string;
+}
+
+export interface ServiceActionRejectedResult extends ServiceActionResultBase {
+    phase: "rejected";
+    success: false;
+}
+
+export interface ServiceActionCompleteResult extends ServiceActionResultBase {
+    phase: "action-complete";
+}
+
+export interface ServiceActionConfirmedResult extends ServiceActionResultBase {
+    phase: "status-confirmed";
+    enabled?: boolean;
+    statusData?: ServiceStatusAllData;
+    statusError?: string;
+}
+
+export type ServiceActionResult =
+    | ServiceActionRejectedResult
+    | ServiceActionCompleteResult
+    | ServiceActionConfirmedResult;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    value !== null && typeof value === "object" && !Array.isArray(value);
+
+export function isServiceKey(value: unknown): value is ServiceKey {
+    return typeof value === "string" && Object.hasOwn(SERVICE_STREAM_URLS, value);
+}
+
+function isServiceRow(value: unknown): value is ServiceRow {
+    return isRecord(value) &&
+        typeof value.id === "string" && value.id.length > 0 &&
+        typeof value.name === "string" &&
+        typeof value.enabledAtBoot === "boolean" &&
+        (value.tooltip === undefined || typeof value.tooltip === "string") &&
+        (value.tooltipIcon === undefined || value.tooltipIcon === "info" || value.tooltipIcon === "usb");
+}
+
+function isServiceControlData(value: unknown): value is ServiceControlData {
+    return isRecord(value) && Array.isArray(value.rows) && value.rows.every(isServiceRow);
 }
 
 function isServiceState(value: unknown): value is ServiceState {
-    return isRecord(value) && hasExactKeys(value, ["value", "observedAt", "stale"]) &&
+    return isRecord(value) &&
         (value.value === null || typeof value.value === "boolean") &&
         (value.observedAt === null || (typeof value.observedAt === "number" && Number.isFinite(value.observedAt))) &&
         typeof value.stale === "boolean";
 }
 
 export function isServiceStatusAllData(value: unknown): value is ServiceStatusAllData {
-    return isRecord(value) && hasExactKeys(value, ["states", "health", "retryAfterMs"]) &&
-        isRecord(value.states) && Object.values(value.states).every(isServiceState) &&
-        ["ok", "degraded", "unavailable"].includes(String(value.health)) &&
+    return isRecord(value) && isRecord(value.states) && Object.values(value.states).every(isServiceState) &&
+        (value.health === "ok" || value.health === "degraded" || value.health === "unavailable") &&
         typeof value.retryAfterMs === "number" && Number.isFinite(value.retryAfterMs) && value.retryAfterMs >= 0;
 }
 
-function isStatusMapResponse(value: Record<string, unknown>) {
-    return hasExactKeys(value, ["meta", "status", "data"]) && isServiceStatusAllData(value.data);
+const serviceDataValidators = {
+    SERVICE_CONTROL: isServiceControlData,
+    SERVICE_STATUS_ALL: isServiceStatusAllData,
+} satisfies { [Key in ServiceKey]: (value: unknown) => value is ServiceDataByKey[Key] };
+
+export function isServiceDataMessage(message: { key: ServiceKey; response: unknown }): message is ServiceDataMessage {
+    return serviceDataValidators[message.key](message.response);
 }
 
-export function isServiceResponseV2(value: unknown): value is ServiceResponseV2 {
-    if (!isRecord(value) || !isResponseMeta(value.meta)) {
+const isOptionalString = (value: unknown): value is string | undefined =>
+    value === undefined || typeof value === "string";
+
+function isServiceActionResultBase(value: unknown): value is ServiceActionResultBase {
+    return isRecord(value) &&
+        isOptionalString(value.requestId) &&
+        typeof value.service === "string" &&
+        typeof value.action === "string" &&
+        typeof value.success === "boolean" &&
+        typeof value.message === "string" &&
+        isOptionalString(value.failedOperation) &&
+        Array.isArray(value.completedOperations) &&
+        value.completedOperations.every((operation) => typeof operation === "string") &&
+        typeof value.stdout === "string" &&
+        typeof value.stderr === "string";
+}
+
+export function isServiceActionResult(value: unknown): value is ServiceActionResult {
+    if (!isServiceActionResultBase(value)) {
         return false;
     }
-    if (value.status === "error") {
-        return hasExactKeys(value, ["meta", "status", "error"]) && isRecord(value.error) &&
-            hasExactKeys(value.error, ["code", "message"]) &&
-            typeof value.error.code === "string" && typeof value.error.message === "string";
+    const candidate = value as ServiceActionResult;
+    switch (candidate.phase) {
+        case "rejected":
+            return !candidate.success;
+        case "action-complete":
+            return true;
+        case "status-confirmed":
+            return (candidate.enabled === undefined || typeof candidate.enabled === "boolean") &&
+                isOptionalString(candidate.statusError) &&
+                (candidate.statusData === undefined || isServiceStatusAllData(candidate.statusData));
+        default:
+            return false;
     }
-    if (value.meta.key === "SERVICE_CONTROL") {
-        return value.status === "success" || value.status === "empty"
-            ? isServiceControlDataResponse(value, value.status)
-            : false;
-    }
-    return value.status === "success" && isStatusMapResponse(value);
 }

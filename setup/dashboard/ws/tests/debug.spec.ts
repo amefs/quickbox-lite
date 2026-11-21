@@ -24,8 +24,8 @@ describe("debug metadata", () => {
     it("should include service status endpoints", () => {
         const serviceEndpoints = getDebugEndpoints().filter((ep) => ep.category === "service");
         expect(serviceEndpoints.length).to.be.greaterThan(0);
-        expect(serviceEndpoints.some((ep) => ep.url === "/node/v2/service_control")).to.equal(true);
-        expect(serviceEndpoints.some((ep) => ep.url === "/node/v2/service_status_all")).to.equal(true);
+        expect(serviceEndpoints.some((ep) => ep.url === "/node/data/service_control")).to.equal(true);
+        expect(serviceEndpoints.some((ep) => ep.url === "/node/data/service_status_all")).to.equal(true);
     });
 
     it("should build debug meta payload with theme and basePath", () => {

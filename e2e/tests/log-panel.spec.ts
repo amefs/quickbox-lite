@@ -3,6 +3,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "node:path";
 
+import type { WsWidgetRequest } from "../../setup/dashboard/ws/src/shared/ws-message";
 import { resetMockProfile, setMockProfile } from "./support/helpers";
 
 test.beforeEach(async ({ page }) => {
@@ -108,6 +109,10 @@ for (const theme of ["smoked", "defaulted"]) {
                 contentType: "text/css",
             }));
             await openLog(page);
+            await expect(page.locator("#sysResponse .qb-system-response-content")).toHaveCSS("background-color", "rgba(0, 0, 0, 0.76)");
+            for (const selector of [".ant-modal-header", ".ant-modal-body", ".ant-modal-footer", "#sysPre", ".sysout"]) {
+                await expect(page.locator(`#sysResponse ${selector}`)).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+            }
             await expectLogInViewport(page);
             await expectFooterButtonsConsistent(page);
             await deliverLog(page, log);
@@ -203,6 +208,40 @@ test("reopening the log dialog starts a fresh session with the same close action
     await expect(page.locator("#sysResponseDismiss")).toBeVisible();
     // And the view is not a leftover buffer — it is wiped before the first read.
     await expect(page.locator("#sshoutput")).toHaveText("");
+});
+
+test("log polling sends the byte cursor as structured arguments", async ({ page }) => {
+    await setMockProfile(page, "installing");
+    await page.goto("/?locale=zh");
+    const trigger = page.locator("#pmc_widget button", { hasText: "查看日志" });
+    await expect(trigger).toBeVisible();
+    await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { socket?: { connected: boolean } }).socket?.connected))).toBe(true);
+
+    await page.evaluate(() => {
+        const windowWithSocket = window as unknown as {
+            socket: { send: (request: WsWidgetRequest) => unknown };
+            logRequests: WsWidgetRequest[];
+        };
+        windowWithSocket.logRequests = [];
+        const { socket } = windowWithSocket;
+        const send = socket.send.bind(socket);
+        socket.send = request => {
+            if (request.key === "SSH_OUTPUT") {
+                windowWithSocket.logRequests.push(request);
+            }
+            return send(request);
+        };
+    });
+
+    await trigger.click();
+    const requests = () => page.evaluate(() => (window as unknown as { logRequests: WsWidgetRequest[] }).logRequests);
+    await expect.poll(async () => (await requests()).length).toBeGreaterThanOrEqual(2);
+    const [first, next] = await requests();
+    expect(first.type).toBe("request");
+    expect(first.url).toBe("/db/output.log?length=65536");
+    expect(first.args).toEqual({ length: 65536 });
+    expect(next.url).toMatch(/^\/db\/output\.log\?offset=\d+&length=65536&epoch=.*$/);
+    expect(next.args).toEqual({ length: 65536, offset: expect.any(Number), epoch: expect.any(String) });
 });
 
 test("a new log epoch replaces output at the same byte offset", async ({ page }) => {

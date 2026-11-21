@@ -254,5 +254,6 @@
   "SERVICE_ACTION_REASON_TIMEOUT": "Zeitüberschreitung bei der Befehlsausführung",
   "SERVICE_ACTION_REASON_BUSY": "zu viele Befehle werden gleichzeitig ausgeführt",
   "SERVICE_ACTION_REASON_INVALID": "ungültige Dienstaktion",
+  "SERVICE_ACTION_REASON_NOT_ENABLED": "Diesen Dienst vor dem Neustart aktivieren",
   "SERVICE_ACTION_REASON_UNKNOWN": "Dienstaktion fehlgeschlagen"
 }
