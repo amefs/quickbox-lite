@@ -9,6 +9,8 @@ import subprocess
 import tempfile
 import unittest
 
+from tests.support import bash_function
+
 
 REPO = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("package_lint", REPO / "scripts/lint-package-scripts.py")
@@ -81,7 +83,7 @@ class PackageLintTest(unittest.TestCase):
             ("\n_lockCheck\n_setLock\n", "\n_setLock\n_lockCheck\n", "[lifecycle]"),
             ("\n_installAppLock\n", "\n# _installAppLock\n", "[lifecycle]"),
             ("\n_lockCheck\n_setLock\n", "\n_installApp\n_lockCheck\n_setLock\n", "[lifecycle]"),
-            ("rm -f /install/.install.lock", ":", "[locks]"),
+            (bash_function(TEMPLATES["install"], "_setLock"), "function _setLock() {\n\t:\n}", "[locks]"),
             ('eval set -- "${ARGS}"', "set -- $ARGS", "[options]"),
             ('OUTTO="$2"', "OUTTO=$2", "[options]"),
             ("-l help,log:", "-l help,log:,unused", "[options]"),

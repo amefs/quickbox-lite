@@ -1,10 +1,88 @@
 """Concurrent package operations preserve the active lock and log."""
 
 import os
+import shlex
 import subprocess
 import time
 
-from tests.support import REPO, write_file
+import pytest
+
+from tests.support import REPO, bash_function, run_bash, write_file
+
+
+PACKAGE_LOCK_SCRIPTS = sorted(
+    path.relative_to(REPO).as_posix()
+    for pattern in (
+        "packages/package/install/installpackage-*",
+        "packages/package/update/updatepackage-*",
+        "packages/package/remove/removepackage-*",
+        "packages/package/templates/*.sh.template",
+    )
+    for path in REPO.glob(pattern)
+    if path.is_file()
+)
+
+
+def _package_lock_functions(path, marker):
+    source = (REPO / path).read_text()
+    helpers = "\n".join(bash_function(source, name) for name in ("_setLock", "_clearInstallLock"))
+    helpers = helpers.replace("/install/.install.lock", shlex.quote(str(marker)))
+    return 'APP_TITLE="Same package"\n_error() { printf "%s\\n" "$@" >&2; }\n' + helpers
+
+
+@pytest.mark.parametrize("path", PACKAGE_LOCK_SCRIPTS)
+@pytest.mark.parametrize(
+    "commands, expected_status, expected_marker",
+    [
+        ('_setLock\n_clearInstallLock\n[[ ! -e "$1" ]]', 0, None),
+        ("_setLock\nexit 23", 23, None),
+        ('printf Existing >"$1"\n_setLock', 1, "Existing"),
+        ('_setLock\nrm -f "$1"\n_clearInstallLock', 0, None),
+        (
+            '_setLock\nmv "$1" "$1.original"\nprintf "%s\\n" "$APP_TITLE" >"$1"\n_clearInstallLock\nexit 23',
+            23,
+            "Same package\n",
+        ),
+    ],
+    ids=("explicit-cleanup", "early-exit", "contention", "missing-marker", "replaced-marker"),
+)
+def test_package_lock_cleanup(tmp_path, path, commands, expected_status, expected_marker):
+    marker = tmp_path / ".install.lock"
+    result = run_bash(_package_lock_functions(path, marker) + "\n" + commands, marker)
+    assert result.returncode == expected_status, result.stderr
+    if expected_marker is None:
+        assert not marker.exists()
+    else:
+        assert marker.read_text() == expected_marker
+
+
+@pytest.mark.parametrize("path", PACKAGE_LOCK_SCRIPTS)
+def test_direct_package_lock_contention(tmp_path, path):
+    marker = tmp_path / ".install.lock"
+    helpers = _package_lock_functions(path, marker)
+    first = subprocess.Popen(
+        [
+            "bash", "-c", helpers + '\n_setLock\nprintf ready >"$1"\nread -r release',
+            "test", str(tmp_path / "ready"),
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert _wait_for_marker(tmp_path, "ready").exists()
+        assert marker.read_text() == "Same package\n"
+        second = run_bash(helpers + "\n_setLock", marker)
+        assert second.returncode == 1, second.stderr
+        assert marker.read_text() == "Same package\n"
+        _, stderr = first.communicate("release\n", timeout=10)
+        assert first.returncode == 0, stderr
+        assert not marker.exists()
+    finally:
+        if first.poll() is None:
+            first.terminate()
+            first.communicate(timeout=10)
 
 
 def _operation_sandbox(tmp_path):
