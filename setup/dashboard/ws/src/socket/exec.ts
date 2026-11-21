@@ -11,7 +11,7 @@ import Constant, { username } from "../shared/constants";
 import { WatchedConfig } from "../shared/watched-config";
 import { CommandType, buildCommand } from "./command";
 import { invalidateServiceState, refreshServiceState } from "../services/service/state";
-import { runMockCommand } from "../testing/mock-adapter";
+import { runMockCommand } from "../../mock/adapter";
 import { serviceMap } from "../services/packages/info";
 import { invalidateInstalledPackagesCache, isServiceEnabled } from "../services/packages/panels";
 import { serviceStatusAllData } from "../services/service/status";

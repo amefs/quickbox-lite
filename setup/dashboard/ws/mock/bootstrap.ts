@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * Test environment bootstrap — monkey-patches system-level modules
- * when MOCK_ENABLED=1 so that **all** downstream consumers transparently
- * receive mock data.  No source-file modifications are needed.
+ * Mock bootstrap — monkey-patches system-level modules when `--env=mock` (or
+ * `QUICKBOX_ENV=mock`) is selected, so that **all** downstream consumers
+ * transparently receive fixture data.  No source-file modifications are needed.
  *
  * ┌──────────────────────────────────────────────────────────┐
- * │  MUST be the very first import in server.tsx.            │
- * │  In production (MOCK_ENABLED unset) this file is a       │
- * │  zero-cost no-op — the if-block is never entered.        │
+ * │  MUST be the very first import in src/server.ts.          │
+ * │  In prod (the default) this file is a zero-cost no-op —   │
+ * │  the if-block is never entered.                           │
  * └──────────────────────────────────────────────────────────┘
  */
 
@@ -16,33 +16,87 @@
    @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return,
    @typescript-eslint/require-await, camelcase */
 
-if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
+import { isMockMode } from "./mode";
+
+if (isMockMode()) {
+    // The fixtures describe a Linux server, which is where QuickBox runs. The
+    // collectors choose their data source by platform before reading anything,
+    // so the switch has to happen before the business modules are loaded.
+    if (process.platform !== "linux") {
+        Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    }
+
     const si  = require("systeminformation");
     const os  = require("os");
     const fs  = require("fs");
     const fsp = require("fs/promises");
+    const cp  = require("child_process");
 
-    const { getActiveProfile } = require("./mock-adapter") as {
-        getActiveProfile: () => import("./mock-profiles").MockProfile;
+    const { getActiveProfile } = require("./adapter") as {
+        getActiveProfile: () => import("./data/profiles").MockProfile;
     };
-    const { mockVnstatInterface } = require("./mock-vnstat") as {
+    const { MOCK_HOST } = require("./data/profiles") as typeof import("./data/profiles");
+    const { mockVnstatInterface } = require("./vnstat") as {
         mockVnstatInterface: (filePath: string) => string | undefined;
     };
+    const {
+        baselineRates,
+        fluctuateDisks,
+        fluctuateLoad,
+        fluctuateMemory,
+        fluctuateVnstat,
+        networkRate,
+        trafficCounters,
+    } = require("./fluctuation") as typeof import("./fluctuation");
+    const { dfOutput, procNetDev } = require("./virtual-system") as typeof import("./virtual-system");
     const getPrimaryInterface = () => getActiveProfile().networkInterfaces[0]?.iface ?? "eth0";
+
+    /** Current counters and rate of one interface, shared by every reader. */
+    const interfaceCounters = (iface: string, now = Date.now()) => {
+        const profile = getActiveProfile();
+        const networkInterface = profile.networkInterfaces.find((entry: { iface: string }) => entry.iface === iface);
+        const baseline = baselineRates(profile);
+        const key = `network:${profile.name}:${iface}`;
+        const rate = {
+            rx: networkRate(`${key}:rx`, baseline.rx, now),
+            tx: networkRate(`${key}:tx`, baseline.tx, now),
+        };
+        const counters = trafficCounters(
+            key,
+            { rx: networkInterface?.rx_bytes ?? 0, tx: networkInterface?.tx_bytes ?? 0 },
+            rate,
+            now,
+        );
+        return { ...counters, rate };
+    };
 
     // ── systeminformation ──────────────────────────────────
 
     si.mem = async () => {
-        return getActiveProfile().memory;
+        return fluctuateMemory(getActiveProfile().memory);
+    };
+
+    si.fsSize = async () => {
+        return fluctuateDisks(getActiveProfile().disks).map((disk: {
+            fs: string; type: string; size: number; used: number; available: number; use: number; mount: string;
+        }) => ({
+            fs: disk.fs,
+            type: disk.type,
+            size: disk.size,
+            used: disk.used,
+            available: disk.available,
+            use: disk.use,
+            mount: disk.mount,
+        }));
     };
 
     si.cpu = async () => {
         const profile = getActiveProfile();
         return {
             brand: profile.cpuModel,
-            manufacturer: "Intel",
+            manufacturer: MOCK_HOST.cpuManufacturer,
             cores: profile.cpuCount,
-            speed: 2.4,
+            speed: MOCK_HOST.cpuSpeedGhz,
         };
     };
 
@@ -58,7 +112,7 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
                 pid: proc.pid, parentPid: 1,
                 name: proc.name, cpu: proc.cpu, cpuu: proc.cpu, cpus: 0,
                 mem: proc.mem, priority: 20, memVsz: 0, memRss: 0,
-                nice: 0, started: "2026-01-01 00:00:00", state: "running",
+                nice: 0, started: MOCK_HOST.processStartedAt, state: "running",
                 tty: "", user: proc.user, command: proc.name,
                 params: proc.params ?? "", path: `/usr/bin/${proc.name}`,
             })),
@@ -70,12 +124,12 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         return p.networkInterfaces.map((ni: { iface: string; operstate: string }) => ({
             iface: ni.iface, ifaceName: ni.iface,
             default: ni.iface === getPrimaryInterface(),
-            ip4: "10.0.0.2", ip4subnet: "255.255.255.0",
+            ip4: MOCK_HOST.ipv4, ip4subnet: MOCK_HOST.ipv4Subnet,
             ip6: "", ip6subnet: "",
-            mac: "00:11:22:33:44:55",
+            mac: MOCK_HOST.mac,
             internal: false, virtual: false,
             operstate: ni.operstate, type: "wired",
-            duplex: "full", mtu: 1500, speed: 1000,
+            duplex: "full", mtu: MOCK_HOST.mtu, speed: MOCK_HOST.linkSpeedMbps,
             dhcp: false, dnsSuffix: "",
             ieee8021xAuth: "", ieee8021xState: "",
             carrier_changes: 0,
@@ -88,24 +142,26 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         if (!nd) {
             return [];
         }
+        const now = Date.now();
+        const current = interfaceCounters(iface, now);
         return [{
             iface: nd.iface, operstate: nd.operstate,
-            rx_bytes: nd.rx_bytes, rx_dropped: 0, rx_errors: 0,
-            tx_bytes: nd.tx_bytes, tx_dropped: 0, tx_errors: 0,
-            rx_sec: 1024 * 100, tx_sec: 1024 * 50, ms: 1000,
+            rx_bytes: current.total.rx, rx_dropped: 0, rx_errors: 0,
+            tx_bytes: current.total.tx, tx_dropped: 0, tx_errors: 0,
+            rx_sec: Math.round(current.rate.rx), tx_sec: Math.round(current.rate.tx), ms: 1000,
         }];
     };
 
     si.time = () => ({
         current: Date.now(),
         uptime: getActiveProfile().uptime,
-        timezone: "UTC",
-        timezoneName: "Coordinated Universal Time",
+        timezone: MOCK_HOST.timezone,
+        timezoneName: MOCK_HOST.timezoneName,
     });
 
     // ── os ──────────────────────────────────────────────────
 
-    os.loadavg = () => getActiveProfile().loadavg;
+    os.loadavg = () => fluctuateLoad(getActiveProfile().loadavg);
 
     // ── fs (sync) ───────────────────────────────────────────
 
@@ -203,7 +259,11 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
             if (vnstatIface !== undefined) {
                 const data = p.vnstatData?.[vnstatIface];
                 if (data) {
-                    return data;
+                    return fluctuateVnstat(
+                        data,
+                        `vnstat:${p.name}:${vnstatIface}`,
+                        baselineRates(p),
+                    );
                 }
             }
         }
@@ -247,6 +307,12 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
                     return `/bin/bash\0/usr/local/bin/quickbox/package/${operation}/${operation}package-jellyfin\0`;
                 }
             }
+            if (filePath === "/proc/net/dev") {
+                return procNetDev(p.networkInterfaces.map((entry: { iface: string }) => {
+                    const current = interfaceCounters(entry.iface);
+                    return { iface: entry.iface, rx_bytes: current.total.rx, tx_bytes: current.total.tx };
+                }));
+            }
         }
         return origReadFile(filePath, ...args);
     };
@@ -277,5 +343,28 @@ if (process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1") {
         return origAccess(filePath, mode);
     };
 
-    console.log("[bootstrap] Mock environment active");
+    // ── child_process ───────────────────────────────────────
+
+    // Disk usage shells out to `df`. Answering the command keeps the collector
+    // on its normal path, so the service itself needs no mock branch.
+    const origExecFile = cp.execFile.bind(cp) as (...callArgs: unknown[]) => unknown;
+    cp.execFile = (...callArgs: unknown[]): unknown => {
+        const [file, args, options, callback] = callArgs;
+        const done = typeof callback === "function"
+            ? callback as (error: Error | null, stdout: string, stderr: string) => void
+            : typeof options === "function"
+                ? options as (error: Error | null, stdout: string, stderr: string) => void
+                : undefined;
+        if (file === "df" && done !== undefined) {
+            const output = dfOutput(
+                fluctuateDisks(getActiveProfile().disks),
+                Array.isArray(args) ? args.map(String) : [],
+            );
+            setImmediate(() => { done(null, output, ""); });
+            return { kill: () => undefined };
+        }
+        return origExecFile(...callArgs);
+    };
+
+    console.log(`[mock] fixture environment active (profile: ${getActiveProfile().name})`);
 }

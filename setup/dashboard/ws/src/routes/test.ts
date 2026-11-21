@@ -4,7 +4,7 @@ import express, { Router, type Request, type Response } from "express";
 import { invalidateInstalledPackagesCache } from "../services/packages/panels";
 import { invalidateServiceState } from "../services/service/state";
 import { resetPushSamplers } from "../socket/push";
-import { setActiveProfile } from "../testing";
+import { setActiveProfile } from "../../mock";
 
 export const setProfile = (req: Request, res: Response) => {
     const { profile } = req.body as { profile?: string };
@@ -20,7 +20,7 @@ export const setProfile = (req: Request, res: Response) => {
 };
 
 /**
- * Test profile sub-router (mounted at `/test` when test mode is enabled).
+ * Fixture profile sub-router (mounted at `/test` in mock mode only).
  *
  * Routes:
  *   POST /profile

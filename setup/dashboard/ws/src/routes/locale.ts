@@ -2,12 +2,12 @@
 
 import { Router, type Request, type Response } from "express";
 import { normalizeLocale } from "../services/config/locale";
-import { isTestMode } from "../testing";
+import { isMockMode } from "../../mock";
 
 export const setLocale = (req: Request, res: Response) => {
     const remoteAddr = req.ip ?? "";
     const isLocal = remoteAddr === "127.0.0.1" || remoteAddr === "::1" || remoteAddr === "::ffff:127.0.0.1";
-    if (!isLocal && !isTestMode()) {
+    if (!isLocal && !isMockMode()) {
         res.status(403).send("Forbidden");
         return;
     }

@@ -13,6 +13,7 @@ const devServer = require("../../scripts/dev-server.js") as {
         listenPort: number;
         target: string;
     };
+    envArgs: (argv: string[]) => string[];
     parsePort: (value: string | undefined, fallback: number) => number;
 };
 
@@ -21,6 +22,19 @@ describe("scripts/dev-server", () => {
         expect(devServer.HELP_TEXT).to.include("Node dashboard server host");
         expect(devServer.HELP_TEXT).to.not.include("PHP");
         expect(devServer.HELP_TEXT).to.not.include("TEST_PHP");
+    });
+
+    it("should document the single runtime switch", () => {
+        expect(devServer.HELP_TEXT).to.include("--env=<prod|mock[:<profile>]>");
+        expect(devServer.HELP_TEXT).to.include("QUICKBOX_ENV");
+        expect(devServer.HELP_TEXT).to.not.include("--mock");
+    });
+
+    it("should forward the env switch to the server process", () => {
+        expect(devServer.envArgs(["--env=mock", "--verbose"])).to.deep.equal(["--env=mock"]);
+        expect(devServer.envArgs(["--env", "mock:empty-system"])).to.deep.equal(["--env", "mock:empty-system"]);
+        expect(devServer.envArgs(["--env"])).to.deep.equal(["--env"]);
+        expect(devServer.envArgs(["--verbose"])).to.deep.equal([]);
     });
 
     it("should build proxy config for the Node dashboard server", () => {

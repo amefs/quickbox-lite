@@ -31,8 +31,15 @@ Usage: node scripts/dev-server.js [options]
 
 Options:
   -h, --help           Show this message
+  --env=<prod|mock[:<profile>]>
+                       prod serves this host's real data; mock serves the
+                       fixture profiles under mock/data (default profile:
+                       all-running). The npm dev scripts pass this flag
+                       themselves, defaulting to mock; override it with
+                       QUICKBOX_ENV=prod npm run dev.
 
 Environment overrides:
+  QUICKBOX_ENV         Same as --env, without the flag
   TEST_WS_HOST         Node dashboard server host (default: ${DEFAULTS.WS_HOST})
   TEST_WS_PORT         Node dashboard server port (default: ${DEFAULTS.WS_PORT})
   TEST_SERVER_HOST     Proxy listen host (default: ${DEFAULTS.PROXY_HOST})
@@ -41,6 +48,25 @@ Environment overrides:
 Legacy aliases:
   TEST_PROXY_HOST/PORT mirror TEST_SERVER_HOST/PORT
 `.trim();
+
+const ENV_FLAG_PATTERN = /^--env(=.*)?$/;
+
+function envArgs(argv) {
+    const forwarded = [];
+    for (let index = 0; index < argv.length; index += 1) {
+        const argument = argv[index];
+        if (!ENV_FLAG_PATTERN.test(argument)) {
+            continue;
+        }
+        forwarded.push(argument);
+        const next = argv[index + 1];
+        if (argument === '--env' && next !== undefined && !next.startsWith('-')) {
+            forwarded.push(next);
+            index += 1;
+        }
+    }
+    return forwarded;
+}
 
 function buildServerConfig(env = process.env) {
     const wsHost = env.TEST_WS_HOST || DEFAULTS.WS_HOST;
@@ -57,7 +83,7 @@ function buildServerConfig(env = process.env) {
     };
 }
 
-function startDashboardServer(config = buildServerConfig()) {
+function startDashboardServer(config = buildServerConfig(), argv = process.argv.slice(2)) {
     let server;
     let cleaningUp = false;
     let nodeProcess;
@@ -81,12 +107,16 @@ function startDashboardServer(config = buildServerConfig()) {
     };
 
     console.log(`Starting Node dashboard server on http://${config.wsHost}:${config.wsPort}`);
+    const forwarded = envArgs(argv);
+    if (forwarded.length > 0) {
+        console.log(`Runtime env requested: ${forwarded.join(' ')}`);
+    }
     // Run the dashboard on Node, matching the production unit. Bun's Node
     // compatibility closes upgraded WebSocket transports shortly after the
     // Socket.IO polling -> websocket probe, which breaks the dev dashboard.
     // `--import tsx` keeps the server in this process: a tsx CLI child would
     // survive SIGTERM and leave port 8575 occupied.
-    nodeProcess = spawn(process.execPath, ["--import", "tsx", path.join(packageRoot, "src", "server.ts")], {
+    nodeProcess = spawn(process.execPath, ["--import", "tsx", path.join(packageRoot, "src", "server.ts"), ...forwarded], {
         cwd: packageRoot,
         env: {
             ...process.env,
@@ -157,6 +187,7 @@ module.exports = {
     DEFAULTS,
     HELP_TEXT,
     buildServerConfig,
+    envArgs,
     parsePort,
     startDashboardServer,
 };

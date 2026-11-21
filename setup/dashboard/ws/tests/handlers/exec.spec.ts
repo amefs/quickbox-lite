@@ -132,8 +132,8 @@ describe("handlers/exec", () => {
         });
 
         it("releases the command slot before waiting for bounded service status confirmation", async () => {
-            const existingMock = process.env.MOCK_ENABLED;
-            process.env.MOCK_ENABLED = "1";
+            const existingMock = process.env.QUICKBOX_ENV;
+            process.env.QUICKBOX_ENV = "mock";
             const clock = sinon.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
             let release: (() => void) | undefined;
             const pending = new Promise<Map<string, boolean>>(resolve => {
@@ -165,8 +165,8 @@ describe("handlers/exec", () => {
                 release?.();
                 await clock.tickAsync(0);
                 clock.restore();
-                if (existingMock === undefined) {delete process.env.MOCK_ENABLED;}
-                else {process.env.MOCK_ENABLED = existingMock;}
+                if (existingMock === undefined) {delete process.env.QUICKBOX_ENV;}
+                else {process.env.QUICKBOX_ENV = existingMock;}
             }
         });
     });

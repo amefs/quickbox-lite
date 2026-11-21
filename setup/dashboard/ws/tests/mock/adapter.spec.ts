@@ -3,30 +3,37 @@
 import "mocha";
 import { expect } from "chai";
 
-import { getActiveProfile, getMockSystemdServiceActive, runMockCommand, setActiveProfile } from "../../src/testing/mock-adapter";
+import { getActiveProfile, getMockSystemdServiceActive, runMockCommand, setActiveProfile } from "../../mock/adapter";
+import { ENV_VARIABLE } from "../../mock/mode";
 import { buildCommand } from "../../src/socket/command";
 import { serviceMap } from "../../src/services/packages/info";
 
-describe("testing mock command adapter", () => {
+describe("mock command adapter", () => {
     const previousNodeEnv = process.env.NODE_ENV;
-    const previousMockEnabled = process.env.MOCK_ENABLED;
+    const previousEnv = process.env[ENV_VARIABLE];
 
-    afterEach(() => {
+    function restoreEnvironment() {
         if (previousNodeEnv === undefined) {
             delete process.env.NODE_ENV;
         } else {
             process.env.NODE_ENV = previousNodeEnv;
         }
-        if (previousMockEnabled === undefined) {
-            delete process.env.MOCK_ENABLED;
+        if (previousEnv === undefined) {
+            delete process.env.QUICKBOX_ENV;
         } else {
-            process.env.MOCK_ENABLED = previousMockEnabled;
+            process.env.QUICKBOX_ENV = previousEnv;
         }
-    });
+    }
+
+    function enableMock() {
+        process.env.NODE_ENV = "test";
+        process.env[ENV_VARIABLE] = "mock";
+    }
+
+    afterEach(restoreEnvironment);
 
     it("applies a validated package install to the active profile", () => {
-        process.env.NODE_ENV = "test";
-        process.env.MOCK_ENABLED = "1";
+        enableMock();
         setActiveProfile("empty-system");
 
         expect(runMockCommand(" installpackage :: autodlirssi ")).to.equal(true);
@@ -35,8 +42,7 @@ describe("testing mock command adapter", () => {
     });
 
     it("derives mock systemd runtime state from processes and independent unit state", () => {
-        process.env.NODE_ENV = "test";
-        process.env.MOCK_ENABLED = "1";
+        enableMock();
         setActiveProfile("all-running");
         const profile = getActiveProfile();
         const deluged = serviceMap.get("deluged");
@@ -58,16 +64,14 @@ describe("testing mock command adapter", () => {
         expect(getMockSystemdServiceActive("authelia")).to.equal(true);
     });
 
-    it("refuses unsupported commands while test mode is enabled", () => {
-        process.env.NODE_ENV = "test";
-        process.env.MOCK_ENABLED = "1";
+    it("refuses unsupported commands while mock mode is enabled", () => {
+        enableMock();
 
         expect(runMockCommand("unknown::target")).to.equal(false);
     });
 
     it("uses the command unit for services with a dedicated process user", () => {
-        process.env.NODE_ENV = "test";
-        process.env.MOCK_ENABLED = "1";
+        enableMock();
         setActiveProfile("all-running");
 
         expect(getActiveProfile().enabledServices).to.include("netdata");
@@ -88,14 +92,14 @@ describe("testing mock command adapter", () => {
         }, "testuser")).to.throw("Target 'not-allowlisted' not found");
     });
 
-    it("does not mock commands unless both test gates are enabled", () => {
+    it("leaves commands alone on real data", () => {
         process.env.NODE_ENV = "production";
-        process.env.MOCK_ENABLED = "1";
+        process.env[ENV_VARIABLE] = "mock";
 
         expect(runMockCommand("installpackage::autodlirssi")).to.equal(undefined);
 
         process.env.NODE_ENV = "test";
-        delete process.env.MOCK_ENABLED;
+        delete process.env.QUICKBOX_ENV;
         expect(runMockCommand("installpackage::autodlirssi")).to.equal(undefined);
     });
 });

@@ -12,6 +12,109 @@ const webRoot = path.dirname(fileURLToPath(import.meta.url));
 const sourceRoot = `${path.join(webRoot, "src")}${path.sep}`;
 const target = "es2022";
 
+// Paths the dashboard serves. The gateway serves every other path
+// (/deluge/, /<user>.console); the production server answers those with 404.
+const SPA_ENTRY_PATHS = new Set([
+    "/",
+    "/index.html",
+    "/ws",
+    "/ws/",
+    "/ws/index.html",
+    "/debug",
+    "/debug/",
+    "/ws/debug",
+    "/ws/debug/",
+]);
+
+// Sources, assets, and API prefixes the dev server serves or proxies itself.
+const DEV_SERVER_PREFIXES = [
+    "/@",
+    "/src/",
+    "/node_modules/",
+    "/img/",
+    "/css/",
+    "/assets/",
+    "/skins/",
+    "/node",
+    "/ws/node",
+    "/set",
+    "/db",
+    "/socket.io",
+    "/debug",
+    "/ws/debug",
+];
+
+function escapeHtml(value) {
+    return value.replace(/[&<>"']/g, (character) => `&#${character.charCodeAt(0)};`);
+}
+
+function renderUnservedPathPage(pathname) {
+    const target = escapeHtml(pathname);
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Not served here — QuickBox dashboard dev server</title>
+    <style>
+        :root { color-scheme: light dark; }
+        body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f6f8; color: #1f2328; font: 15px/1.6 system-ui, sans-serif; }
+        main { max-width: 40rem; padding: 2rem; }
+        h1 { margin: 0 0 .75rem; font-size: 1.35rem; }
+        code { padding: .1rem .35rem; border-radius: .25rem; background: #e6e8eb; color: #8a5a00; }
+        a { color: #0b62c4; }
+        p { margin: .5rem 0; }
+        @media (prefers-color-scheme: dark) {
+            body { background: #1b1e24; color: #e6e8eb; }
+            code { background: #2a2f38; color: #ffd479; }
+            a { color: #6cb6ff; }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>404 — <code>${target}</code></h1>
+        <p>The dashboard dev server serves <code>/</code>, <code>/ws/</code>,
+           <code>/debug</code>, and <code>/ws/debug</code>.</p>
+        <p><a href="/">Dashboard</a></p>
+    </main>
+</body>
+</html>`;
+}
+
+function rejectUnservedPaths() {
+    return {
+        name: "reject-unserved-paths",
+        apply: "serve",
+        configureServer(server) {
+            server.middlewares.use((req, res, next) => {
+                if (req.method !== "GET" && req.method !== "HEAD") {
+                    return next();
+                }
+                if (!(req.headers.accept ?? "").includes("text/html")) {
+                    return next();
+                }
+                let pathname;
+                try {
+                    pathname = decodeURI(new URL(req.url ?? "/", "http://localhost").pathname);
+                } catch {
+                    return next();
+                }
+                if (SPA_ENTRY_PATHS.has(pathname)) {
+                    return next();
+                }
+                if (DEV_SERVER_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+                    return next();
+                }
+                res.statusCode = 404;
+                res.setHeader("content-type", "text/html; charset=utf-8");
+                res.setHeader("cache-control", "no-store");
+                res.end(req.method === "HEAD" ? undefined : renderUnservedPathPage(pathname));
+            });
+        },
+    };
+}
+
 function cacheBustAssets() {
     return {
         name: "cache-bust-assets",
@@ -113,6 +216,7 @@ const config = {
     base: "./",
     configFile: false,
     plugins: [
+        rejectUnservedPaths(),
         separateModules(),
         cacheBustAssets(),
     ],

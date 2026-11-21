@@ -5,7 +5,7 @@ import * as childProcess from "child_process";
 import path from "path";
 import type { Server } from "socket.io";
 
-import { isTestMode } from "../testing";
+import { isMockMode } from "../../mock";
 import { createBootstrapRouter } from "./bootstrap";
 import { createDebugRouter } from "./debug";
 import { createLocaleRouter } from "./locale";
@@ -43,7 +43,7 @@ export interface AppRouterOptions {
  *   /set                     -> locale normalization sub-router
  *   /db                      -> incremental output log sub-router (/db/output.log)
  *   /debug & /ws/debug       -> development debug console sub-router
- *   /test                    -> mock profile control sub-router (test mode only)
+ *   /test                    -> mock profile control sub-router (mock mode only)
  */
 export function createAppRouter(options: AppRouterOptions): Router {
     const router = Router();
@@ -84,7 +84,7 @@ export function createAppRouter(options: AppRouterOptions): Router {
     }
 
     // 6. Test profile switcher (/test/profile)
-    if (isTestMode()) {
+    if (isMockMode()) {
         router.use("/test", createTestRouter());
     }
 

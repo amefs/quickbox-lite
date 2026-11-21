@@ -2,7 +2,8 @@
 import { spawn } from "child_process";
 import si from "systeminformation";
 import { serviceMap } from "../packages/info";
-import { getMockSystemdServiceActive } from "../../testing/mock-adapter";
+import { getMockSystemdServiceActive } from "../../../mock/adapter";
+import { isMockMode } from "../../../mock/mode";
 
 export interface ServiceState {
     value: boolean | null;
@@ -27,7 +28,7 @@ interface ServiceStateCollectors {
     process: () => Promise<Map<string, boolean>>;
 }
 let collectorOverrides: ServiceStateCollectors | undefined;
-const isMock = () => process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1";
+const isMock = () => isMockMode();
 const debug = (message: string) => { if (process.env.QUICKBOX_SERVICE_STATUS_DEBUG === "1") {console.debug(message);} };
 
 function logTransition(name: Branch, cache: BranchCache, error?: string, durationMs = 0) {
