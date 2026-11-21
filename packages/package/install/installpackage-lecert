@@ -253,7 +253,7 @@ NGC
 --key-file /etc/nginx/ssl/${domain}/${domain}-key.pem \
 --cert-file /etc/nginx/ssl/${domain}/${domain}-cert.pem \
 --fullchain-file /etc/nginx/ssl/${domain}/${domain}-ssl.pem \
---reloadcmd "systemctl reload nginx.service; systemctl restart vsftpd.service" \
+--reloadcmd "systemctl reload nginx.service && { ! systemctl cat vsftpd.service >/dev/null 2>&1 || systemctl restart vsftpd.service; }" \
 --log /root/.quickbox/logs/${domain}.log >>"${OUTTO}" 2>&1
 
 	cat >/etc/nginx/sites-enabled/default <<EOF
@@ -318,15 +318,17 @@ function _installAppLock() {
 function _installAppStart() {
 	_info "Starting ${APP_TITLE}..."
 	# vsftpd tls
-	ftp_ip=$(cat /etc/vsftpd.conf | grep pasv_address | grep -Eo "[0-9.]+")
-	mv /etc/vsftpd.conf /root/.vsftpd.conf.bak
-	\cp -rf /etc/QuickBox/setup/templates/vsftpd/vsftpd.conf.tls.template /etc/vsftpd.conf
-	sed -i 's/^\(pasv_min_port=\).*/\110090/' /etc/vsftpd.conf
-	sed -i 's/^\(pasv_max_port=\).*/\110100/' /etc/vsftpd.conf
-	sed -i "s/^\(rsa_cert_file=\).*/rsa_cert_file=\/etc\/nginx\/ssl\/$domain\/$domain-ssl.pem/" /etc/vsftpd.conf
-	sed -i "s/^\(rsa_private_key_file=\).*/rsa_private_key_file=\/etc\/nginx\/ssl\/$domain\/$domain-key.pem/" /etc/vsftpd.conf
-	echo "pasv_address=$ftp_ip" >>/etc/vsftpd.conf
-	_execute "systemctl restart vsftpd.service"
+	if systemctl cat vsftpd.service >/dev/null 2>&1; then
+		ftp_ip=$(cat /etc/vsftpd.conf | grep pasv_address | grep -Eo "[0-9.]+")
+		mv /etc/vsftpd.conf /root/.vsftpd.conf.bak
+		\cp -rf /etc/QuickBox/setup/templates/vsftpd/vsftpd.conf.tls.template /etc/vsftpd.conf
+		sed -i 's/^\(pasv_min_port=\).*/\110090/' /etc/vsftpd.conf
+		sed -i 's/^\(pasv_max_port=\).*/\110100/' /etc/vsftpd.conf
+		sed -i "s/^\(rsa_cert_file=\).*/rsa_cert_file=\/etc\/nginx\/ssl\/$domain\/$domain-ssl.pem/" /etc/vsftpd.conf
+		sed -i "s/^\(rsa_private_key_file=\).*/rsa_private_key_file=\/etc\/nginx\/ssl\/$domain\/$domain-key.pem/" /etc/vsftpd.conf
+		echo "pasv_address=$ftp_ip" >>/etc/vsftpd.conf
+		_execute "systemctl restart vsftpd.service"
+	fi
 	_execute "systemctl restart nginx.service"
 }
 
