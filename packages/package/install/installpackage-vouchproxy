@@ -178,6 +178,11 @@ function _validateRequired() {
     OIDC_USER_MAP="$OIDC_USER"
   fi
 
+  if [[ -z "$OIDC_USER_MAP" ]]; then
+    _error "OIDC map cannot be empty."
+    exit 1
+  fi
+
   # Normalize optional end-session endpoint (trim spaces and strip outer quotes).
   if [[ -n "$OIDC_END_SESSION_ENDPOINT" ]]; then
     OIDC_END_SESSION_ENDPOINT="$(echo "$OIDC_END_SESSION_ENDPOINT" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
@@ -421,6 +426,7 @@ map \$auth_resp_x_vouch_user \$qb_vouch_local_user {
     _abort "Failed to install the ${APP_TITLE} user map."
   fi
 
+  chmod +x /usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate || _abort "Cannot make qbAuthMigrate executable."
   _execute "/usr/local/bin/quickbox/system/auxiliary/qbAuthMigrate --migrate" || _abort "Failed to migrate existing authentication configuration."
 
   _execute "systemctl daemon-reload" || _abort "Failed to reload systemd units."
