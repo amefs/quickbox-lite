@@ -141,7 +141,7 @@ async function verifySingleBasicLogin(browser, entryPath) {
         }
         if (provider === 'basic') await page.goto(base);
         await until(async () => (await request(page, '/node/dashboard_config')) === 200);
-        await page.goto(base);
+        if (provider !== 'basic') await page.goto(base);
         await expect(page.locator('body')).not.toBeEmpty();
         for (const socketPath of ['/socket.io', '/ws/socket.io']) {
           assert.equal(await request(page, `${socketPath}/?EIO=4&transport=polling`), 200);
