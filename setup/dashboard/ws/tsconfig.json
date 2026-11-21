@@ -6,9 +6,9 @@
         "isolatedModules": false,
         "allowJs": true,
         "sourceMap": true,
-        "jsx": "react",
         "declaration": false,
         "strict": true,
+        "skipLibCheck": true,
         "noImplicitAny": true,
         "noImplicitUseStrict": false,
         "removeComments": true,
@@ -27,9 +27,8 @@
     },
     "include": [
         "src/**/*.ts",
-        "src/**/*.tsx",
-        "tests/**/*.ts",
-        "../lang/*.json"
+        "mock/**/*.ts",
+        "tests/**/*.ts"
     ],
     "exclude": [
         "node_modules",

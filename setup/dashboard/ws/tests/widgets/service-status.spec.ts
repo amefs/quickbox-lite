@@ -4,10 +4,9 @@ import "mocha";
 import { expect } from "chai";
 import { EventEmitter } from "events";
 import { spawn as nativeSpawn, type spawn } from "child_process";
-import { renderServiceBadge, serviceStatusAll } from "../../src/widgets/service-status";
-import { withLocale } from "../../src/i18n";
-import { getServiceHealth, getServiceSnapshot, invalidateServiceState, parseSystemdShow, processMatches, setServiceCommandSpawnerForTests, setServiceStateCollectorsForTests } from "../../src/widgets/service-state";
-import { serviceMap } from "../../src/info";
+import { serviceStatusAllData } from "../../src/services/service/status";
+import { getServiceHealth, getServiceSnapshot, invalidateServiceState, parseSystemdShow, processMatches, setServiceCommandSpawnerForTests, setServiceStateCollectorsForTests } from "../../src/services/service/state";
+import { serviceMap } from "../../src/services/packages/info";
 
 describe("widgets/service-status", () => {
     function allBranchValues(value: boolean, systemdOnly = false) {
@@ -20,37 +19,10 @@ describe("widgets/service-status", () => {
 
     afterEach(() => { setServiceCommandSpawnerForTests(undefined); });
 
-    it("renders known, unknown and stale states distinctly", () => {
-        expect(renderServiceBadge(true)).to.include("badge-service-running-pulse");
-        expect(renderServiceBadge(false)).to.include("badge-service-disabled-dot");
-        const unknown = renderServiceBadge({ value: null, observedAt: null, stale: true });
-        expect(unknown).to.include("badge-service-unknown-dot");
-        expect(unknown).to.include("Status not confirmed");
-        const stale = renderServiceBadge({ value: true, observedAt: 1, stale: true });
-        expect(stale).to.include("badge-service-running-dot");
-        expect(stale).to.include("badge-service-stale");
-        expect(stale).to.include("Last confirmed");
-    });
-
-    it("renders localized last-confirmed titles concurrently without leaking locale or placeholders", async () => {
-        const state = { value: true, observedAt: 1234, stale: true };
-        const [english, chinese] = await Promise.all([
-            withLocale("en", () => renderServiceBadge(state)),
-            withLocale("zh", () => renderServiceBadge(state)),
-        ]);
-        expect(english).to.include("Last confirmed 1970-01-01T00:00:01.234Z");
-        expect(chinese).to.include("最后确认时间：1970-01-01T00:00:01.234Z");
-        expect(english).to.not.include("{{time}}");
-        expect(chinese).to.not.include("{{time}}");
-        expect(english).to.not.include("最后确认时间");
-        expect(chinese).to.not.include("Last confirmed");
-    });
-
-    it("returns the health envelope with keyed HTML badges", async () => {
-        const result = await serviceStatusAll();
-        expect(result).to.have.keys("badges", "health", "retryAfterMs");
-        expect(result.badges).to.have.property("irssi");
-        expect(result.badges.irssi).to.include("badge-service-");
+    it("returns the health envelope with pure state objects", async () => {
+        const result = await serviceStatusAllData();
+        expect(result).to.have.keys("states", "health", "retryAfterMs");
+        expect(result.states).to.be.an("object");
         expect(["ok", "degraded", "unavailable"]).to.include(result.health);
         expect(result.retryAfterMs).to.be.a("number");
     });
@@ -96,8 +68,8 @@ describe("widgets/service-status", () => {
             systemd: () => { systemdCalls += 1; return Promise.resolve(allBranchValues(true, true)); },
             process: () => { processCalls += 1; return Promise.resolve(allBranchValues(false)); },
         });
-        const [batch, state] = await Promise.all([serviceStatusAll(), getServiceSnapshot()]);
-        expect(batch.badges.denyhosts).to.include("badge-service-running");
+        const [batch, state] = await Promise.all([serviceStatusAllData(), getServiceSnapshot()]);
+        expect(batch.health).to.equal("ok");
         expect(state.irssi).to.deep.equal({ value: false, observedAt: state.irssi.observedAt, stale: false });
         await getServiceSnapshot();
         expect(systemdCalls).to.equal(1);

@@ -46,7 +46,7 @@ for (const theme of ["smoked", "defaulted"]) {
                     const dropdown = await page.locator("#noticeDropdown").boundingBox();
                     expect(dropdown!.x).toBeGreaterThanOrEqual(0);
                     expect(dropdown!.x + dropdown!.width).toBeLessThanOrEqual(width + 1);
-                    await page.mouse.click(5, 80);
+                    await page.mouse.click(width - 2, 800);
                     await expect(page.locator("#noticeDropdown")).toBeHidden();
                     const account = page.locator(".headermenu > li:last-child button");
                     await account.click();
@@ -55,7 +55,7 @@ for (const theme of ["smoked", "defaulted"]) {
                     const accountBox = await accountMenu.boundingBox();
                     expect(accountBox!.x).toBeGreaterThanOrEqual(0);
                     expect(accountBox!.x + accountBox!.width).toBeLessThanOrEqual(width + 1);
-                    await page.mouse.click(5, 80);
+                    await page.mouse.click(width - 2, 800);
                     await expect(accountMenu).toBeHidden();
                 }
                 await testInfo.attach("long-branch-header", {

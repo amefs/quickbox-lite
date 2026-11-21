@@ -13,8 +13,7 @@ const dependencyNames = Object.keys(packageJson.dependencies ?? {});
 const builtinNames = new Set(builtinModules.flatMap((name) => [name, `node:${name}`]));
 
 function isExternal(id) {
-    return (id.startsWith("../../lang/lang_") && id.endsWith(".json")) ||
-        builtinNames.has(id) || dependencyNames.some((name) => id === name || id.startsWith(`${name}/`));
+    return builtinNames.has(id) || dependencyNames.some((name) => id === name || id.startsWith(`${name}/`));
 }
 
 function escapeTemplateNewlines(code, fileName) {
@@ -74,7 +73,7 @@ export default defineConfig({
         outDir: path.join(packageRoot, "dist"),
         emptyOutDir: true,
         lib: {
-            entry: path.join(packageRoot, "src", "server.tsx"),
+            entry: path.join(packageRoot, "src", "server.ts"),
             formats: ["cjs"],
             fileName: () => "server.js",
         },
@@ -84,8 +83,7 @@ export default defineConfig({
                 comments: false,
                 chunkFileNames: "[name].js",
                 manualChunks(id) {
-                    if (id.includes("/src/vendor/i18n/")) return "i18n";
-                    if (id.includes("/src/widgets/")) return "widgets";
+                    if (id.includes("/src/services/")) return "services";
                 },
             },
         },

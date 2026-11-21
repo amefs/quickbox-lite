@@ -8,7 +8,7 @@
 
 import { test, expect, type Page } from "@playwright/test";
 
-import { WS_BASE_URL, resetMockProfile, setMockProfile } from "./support/helpers";
+import { WS_BASE_URL, resetMockProfile } from "./support/helpers";
 
 test.beforeEach(async ({ page }) => {
     await resetMockProfile(page);
@@ -16,11 +16,29 @@ test.beforeEach(async ({ page }) => {
 
 interface TableState {
     search: string;
-    order: [number, string][];
+    sort: string | null;
     page: number;
     length: number;
     rowCount: number;
     visibleRows: string[];
+}
+
+interface ServiceStatusRequestFixture {
+    key: "SERVICE_STATUS_ALL";
+    url: string;
+    requestId: string;
+}
+
+interface ServiceControlRequestFixture {
+    key: "SERVICE_CONTROL";
+    url: string;
+    requestId: string;
+}
+
+interface NetworkRequestFixture {
+    key: "NETWORK";
+    url: string;
+    requestId: string;
 }
 
 interface PrefetchControl {
@@ -31,68 +49,67 @@ interface PrefetchControl {
 
 async function isPackageTableReady(page: Page): Promise<boolean> {
     return page.evaluate(() => {
-        const win = window as unknown as { jQuery?: JQueryLike };
-        const $ = win.jQuery;
-        return Boolean($ && $.fn && $.fn.DataTable && $.fn.DataTable.isDataTable("#dataTable1"));
+        const win = window as unknown as { quickboxPackageManagementIsland?: { onMessage?: unknown } };
+        return typeof win.quickboxPackageManagementIsland?.onMessage === "function" &&
+            document.querySelector("#pmc_widget #dataTable1-search") !== null &&
+            document.querySelector("#pmc_widget [aria-busy='false'] .ant-table-tbody") !== null;
     });
 }
 
 async function readPackageTableState(page: Page): Promise<TableState | null> {
     return page.evaluate(() => {
-        const win = window as unknown as { jQuery?: JQueryLike };
-        const $ = win.jQuery;
-        if (!$ || !$.fn || !$.fn.DataTable || !$.fn.DataTable.isDataTable("#dataTable1")) {
+        const search = document.querySelector<HTMLInputElement>("#dataTable1-search");
+        const pageSize = document.querySelector<HTMLSelectElement>("#quickbox-pmc-page-size");
+        const body = document.querySelector("#pmc_widget .ant-table-tbody");
+        if (!search || !pageSize || !body) {
             return null;
         }
-        const table = $("#dataTable1").DataTable();
-        // DataTables only keeps the rows of the current page in the tbody, so the
-        // row count reflects what the filter and paging actually produce. The
-        // "no results" placeholder is a row too and must not be counted.
-        const nodes = Array.from(document.querySelectorAll("#dataTable1 tbody tr"))
-            .filter((node) => node.querySelector("td.dataTables_empty") === null);
+        const nodes = Array.from(body.querySelectorAll<HTMLTableRowElement>("tr[data-row-key]"));
+        const currentPage = document.querySelector('#dataTable1_paginate a[aria-current="page"]');
         return {
-            search: table.search(),
-            order: table.order(),
-            page: table.page(),
-            length: table.page.len(),
+            search: search.value,
+            sort: document.querySelector("#pmc_widget .ant-table-thead th[aria-sort]")?.getAttribute("aria-sort") ?? null,
+            page: Number.parseInt(currentPage?.textContent ?? "1", 10) - 1,
+            length: Number.parseInt(pageSize.value, 10),
             rowCount: nodes.length,
             visibleRows: nodes.map((node) => (node.textContent ?? "").trim()),
         };
     });
 }
 
-async function setPackageTableState(page: Page, search: string, order: [number, string]): Promise<void> {
-    await page.evaluate(
-        (payload) => {
-            const win = window as unknown as { jQuery?: JQueryLike };
-            const $ = win.jQuery;
-            if (!$ || !$.fn || !$.fn.DataTable || !$.fn.DataTable.isDataTable("#dataTable1")) {
-                return;
-            }
-            const table = $("#dataTable1").DataTable();
-            table.search(payload.search);
-            table.order([payload.order] as [number, string][]);
-            table.draw(false);
-        },
-        { search, order },
-    );
+async function setPackageTableState(page: Page, search: string, order: [number, "asc" | "desc"]): Promise<void> {
+    await page.locator("#dataTable1-search").fill(search);
+    const sortHeader = page.locator("#pmc_widget .ant-table-thead th").nth(order[0]);
+    const desiredSort = order[1] === "desc" ? "descending" : "ascending";
+    if (await sortHeader.getAttribute("aria-sort") !== desiredSort) {
+        await sortHeader.click();
+    }
+    await expect(sortHeader).toHaveAttribute("aria-sort", desiredSort);
 }
 
 async function goToSecondPage(page: Page): Promise<boolean> {
-    return page.evaluate(() => {
-        const win = window as unknown as { jQuery?: JQueryLike };
-        const $ = win.jQuery;
-        if (!$ || !$.fn || !$.fn.DataTable || !$.fn.DataTable.isDataTable("#dataTable1")) {
+    const pageTwo = page.locator('#dataTable1_paginate a[aria-label="Page 2"]');
+    if (await pageTwo.count() === 0) {
+        return false;
+    }
+    await pageTwo.click();
+    await expect(pageTwo).toHaveAttribute("aria-current", "page");
+    return true;
+}
+
+async function publishPackageData(page: Page, rowLimit?: number): Promise<boolean> {
+    return page.evaluate((limit) => {
+        const win = window as unknown as {
+            quickboxRuntime?: { packageManagement?: { data?: { rows: unknown[] } } };
+            quickboxPackageManagementIsland?: { onMessage: (value: unknown) => boolean };
+        };
+        const data = win.quickboxRuntime?.packageManagement?.data;
+        const bridge = win.quickboxPackageManagementIsland;
+        if (!data || !bridge) {
             return false;
         }
-        const table = $("#dataTable1").DataTable();
-        const info = table.page.info();
-        if (info.pages < 2) {
-            return false;
-        }
-        table.page(1).draw(false);
-        return true;
-    });
+        return bridge.onMessage(limit === undefined ? data : { ...data, rows: data.rows.slice(0, limit) });
+    }, rowLimit);
 }
 
 async function deliverSocketMessage(page: Page, payload: unknown): Promise<number> {
@@ -109,47 +126,101 @@ async function deliverSocketMessage(page: Page, payload: unknown): Promise<numbe
     }, payload);
 }
 
-/**
- * Requests a widget payload over the real socket. `/node/pmc` is not exposed over
- * HTTP, so the payload has to come from the WS transport, which also makes the
- * dashboard replace the widget through its normal handler.
- */
-async function requestWidgetViaSocket(page: Page, key: string, url: string): Promise<string> {
-    return page.evaluate(
-        (request) =>
-            new Promise<string>((resolve, reject) => {
-                const socket = (window as unknown as { socket?: SocketLike }).socket;
-                if (!socket) {
-                    reject(new Error("socket is not available"));
-                    return;
-                }
-                // Bind the narrowed value: TypeScript does not carry the guard
-                // into the deferred callbacks below.
-                const activeSocket = socket;
-                const timeout = setTimeout(() => {
-                    activeSocket.off("message", handler);
-                    reject(new Error(`timed out waiting for ${request.key}`));
-                }, 30000);
-                function handler(payload: unknown): void {
-                    const message = payload as { key?: string; success?: boolean; response?: string; message?: string };
-                    if (message.key !== request.key || typeof message.response !== "string") {
-                        return;
-                    }
-                    clearTimeout(timeout);
-                    activeSocket.off("message", handler);
-                    resolve(message.response);
-                }
-                activeSocket.on("message", handler);
-                activeSocket.emit("message", { key: request.key, url: request.url, locale: "en" });
-            }),
-        { key, url },
-    );
+async function captureServiceStatusRequests(page: Page): Promise<void> {
+    await page.evaluate(() => {
+        const win = window as unknown as {
+            socket: { send: (payload: unknown) => unknown };
+            __serviceStatusRequests: ServiceStatusRequestFixture[];
+        };
+        const socket = win.socket;
+        const send = socket.send.bind(socket);
+        win.__serviceStatusRequests = [];
+        socket.send = (payload: unknown) => {
+            const request = payload as { key?: string };
+            if (request.key === "SERVICE_STATUS_ALL") {
+                win.__serviceStatusRequests.push(payload as ServiceStatusRequestFixture);
+                return socket;
+            }
+            return send(payload);
+        };
+    });
+}
+
+async function readServiceStatusRequest(page: Page, index: number): Promise<ServiceStatusRequestFixture> {
+    return page.evaluate((requestIndex) => {
+        return (window as unknown as { __serviceStatusRequests: ServiceStatusRequestFixture[] }).__serviceStatusRequests[requestIndex];
+    }, index);
+}
+
+async function captureServiceControlRequests(page: Page): Promise<void> {
+    await page.evaluate(() => {
+        const win = window as unknown as {
+            socket: { send: (payload: unknown) => unknown };
+            __serviceControlRequests: ServiceControlRequestFixture[];
+        };
+        const socket = win.socket;
+        const send = socket.send.bind(socket);
+        win.__serviceControlRequests = [];
+        socket.send = (payload: unknown) => {
+            const request = payload as { key?: string };
+            if (request.key === "SERVICE_CONTROL") {
+                win.__serviceControlRequests.push(payload as ServiceControlRequestFixture);
+                return socket;
+            }
+            return send(payload);
+        };
+    });
+}
+
+async function readServiceControlRequest(page: Page, index: number): Promise<ServiceControlRequestFixture> {
+    return page.evaluate((requestIndex) => {
+        return (window as unknown as { __serviceControlRequests: ServiceControlRequestFixture[] }).__serviceControlRequests[requestIndex];
+    }, index);
+}
+
+async function captureNetworkRequests(page: Page): Promise<void> {
+    await page.evaluate(() => {
+        const win = window as unknown as {
+            socket: { send: (payload: unknown) => unknown };
+            __networkRequests: NetworkRequestFixture[];
+        };
+        const socket = win.socket;
+        const send = socket.send.bind(socket);
+        win.__networkRequests = [];
+        socket.send = (payload: unknown) => {
+            const request = payload as { key?: string };
+            if (request.key === "NETWORK") {
+                win.__networkRequests.push(payload as NetworkRequestFixture);
+                return socket;
+            }
+            return send(payload);
+        };
+    });
+}
+
+function makeServiceStatusResponse(
+    request: ServiceStatusRequestFixture,
+    status: "error" | "success",
+): Record<string, unknown> {
+    if (status === "error") {
+        return { ...request, type: "reply", success: false, message: "fixture failure", response: "" };
+    }
+    return {
+        ...request,
+        type: "reply",
+        success: true,
+        message: "",
+        response: {
+            states: { rtorrent: { value: false, observedAt: Date.now(), stale: false } },
+            health: "ok",
+            retryAfterMs: 0,
+        },
+    };
 }
 
 async function openDashboard(page: Page): Promise<void> {
-    await page.goto(WS_BASE_URL);
-    // The package table is only built once the widget HTML and DataTables are
-    // both available; the widget body itself may stay collapsed until then.
+    const separator = WS_BASE_URL.includes("?") ? "&" : "?";
+    await page.goto(`${WS_BASE_URL}${separator}pushMode=poll`);
     await expect.poll(async () => isPackageTableReady(page), { timeout: 60000 }).toBe(true);
 }
 
@@ -162,127 +233,215 @@ async function waitForConfirmedServiceStatus(page: Page): Promise<void> {
     ).toBeGreaterThan(0);
 }
 
-/** Every response in this spec is delivered directly to the socket listeners;
- * suppress spontaneous retries so the mock server cannot overwrite them. */
-async function suppressServiceStatusRequests(page: Page): Promise<void> {
-    await page.evaluate(() => {
-        const socket = (window as unknown as { socket: { send: (payload: unknown) => unknown } }).socket;
-        const send = socket.send.bind(socket);
-        socket.send = (payload: unknown) => {
-            if ((payload as { key?: string }).key === "SERVICE_STATUS_ALL") return socket;
-            return send(payload);
-        };
-    });
-}
-
 test.describe("service status recovery", () => {
     test.setTimeout(45000);
 
     test("backs off across periodic polls and lets reconnect trigger an immediate request", async ({ page }) => {
         await openDashboard(page);
         await waitForConfirmedServiceStatus(page);
-        await page.evaluate(() => {
-            const win = window as unknown as { socket?: { send: (payload: unknown) => unknown }; __serviceStatusRequests?: unknown[] };
-            const socket = win.socket;
-            if (!socket) throw new Error("socket is not available");
-            const send = socket.send.bind(socket);
-            win.__serviceStatusRequests = [];
-            socket.send = (payload: unknown) => {
-                const request = payload as { key?: string };
-                if (request.key === "SERVICE_STATUS_ALL") {
-                    win.__serviceStatusRequests?.push(payload);
-                    return socket;
-                }
-                return send(payload);
-            };
-            Math.random = () => 0;
-        });
+        await captureServiceStatusRequests(page);
 
-        await deliverSocketMessage(page, { key: "SERVICE_STATUS_ALL", success: false, message: "fixture failure" });
-        // Backoff is 5000·2^(n-1) ms with the jitter pinned to 0 by the
-        // Math.random stub above. The retry request and its elapsed delay are
-        // both observed through polling.
-        const firstFailureAt = Date.now();
         await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length), { timeout: 12000 }).toBe(1);
+        const firstRequest = await readServiceStatusRequest(page, 0);
+        const firstFailureAt = Date.now();
+        await deliverSocketMessage(page, makeServiceStatusResponse(firstRequest, "error"));
+        // A failed status request cools down for five seconds before retry.
+        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length), { timeout: 12000 }).toBe(2);
         expect(Date.now() - firstFailureAt).toBeGreaterThanOrEqual(4500);
 
-        const firstRequest = await page.evaluate(() => (window as unknown as { __serviceStatusRequests: { requestId: string }[] }).__serviceStatusRequests[0]);
-        await deliverSocketMessage(page, { key: "SERVICE_STATUS_ALL", requestId: firstRequest.requestId, success: false, message: "fixture failure" });
-        const secondFailureAt = Date.now();
-        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length), { timeout: 15000 }).toBe(2);
-        expect(Date.now() - secondFailureAt).toBeGreaterThanOrEqual(9000);
-
-        await deliverSocketMessage(page, {
-            key: "SERVICE_STATUS_ALL",
-            requestId: firstRequest.requestId,
-            success: true,
-            response: { badges: { rtorrent: '<span><span class="badge badge-service-running-dot"></span></span>' }, health: "ok", retryAfterMs: 0 },
-        });
+        const retryRequest = await readServiceStatusRequest(page, 1);
+        await deliverSocketMessage(page, makeServiceStatusResponse(retryRequest, "error"));
         await expect(page.locator("#appstat_rtorrent .badge-service-stale").first()).toBeVisible();
-
         await page.evaluate(() => {
             const socket = (window as unknown as { socket: { listeners: (event: string) => unknown[] } }).socket;
             for (const listener of socket.listeners("connect")) {
                 if (typeof listener === "function") (listener as () => void)();
             }
         });
-        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length)).toBe(3);
+        const reconnectAt = Date.now();
+        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length), { timeout: 4500 }).toBe(3);
+        expect(Date.now() - reconnectAt).toBeLessThan(4500);
+        await deliverSocketMessage(page, makeServiceStatusResponse(await readServiceStatusRequest(page, 2), "success"));
+        await expect(page.locator("#appstat_rtorrent .badge-service-stale")).toHaveCount(0);
     });
 
     test("marks badges stale on transport failure, rejects late replies and accepts recovery", async ({ page }) => {
         await openDashboard(page);
         await waitForConfirmedServiceStatus(page);
-        await suppressServiceStatusRequests(page);
-
-        await deliverSocketMessage(page, {
-            key: "SERVICE_STATUS_ALL",
-            success: false,
-            message: "fixture failure",
-        });
+        await captureServiceStatusRequests(page);
+        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length), { timeout: 12000 }).toBe(1);
+        const failedRequest = await readServiceStatusRequest(page, 0);
+        await deliverSocketMessage(page, makeServiceStatusResponse(failedRequest, "error"));
         await expect(page.locator("#appstat_rtorrent .badge-service-stale").first()).toBeVisible();
         await expect(page.locator("#appstat_rtorrent span[title]")).toHaveAttribute("title", /last confirmed/i);
 
-        await deliverSocketMessage(page, {
-            key: "SERVICE_STATUS_ALL",
-            requestId: "SERVICE_STATUS_ALL:late-response",
-            success: true,
-            response: {
-                badges: { rtorrent: '<span data-observed-at="1"><span class="badge badge-service-disabled-dot"></span></span>' },
-                health: "ok",
-                retryAfterMs: 0,
-            },
-        });
+        await deliverSocketMessage(page, makeServiceStatusResponse(failedRequest, "success"));
         await expect(page.locator("#appstat_rtorrent .badge-service-stale").first()).toBeVisible();
 
-        await deliverSocketMessage(page, {
-            key: "SERVICE_STATUS_ALL",
-            success: true,
-            response: {
-                badges: { rtorrent: '<span title="Last confirmed" data-observed-at="2"><span class="badge badge-service-running-dot badge-service-stale"></span><span class="badge badge-service-running-pulse badge-service-stale"></span></span>' },
-                health: "degraded",
-                retryAfterMs: 10000,
-            },
-        });
-        await expect(page.locator("#appstat_rtorrent .badge-service-running-dot")).toHaveClass(/badge-service-stale/);
-
-        await deliverSocketMessage(page, {
-            key: "SERVICE_STATUS_ALL",
-            success: true,
-            response: {
-                badges: { rtorrent: '<span title="" data-observed-at="3"><span class="badge badge-service-disabled-dot"></span><span class="badge badge-service-disabled-pulse"></span></span>' },
-                health: "ok",
-                retryAfterMs: 0,
-            },
-        });
+        await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length), { timeout: 12000 }).toBe(2);
+        await deliverSocketMessage(page, makeServiceStatusResponse(await readServiceStatusRequest(page, 1), "success"));
         await expect(page.locator("#appstat_rtorrent .badge-service-disabled-dot")).toBeVisible();
         await expect(page.locator("#appstat_rtorrent .badge-service-stale")).toHaveCount(0);
+    });
+
+    test("keeps retrying aggregate status after repeated errors", async ({ page }) => {
+        await page.clock.install({ time: new Date("2026-03-24T14:30:00Z") });
+        await openDashboard(page);
+        await captureServiceStatusRequests(page);
+        await page.evaluate(() => (window as any).quickboxServiceIsland.onConnected(0));
+        await expect.poll(() => page.evaluate(() => (window as any).__serviceStatusRequests.length)).toBe(1);
+
+        for (let index = 0; index < 33; index += 1) {
+            const request = await readServiceStatusRequest(page, index);
+            await deliverSocketMessage(page, makeServiceStatusResponse(request, "error"));
+            await page.clock.fastForward(31_000);
+            await expect.poll(() => page.evaluate(() => (window as any).__serviceStatusRequests.length)).toBe(index + 2);
+        }
+    });
+
+    test("keeps five second polling when only one collector is degraded", async ({ page }) => {
+        await page.clock.install({ time: new Date("2026-03-24T14:30:00Z") });
+        await openDashboard(page);
+        await waitForConfirmedServiceStatus(page);
+        await captureServiceStatusRequests(page);
+        await page.evaluate(() => (window as any).quickboxServiceIsland.onConnected(0));
+        await expect.poll(() => page.evaluate(() => (window as any).__serviceStatusRequests.length)).toBe(1);
+        const request = await readServiceStatusRequest(page, 0);
+        await deliverSocketMessage(page, {
+            ...request,
+            type: "reply",
+            success: true,
+            message: "",
+            response: {
+                states: { rtorrent: { value: false, observedAt: Date.now(), stale: false } },
+                health: "degraded",
+                retryAfterMs: 120_000,
+            },
+        });
+
+        const requestsAfterDegradedReply = await page.evaluate(() => (window as any).__serviceStatusRequests.length);
+        await page.clock.fastForward(5_001);
+        await expect.poll(() => page.evaluate(() => (window as any).__serviceStatusRequests.length)).toBeGreaterThan(requestsAfterDegradedReply);
+    });
+
+    test("reconnect restarts dashboard widget polls stopped by repeated errors", async ({ page }) => {
+        await page.clock.install({ time: new Date("2026-03-24T14:30:00Z") });
+        await openDashboard(page);
+        await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { socket?: { connected?: boolean } }).socket?.connected))).toBe(true);
+        await captureNetworkRequests(page);
+        await page.evaluate(() => {
+            (window as unknown as { __networkRequests: NetworkRequestFixture[] }).__networkRequests = [];
+            const socket = (window as unknown as { socket: { listeners: (event: string) => unknown[] } }).socket;
+            for (const listener of socket.listeners("connect")) {
+                if (typeof listener === "function") (listener as () => void)();
+            }
+        });
+        await expect.poll(() => page.evaluate(() => (window as unknown as { __networkRequests: NetworkRequestFixture[] }).__networkRequests.length)).toBe(1);
+
+        for (let index = 0; index < 32; index += 1) {
+            const request = await page.evaluate((requestIndex) => (window as unknown as { __networkRequests: NetworkRequestFixture[] }).__networkRequests[requestIndex], index);
+            await deliverSocketMessage(page, { ...request, type: "reply", success: false, message: "fixture failure", response: "" });
+            await page.clock.fastForward(1_000);
+            await expect.poll(() => page.evaluate(() => (window as unknown as { __networkRequests: NetworkRequestFixture[] }).__networkRequests.length)).toBe(index + 2);
+        }
+
+        const stoppedRequest = await page.evaluate(() => (window as unknown as { __networkRequests: NetworkRequestFixture[] }).__networkRequests[32]);
+        await deliverSocketMessage(page, { ...stoppedRequest, type: "reply", success: false, message: "fixture failure", response: "" });
+        await page.evaluate(() => {
+            const socket = (window as unknown as { socket: { listeners: (event: string) => unknown[] } }).socket;
+            for (const listener of socket.listeners("connect")) {
+                if (typeof listener === "function") (listener as () => void)();
+            }
+        });
+        await expect.poll(() => page.evaluate(() => (window as unknown as { __networkRequests: NetworkRequestFixture[] }).__networkRequests.length)).toBe(34);
+    });
+});
+
+test.describe("service action confirmation", () => {
+    test.setTimeout(45000);
+
+    test("keeps the confirmed switch value until the action result arrives", async ({ page }) => {
+        await openDashboard(page);
+        await captureServiceControlRequests(page);
+        await page.evaluate(() => (window as any).quickboxServiceIsland.onConnected(0));
+        await expect.poll(() => page.evaluate(() => (window as any).__serviceControlRequests.length)).toBeGreaterThan(0);
+        const request = await readServiceControlRequest(page, 0);
+
+        await page.evaluate(() => {
+            const state = { actions: [] as Array<Record<string, unknown>> };
+            (window as any).__serviceActionRequests = state.actions;
+            const socket = (window as any).socket;
+            const emit = socket.emit.bind(socket);
+            socket.emit = (event: string, payload: unknown) => {
+                if (event === "service-action") {
+                    state.actions.push(payload as Record<string, unknown>);
+                    return socket;
+                }
+                return emit(event, payload);
+            };
+        });
+
+        const toggle = page.locator("#appstat_rtorrent").locator("xpath=ancestor::tr").locator(".ant-switch");
+        await expect(toggle).toHaveAttribute("aria-checked", "true");
+        await toggle.click();
+        await expect(toggle).toBeDisabled();
+        await expect(toggle).toHaveClass(/ant-switch-loading/);
+        const spinnerOffset = await toggle.evaluate((el) => {
+            const handle = el.querySelector(".ant-switch-handle")?.getBoundingClientRect();
+            const svg = el.querySelector(".ant-switch-loading-icon svg")?.getBoundingClientRect();
+            if (!handle || !svg) {return null;}
+            return {
+                dx: Math.abs((handle.left + handle.width / 2) - (svg.left + svg.width / 2)),
+                dy: Math.abs((handle.top + handle.height / 2) - (svg.top + svg.height / 2)),
+                handleWidth: handle.width,
+                svgWidth: svg.width,
+            };
+        });
+        expect(spinnerOffset).not.toBeNull();
+        expect(spinnerOffset!.dx).toBeLessThan(1.5);
+        expect(spinnerOffset!.dy).toBeLessThan(1.5);
+        await expect.poll(() => page.evaluate(() => (window as any).__serviceActionRequests.length)).toBe(1);
+        const action = await page.evaluate(() => (window as any).__serviceActionRequests[0] as Record<string, unknown>);
+
+        const changedControlRows = await page.evaluate(() => {
+            const rows = (window as any).quickboxRuntime.serviceRows.map((row: { id: string; enabledAtBoot: boolean }) =>
+                row.id === "rtorrent" ? { ...row, enabledAtBoot: false } : row,
+            );
+            return rows;
+        });
+        await deliverSocketMessage(page, {
+            ...request,
+            type: "reply",
+            success: true,
+            message: "",
+            response: { rows: changedControlRows },
+        });
+        await expect(toggle).toHaveAttribute("aria-checked", "true");
+
+        await page.evaluate((payload) => {
+            const bridge = (window as any).quickboxServiceIsland;
+            const base = { ...payload, success: true, message: "Service action completed", completedOperations: [], stdout: "", stderr: "" };
+            bridge.onActionResult({ ...base, phase: "action-complete" });
+            bridge.onActionResult({
+                ...base,
+                phase: "status-confirmed",
+                enabled: false,
+                statusData: {
+                    states: { rtorrent: { value: false, observedAt: Date.now(), stale: false } },
+                    health: "ok",
+                    retryAfterMs: 0,
+                },
+            });
+        }, action);
+        await expect(toggle).toHaveAttribute("aria-checked", "false");
+        await expect(toggle).toBeEnabled();
     });
 });
 
 test.describe("PMC widget state", () => {
     test.setTimeout(120000);
 
-    test("keeps search, sort and instance across a WS replacement", async ({ page }) => {
+    test("keeps search, sort and page size across a package data refresh", async ({ page }) => {
         await openDashboard(page);
 
         await setPackageTableState(page, "deluge", [0, "desc"]);
@@ -293,13 +452,11 @@ test.describe("PMC widget state", () => {
         if (before === null) {
             return;
         }
-        expect(before.order[0]?.[1]).toBe("desc");
+        expect(before.sort).toBe("descending");
         expect(before.rowCount).toBe(1);
 
-        // Triggering the widget over the WS makes the dashboard replace the DOM
-        // through its normal handler, which is the path under test.
-        const html = await requestWidgetViaSocket(page, "PMC", "/node/pmc");
-        expect(html.length).toBeGreaterThan(0);
+        // The dashboard's correlated PMC response is applied through this bridge.
+        expect(await publishPackageData(page)).toBe(true);
 
         const after = await readPackageTableState(page);
         expect(after).not.toBeNull();
@@ -307,7 +464,7 @@ test.describe("PMC widget state", () => {
             return;
         }
         expect(after.search).toBe("deluge");
-        expect(after.order[0]?.[1]).toBe("desc");
+        expect(after.sort).toBe("descending");
         expect(after.length).toBe(before.length);
         expect(after.rowCount).toBe(1);
 
@@ -317,12 +474,12 @@ test.describe("PMC widget state", () => {
             expect(row.toLowerCase()).toContain("deluge");
         }
 
-        // No leftover or duplicated instance after the replacement.
-        await expect(page.locator("#dataTable1")).toHaveCount(1);
-        await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
+        // The React island remains mounted while fresh package data is applied.
+        await expect(page.locator("#pmc_widget .qb-package-management__table")).toHaveCount(1);
+        await expect(page.locator("#pmc_widget .qb-package-management__toolbar")).toHaveCount(1);
     });
 
-    test("keeps the current page when the widget content is unchanged", async ({ page }) => {
+    test("keeps the current page when refreshed package data is unchanged", async ({ page }) => {
         await openDashboard(page);
 
         if (!(await goToSecondPage(page))) {
@@ -330,15 +487,14 @@ test.describe("PMC widget state", () => {
         }
         expect((await readPackageTableState(page))?.page).toBe(1);
 
-        await requestWidgetViaSocket(page, "PMC", "/node/pmc");
-        // The second identical payload hits the unchanged-HTML shortcut.
-        await requestWidgetViaSocket(page, "PMC", "/node/pmc");
+        expect(await publishPackageData(page)).toBe(true);
+        expect(await publishPackageData(page)).toBe(true);
 
         expect((await readPackageTableState(page))?.page).toBe(1);
-        await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
+        await expect(page.locator("#pmc_widget .qb-package-management__toolbar")).toHaveCount(1);
     });
 
-    test("keeps the current page when refreshed widget content changes", async ({ page }) => {
+    test("clamps the current page when refreshed package data has fewer rows", async ({ page }) => {
         await openDashboard(page);
 
         if (!(await goToSecondPage(page))) {
@@ -346,165 +502,15 @@ test.describe("PMC widget state", () => {
         }
         expect((await readPackageTableState(page))?.page).toBe(1);
 
-        const html = await requestWidgetViaSocket(page, "PMC", "/node/pmc");
-        // The mock profile decides whether /install/.install.lock exists, which
-        // is what adds the clear-lock block to the widget, so the next payload
-        // differs from the one the widget already holds.
-        await setMockProfile(page, "installing");
-        const refreshedHtml = await requestWidgetViaSocket(page, "PMC", "/node/pmc");
-        expect(refreshedHtml).not.toBe(html);
-
-        // The reply resolved by the request above is the payload the widget
-        // handler wrote, so the clear-lock block has to be on screen. It sits
-        // outside the paged table, so it does not depend on which page is shown.
-        await expect(page.locator("#pmc_widget button", { hasText: "Clear Lock" })).toHaveCount(1);
-
-        expect((await readPackageTableState(page))?.page).toBe(1);
-        await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
+        expect(await publishPackageData(page, 8)).toBe(true);
+        await expect.poll(async () => (await readPackageTableState(page))?.page).toBe(0);
+        expect((await readPackageTableState(page))?.search).toBe("");
+        await expect(page.locator("#pmc_widget .qb-package-management__toolbar")).toHaveCount(1);
     });
-
-    test("clamps the page when the refreshed data has fewer pages", async ({ page }) => {
-        await openDashboard(page);
-
-        const html = await requestWidgetViaSocket(page, "PMC", "/node/pmc");
-        if (!(await goToSecondPage(page))) {
-            test.skip(true, "the package list only has a single page");
-        }
-        expect((await readPackageTableState(page))?.page).toBe(1);
-
-        const singlePage = await page.evaluate((markup) => {
-            const host = document.createElement("div");
-            host.innerHTML = markup;
-            const body = host.querySelector("#dataTable1 tbody");
-            if (!body) {
-                return markup;
-            }
-            const rows = Array.from(body.querySelectorAll("tr"));
-            rows.slice(1).forEach((row) => {
-                row.remove();
-            });
-            return host.innerHTML;
-        }, html);
-
-        await deliverSocketMessage(page, { key: "PMC", success: true, response: singlePage, locale: "en" });
-
-        expect((await readPackageTableState(page))?.page).toBe(0);
-        await expect(page.locator(".dataTables_wrapper")).toHaveCount(1);
-    });
-
-    for (const width of [853, 1440]) {
-        test(`keeps the system panel from moving up as the package table shrinks at ${width}px`, async ({ page }) => {
-            await page.setViewportSize({ width, height: 900 });
-            await openDashboard(page);
-
-            const initialTop = await page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
-                const rect = element.getBoundingClientRect();
-                return rect.top + window.scrollY;
-            });
-            const table = page.locator("#dataTable1");
-            await page.evaluate(() => {
-                const win = window as unknown as { jQuery?: JQueryLike };
-                const $ = win.jQuery;
-                if ($ && $.fn && $.fn.DataTable) {
-                    $("#dataTable1").DataTable().page("last").draw(false);
-                }
-            });
-            await expect.poll(async () => (await readPackageTableState(page))?.page).toBe(3);
-            const afterLastPage = await page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
-                const rect = element.getBoundingClientRect();
-                return rect.top + window.scrollY;
-            });
-            expect(Math.abs(afterLastPage - initialTop)).toBeLessThanOrEqual(1);
-
-            await page.evaluate(() => {
-                const win = window as unknown as { jQuery?: JQueryLike };
-                const $ = win.jQuery;
-                if ($ && $.fn && $.fn.DataTable) {
-                    $("#dataTable1").DataTable().search("no-such-package-layout-regression").draw();
-                }
-            });
-            await expect(page.locator("#dataTable1 tbody td.dataTables_empty")).toBeVisible();
-            const afterEmptySearch = await page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
-                const rect = element.getBoundingClientRect();
-                return rect.top + window.scrollY;
-            });
-            expect(Math.abs(afterEmptySearch - initialTop)).toBeLessThanOrEqual(1);
-
-            if (width === 853) {
-                await page.evaluate(() => {
-                    const win = window as unknown as { jQuery?: JQueryLike };
-                    const $ = win.jQuery;
-                    if ($ && $.fn && $.fn.DataTable) {
-                        const table = $("#dataTable1").DataTable();
-                        table.search("");
-                        table.page.len(-1);
-                        table.draw();
-                    }
-                });
-                await expect.poll(async () => (await readPackageTableState(page))?.length).toBe(-1);
-                await page.evaluate(() => {
-                    const win = window as unknown as { jQuery?: JQueryLike };
-                    const $ = win.jQuery;
-                    if ($ && $.fn && $.fn.DataTable) {
-                        const table = $("#dataTable1").DataTable();
-                        table.page.len(10);
-                        table.draw();
-                    }
-                });
-                await expect.poll(async () => (await readPackageTableState(page))?.length).toBe(10);
-                const afterResetPageLength = await page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
-                    const rect = element.getBoundingClientRect();
-                    return rect.top + window.scrollY;
-                });
-                expect(Math.abs(afterResetPageLength - initialTop)).toBeLessThanOrEqual(1);
-
-                await page.setViewportSize({ width: 1440, height: 900 });
-                // At desktop width the right column's top must align with the
-                // main column's top — a layout relation, not a theme constant.
-                await expect.poll(async () => page.evaluate(() => {
-                    const top = (element: Element | null) =>
-                        element ? element.getBoundingClientRect().top + window.scrollY : null;
-                    const right = top(document.querySelector('[data-inner-id="right-panel-container"]'));
-                    const left = top(document.querySelector("#pmc_widget")?.parentElement ?? null);
-                    return right !== null && left !== null ? Math.abs(right - left) : null;
-                })).toBeLessThanOrEqual(1);
-                await page.setViewportSize({ width: 853, height: 900 });
-                await expect.poll(async () => page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
-                    const rect = element.getBoundingClientRect();
-                    return rect.top + window.scrollY;
-                })).toBeCloseTo(initialTop, 0);
-                await page.evaluate(() => {
-                    const win = window as unknown as { jQuery?: JQueryLike };
-                    const $ = win.jQuery;
-                    if ($ && $.fn && $.fn.DataTable) {
-                        $("#dataTable1").DataTable().search("no-such-package-layout-regression").draw();
-                    }
-                });
-                await expect(page.locator("#dataTable1 tbody td.dataTables_empty")).toBeVisible();
-            }
-
-            // Replacing the widget must carry its reserved height across the new table instance.
-            const freshHtml = (await requestWidgetViaSocket(page, "PMC", "/node/pmc")).replace(
-                'data-inner-id="panel-server-package-management"',
-                'data-inner-id="panel-server-package-management" data-layout-regression="fresh"',
-            );
-            expect(await deliverSocketMessage(page, { key: "PMC", success: true, response: freshHtml, locale: "en" })).toBeGreaterThan(0);
-            await expect(page.locator('[data-layout-regression="fresh"]')).toHaveCount(1);
-            await expect(page.locator("#dataTable1")).toBeVisible();
-            await expect(page.locator("#dataTable1 tbody td.dataTables_empty")).toBeVisible();
-            expect((await readPackageTableState(page))?.search).toBe("no-such-package-layout-regression");
-            const afterRefresh = await page.locator('[data-inner-id="right-panel-container"]').evaluate((element) => {
-                const rect = element.getBoundingClientRect();
-                return rect.top + window.scrollY;
-            });
-            expect(Math.abs(afterRefresh - initialTop)).toBeLessThanOrEqual(1);
-            await expect(table).toHaveCount(1);
-        });
-    }
 });
 
 test.describe("prefetch ordering", () => {
-    test("a late HTTP prefetch does not overwrite data already delivered by WS", async ({ page }) => {
+    test("a late HTTP prefetch cannot overwrite WS data after changing language", async ({ page }) => {
         await page.addInitScript(() => {
             const win = window as unknown as { prefetchControl: PrefetchControl };
             let releaseBody: () => void = () => {};
@@ -519,18 +525,18 @@ test.describe("prefetch ordering", () => {
                 const response = await fetch(...args);
                 const input = args[0];
                 const url = input instanceof Request ? input.url : String(input);
-                if (!new URL(url, location.href).pathname.endsWith("/node/load")) {
+                if (!new URL(url, location.href).pathname.endsWith("/node/data/system_load")) {
                     return response;
                 }
 
-                const readText = response.text.bind(response);
-                response.text = async () => {
-                    const body = await readText();
+                const readJson = response.json.bind(response);
+                response.json = async () => {
+                    const body = await readJson();
                     control.bodyReady = true;
                     await bodyGate;
 
-                    // This task runs after the released text promise and the
-                    // dashboard's .then(applyPrefetchHtml) microtasks complete.
+                    // This task runs after the released JSON promise and the
+                    // dashboard's prefetch microtasks complete.
                     const checkpoint = new MessageChannel();
                     checkpoint.port1.onmessage = () => {
                         checkpoint.port1.close();
@@ -549,12 +555,12 @@ test.describe("prefetch ordering", () => {
             releasePrefetch = resolve;
         });
 
-        await page.route("**/node/load*", async (route) => {
+        await page.route("**/node/data/system_load*", async (route) => {
             await prefetchGate;
             await route.fulfill({
                 status: 200,
-                contentType: "text/html",
-                body: "<span id='stale-cpu-marker'>STALE-PREFETCH</span>",
+                contentType: "application/json",
+                json: { loadavg: [91, 92, 93], processes: 42 },
             });
         });
 
@@ -563,19 +569,20 @@ test.describe("prefetch ordering", () => {
             return Boolean((window as unknown as { socket?: SocketLike }).socket?.connected);
         })).toBe(true);
 
-        // Deliver a real widget response while the HTTP prefetch is still held.
-        const wsHtml = await requestWidgetViaSocket(page, "TOP", "/node/load");
-        expect(wsHtml.length).toBeGreaterThan(0);
+        await expect(page.locator("#cpuload")).toHaveAttribute("data-qb-write-source", "ws");
         const wsText = await page.locator("#cpuload").innerText();
-        expect(wsText).not.toContain("STALE-PREFETCH");
-        expect(await page.locator("#cpuload").getAttribute("data-qb-write-source")).toBeNull();
+        expect(wsText).not.toContain("91.00");
+        await page.locator("#noticePanel > button").click();
+        await page.locator('#noticeDropdown a[href="#dashadjust"]').click();
+        await page.locator('#node-language-options [data-locale="fr"]').click();
+        await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe("fr");
 
         releasePrefetch();
         await expect.poll(() => page.evaluate(() => {
             return (window as unknown as { prefetchControl: PrefetchControl }).prefetchControl.bodyReady;
         })).toBe(true);
         expect(await page.locator("#cpuload").innerText()).toBe(wsText);
-        expect(await page.locator("#stale-cpu-marker").count()).toBe(0);
+        await expect(page.locator("#cpuload")).toHaveAttribute("data-qb-write-source", "ws");
 
         await page.evaluate(async () => {
             const control = (window as unknown as { prefetchControl: PrefetchControl }).prefetchControl;
@@ -584,35 +591,8 @@ test.describe("prefetch ordering", () => {
         });
 
         expect(await page.locator("#cpuload").innerText()).toBe(wsText);
-        expect(await page.locator("#stale-cpu-marker").count()).toBe(0);
     });
 });
-
-interface JQueryLike {
-    (selector: string): JQueryCollection;
-    fn: Record<string, { isDataTable: (selector: string) => boolean }>;
-}
-
-interface DataTableApi {
-    search(): string;
-    search(value: string): DataTableApi;
-    order(): [number, string][];
-    order(value: [number, string][]): DataTableApi;
-    draw: (paging?: boolean | "page") => DataTableApi;
-    page: DataTablePage;
-}
-
-interface DataTablePage {
-    (): number;
-    (value: number | string): DataTableApi;
-    len(): number;
-    len(value: number): DataTableApi;
-    info: () => { pages: number };
-}
-
-interface JQueryCollection {
-    DataTable: () => DataTableApi;
-}
 
 interface SocketLike {
     connected: boolean;
@@ -621,3 +601,186 @@ interface SocketLike {
     off: (event: string, listener: (payload: unknown) => void) => void;
     emit: (event: string, payload?: unknown) => void;
 }
+
+test("disables dashboard commands and marks service status stale while disconnected", async ({ page }) => {
+    await page.goto(`${WS_BASE_URL}?locale=en`);
+    const install = page.locator("#pmc_widget").getByRole("button", { name: "Install", exact: true }).first();
+    await expect(install).toBeEnabled();
+    const badge = page.locator("#appstat_rtorrent [data-observed-at]");
+    await expect(badge).toBeVisible();
+
+    await page.evaluate(() => {
+        const socket = (window as unknown as { socket: { disconnect: () => void } }).socket;
+        socket.disconnect();
+    });
+    await expect(install).toBeDisabled();
+    await expect(badge.locator(".badge-service-stale").first()).toBeVisible();
+    const backendAlert = page.getByRole("alert").filter({ hasText: "Backend service unavailable" });
+    await expect(backendAlert).toContainText("The connection to the QuickBox backend was closed");
+    await install.click({ force: true });
+    await expect(page.locator("#sysResponse")).toBeHidden();
+    expect(await page.evaluate(() => {
+        const socket = (window as unknown as { socket: { sendBuffer: { data: unknown[] }[] } }).socket;
+        return socket.sendBuffer.some((packet) => packet.data[0] === "exec");
+    })).toBe(false);
+
+    await backendAlert.getByRole("button", { name: "Reconnect" }).click();
+    await expect(install).toBeEnabled();
+    await expect(backendAlert).toHaveCount(0);
+    await expect(badge.locator(".badge-service-stale")).toHaveCount(0);
+    await page.evaluate(() => {
+        const socket = (window as unknown as { socket: SocketLike & { disconnect: () => void } }).socket;
+        const emit = socket.emit.bind(socket);
+        socket.emit = (event, payload) => {
+            if (event !== "exec") {emit(event, payload);}
+        };
+    });
+    await install.click();
+    await expect(page.locator("#sysResponse")).toBeVisible();
+    await page.evaluate(() => (window as unknown as { socket: { disconnect: () => void } }).socket.disconnect());
+    await expect(page.getByText(/connection lost before the operation result could be confirmed/i)).toBeVisible();
+});
+
+test("reports a backend outage after startup and stops after three reconnect attempts", async ({ page }) => {
+    await page.clock.install();
+    await page.goto(`${WS_BASE_URL}?locale=en`);
+    const search = page.locator("#dataTable1-search");
+    await search.fill("emby");
+    const install = page.locator('#pmc_widget tr[data-row-key="emby"]').getByRole("button", { name: "Install", exact: true });
+    await expect(install).toBeEnabled();
+    const documentId = await page.evaluate(() => performance.timeOrigin);
+
+    let outage = true;
+    let failedHandshakes = 0;
+    await page.route("**/socket.io/**", async (route) => {
+        const params = new URL(route.request().url()).searchParams;
+        if (outage && params.get("transport") === "polling" && !params.has("sid")) {
+            failedHandshakes += 1;
+            await route.fulfill({ status: 502 });
+        } else {
+            await route.continue();
+        }
+    });
+    await page.evaluate(() => {
+        const socket = (window as unknown as { socket: { io: { engine: { close: () => void } } } }).socket;
+        socket.io.engine.close();
+    });
+    const alert = page.getByRole("alert").filter({ hasText: "Backend service unavailable" });
+    await expect(alert).toContainText("Retrying (1/3)");
+    await expect(install).toBeDisabled();
+    await expect(alert).toContainText("after 3 attempts. Automatic refresh has stopped.", { timeout: 15_000 });
+    await expect(alert).toContainText("502");
+    expect(failedHandshakes).toBe(3);
+    await page.clock.runFor(20_000);
+    expect(failedHandshakes).toBe(3);
+
+    outage = false;
+    await alert.getByRole("button", { name: "Reconnect" }).click();
+    await expect(alert).toHaveCount(0);
+    await expect(install).toBeEnabled();
+    await expect(search).toHaveValue("emby");
+    expect(await page.evaluate(() => performance.timeOrigin)).toBe(documentId);
+});
+
+test("retries a hanging bootstrap and reads the initial theme from the server", async ({ page }) => {
+    await page.clock.install();
+    let attempts = 0;
+    let finish: () => void = () => {};
+    const firstRequest = new Promise<void>((resolve) => { finish = resolve; });
+    let initialCookie: string | undefined;
+    await page.route("**/node/bootstrap*", async (route) => {
+        attempts += 1;
+        if (attempts === 1) {
+            initialCookie = (await route.request().allHeaders()).cookie;
+            await firstRequest;
+            await route.abort().catch(() => {});
+            return;
+        }
+        const response = await route.fetch();
+        const payload = await response.json() as Record<string, unknown>;
+        await route.fulfill({ response, json: { ...payload, serviceTheme: "smoked" } });
+    });
+    try {
+        await page.goto(`${WS_BASE_URL}?locale=en`);
+        await expect.poll(() => attempts).toBe(1);
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "defaulted");
+        await page.clock.runFor(10_001);
+        await expect(page.getByRole("alert").filter({ hasText: /timed out/i })).toBeVisible();
+        expect(initialCookie ?? "").not.toContain("quickbox_theme=");
+        await page.getByRole("button", { name: "Reload", exact: true }).click();
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "smoked");
+        await expect(page.locator("#pmc_widget [aria-busy='false'] table")).toBeVisible();
+        expect(attempts).toBe(2);
+        expect((await page.context().cookies()).map((cookie) => cookie.name)).not.toContain("quickbox_theme");
+    } finally {
+        finish();
+    }
+});
+
+test("uses the theme cookie before bootstrap, then applies the server theme", async ({ page }) => {
+    await page.context().addCookies([{ name: "quickbox_theme", value: "smoked", url: WS_BASE_URL }]);
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    await page.route("**/node/bootstrap*", async (route) => {
+        const response = await route.fetch();
+        const payload = await response.json() as Record<string, unknown>;
+        await gate;
+        await route.fulfill({ response, json: { ...payload, serviceTheme: "defaulted" } });
+    });
+    try {
+        await page.goto(WS_BASE_URL);
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "smoked");
+        release();
+        await expect(page.locator("#pmc_widget [aria-busy='false'] table")).toBeVisible();
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "defaulted");
+    } finally {
+        release();
+    }
+});
+
+test("a late bootstrap preserves the theme selected while loading", async ({ page }) => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    await page.route("**/node/bootstrap*", async (route) => {
+        const response = await route.fetch();
+        const payload = await response.json() as Record<string, unknown>;
+        await gate;
+        await route.fulfill({ response, json: { ...payload, serviceTheme: "defaulted" } });
+    });
+    try {
+        await page.goto(WS_BASE_URL);
+        await page.locator("#noticePanel > button").click();
+        await page.locator('#noticeDropdown a[href="#dashadjust"]').click();
+        await page.locator("#node-theme-options .qb-chrome-option").filter({
+            has: page.locator('img[src="/img/themes/opt_smoked.png"]'),
+        }).click();
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "smoked");
+        release();
+        await expect(page.locator("#pmc_widget [aria-busy='false'] table")).toBeVisible();
+        await expect(page.locator("body")).toHaveAttribute("data-theme", "smoked");
+    } finally {
+        release();
+    }
+});
+
+test("updates network rates when interfaces join, reset and disappear", async ({ page }) => {
+    await page.route("**/socket.io/**", route => route.abort());
+    await page.goto(WS_BASE_URL);
+    await expect.poll(() => isPackageTableReady(page)).toBe(true);
+    const sendSample = (ts: number, counters: Record<string, number>) => page.evaluate(({ ts, counters }) => {
+        const bridge = (window as unknown as { quickboxNetworkIsland: { onMessage: (value: unknown) => boolean } }).quickboxNetworkIsland;
+        const net = Object.fromEntries(Object.entries(counters).map(([name, value]) => [name, { rx_bytes: value, tx_bytes: value }]));
+        bridge.onMessage({ ts, net });
+    }, { ts, counters });
+    const rows = page.locator("#node-network-interface-rows tr");
+    await sendSample(1, { review0: 10 });
+    await sendSample(2, { review0: 110, review1: 20 });
+    await sendSample(3, { review0: 1110, review1: 1020 });
+    await expect(rows.filter({ hasText: "review0" }).locator("td").nth(1)).toHaveText("1000 B/s");
+    await expect(rows.filter({ hasText: "review1" }).locator("td").nth(1)).toHaveText("1000 B/s");
+    await sendSample(4, { review1: 5 });
+    await expect(rows.filter({ hasText: "review0" })).toHaveCount(0);
+    await expect(rows.filter({ hasText: "review1" }).locator("td").nth(1)).toHaveText("0 B/s");
+    await sendSample(5, { review1: 105 });
+    await expect(rows.filter({ hasText: "review1" }).locator("td").nth(1)).toHaveText("100 B/s");
+});

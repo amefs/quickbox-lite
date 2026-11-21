@@ -3,7 +3,7 @@
 import "mocha";
 import { expect } from "chai";
 
-import messageHandler, { parseUrl, resolveWidget } from "../../src/handlers/message";
+import messageHandler, { resolveWidget } from "../../src/socket/message";
 import Constant from "../../src/shared/constants";
 
 describe("handlers/message", () => {
@@ -39,54 +39,47 @@ describe("handlers/message", () => {
         });
     });
 
-    describe("parseUrl", () => {
-        it("should parse relative URLs", () => {
-            expect(parseUrl("/node/up")).to.deep.equal({ pathname: "/node/up", args: {} });
-            expect(parseUrl("/node/bw_tables?page=d")).to.deep.equal({
-                pathname: "/node/bw_tables",
-                args: { page: "d" },
-            });
-        });
-
-        it("should parse absolute URLs down to the pathname", () => {
-            expect(parseUrl("http://localhost/node/up")).to.deep.equal({ pathname: "/node/up", args: {} });
-            expect(parseUrl("https://example.test/node/up?locale=zh")).to.deep.equal({
-                pathname: "/node/up",
-                args: { locale: "zh" },
-            });
-        });
-
-        it("should reject malformed URLs", () => {
-            expect(() => parseUrl("http://[")).to.throw("Invalid widget URL");
-        });
-
-        it("should resolve a widget for relative and absolute URLs alike", async () => {
-            const relative = await resolveWidget("/node/up");
-            const absolute = await resolveWidget("http://localhost/node/up");
-            expect(relative).to.be.a("string");
-            expect((relative as string).length).to.be.greaterThan(0);
-            expect(absolute).to.equal(relative);
-        });
-    });
-
-    // messageHandler main flow — stub resolveWidget and verify client.send is called correctly
     describe("messageHandler main flow", () => {
-        it("should call client.send with key, pathName and boolean success on any payload", (done) => {
+        it("should resolve the requested bandwidth page and echo the route and request identifiers", (done) => {
+            const url = "/node/data/bandwidth";
             const mockClient = {
                 id: "client-msg-flow-1",
                 on(event: string, cb: (p: unknown) => Promise<void>) {
                     if (event === Constant.EVENT_MESSAGE) {
-                        // call it asynchronously with a valid payload
-                        setTimeout(() => void cb({ key: "test-key", url: "/node/up", requestId: "req-1" }), 0);
+                        setTimeout(() => void cb({ type: "request", key: "BANDWIDTH", url, requestId: "req-1", args: { page: "d" } }), 0);
                     }
                 },
                 send(data: unknown) {
-                    expect(data).to.have.property("key", "test-key");
+                    expect(data).to.have.property("type", "reply");
+                    expect(data).to.have.property("key", "BANDWIDTH");
                     expect(data).to.have.property("requestId", "req-1");
-                    expect(data).to.have.property("url", "/node/up");
-                    expect(data).to.have.property("pathName", "/node/up");
-                    expect(data).to.have.property("success").that.is.a("boolean");
-                    expect(data).to.have.property("response");
+                    expect(data).to.have.property("url", url);
+                    expect(data).not.to.have.property("pathName");
+                    expect(data).to.have.property("success", true);
+                    expect(data).to.have.nested.property("response.page", "d");
+                    done();
+                },
+            };
+            messageHandler(mockClient as never);
+        });
+
+        it("should accept legacy SSH_OUTPUT requests with query parameters and echo pathName", (done) => {
+            const url = "/db/output.log?offset=0&length=65536";
+            const mockClient = {
+                id: "client-msg-legacy-ssh-output",
+                on(event: string, cb: (p: unknown) => Promise<void>) {
+                    if (event === Constant.EVENT_MESSAGE) {
+                        setTimeout(() => void cb({ key: "SSH_OUTPUT", url, requestId: "SSH_OUTPUT:1" }), 0);
+                    }
+                },
+                send(data: unknown) {
+                    expect(data).to.have.property("type", "reply");
+                    expect(data).to.have.property("key", "SSH_OUTPUT");
+                    expect(data).to.have.property("requestId", "SSH_OUTPUT:1");
+                    expect(data).to.have.property("url", url);
+                    expect(data).to.have.property("pathName", "/db/output.log");
+                    expect(data).to.have.property("success", true);
+                    expect(data).to.have.nested.property("response.content");
                     done();
                 },
             };
@@ -98,11 +91,10 @@ describe("handlers/message", () => {
                 id: "client-msg-flow-2",
                 on(event: string, cb: (p: unknown) => Promise<void>) {
                     if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb({ key: "err-key", url: "/node/load" }), 0);
+                        setTimeout(() => void cb({ type: "request", key: "err-key", url: "/node/data/system_load", requestId: "req-2" }), 0);
                     }
                 },
                 send(data: unknown) {
-                    // load.php may fail in test env due to systeminformation; just verify structure
                     expect(data).to.have.property("key", "err-key");
                     expect(data).to.have.property("success").that.is.a("boolean");
                     done();
@@ -112,127 +104,73 @@ describe("handlers/message", () => {
         });
     });
 
-    // C1: payload validation tests
-    describe("C1 — invalid payload rejection", () => {
-        it("should reject null payload with success=false", (done) => {
-            const mockClient = {
-                id: "client-c1-1",
-                on(event: string, cb: (p: unknown) => Promise<void>) {
-                    if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb(null), 0);
-                    }
-                },
-                send(data: Record<string, unknown>) {
-                    expect(data.success).to.equal(false);
-                    expect(data.message).to.equal("Invalid payload");
-                    done();
-                },
-            };
-            messageHandler(mockClient as never);
-        });
+    describe("invalid payload rejection", () => {
+        const request = { type: "request", key: "UPTIME", url: "/node/data/system_uptime", requestId: "req-1" };
+        const invalidPayloads = [
+            { name: "null payload", payload: null },
+            { name: "string payload", payload: "just a string" },
+            { name: "missing URL", payload: { ...request, url: undefined } },
+            { name: "non-string URL", payload: { ...request, url: 123 } },
+            { name: "missing request ID", payload: { ...request, requestId: undefined } },
+            { name: "missing type", payload: { ...request, type: undefined } },
+            { name: "push used as a request", payload: { ...request, type: "push" } },
+            { name: "string log offset", payload: { ...request, key: "SSH_OUTPUT", url: "/db/output.log", args: { offset: "8" } } },
+        ];
 
-        it("should reject payload missing url field", (done) => {
-            const mockClient = {
-                id: "client-c1-2",
-                on(event: string, cb: (p: unknown) => Promise<void>) {
-                    if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb({ key: "K" }), 0);
-                    }
-                },
-                send(data: Record<string, unknown>) {
-                    expect(data.success).to.equal(false);
-                    expect(data.message).to.equal("Invalid payload");
-                    done();
-                },
-            };
-            messageHandler(mockClient as never);
-        });
-
-        it("should reject payload with non-string url", (done) => {
-            const mockClient = {
-                id: "client-c1-3",
-                on(event: string, cb: (p: unknown) => Promise<void>) {
-                    if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb({ key: "K", url: 123 }), 0);
-                    }
-                },
-                send(data: Record<string, unknown>) {
-                    expect(data.success).to.equal(false);
-                    expect(data.message).to.equal("Invalid payload");
-                    done();
-                },
-            };
-            messageHandler(mockClient as never);
-        });
-
-        it("should reject string payload (not an object)", (done) => {
-            const mockClient = {
-                id: "client-c1-4",
-                on(event: string, cb: (p: unknown) => Promise<void>) {
-                    if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb("just a string"), 0);
-                    }
-                },
-                send(data: Record<string, unknown>) {
-                    expect(data.success).to.equal(false);
-                    expect(data.message).to.equal("Invalid payload");
-                    done();
-                },
-            };
-            messageHandler(mockClient as never);
-        });
+        for (const { name, payload } of invalidPayloads) {
+            it(`should reject ${name}`, (done) => {
+                const mockClient = {
+                    on(event: string, cb: (value: unknown) => Promise<void>) {
+                        if (event === Constant.EVENT_MESSAGE) {
+                            setTimeout(() => void cb(payload), 0);
+                        }
+                    },
+                    send(data: unknown) {
+                        expect(data).to.deep.equal({ type: "protocol-error", message: "Invalid payload" });
+                        done();
+                    },
+                };
+                messageHandler(mockClient as never);
+            });
+        }
     });
 
     // C7: page validation test (via resolveWidget)
-    describe("C7 — bw_tables page validation", () => {
+    describe("C7 — bandwidth page validation", () => {
         it("should fall back to the hourly table for an invalid page value", async () => {
-            const invalid = await resolveWidget("/node/bw_tables?page=x");
-            const hourly = await resolveWidget("/node/bw_tables?page=h");
-            expect(invalid).to.equal(hourly);
-            expect(invalid).to.include("Recent hours");
+            const invalid = await resolveWidget("/node/data/bandwidth", { page: "x" }) as { page: string };
+            const hourly = await resolveWidget("/node/data/bandwidth", { page: "h" }) as { page: string };
+            expect(invalid).to.deep.equal(hourly);
+            expect(invalid.page).to.equal("h");
         });
 
-        it("should render the table that matches each page value", async () => {
-            const pages: [string, string][] = [
-                ["d", "Last 30 days"],
-                ["m", "Last 12 months"],
-                ["t", "Top 10 days"],
-            ];
-            for (const [page, caption] of pages) {
-                const result = await resolveWidget(`/node/bw_tables?page=${page}`);
-                expect(result).to.include(caption);
+        it("should return the table that matches each page value", async () => {
+            for (const page of ["d", "m", "t"]) {
+                const result = await resolveWidget("/node/data/bandwidth", { page }) as { page: string };
+                expect(result.page).to.equal(page);
             }
         });
     });
 
     // B1: SSRF prevention — no default proxy, explicit routes only
     describe("B1 — route allowlist", () => {
-        it("should resolve /widgets/service_status same as /node/service_status", async () => {
-            const nodeResult = await resolveWidget("/node/service_status?service=nginx");
-            const widgetResult = await resolveWidget("/widgets/service_status?service=nginx");
-            expect(widgetResult).to.equal(nodeResult);
-            expect(nodeResult).to.be.a("string");
-            expect((nodeResult as string).length).to.be.greaterThan(0);
-        });
-
-        it("should return a batch service status object for /node/service_status_all", async () => {
-            const result = await resolveWidget("/node/service_status_all");
+        it("should return a batch service status object for /node/data/service_status_all", async () => {
+            const result = await resolveWidget("/node/data/service_status_all");
             expect(result).to.be.an("object");
-            const batch = result as { badges: Record<string, string>; health: string; retryAfterMs: number };
-            expect(batch).to.have.keys("badges", "health", "retryAfterMs");
-            expect(batch.badges).to.have.property("irssi");
+            const batch = result as { states: Record<string, unknown>; health: string; retryAfterMs: number };
+            expect(batch).to.have.keys("states", "health", "retryAfterMs");
         });
 
-        it("should resolve /widgets/service_control same as /node/service_control", async () => {
-            const nodeResult = await resolveWidget("/node/service_control");
-            const widgetResult = await resolveWidget("/widgets/service_control");
-            expect(widgetResult).to.equal(nodeResult);
+        it("should return structured rows for /node/data/service_control", async () => {
+            const result = await resolveWidget("/node/data/service_control");
+            expect(result).to.be.an("object");
+            expect(result).to.have.property("rows").that.is.an("array");
         });
 
-        it("should resolve /widgets/pmc same as /node/pmc", async () => {
-            const nodeResult = await resolveWidget("/node/pmc");
-            const widgetResult = await resolveWidget("/widgets/pmc");
-            expect(widgetResult).to.equal(nodeResult);
+        it("should return compact package state for /node/data/pmc", async () => {
+            const result = await resolveWidget("/node/data/pmc");
+            expect(result).to.be.an("object");
+            expect(result).to.have.keys("installedByPackage", "installLockExists");
         });
 
         it("should return an object with content, start, end, size and epoch for /db/output.log", async () => {
@@ -247,7 +185,7 @@ describe("handlers/message", () => {
 
         it("should support offset parameter for /db/output.log", async () => {
             const first = await resolveWidget("/db/output.log") as { content: string; start: number; end: number; size: number };
-            const second = await resolveWidget(`/db/output.log?offset=${first.end}`) as { content: string; start: number; end: number; size: number };
+            const second = await resolveWidget("/db/output.log", { offset: first.end }) as { content: string; start: number; end: number; size: number };
             expect(second.content).to.equal("");
             expect(second.end).to.equal(first.end);
         });
@@ -277,13 +215,13 @@ describe("handlers/message", () => {
                 id: "client-malformed-url",
                 on(event: string, cb: (p: unknown) => Promise<void>) {
                     if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb({ key: "x", url: "http://[" }), 0);
+                        setTimeout(() => void cb({ type: "request", key: "x", url: "http://[", requestId: "malformed" }), 0);
                     }
                 },
                 send(data: Record<string, unknown>) {
                     expect(data.success).to.equal(false);
                     expect(data.message).to.equal("Widget render failed");
-                    expect(data.pathName).to.equal("");
+                    expect(data.url).to.equal("http://[");
                     done();
                 },
             };
@@ -295,7 +233,7 @@ describe("handlers/message", () => {
                 id: "client-unknown-route",
                 on(event: string, cb: (p: unknown) => Promise<void>) {
                     if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb({ key: "x", url: "/etc/passwd" }), 0);
+                        setTimeout(() => void cb({ type: "request", key: "x", url: "/etc/passwd", requestId: "unknown" }), 0);
                     }
                 },
                 send(data: Record<string, unknown>) {
@@ -305,57 +243,6 @@ describe("handlers/message", () => {
                     done();
                 },
             };
-            messageHandler(mockClient as never);
-        });
-    });
-
-    describe("request-local locale", () => {
-        it("should render widget responses with payload locale", (done) => {
-            const mockClient = {
-                id: "client-locale-1",
-                data: {},
-                on(event: string, cb: (p: unknown) => Promise<void>) {
-                    if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb({
-                            key: "pmc-locale",
-                            url: "/node/pmc",
-                            locale: "zh",
-                        }), 0);
-                    }
-                },
-                send(data: Record<string, unknown>) {
-                    expect(data.success).to.equal(true);
-                    expect(data.response).to.be.a("string");
-                    expect(data.response).to.include("组件管理中心");
-                    expect((mockClient.data as { locale?: string }).locale).to.equal("zh");
-                    done();
-                },
-            };
-
-            messageHandler(mockClient as never);
-        });
-
-        it("should not leak payload locale to clients without locale", (done) => {
-            const mockClient = {
-                id: "client-locale-2",
-                data: {},
-                on(event: string, cb: (p: unknown) => Promise<void>) {
-                    if (event === Constant.EVENT_MESSAGE) {
-                        setTimeout(() => void cb({
-                            key: "pmc-locale-default",
-                            url: "/node/pmc",
-                        }), 0);
-                    }
-                },
-                send(data: Record<string, unknown>) {
-                    expect(data.success).to.equal(true);
-                    expect(data.response).to.be.a("string");
-                    expect(data.response).to.include("Package Management Center");
-                    expect(data.response).to.not.include("组件管理中心");
-                    done();
-                },
-            };
-
             messageHandler(mockClient as never);
         });
     });

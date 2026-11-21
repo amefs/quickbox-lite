@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="QuickBox Lite dashboard" />
+    <meta name="author" content="quickbox-lite" />
+    <title>Quickbox Dashboard</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./img/favicon/apple-touch-icon.png" />
+    <link rel="shortcut icon" href="./img/favicon/favicon.ico" type="image/ico" />
+    <link rel="icon" type="image/png" href="./img/favicon/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="./img/favicon/favicon-16x16.png" sizes="16x16" />
+    <link rel="manifest" href="./img/favicon/manifest.json" />
+    <link rel="mask-icon" href="./img/favicon/safari-pinned-tab.svg" color="#5bbad5" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,600,600italic,700,700italic,300italic,300&amp;display=swap" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="/css/dashboard.css?v=41b6cd9defb4" />
+    <link rel="stylesheet" href="./css/dashboard-foundation.css?v=78778bd9e9fd" />
+    <link id="qb-theme-stylesheet" rel="stylesheet" href="./css/dashboard-theme.css?v=6621b25c95ee" />
+    <link rel="stylesheet" href="./css/service-control.css?v=0680d9840c66" />
+    <link rel="stylesheet" href="./css/package-management.css?v=ff4c5f5c60c4" />
+    <link rel="stylesheet" href="./css/system-response.css?v=ea06670b0428" />
+    <link rel="stylesheet" href="./css/dashboard-layout.css?v=0f10c5fb471e" />
+    <script type="module" crossorigin src="./assets/index.js?v=f3fee578"></script>
+    <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime.js?v=fe614f90">
+    <link rel="modulepreload" crossorigin href="./assets/antd~index.js?v=91ee8d0a">
+    <link rel="modulepreload" crossorigin href="./assets/i18n.js?v=55084be3">
+    <link rel="modulepreload" crossorigin href="./assets/vendor~index.js?v=bf7c9bb6">
+</head>
+<body class="body">
+    <script>
+        (function () {
+            var match = /(?:^|;\s*)quickbox_theme=(smoked|defaulted)(?:;|$)/.exec(document.cookie);
+            document.body.setAttribute("data-theme", match ? match[1] : "defaulted");
+        })();
+    </script>
+    <div id="root"></div>
+</body>
+</html>

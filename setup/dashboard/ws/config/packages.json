@@ -313,7 +313,7 @@
                 "name"         : "rTorrent",
                 "username"     : "$username$",
                 "tooltips"     : "scgi_port: /var/run/$username$/.rtorrent.sock",
-                "tooltipsicon" : "fa-usb"
+                "tooltipIcon" : "usb"
             }
         }
     }, {

@@ -710,6 +710,13 @@ local_setup_dashboard=${local_prefix}setup/dashboard/
 # MAIN PROCESS
 ################################################################################
 _parseUpdateArgs "$@" || exit $?
+if [[ ${QUICKBOX_UPDATE_HANDOFF:-} != 1 ]]; then
+	_qb_cwd=$(pwd -P 2>/dev/null || true)
+	if [[ ${_qb_cwd} == /srv/dashboard || ${_qb_cwd} == /srv/dashboard/* ]]; then
+		_updateRefused "Current working directory (${_qb_cwd}) is inside /srv/dashboard; change to another directory (e.g. cd ~) before updating."
+		exit 1
+	fi
+fi
 if [[ ${QUICKBOX_UPDATE_HANDOFF:-} == 1 && ${from_checkout} -ne 1 ]]; then
 	printf 'Update handoff requires --from-checkout\n' >&2
 	exit 2
@@ -782,7 +789,6 @@ _updateStep "service" _updateservice
 _updateStep "dashboard" _updatedashboard
 # The dashboard release is committed.
 update_config_committed=1
-_updateStep "language" _updatelanguage
 _updateStep "installed branch state" _commitInstalledBranch
 if [[ ${QUICKBOX_UPDATE_HANDOFF:-} == 1 ]]; then
 	_printUpdateTiming

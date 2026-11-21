@@ -44,15 +44,15 @@ Use `npm run test:headed`, `npm run test:debug`, and `npm run test:report` for h
 
 Set `E2E_BASE_URL` to run Playwright against an existing target. The test runner then starts no local services and leaves them untouched. Set `WS_BASE_URL` if the WS/API path uses a different URL; otherwise it defaults to `${E2E_BASE_URL}/ws`.
 
-The local defaults are Nginx at `127.0.0.1:8880` and the Node mock server at port `8575`. Set `E2E_PORT` or `TEST_WS_PORT` to change them. `MOCK_PROFILE` selects the initial profile; the tests can switch profiles through the test API.
+The local defaults are Nginx at `127.0.0.1:8880` and the Node mock server at port `8575`. Set `E2E_PORT` or `TEST_WS_PORT` to change them. `E2E_MOCK_PROFILE` selects the initial profile; the tests can switch profiles through the test API.
 
 During `npm run e2e`, the host Node process listens on `0.0.0.0:TEST_WS_PORT` so the Nginx container can reach it through `host.docker.internal`. Docker Compose maps that name with `host-gateway` for Linux engines; Docker Desktop provides the host name on macOS. The Node port is not published by Docker, but the host listener is reachable on host network interfaces while the test runs. The Nginx port is bound to loopback only. Plain `npm test` binds the Node server to loopback.
 
 ## Test environment
 
-The Node test server runs with `NODE_ENV=test`, `MOCK_ENABLED=1`, and `MOCK_PROFILE=partial-running` by default. It creates a temporary database directory with test user and interface seeds, uses the existing mock profiles for system information, and deletes that directory when it exits. Dashboard static assets are served directly from `setup/dashboard`; Nginx proxies requests to Node, including `/debug/assets/*` and Socket.IO.
+The Node test server runs with `NODE_ENV=test` and `QUICKBOX_ENV=mock:partial-running`, the single runtime switch described in `../setup/dashboard/README.md`. It creates a temporary database directory with test user and interface seeds, uses the existing fixture profiles for system information, and deletes that directory when it exits. Dashboard static assets are served directly from `setup/dashboard`; Nginx proxies requests to Node, including `/debug/assets/*` and Socket.IO.
 
-Available profiles are defined in `../setup/dashboard/ws/src/testing/mock-profiles.ts`.
+Available profiles are defined in `../setup/dashboard/ws/mock/data/profiles.ts`.
 
 ## Test suites
 

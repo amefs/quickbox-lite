@@ -1,0 +1,129 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { InfoCircleOutlined, SyncOutlined, UsbOutlined } from "@ant-design/icons";
+import { Button, ConfigProvider, Switch, Tooltip } from "antd";
+
+import type { ServiceRow, ServiceState } from "../../../ws/src/shared/service-control-contract";
+import type { DashboardTheme } from "../../../ws/src/shared/theme";
+import { getAntdThemeConfig } from "../runtime/theme-store";
+import { SkeletonText } from "./placeholder";
+
+export type ServiceControlTheme = DashboardTheme;
+
+export interface ServiceControlIslandProps {
+    rows: ServiceRow[];
+    theme: ServiceControlTheme;
+    statusById: Record<string, ServiceState>;
+    pendingById?: Record<string, boolean>;
+    commandsDisabled: boolean;
+    loading?: boolean;
+    onRestart?: (serviceId: string) => void;
+    onEnabledChange?: (serviceId: string, enabled: boolean) => void;
+}
+
+function ServiceBadge({ status }: { status: ServiceState | undefined }) {
+    const { t } = useTranslation();
+    const current = status ?? { value: null, observedAt: null, stale: true };
+    const state = current.value === null ? "unknown" : current.value ? "running" : "disabled";
+    const confirmed = current.observedAt === null
+        ? t("SERVICE_STATUS_UNCONFIRMED")
+        : t("SERVICE_STATUS_LAST_CONFIRMED", { time: new Date(current.observedAt).toISOString() });
+    const title = current.stale ? `${confirmed}; ${t("SERVICE_STATUS_STALE")}` : current.value === null ? confirmed : undefined;
+    return (
+        <span title={title} aria-label={title ?? `${state} service`} data-observed-at={current.observedAt ?? undefined}>
+            <span className={`badge badge-service-${state}-dot${current.stale ? " badge-service-stale" : ""}`}></span>
+            <span className={`badge badge-service-${state}-pulse${current.stale ? " badge-service-stale" : ""}`}></span>
+        </span>
+    );
+}
+
+export function ServiceControlIsland({ rows, theme, statusById, pendingById = {}, commandsDisabled, loading = false, onRestart, onEnabledChange }: ServiceControlIslandProps) {
+    const { t } = useTranslation();
+    return (
+        <ConfigProvider theme={getAntdThemeConfig(theme, { borderRadius: 2, fontFamily: "inherit" })}>
+            <div className={`panel panel-inverse qb-service-control qb-service-control--${theme}`} data-inner-id="panel-server-service-control" aria-busy={loading}>
+                <div className="panel-heading">
+                    <h2 className="panel-title">{t("SERVICE_CONTROL_CENTER")}</h2>
+                </div>
+                <div className="panel-body" style={{ padding: 0 }}>
+                    <div className="table-responsive">
+                        <table className="table table-hover nomargin" style={{ fontSize: "14px" }}>
+                            <thead>
+                                <tr>
+                                    <th className="text-center">{t("SERVICE_STATUS")}</th>
+                                    <th className="text-center">{t("RESTART_SERVICES")}</th>
+                                    <th className="text-center">{t("ENABLE_DISABLE_SERVICES")}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loading ? [0, 1, 2].map((index) => (
+                                    <tr key={index} aria-hidden="true">
+                                        <td><SkeletonText width="8ch" /></td>
+                                        <td className="text-center"><SkeletonText width="6ch" /></td>
+                                        <td className="text-center">
+                                            <div className="toggle-wrapper text-center">
+                                                <div className="qb-skeleton qb-skeleton-btn" />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )) : rows.map((row) => (
+                                    <tr key={row.id}>
+                                        <td>
+                                            <div className="qb-service-name">
+                                                <span id={`appstat_${row.id}`}><ServiceBadge status={statusById[row.id]} /></span>
+                                                <span>
+                                                    {row.name}
+                                                    {row.tooltip ? (
+                                                        <>
+                                                            {" "}
+                                                            <Tooltip
+                                                                title={row.tooltip}
+                                                                placement="right"
+                                                                classNames={{ root: "qb-service-tooltip-popup" }}
+                                                            >
+                                                                <span className="qb-service-tooltip" data-placement="right">
+                                                                    {row.tooltipIcon === "usb" ? <UsbOutlined aria-hidden="true" /> : <InfoCircleOutlined aria-hidden="true" />}
+                                                                </span>
+                                                            </Tooltip>
+                                                        </>
+                                                    ) : null}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="text-center" title={row.enabledAtBoot ? undefined : t("SERVICE_ACTION_REASON_NOT_ENABLED")}>
+                                            <Button
+                                                type="default"
+                                                size="small"
+                                                className="btn btn-xs btn-default qb-service-restart"
+                                                disabled={commandsDisabled || pendingById[row.id] || !row.enabledAtBoot}
+                                                onClick={() => onRestart?.(row.id)}
+                                            >
+                                                <SyncOutlined className="text-info" spin={pendingById[row.id]} aria-hidden="true" /> {t("RESTART_SERVICES")}
+                                            </Button>
+                                        </td>
+                                        <td className="text-center">
+                                            <div className="toggle-wrapper text-center">
+                                                <Switch
+                                                    className="qb-service-switch"
+                                                    checked={row.enabledAtBoot}
+                                                    checkedChildren={t("ENABLED")}
+                                                    unCheckedChildren={t("DISABLED")}
+                                                    aria-label={row.name}
+                                                    loading={pendingById[row.id]}
+                                                    disabled={commandsDisabled || pendingById[row.id]}
+                                                    onChange={(enabled) => onEnabledChange?.(row.id, enabled)}
+                                                />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </ConfigProvider>
+    );
+}

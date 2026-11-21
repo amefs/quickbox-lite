@@ -37,13 +37,4 @@ describe("controllers/locale", () => {
 
         expect(res.status).to.equal(403);
     });
-
-    it("should not mutate the dashboard shell locale globally", async () => {
-        await request(app).get("/set?lang=zh");
-        const res = await request(app).get("/");
-
-        expect(res.status).to.equal(200);
-        expect(res.text).to.include("Service Control Center");
-        expect(res.text).to.not.include("服务控制中心");
-    });
 });

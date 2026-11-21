@@ -9,49 +9,38 @@
     "check-type": "tsc --noemit",
     "eslint": "eslint .",
     "lint": "npm run check-type && npm run eslint",
-    "dev:server": "QUICKBOX_DEV_SERVER=1 QUICKBOX_REPO_ROOT=${QUICKBOX_REPO_ROOT:-../../..} tsx watch src/server.tsx",
+    "dev": "QUICKBOX_DEV_SERVER=1 QUICKBOX_REPO_ROOT=${QUICKBOX_REPO_ROOT:-../../..} tsx watch src/server.ts --env=${QUICKBOX_ENV:-mock}",
     "dev:client": "tsx scripts/dev-client.js",
-    "dev:dashboard": "node scripts/dev-server.js",
+    "dev:dashboard": "node scripts/dev-server.js --env=${QUICKBOX_ENV:-mock}",
     "audit": "npm audit --registry=https://registry.npmjs.org",
     "upgrade": "npx npm-check-updates -i"
   },
   "author": "TautCony",
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "axios": "^1.21.0",
-    "bignumber.js": "^11.1.5",
     "express": "^5.3.0",
-    "lodash": "^4.18.1",
-    "make-plural": "^8.2.0",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
     "socket.io": "^4.8.4",
-    "systeminformation": "^5.33.19",
-    "which": "^7.0.0",
-    "ws": "^8.22.1"
+    "systeminformation": "^5.33.23",
+    "ws": "^8.23.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
     "@eslint/js": "^10.0.1",
-    "@stylistic/eslint-plugin": "^5.10.0",
+    "@stylistic/eslint-plugin": "^6.0.1",
     "@types/chai": "^5.2.3",
     "@types/express": "^5.0.6",
-    "@types/lodash": "^4.17.27",
     "@types/mocha": "^10.0.10",
     "@types/node": "^26.6.6",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
     "@types/sinon": "^22.0.2",
     "@types/supertest": "^7.2.1",
-    "@types/which": "^3.0.4",
     "@types/ws": "^8.18.2",
-    "@typescript-eslint/parser": "^8.72.1",
+    "@typescript-eslint/parser": "^8.73.0",
     "bun-types": "latest",
     "chai": "^6.3.0",
     "cross-env": "^10.1.0",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "globals": "^17.14.0",
-    "http-proxy-middleware": "^4.2.1",
+    "http-proxy-middleware": "^4.2.2",
     "mocha": "^12.0.3",
     "sinon": "^22.1.0",
     "socket.io-client": "^4.8.4",
@@ -59,17 +48,17 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.1",
-    "vite": "^8.3.6"
+    "typescript-eslint": "^8.73.0",
+    "vite": "^8.3.8"
   },
   "optionalDependencies": {
     "bufferutil": "^4.2.0",
-    "utf-8-validate": "^6.0.6"
+    "utf-8-validate": "^6.1.0"
   },
   "allowScripts": {
     "bufferutil@4.2.0": true,
     "esbuild@0.28.2": true,
     "fsevents@2.3.3": true,
-    "utf-8-validate@6.0.6": true
+    "utf-8-validate@6.1.0": true
   }
 }

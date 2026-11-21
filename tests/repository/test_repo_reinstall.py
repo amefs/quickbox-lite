@@ -202,7 +202,6 @@ except BlockingIOError:
                 "skel",
                 "service",
                 "dashboard",
-                "language",
             ]
             assert (backup / "repo-state.env").read_text() == state
             assert (backup / "repo-history.tsv").read_text() == history
@@ -275,7 +274,6 @@ except BlockingIOError:
                 "skel",
                 "service",
                 "dashboard",
-                "language",
             ]
             assert (backup / "repo-state.env").read_text() == state
         print("checkout installation and option forwarding: passed")

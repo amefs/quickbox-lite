@@ -60,8 +60,12 @@ node_modules/
 # Key file for localazy
 localazy.keys.json
 !setup/dashboard/ws/src/vendor/
+!setup/dashboard/web/dist/assets/
 
 __pycache__/
 
 # Downloaded runtime packages
 packages/rutorrent/
+
+e2e/baseline/
+docs/migration/

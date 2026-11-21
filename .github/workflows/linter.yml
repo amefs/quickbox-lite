@@ -51,8 +51,8 @@ jobs:
           git diff --stat -- dist
           exit 1
 
-  es-linter-for-js:
-    name: Dashboard JS
+  dashboard-web:
+    name: Dashboard Web
     runs-on: ubuntu-22.04
 
     steps:
@@ -63,17 +63,30 @@ jobs:
       with:
         node-version: 24
         cache: npm
-        cache-dependency-path: setup/dashboard/package-lock.json
-  
+        cache-dependency-path: setup/dashboard/web/package-lock.json
+
     - name: Install dependencies
       run: |
-        cd setup/dashboard || exit 1
-        npm ci --legacy-peer-deps
+        cd setup/dashboard/web || exit 1
+        npm ci
 
     - name: Run linter
       run: |
-          cd setup/dashboard || exit 1
+          cd setup/dashboard/web || exit 1
           npm run lint
+
+    - name: Verify the committed web bundle matches the sources
+      run: |
+          cd setup/dashboard/web || exit 1
+          npm run build
+          if git diff --quiet -- dist && [ -z "$(git ls-files --others --exclude-standard -- dist)" ]; then
+            echo "Web build artifacts are up to date."
+            exit 0
+          fi
+          echo "::error::Web build artifacts are out of date. Run 'npm run build' in setup/dashboard/web and commit all changes in dist/."
+          git status --short -- dist
+          git diff --stat -- dist
+          exit 1
 
   shell-linter:
     name: Shell

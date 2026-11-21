@@ -4,9 +4,9 @@
 import "mocha";
 import { expect } from "chai";
 import express from "express";
-import path from "path";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { mkdtempSync, readFileSync, rmSync } from "fs";
 import os from "os";
+import path from "path";
 import request from "supertest";
 import childProcess from "child_process";
 
@@ -14,12 +14,15 @@ import childProcess from "child_process";
 // the raw router, so middleware interactions (e.g. loopback detection) behave
 // exactly as in production.
 import { app } from "../src/server";
-import { createAppRouter } from "../src/router";
+import { createAppRouter } from "../src/routes";
+import type { DashboardBootstrapPayload } from "../src/shared/bootstrap-contract";
 
 interface SystemStaticResponse {
     cpu: {
-        modelHtml: string;
-        count: unknown;
+        model?: string;
+        count?: number;
+        speedGHz?: number;
+        cache?: string;
     };
     interfaces: string[];
 }
@@ -40,11 +43,14 @@ interface DashboardConfigResponse {
     }[];
 }
 
-function createRouterTestApp(execFile: typeof childProcess.execFile = childProcess.execFile) {
+function createRouterTestApp(
+    execFile: typeof childProcess.execFile = childProcess.execFile,
+    dashboardDir = path.resolve(__dirname, "..", ".."),
+) {
     const testApp = express();
     testApp.set("trust proxy", "loopback");
     testApp.use(createAppRouter({
-        dashboardDir: path.resolve(__dirname, "..", ".."),
+        dashboardDir,
         execFile,
     }));
     return testApp;
@@ -58,7 +64,7 @@ function createExecFileRecorder() {
         if (callback) {
             callback(null, "", "");
         }
-        return {} as childProcess.ChildProcess;
+        return {} as unknown as childProcess.ChildProcess;
     }) as typeof childProcess.execFile;
 
     return { calls, execFile };
@@ -67,143 +73,66 @@ function createExecFileRecorder() {
 describe("router — HTTP routes", () => {
     // ── Root ─────────────────────────────────────────────────────────────────
 
-    describe("GET /", () => {
-        it("should return 200 with the Node-rendered dashboard shell", async () => {
+    describe("GET / & GET /node/bootstrap", () => {
+        it("should return 200 with the static SPA dashboard shell", async () => {
             const res = await request(app).get("/");
             expect(res.status).to.equal(200);
             expect(res.text).to.include("<!DOCTYPE html>");
             expect(res.text).to.include("Quickbox Dashboard");
-            expect(res.text).to.include("id=\"service_control_widget\"");
-            expect(res.text).to.include("window.quickboxRuntime");
-            expect(res.text).to.include('"basePath":""');
-            expect(res.text).to.include('"locale":"en"');
-            expect(res.text).to.match(/src="\/js\/dashboard\.js\?v=[0-9a-f]{12}"/);
-            expect(res.text).to.include("/lib/socket.io/socket.io.min.js");
-            expect(res.text).to.include("id=\"bw_tables_loading\"");
-            expect(res.text).to.include("box fix dpkg");
-            expect(res.text).to.include("autodlirssiRemovalConfirm");
-            expect(res.text).to.include('data-click-handler="packageRemove"');
-            expect(res.text).to.include("/lib/datatables/js/jquery.dataTables.min.js");
-            expect(res.text).to.include("/lib/perfect-scrollbar/js/perfect-scrollbar.min.js");
-            expect(res.text).to.include("/js/quick.js");
-            // Page-level rules are a real stylesheet: linked from /css so the
-            // browser caches it instead of re-parsing it out of every response.
-            expect(res.text).to.match(/href="\/css\/dashboard\.css\?v=[0-9a-f]{12}"/);
-            expect(res.text).to.not.include(".headerbar .headermenu > li {");
-            expect(res.text).to.not.include('fetchJson("/node/menu")');
-            expect(res.text).to.not.include('fetchText("/node/removal_modals")');
-            expect(res.text).to.not.include("panel.app_status.ws.js");
-            expect(res.text).to.not.include("panel.app_service.ws.js");
+            expect(res.text).to.include('id="root"');
+            expect(res.text).to.include("/css/dashboard-theme.css");
+            expect(res.text).to.include("/css/dashboard-foundation.css");
+            expect(res.text).to.include("./assets/");
+            expect(res.text).to.not.include("/skins/quick.css");
+            expect(res.text).to.not.include("bootstrap.min");
+            expect(res.text).to.not.include("/js/dashboard.js");
+            expect(res.text).to.not.include("/lib/socket.io/socket.io.min.js");
+            expect(res.text).to.not.include("/lib/jquery/jquery.min.js");
+            expect(res.text).to.not.include("/js/quick.js");
         });
 
-        it("changes the asset URL when the deployed stylesheet changes", async () => {
-            const dir = mkdtempSync(path.join(os.tmpdir(), "quickbox-assets-"));
+        it("should return bootstrap payload with pure data", async () => {
+            const res = await request(app).get("/node/bootstrap");
+            const body = res.body as DashboardBootstrapPayload;
+
+            expect(res.status).to.equal(200);
+            expect(body.basePath).to.equal("");
+            expect(body.serviceRows).to.be.an("array");
+            expect(body.packageManagement.data.rows).to.be.an("array");
+            expect(body.chrome.config).to.be.an("object");
+        });
+
+        it("fails closed when the web bundle is absent", async () => {
+            const dashboardDir = mkdtempSync(path.join(os.tmpdir(), "quickbox-legacy-dashboard-"));
             try {
-                mkdirSync(path.join(dir, "css"));
-                mkdirSync(path.join(dir, "js"));
-                writeFileSync(path.join(dir, "css", "dashboard.css"), "first");
-                writeFileSync(path.join(dir, "js", "dashboard.js"), "script");
-                const testApp = express().use(createAppRouter({ dashboardDir: dir }));
-                const first = await request(testApp).get("/");
-                writeFileSync(path.join(dir, "css", "dashboard.css"), "second");
-                const second = await request(testApp).get("/");
-                const firstVersion = first.text.match(/dashboard\.css\?v=([0-9a-f]{12})/)?.[1];
-                const secondVersion = second.text.match(/dashboard\.css\?v=([0-9a-f]{12})/)?.[1];
-                expect(firstVersion).to.be.a("string");
-                expect(secondVersion).to.be.a("string").and.not.equal(firstVersion);
+                const res = await request(createRouterTestApp(childProcess.execFile, dashboardDir)).get("/");
+
+                expect(res.status).to.equal(503);
+                expect(res.text).to.equal("Dashboard web bundle is unavailable");
             } finally {
-                rmSync(dir, { recursive: true, force: true });
+                rmSync(dashboardDir, { recursive: true, force: true });
             }
         });
 
-        it("should render the dashboard shell with request-local locale", async () => {
-            const zh = await request(app).get("/?locale=zh");
-            const en = await request(app).get("/?locale=en");
-
-            expect(zh.status).to.equal(200);
-            expect(en.status).to.equal(200);
-            expect(zh.text).to.include("<html lang=\"zh\">");
-            expect(zh.text).to.include("window.quickboxRuntime");
-            expect(zh.text).to.include("\"locale\":\"zh\"");
-            expect(zh.text).to.include("\"enabled\":\"已启用\"");
-            expect(zh.text).to.include("\"disabled\":\"禁用\"");
-            expect(zh.text).to.include("服务控制中心");
-            expect(zh.text).to.include("关闭 &amp; 刷新");
-            expect(zh.text).to.not.include("关闭 &amp;amp; 刷新");
-            expect(zh.text).to.include("切换分支并更新");
-            expect(en.text).to.include("Service Control Center");
-            expect(en.text).to.include("Close &amp; Refresh");
-            expect(en.text).to.not.include("Close &amp;amp; Refresh");
-            expect(en.text).to.include("Switch branch and update");
-        });
-
-        it("should render the dashboard shell from browser locale cookie", async () => {
-            const res = await request(app)
-                .get("/")
-                .set("Cookie", "quickbox_locale=zh");
+        it("should return bootstrap payload under the legacy /ws base path", async () => {
+            const res = await request(app).get("/ws/node/bootstrap");
+            const body = res.body as DashboardBootstrapPayload;
 
             expect(res.status).to.equal(200);
-            expect(res.text).to.include("<html lang=\"zh\">");
-            expect(res.text).to.include("window.quickboxRuntime");
-            expect(res.text).to.include("\"locale\":\"zh\"");
-            expect(res.text).to.include("服务控制中心");
+            expect(body.basePath).to.equal("/ws");
         });
 
-        it("should render the dashboard shell from Accept-Language when no explicit locale is set", async () => {
-            const res = await request(app)
-                .get("/")
-                .set("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.1");
+        it("should mount node and debug sub-routers under both root and /ws prefixes", async () => {
+            const configRes = await request(app).get("/ws/node/dashboard_config");
+            const pluginsRes = await request(app).get("/ws/node/plugins");
+            const pmcRes = await request(app).get("/ws/node/data/pmc");
+            const debugMetaRes = await request(app).get("/ws/debug/meta");
 
-            expect(res.status).to.equal(200);
-            expect(res.text).to.include("<html lang=\"fr\">");
-            expect(res.text).to.include("window.quickboxRuntime");
-            expect(res.text).to.include("\"locale\":\"fr\"");
-            expect(res.text).to.include("Centre de contrôle des services");
-        });
-
-        it("should render the dashboard shell from a browser locale region without a base fallback", async () => {
-            const res = await request(app)
-                .get("/")
-                .set("Accept-Language", "de-DE");
-
-            expect(res.status).to.equal(200);
-            expect(res.text).to.include("<html lang=\"de\">");
-            expect(res.text).to.include("window.quickboxRuntime");
-            expect(res.text).to.include("\"locale\":\"de\"");
-            expect(res.text).to.include("Dienst Kontrollcenter");
-        });
-
-        it("should render the dashboard shell under the legacy /ws base path", async () => {
-            const res = await request(app).get("/ws?locale=zh");
-
-            expect(res.status).to.equal(200);
-            expect(res.text).to.include("服务控制中心");
-            expect(res.text).to.include("window.quickboxRuntime");
-            expect(res.text).to.include("\"basePath\":\"/ws\"");
-            expect(res.text).to.include("\"locale\":\"zh\"");
-        });
-    });
-
-    // ── Page stylesheet (/css) ────────────────────────────────────────────────
-
-    describe("GET /css/dashboard.css", () => {
-        it("should serve the page-level rules as a stylesheet", async () => {
-            const res = await request(app).get("/css/dashboard.css");
-
-            expect(res.status).to.equal(200);
-            expect(res.headers["content-type"]).to.include("text/css");
-            // Child combinators and attribute selectors have to arrive intact:
-            // an escaped `&gt;` or `&quot;` would silently kill half the file.
-            expect(res.text).to.include(".headerbar .headermenu > li {");
-            expect(res.text).to.include('.qb-panel-split > [class*="col-sm-"] {');
-            // A validator lets the browser revalidate instead of re-downloading.
-            expect(res.headers.etag).to.be.a("string");
-        });
-
-        it("should not expose files outside the css directory", async () => {
-            const res = await request(app).get("/css/../js/dashboard.js");
-
-            expect(res.status).to.not.equal(200);
+            expect(configRes.status).to.equal(200);
+            expect(pluginsRes.status).to.equal(200);
+            expect(pmcRes.status).to.equal(200);
+            expect(debugMetaRes.status).to.equal(200);
+            expect((debugMetaRes.body as { basePath: string }).basePath).to.equal("/ws");
         });
     });
 
@@ -218,7 +147,7 @@ describe("router — HTTP routes", () => {
 
         it("should return 403 for non-localhost requests via X-Forwarded-For", async () => {
             // app.set("trust proxy", "loopback") causes X-Forwarded-For to override req.ip
-            // and isTestMode() is false in normal Mocha runs (MOCK_ENABLED not set)
+            // and isMockMode() is false in normal Mocha runs (QUICKBOX_ENV unset)
             const res = await request(app)
                 .get("/set?lang=en")
                 .set("X-Forwarded-For", "203.0.113.1");
@@ -249,34 +178,9 @@ describe("router — HTTP routes", () => {
             expect(res.status).to.equal(200);
             expect(res.text).to.equal("en");
         });
-
-        it("should not mutate the dashboard shell locale globally", async () => {
-            await request(app).get("/set?lang=zh");
-            const res = await request(app).get("/");
-
-            expect(res.status).to.equal(200);
-            expect(res.text).to.include("Service Control Center");
-            expect(res.text).to.not.include("服务控制中心");
-        });
     });
 
     // ── Node widget endpoints (/node/*) ───────────────────────────────────────
-
-    describe("GET /node/menu", () => {
-        it("should return 200 with JSON containing mainMenuHtml and showPluginTab", async () => {
-            const res = await request(app).get("/node/menu");
-            expect(res.status).to.equal(200);
-            expect(res.body).to.be.an("object");
-            expect(res.body).to.have.property("mainMenuHtml").that.is.a("string");
-            expect(res.body).to.have.property("showPluginTab").that.is.a("boolean");
-        });
-
-        it("should not expose $username$ placeholders in the response", async () => {
-            const res = await request(app).get("/node/menu");
-            const body = res.body as { mainMenuHtml: string };
-            expect(body.mainMenuHtml).to.not.include("$username$");
-        });
-    });
 
     describe("legacy inc assets", () => {
         it("should not serve the status updater script now owned by the Node shell", async () => {
@@ -299,16 +203,6 @@ describe("router — HTTP routes", () => {
         });
     });
 
-    describe("GET /node/removal_modals locale", () => {
-        it("should render with request-local locale", async () => {
-            const res = await request(app).get("/node/removal_modals?locale=zh");
-
-            expect(res.status).to.equal(200);
-            expect(res.text).to.include("取消");
-            expect(res.text).to.include("我明白，继续！");
-        });
-    });
-
     describe("GET /node/dashboard_config", () => {
         it("should return static dashboard menu config", async () => {
             const res = await request(app).get("/node/dashboard_config");
@@ -318,42 +212,46 @@ describe("router — HTTP routes", () => {
             expect(res.body).to.have.property("version", `v${wsPackage.version}`);
             expect(res.body).to.have.property("branch").that.is.a("string");
             expect(res.body).to.have.property("languages").that.is.an("array").with.length.greaterThan(0);
-            expect((res.body as DashboardConfigResponse).languages[0]).to.have.keys(["file", "key", "title", "locale"]);
+            expect((res.body as DashboardConfigResponse).languages[0]).to.have.keys(["file", "key", "locale"]);
             expect(res.body).to.have.property("themes").that.deep.equals([
-                { file: "defaulted", title: "Defaulted" },
-                { file: "smoked", title: "Smoked" },
+                { file: "defaulted" },
+                { file: "smoked" },
             ]);
             expect(res.body).to.have.property("bwPages").that.deep.equals([
-                { key: "t", title: "Top 10 days" },
-                { key: "h", title: "Recent hours" },
-                { key: "d", title: "Last 30 days" },
-                { key: "m", title: "Last 12 months" },
+                { key: "t" },
+                { key: "h" },
+                { key: "d" },
+                { key: "m" },
             ]);
         });
 
-        it("should translate dashboard config labels with request locale", async () => {
+        it("should return bandwidth page keys regardless of request locale", async () => {
             const res = await request(app).get("/node/dashboard_config?locale=zh");
 
             expect(res.status).to.equal(200);
             expect(res.body).to.have.property("bwPages").that.deep.equals([
-                { key: "t", title: "最高10天" },
-                { key: "h", title: "最近几小时" },
-                { key: "d", title: "过去30天" },
-                { key: "m", title: "过去12个月" },
+                { key: "t" },
+                { key: "h" },
+                { key: "d" },
+                { key: "m" },
             ]);
         });
     });
 
-    describe("GET /node/system_static", () => {
+    describe("GET /node/data/system_static", () => {
         it("should return CPU and network interface metadata", async function() {
             this.timeout(6000);
-            const res = await request(app).get("/node/system_static");
+            const res = await request(app).get("/node/data/system_static");
             const body = res.body as SystemStaticResponse;
 
             expect(res.status).to.equal(200);
             expect(body).to.have.property("cpu").that.is.an("object");
-            expect(body.cpu).to.have.property("modelHtml").that.is.a("string");
-            expect(body.cpu).to.have.property("count");
+            if (body.cpu.model !== undefined) {
+                expect(body.cpu.model).to.be.a("string");
+            }
+            if (body.cpu.count !== undefined) {
+                expect(body.cpu.count).to.be.a("number");
+            }
             expect(body).to.have.property("interfaces").that.is.an("array");
         });
     });
@@ -442,26 +340,8 @@ describe("router — HTTP routes", () => {
         });
     });
 
-    describe("GET /node/removal_modals", () => {
-        it("should return 200 with an HTML fragment", async () => {
-            const res = await request(app).get("/node/removal_modals");
-            expect(res.status).to.equal(200);
-            expect(res.text).to.be.a("string");
-        });
-
-        it("should include at least one RemovalConfirm modal", async () => {
-            const res = await request(app).get("/node/removal_modals");
-            expect(res.text).to.include("RemovalConfirm");
-        });
-
-        it("should set data-click-handler='packageRemove' on confirm buttons", async () => {
-            const res = await request(app).get("/node/removal_modals");
-            expect(res.text).to.include('data-click-handler="packageRemove"');
-        });
-    });
-
     // ── Debug endpoints (/debug*) ─────────────────────────────────────────────
-    // NODE_ENV=test → debug endpoints enabled; production requires QUICKBOX_WS_DEBUG=1
+    // NODE_ENV=test → debug endpoints enabled; NODE_ENV=production → disabled
 
     describe("GET /debug", () => {
         it("should return 200 with an HTML page", async () => {
@@ -484,7 +364,7 @@ describe("router — HTTP routes", () => {
         });
 
         it("should return 200 for a valid widget url", async () => {
-            const res = await request(app).get("/debug/node?url=/node/up");
+            const res = await request(app).get("/debug/node?url=/node/data/system_uptime");
             expect(res.status).to.equal(200);
         });
 
@@ -494,7 +374,7 @@ describe("router — HTTP routes", () => {
             try {
                 const productionApp = createRouterTestApp();
                 const debugRes = await request(productionApp).get("/debug");
-                const debugNodeRes = await request(productionApp).get("/debug/node?url=/node/up");
+                const debugNodeRes = await request(productionApp).get("/debug/node?url=/node/data/system_uptime");
                 expect(debugRes.status).to.equal(404);
                 expect(debugNodeRes.status).to.equal(404);
             } finally {

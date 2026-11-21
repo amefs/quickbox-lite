@@ -76,8 +76,7 @@ describe("dev-server", () => {
                 env: {
                     ...process.env,
                     NODE_ENV: "test",
-                    MOCK_ENABLED: "1",
-                    MOCK_PROFILE: "partial-running",
+                    QUICKBOX_ENV: "mock:partial-running",
                     QUICKBOX_DASHBOARD_DB_DIR: dbDir,
                     QUICKBOX_TEST_SKINS_DIR: path.resolve(packageRoot, "..", "..", "themes", "smoked", "skins"),
                     TEST_SERVER_HOST: "127.0.0.1",

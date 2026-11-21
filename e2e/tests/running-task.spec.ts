@@ -2,7 +2,7 @@
 
 import { test, expect, type Page } from "@playwright/test";
 
-import { resetMockProfile, setMockProfile } from "./support/helpers";
+import { resetMockProfile, setMockProfile, waitForSocket } from "./support/helpers";
 
 async function openInstalling(page: Page) {
     await setMockProfile(page, "installing");
@@ -22,7 +22,7 @@ test("names the running operation and opens its log", async ({ page }) => {
     await expect(banner).toHaveAttribute("data-task", "install");
     await expect(banner).toHaveAttribute("data-operation", "install");
 
-    await banner.locator("[data-target='#sysResponse']").click();
+    await banner.locator("[data-qb-system-response]").click();
     await expect(page.locator("#sysResponse")).toBeVisible();
     // The banner opens the same dialog as every other entry: refresh is the
     // footer action, the header X only dismisses.
@@ -33,26 +33,25 @@ test("names the running operation and opens its log", async ({ page }) => {
 
 test("terminates the running operation and clears the banner", async ({ page }) => {
     await openInstalling(page);
-    await page.locator("#running_task_widget [data-target='#taskAbortConfirm']").click();
-    await expect(page.locator("#taskAbortConfirm")).toBeVisible();
+    await waitForSocket(page);
+    page.once("dialog", dialog => dialog.accept());
 
     const [execResponse] = await Promise.all([
-        page.evaluate(() => new Promise<{ success: boolean }>((resolve) => {
+        page.evaluate(() => new Promise<{ cmd: string; success: boolean }>((resolve) => {
             const socket = (window as unknown as {
-                socket?: { once: (event: string, callback: (data: { success: boolean }) => void) => void };
+                socket?: { once: (event: string, callback: (data: { cmd: string; success: boolean }) => void) => void };
             }).socket;
             if (!socket) {
                 throw new Error("the dashboard socket is not available");
             }
             socket.once("exec", resolve);
         })),
-        page.locator("#taskAbortConfirmGo").click(),
+        page.locator("#running_task_widget [data-task-abort]").click(),
     ]);
     expect(execResponse).toMatchObject({ success: true });
 
     // The banner is polled, so it disappears on the next refresh without a reload.
     await expect(page.locator("#running_task_widget .qb-running-task")).toHaveCount(0, { timeout: 15_000 });
-    await expect(page.locator("#taskAbortConfirm")).toBeHidden();
 });
 
 test("stays hidden while no operation holds the lock", async ({ page }) => {

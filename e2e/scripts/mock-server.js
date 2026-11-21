@@ -18,13 +18,12 @@ fs.writeFileSync(path.join(dbDir, "master.txt"), `${process.env.E2E_USER || "tes
 fs.writeFileSync(path.join(dbDir, "interface.txt"), `${process.env.E2E_IFACE || "eth0"}\n`);
 fs.writeFileSync(path.join(dbDir, "output.log"), "");
 
-const child = spawn(tsx, ["src/server.tsx"], {
+const child = spawn(tsx, ["src/server.ts"], {
     cwd: wsRoot,
     env: {
         ...process.env,
         NODE_ENV: "test",
-        MOCK_ENABLED: "1",
-        MOCK_PROFILE: process.env.MOCK_PROFILE || "partial-running",
+        QUICKBOX_ENV: `mock:${process.env.E2E_MOCK_PROFILE || "partial-running"}`,
         WS_HOST: process.env.TEST_WS_HOST || "127.0.0.1",
         WS_PORT: process.env.TEST_WS_PORT || "8575",
         QUICKBOX_DASHBOARD_DB_DIR: dbDir,

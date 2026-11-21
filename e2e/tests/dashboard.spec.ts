@@ -21,6 +21,24 @@ test.describe("Dashboard Loading", () => {
         await expect(page.locator("[data-inner-id='right-panel-container']")).toBeVisible();
     });
 
+    test("renders the dashboard while the remote font stylesheet is pending", async ({ page }) => {
+        let release: () => void = () => {};
+        const gate = new Promise<void>(resolve => { release = resolve; });
+        const fontUrl = "https://fonts.googleapis.com/**";
+        await page.route(fontUrl, async route => {
+            await gate;
+            await route.fulfill({ contentType: "text/css", body: "" });
+        });
+        try {
+            const fontRequest = page.waitForRequest(fontUrl);
+            await page.goto("/", { waitUntil: "commit" });
+            await fontRequest;
+            await expect(page.locator("[data-inner-id='panel-server-bandwidth-interface']")).toBeVisible();
+        } finally {
+            release();
+        }
+    });
+
     test("should display panel headings", async ({ page }) => {
         await page.goto("/");
         await expect(page.locator("[data-inner-id='panel-server-bandwidth-interface']")).toBeVisible();
@@ -140,8 +158,11 @@ test.describe("WebSocket Connection", () => {
         await page.goto("/");
         const cpuload = page.locator("#cpuload");
         await expect(cpuload).not.toBeEmpty({ timeout: 15_000 });
-        // Mock loadavg: [1.52, 1.34, 1.21]
-        await expect(cpuload).toContainText("1.52");
+        // The profile fluctuates around [1.52, 1.34, 1.21]; the one-minute
+        // average swings the widest, so assert it stays inside that envelope.
+        const [oneMinute] = (await cpuload.innerText()).replace(/\s+/g, " ").trim().split(" ").map(Number);
+        expect(oneMinute).toBeGreaterThan(1.52 * 0.5);
+        expect(oneMinute).toBeLessThan(1.52 * 1.5);
     });
 });
 
@@ -160,6 +181,7 @@ test.describe("Widget Rendering", () => {
         await page.goto("/");
         const ramStats = page.locator("#meterram");
         await expect(ramStats).not.toBeEmpty({ timeout: 15_000 });
+        await expect(ramStats.locator(".progress-bar").first()).toBeAttached({ timeout: 15_000 });
         expect(await ramStats.locator(".progress-bar").count()).toBeGreaterThan(0);
         await snap(page, testInfo, "ram-stats-widget");
     });
@@ -196,14 +218,14 @@ test.describe("Widget Rendering", () => {
 
 // ── Bandwidth page switch ───────────────────────────────────
 
-test.describe("Bandwidth Page", () => {
-    test("switching the page refreshes the widget without reloading", async ({ page }) => {
-        await page.goto("/");
+for (const mode of ["push", "poll"]) {
+    test(`switching the bandwidth page refreshes the widget without reloading (${mode})`, async ({ page }) => {
+        await page.goto(`/?pushMode=${mode}`);
         const bwTables = page.locator("#bw_tables");
         const pageTable = bwTables.locator("table").nth(1);
-        // The initial ready-made HTML contains two skeleton tables, so waiting
-        // for a visible table would read the placeholder caption (empty) and
-        // race against the first WebSocket update.
+        // Wait for the SPA bootstrap to mount the bandwidth tables before
+        // checking that the skeleton placeholder has been replaced by data.
+        await expect(pageTable).toBeVisible({ timeout: 15_000 });
         await expect(bwTables.locator(".qb-skeleton")).toHaveCount(0, { timeout: 15_000 });
 
         // The widget renders two tables: a fixed summary, then the one that
@@ -214,8 +236,7 @@ test.describe("Bandwidth Page", () => {
         const documentId = await page.evaluate(() => performance.timeOrigin);
 
         // The options live in the header panel's "configure" tab, which is not
-        // open: click the element itself so the assertion covers the handler and
-        // the polling path instead of the panel's visibility.
+        // open: click the element itself to exercise the page change handler.
         await page.evaluate(() => {
             const options = Array.from(document.querySelectorAll("#node-bw-page-options div")) as HTMLElement[];
             // dashboardBandwidthPages order: t, h, d, m — "d" is the third one.
@@ -233,7 +254,7 @@ test.describe("Bandwidth Page", () => {
         // scroll position and every other widget survive the switch.
         expect(await page.evaluate(() => performance.timeOrigin)).toBe(documentId);
     });
-});
+}
 
 // ── Service status across profiles ──────────────────────────
 

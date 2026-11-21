@@ -57,7 +57,7 @@ npm test           # Mocha
 npm run build      # Vite builds the files in dist/
 ```
 
-The dashboard build artifacts in `setup/dashboard/ws/dist/` are tracked; rebuild them when source changes affect the bundle and include all updated artifacts. CI checks that they match the sources. Development commands are `npm run dev:server`, `npm run dev:client`, and `npm run dev:dashboard`.
+The dashboard build artifacts in `setup/dashboard/ws/dist/` are tracked; rebuild them when source changes affect the bundle and include all updated artifacts. CI checks that they match the sources. Development commands are `npm run dev`, `npm run dev:client`, and `npm run dev:dashboard`.
 
 From `setup/dashboard/`, run `npm run lint` for dashboard JavaScript.
 

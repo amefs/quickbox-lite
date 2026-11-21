@@ -5,6 +5,7 @@ import { expect } from "chai";
 import request from "supertest";
 
 import { app } from "../../src/server";
+import type { DashboardBootstrapPayload } from "../../src/shared/bootstrap-contract";
 
 describe("controllers/dashboard", () => {
     it("should keep Basic-authenticated Apple browsers on polling without exposing credentials", async () => {
@@ -17,49 +18,37 @@ describe("controllers/dashboard", () => {
             ["Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 Mobile Safari/604.1", false, true],
         ] as const;
         for (const [agent, basic, upgrade] of cases) {
-            const requestBuilder = request(app).get("/").set("User-Agent", agent);
+            const requestBuilder = request(app).get("/node/bootstrap").set("User-Agent", agent);
             if (basic) {
                 requestBuilder.set("Authorization", credentials);
             } else {
                 requestBuilder.set("Cookie", "authelia_session=fixture");
             }
             const res = await requestBuilder;
+            const body = res.body as DashboardBootstrapPayload;
             expect(res.status).to.equal(200);
-            expect(res.text).to.include(`"socketUpgrade":${String(upgrade)}`);
+            expect(body.socketUpgrade).to.equal(upgrade);
             expect(res.text).not.to.include(credentials);
             expect(res.text).not.to.include("private-fixture-password");
         }
     });
 
-    it("should render dashboard shell smoke contract", async () => {
-        const res = await request(app).get("/");
+    it("should serve the static SPA shell and bootstrap JSON contract", async () => {
+        const htmlRes = await request(app).get("/");
+        expect(htmlRes.status).to.equal(200);
+        expect(htmlRes.text).to.include("<!DOCTYPE html>");
+        expect(htmlRes.text).to.include("Quickbox Dashboard");
+        expect(htmlRes.text).to.include('id="root"');
+        expect(htmlRes.text).to.include("./assets/");
 
-        expect(res.status).to.equal(200);
-        expect(res.text).to.include("<!DOCTYPE html>");
-        expect(res.text).to.include("Quickbox Dashboard");
-        expect(res.text).to.include("id=\"service_control_widget\"");
-        expect(res.text).to.include("window.quickboxRuntime");
-        expect(res.text).to.include('"locales"');
-        expect(res.text).to.include('"serviceKeys"');
-        expect(res.text).to.include("id=\"bw_tables_loading\"");
-        expect(res.text).to.include('data-click-handler="packageRemove"');
-    });
-
-    it("should keep locale runtime in sync for query, cookie and accept-language", async () => {
-        const byQuery = await request(app).get("/?locale=zh");
-        const byCookie = await request(app).get("/").set("Cookie", "quickbox_locale=fr");
-        const byHeader = await request(app).get("/").set("Accept-Language", "de-DE");
-
-        expect(byQuery.status).to.equal(200);
-        expect(byQuery.text).to.include("<html lang=\"zh\">");
-        expect(byQuery.text).to.include('"locale":"zh"');
-
-        expect(byCookie.status).to.equal(200);
-        expect(byCookie.text).to.include("<html lang=\"fr\">");
-        expect(byCookie.text).to.include('"locale":"fr"');
-
-        expect(byHeader.status).to.equal(200);
-        expect(byHeader.text).to.include("<html lang=\"de\">");
-        expect(byHeader.text).to.include('"locale":"de"');
+        const bootstrapRes = await request(app).get("/node/bootstrap");
+        expect(bootstrapRes.status).to.equal(200);
+        expect(bootstrapRes.body).to.be.an("object");
+        expect(bootstrapRes.body).to.have.property("locales").that.is.an("array");
+        expect(bootstrapRes.body).to.have.property("serviceKeys").that.is.an("array");
+        expect(bootstrapRes.body).to.have.property("serviceRows").that.is.an("array");
+        expect(bootstrapRes.body).to.have.property("packageManagement").that.is.an("object");
+        expect(bootstrapRes.body).to.have.property("chrome").that.is.an("object");
+        expect(bootstrapRes.body).to.have.property("systemSummary").that.is.an("object");
     });
 });

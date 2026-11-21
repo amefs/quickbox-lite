@@ -6,13 +6,15 @@ import request from "supertest";
 import childProcess from "child_process";
 
 import { app } from "../../src/server";
-import { dashboardAccountLabel } from "../../src/dashboard-config";
+import { dashboardAccountLabel } from "../../src/services/config/dashboard";
 import { createControllerTestApp, createExecFileRecorder } from "./test-utils";
 
 interface SystemStaticResponse {
     cpu: {
-        modelHtml: string;
-        count: unknown;
+        model?: string;
+        count?: number;
+        speedGHz?: number;
+        cache?: string;
     };
     interfaces: string[];
 }
@@ -46,23 +48,13 @@ describe("controllers/node", () => {
             calls.push(args);
             const callback = args.at(-1) as (error: Error | null, stdout: string, stderr: string) => void;
             callback(null, "abc\trefs/heads/master\ndef\trefs/heads/feature/test\n", "");
-            return {} as childProcess.ChildProcess;
+            return {} as unknown as childProcess.ChildProcess;
         }) as typeof childProcess.execFile;
         const res = await request(createControllerTestApp(execFile)).get("/node/branches");
         expect(res.status).to.equal(200);
         expect(res.body).to.deep.equal({ branches: ["master", "feature/test"] });
         expect(calls[0]?.[0]).to.equal("git");
         expect(calls[0]?.[1]).to.deep.equal(["-c", "safe.directory=/etc/QuickBox", "-C", "/etc/QuickBox", "ls-remote", "--heads", "origin"]);
-    });
-
-    it("should return menu HTML and plugin-tab visibility", async () => {
-        const res = await request(app).get("/node/menu");
-
-        expect(res.status).to.equal(200);
-        expect(res.body).to.be.an("object");
-        expect(res.body).to.have.property("mainMenuHtml").that.is.a("string");
-        expect(res.body).to.have.property("showPluginTab").that.is.a("boolean");
-        expect((res.body as { mainMenuHtml: string }).mainMenuHtml).to.not.include("$username$");
     });
 
     it("should return static dashboard config", async () => {
@@ -72,40 +64,44 @@ describe("controllers/node", () => {
         expect(res.body).to.have.property("version").that.is.a("string").and.match(/^v\d+\.\d+\.\d+/);
         expect(res.body).to.have.property("branch").that.is.a("string");
         expect(res.body).to.have.property("languages").that.is.an("array").with.length.greaterThan(0);
-        expect((res.body as DashboardConfigResponse).languages[0]).to.have.keys(["file", "key", "title", "locale"]);
+        expect((res.body as DashboardConfigResponse).languages[0]).to.have.keys(["file", "key", "locale"]);
         expect(res.body).to.have.property("themes").that.deep.equals([
-            { file: "defaulted", title: "Defaulted" },
-            { file: "smoked", title: "Smoked" },
+            { file: "defaulted" },
+            { file: "smoked" },
         ]);
         expect(res.body).to.have.property("bwPages").that.deep.equals([
-            { key: "t", title: "Top 10 days" },
-            { key: "h", title: "Recent hours" },
-            { key: "d", title: "Last 30 days" },
-            { key: "m", title: "Last 12 months" },
+            { key: "t" },
+            { key: "h" },
+            { key: "d" },
+            { key: "m" },
         ]);
     });
 
-    it("should translate dashboard config labels with request locale", async () => {
+    it("should return bandwidth page keys in dashboard config", async () => {
         const res = await request(app).get("/node/dashboard_config?locale=zh");
 
         expect(res.status).to.equal(200);
         expect(res.body).to.have.property("bwPages").that.deep.equals([
-            { key: "t", title: "最高10天" },
-            { key: "h", title: "最近几小时" },
-            { key: "d", title: "过去30天" },
-            { key: "m", title: "过去12个月" },
+            { key: "t" },
+            { key: "h" },
+            { key: "d" },
+            { key: "m" },
         ]);
     });
 
     it("should return CPU and network interface metadata", async function() {
         this.timeout(6000);
-        const res = await request(app).get("/node/system_static");
+        const res = await request(app).get("/node/data/system_static");
         const body = res.body as SystemStaticResponse;
 
         expect(res.status).to.equal(200);
         expect(body).to.have.property("cpu").that.is.an("object");
-        expect(body.cpu).to.have.property("modelHtml").that.is.a("string");
-        expect(body.cpu).to.have.property("count");
+        if (body.cpu.model !== undefined) {
+            expect(body.cpu.model).to.be.a("string");
+        }
+        if (body.cpu.count !== undefined) {
+            expect(body.cpu.count).to.be.a("number");
+        }
         expect(body).to.have.property("interfaces").that.is.an("array");
     });
 
@@ -170,17 +166,5 @@ describe("controllers/node", () => {
         expect(badPlugin.status).to.equal(400);
         expect(badAction.status).to.equal(400);
         expect(recorder.calls).to.have.length(0);
-    });
-
-    it("should render removal modals with request-local locale", async () => {
-        const zh = await request(app).get("/node/removal_modals?locale=zh");
-        const en = await request(app).get("/node/removal_modals");
-
-        expect(zh.status).to.equal(200);
-        expect(zh.text).to.include("取消");
-        expect(zh.text).to.include("我明白，继续！");
-        expect(en.status).to.equal(200);
-        expect(en.text).to.include("RemovalConfirm");
-        expect(en.text).to.include('data-click-handler="packageRemove"');
     });
 });

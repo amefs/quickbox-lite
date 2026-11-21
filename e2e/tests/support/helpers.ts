@@ -53,7 +53,7 @@ export async function expectFocusInside(page: Page, selector: string): Promise<v
 export async function getRenderedWidgetText(page: Page): Promise<string> {
     return page.locator("#result-rendered").evaluate((el) => {
         const host = el as HTMLElement;
-        return host.shadowRoot?.textContent ?? "";
+        return host.shadowRoot?.textContent ?? host.textContent ?? "";
     });
 }
 

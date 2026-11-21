@@ -4,9 +4,11 @@
 import "mocha";
 import { expect } from "chai";
 import { spawn, spawnSync } from "child_process";
+import { EventEmitter } from "events";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import sinon from "sinon";
 
 import execHandler, {
     buildUpdateRunnerScript,
@@ -20,8 +22,9 @@ import execHandler, {
     UPDATE_ACK_FAILED,
     UPDATE_ACK_OK,
     UPDATE_ACK_PENDING,
-} from "../../src/handlers/exec";
+} from "../../src/socket/exec";
 import Constant from "../../src/shared/constants";
+import { setServiceStateCollectorsForTests } from "../../src/services/service/state";
 
 /** Helper to build a minimal mock Socket client */
 function buildMockClient(onExecCallback?: (data: unknown) => void) {
@@ -126,6 +129,45 @@ describe("handlers/exec", () => {
             releaseExecSlot(socket);
             expect(tryAcquireExecSlot(socket, 1, 8)).to.equal(true);
             releaseExecSlot(socket);
+        });
+
+        it("releases the command slot before waiting for bounded service status confirmation", async () => {
+            const existingMock = process.env.QUICKBOX_ENV;
+            process.env.QUICKBOX_ENV = "mock";
+            const clock = sinon.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+            let release: (() => void) | undefined;
+            const pending = new Promise<Map<string, boolean>>(resolve => {
+                release = () => { resolve(new Map()); };
+            });
+            setServiceStateCollectorsForTests({ systemd: () => pending, process: () => pending });
+            const client = new EventEmitter();
+            const socket = client as never;
+            const responses: Record<string, unknown>[] = [];
+            execHandler(socket);
+            client.on(Constant.EVENT_SERVICE_ACTION_RESULT, (response: Record<string, unknown>) => {
+                responses.push(response);
+            });
+            try {
+                client.emit(Constant.EVENT_SERVICE_ACTION, { requestId: "enable", service: "deluged", action: "enable" });
+                await clock.tickAsync(0);
+                expect(responses).to.have.length(1);
+                expect(responses[0]).to.have.property("phase", "action-complete");
+                expect(tryAcquireExecSlot(socket, 1)).to.equal(true);
+                releaseExecSlot(socket);
+                await clock.tickAsync(5_000);
+                expect(responses).to.have.length(2);
+                expect(responses[1]).to.include({
+                    phase: "status-confirmed",
+                    statusError: "Service status confirmation timed out",
+                });
+            } finally {
+                setServiceStateCollectorsForTests();
+                release?.();
+                await clock.tickAsync(0);
+                clock.restore();
+                if (existingMock === undefined) {delete process.env.QUICKBOX_ENV;}
+                else {process.env.QUICKBOX_ENV = existingMock;}
+            }
         });
     });
 

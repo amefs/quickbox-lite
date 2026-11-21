@@ -6,7 +6,7 @@ import childProcess from "child_process";
 import { existsSync } from "fs";
 import path from "path";
 
-import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins } from "../src/plugins";
+import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins } from "../src/services/packages/plugins";
 
 describe("plugins", () => {
     it("only lists plugin actions shipped by the repository", () => {
@@ -30,7 +30,7 @@ describe("plugins", () => {
             if (callback) {
                 callback(null, "", "");
             }
-            return {} as childProcess.ChildProcess;
+            return {} as unknown as childProcess.ChildProcess;
         }) as typeof childProcess.execFile;
 
         await applyRutorrentPluginActionWithExecFile("rss", "install", execFileStub);

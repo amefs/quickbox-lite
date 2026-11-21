@@ -1,0 +1,397 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import "mocha";
+import { expect } from "chai";
+import { EventEmitter } from "events";
+import type { Socket } from "socket.io";
+import request from "supertest";
+import sinon from "sinon";
+
+import { app } from "../../src/server";
+import type { DashboardBootstrapPayload } from "../../src/shared/bootstrap-contract";
+import Constant from "../../src/shared/constants";
+import { BANDWIDTH_DATA_URL } from "../../src/shared/widget-streams";
+import {
+    createPushManager,
+    getActiveSamplerCount,
+    notifyPushSubscribers,
+    pushHandler,
+    type PushSpec,
+} from "../../src/socket/push";
+
+class FakeSocket extends EventEmitter {
+    public connected = true;
+    public sent: unknown[] = [];
+
+    public send(payload: unknown) {
+        this.sent.push(payload);
+        return this;
+    }
+}
+
+describe("socket/push", () => {
+    it("should expose wsPushMode in bootstrap and respect QUICKBOX_WS_PUSH_MODE", async () => {
+        const prev = process.env.QUICKBOX_WS_PUSH_MODE;
+        try {
+            delete process.env.QUICKBOX_WS_PUSH_MODE;
+            const defaultRes = await request(app).get("/node/bootstrap");
+            expect(defaultRes.status).to.equal(200);
+            expect((defaultRes.body as DashboardBootstrapPayload).wsPushMode).to.equal("push");
+
+            process.env.QUICKBOX_WS_PUSH_MODE = "poll";
+            const pollRes = await request(app).get("/node/bootstrap");
+            expect(pollRes.status).to.equal(200);
+            expect((pollRes.body as DashboardBootstrapPayload).wsPushMode).to.equal("poll");
+        } finally {
+            if (prev === undefined) {
+                delete process.env.QUICKBOX_WS_PUSH_MODE;
+            } else {
+                process.env.QUICKBOX_WS_PUSH_MODE = prev;
+            }
+        }
+    });
+
+    it("should push updates in push mode and stop when switched to poll mode", async () => {
+        const fake = new FakeSocket();
+        pushHandler(fake as unknown as Socket);
+
+        fake.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push", locale: "en", bandwidthPage: "t" });
+        await new Promise((resolve) => setTimeout(resolve, 650));
+
+        expect(fake.sent.length).to.be.greaterThan(0);
+        const hasPushServiceStatus = fake.sent.some((msg) => {
+            const record = msg as { type?: string; key?: string; success?: boolean };
+            return record.type === "push" && record.success === true && record.key === "SERVICE_STATUS_ALL";
+        });
+        expect(hasPushServiceStatus).to.equal(true);
+
+        const beforeNotify = fake.sent.length;
+        notifyPushSubscribers(["TASK_STATUS"]);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(fake.sent.length).to.be.greaterThan(beforeNotify);
+
+        fake.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "poll" });
+        const afterPollCount = fake.sent.length;
+        notifyPushSubscribers(["TASK_STATUS"]);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(fake.sent.length).to.equal(afterPollCount);
+
+        fake.connected = false;
+        fake.emit(Constant.EVENT_DISCONNECT);
+        expect(getActiveSamplerCount()).to.equal(0);
+    });
+
+    it("should share samplers for identical params and split samplers when params differ", async () => {
+        const fakeA = new FakeSocket();
+        const fakeB = new FakeSocket();
+        pushHandler(fakeA as unknown as Socket);
+        pushHandler(fakeB as unknown as Socket);
+
+        fakeA.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push", locale: "en", bandwidthPage: "t" });
+        const singleCount = getActiveSamplerCount();
+        expect(singleCount).to.equal(10);
+
+        // Same params -> reuses all 10 samplers (no duplicate collection)
+        fakeB.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push", locale: "zh", bandwidthPage: "t" });
+        expect(getActiveSamplerCount()).to.equal(singleCount);
+
+        // Different BANDWIDTH page -> only 1 extra BANDWIDTH:h sampler
+        fakeB.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push", locale: "zh", bandwidthPage: "h" });
+        expect(getActiveSamplerCount()).to.equal(singleCount + 1);
+
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        expect(fakeA.sent.length).to.be.greaterThan(0);
+        expect(fakeB.sent.length).to.be.greaterThan(0);
+
+        fakeA.connected = false;
+        fakeA.emit(Constant.EVENT_DISCONNECT);
+        expect(getActiveSamplerCount()).to.equal(singleCount);
+
+        fakeB.connected = false;
+        fakeB.emit(Constant.EVENT_DISCONNECT);
+        expect(getActiveSamplerCount()).to.equal(0);
+    });
+
+    it("should only refresh BANDWIDTH when bandwidthPage changes", async () => {
+        let otherFetches = 0;
+        let bandwidthFetches = 0;
+        const specs: PushSpec[] = [
+            {
+                key: "UPTIME",
+                url: "/node/data/system_uptime",
+                visibleMs: 60000,
+                hiddenMs: 180000,
+                dedupe: true,
+                fetch: () => {
+                    otherFetches += 1;
+                    return Promise.resolve({ days: otherFetches });
+                },
+            },
+            {
+                key: "BANDWIDTH",
+                url: BANDWIDTH_DATA_URL,
+                visibleMs: 60000,
+                hiddenMs: 180000,
+                param: "bandwidthPage",
+                fetch: (page) => {
+                    bandwidthFetches += 1;
+                    return Promise.resolve({ page, count: bandwidthFetches });
+                },
+            },
+        ];
+        const manager = createPushManager(specs);
+        const fake = new FakeSocket();
+        manager.pushHandler(fake as unknown as Socket);
+
+        fake.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push", bandwidthPage: "t" });
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(otherFetches).to.equal(1);
+        expect(bandwidthFetches).to.equal(1);
+
+        fake.sent.length = 0;
+        fake.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push", bandwidthPage: "h" });
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        expect(fake.sent).to.have.lengthOf(1);
+        expect(fake.sent[0]).to.deep.include({ key: "BANDWIDTH", url: BANDWIDTH_DATA_URL, args: { page: "h" }, type: "push" });
+        expect(fake.sent[0]).not.to.have.property("pathName");
+        expect(otherFetches).to.equal(1);
+        expect(bandwidthFetches).to.equal(2);
+
+        fake.connected = false;
+        fake.emit(Constant.EVENT_DISCONNECT);
+        expect(manager.getActiveSamplerCount()).to.equal(0);
+    });
+
+    it("should tighten sampler schedule when a hidden sampler gets a visible subscriber", async () => {
+        let count = 0;
+        const specs: PushSpec[] = [
+            {
+                key: "NETWORK",
+                url: "/node/net_status",
+                visibleMs: 60,
+                hiddenMs: 10000,
+                fetch: () => {
+                    count += 1;
+                    return Promise.resolve({ seq: count });
+                },
+            },
+        ];
+        const manager = createPushManager(specs);
+        const hiddenClient = new FakeSocket();
+        const visibleClient = new FakeSocket();
+        manager.pushHandler(hiddenClient as unknown as Socket);
+        manager.pushHandler(visibleClient as unknown as Socket);
+
+        hiddenClient.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push", hidden: true });
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        expect(count).to.equal(1);
+
+        // Visible client joins while cached data is fresh (< visibleMs); timer must tighten from 10000ms to ~60ms
+        visibleClient.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push", hidden: false });
+        await new Promise((resolve) => setTimeout(resolve, 130));
+        expect(count).to.be.greaterThan(1);
+        expect(visibleClient.sent.length).to.be.greaterThan(1);
+
+        hiddenClient.connected = false;
+        hiddenClient.emit(Constant.EVENT_DISCONNECT);
+        visibleClient.connected = false;
+        visibleClient.emit(Constant.EVENT_DISCONNECT);
+        expect(manager.getActiveSamplerCount()).to.equal(0);
+    });
+
+    it("should queue a forced follow-up run when notifyPushSubscribers is called while inFlight", async () => {
+        let fetchCount = 0;
+        let releaseFirst: (() => void) | undefined;
+        const specs: PushSpec[] = [
+            {
+                key: "SERVICE_STATUS_ALL",
+                url: "/node/data/service_status_all",
+                visibleMs: 60000,
+                hiddenMs: 120000,
+                dedupe: true,
+                fetch: () => {
+                    fetchCount += 1;
+                    const seq = fetchCount;
+                    if (seq === 1) {
+                        return new Promise((resolve) => {
+                            releaseFirst = () => {
+                                resolve({ seq });
+                            };
+                        });
+                    }
+                    return Promise.resolve({ seq });
+                },
+            },
+        ];
+        const manager = createPushManager(specs);
+        const fake = new FakeSocket();
+        manager.pushHandler(fake as unknown as Socket);
+
+        fake.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push" });
+        await new Promise((resolve) => setTimeout(resolve, 25));
+        expect(fetchCount).to.equal(1);
+
+        // Trigger notify while first fetch is still in flight
+        manager.notifyPushSubscribers(["SERVICE_STATUS_ALL"]);
+        releaseFirst?.();
+        await new Promise((resolve) => setTimeout(resolve, 40));
+
+        expect(fetchCount).to.equal(2);
+        const seqs = fake.sent.map((msg) => (msg as { response?: { seq?: number } }).response?.seq);
+        expect(seqs).to.deep.equal([1, 2]);
+
+        fake.connected = false;
+        fake.emit(Constant.EVENT_DISCONNECT);
+        expect(manager.getActiveSamplerCount()).to.equal(0);
+    });
+
+    it("should push failure payloads and clear dedupe digest so recovery is delivered", async () => {
+        let shouldFail = false;
+        const specs: PushSpec[] = [
+            {
+                key: "SERVICE_STATUS_ALL",
+                url: "/node/data/service_status_all",
+                visibleMs: 60000,
+                hiddenMs: 120000,
+                dedupe: true,
+                fetch: () => {
+                    if (shouldFail) {
+                        return Promise.reject(new Error("boom"));
+                    }
+                    return Promise.resolve({ health: "ok", states: { rtorrent: { value: true, stale: false } } });
+                },
+            },
+        ];
+        const manager = createPushManager(specs);
+        const fake = new FakeSocket();
+        manager.pushHandler(fake as unknown as Socket);
+
+        fake.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push" });
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        expect(fake.sent.length).to.equal(1);
+        expect((fake.sent[0] as { success?: boolean }).success).to.equal(true);
+
+        shouldFail = true;
+        manager.notifyPushSubscribers(["SERVICE_STATUS_ALL"]);
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        expect(fake.sent.length).to.equal(2);
+        expect(fake.sent[1]).to.include({
+            type: "push",
+            success: false,
+            key: "SERVICE_STATUS_ALL",
+        });
+
+        // Recover with identical data: must be pushed because error cleared lastDigest
+        shouldFail = false;
+        manager.notifyPushSubscribers(["SERVICE_STATUS_ALL"]);
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        expect(fake.sent.length).to.equal(3);
+        expect((fake.sent[2] as { success?: boolean }).success).to.equal(true);
+
+        fake.connected = false;
+        fake.emit(Constant.EVENT_DISCONNECT);
+        expect(manager.getActiveSamplerCount()).to.equal(0);
+    });
+
+    it("keeps the cancelled collection visible until it exits and reuses its sampler on reconnect", async () => {
+        const clock = sinon.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+        let calls = 0;
+        let aborted = false;
+        let release: (() => void) | undefined;
+        const manager = createPushManager([{
+            key: "DISK_USAGE",
+            url: "/node/data/disk_data",
+            visibleMs: 30,
+            hiddenMs: 60,
+            fetch: (_, signal) => {
+                calls += 1;
+                if (calls !== 1) {return Promise.resolve({ sample: calls });}
+                return new Promise((resolve) => {
+                    release = () => { resolve({ sample: 1 }); };
+                    signal.addEventListener("abort", () => { aborted = true; });
+                });
+            },
+        }]);
+        const first = new FakeSocket();
+        const second = new FakeSocket();
+        manager.pushHandler(first as unknown as Socket);
+        manager.pushHandler(second as unknown as Socket);
+        try {
+            first.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push" });
+            await clock.tickAsync(0);
+            first.emit(Constant.EVENT_DISCONNECT);
+            expect(aborted).to.equal(true);
+            expect(manager.getSamplerMetrics()[0]).to.include({ active: 0, inFlight: 1 });
+
+            second.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push" });
+            await clock.tickAsync(90);
+            expect(calls).to.equal(1);
+            expect(manager.getSamplerMetrics()[0]).to.include({ active: 1, inFlight: 1 });
+            release?.();
+            await clock.tickAsync(0);
+            expect(second.sent).to.have.length(1);
+            expect(second.sent[0]).to.deep.include({ success: true, response: { sample: 2 } });
+            await clock.tickAsync(30);
+            expect(calls).to.equal(3);
+            expect(manager.getSamplerMetrics()[0]).to.include({ active: 1, inFlight: 0 });
+        } finally {
+            second.emit(Constant.EVENT_DISCONNECT);
+            release?.();
+            clock.restore();
+        }
+    });
+
+    it("marks timed-out samples stale for all subscribers and resumes after cancellation", async () => {
+        const clock = sinon.useFakeTimers({ now: Date.UTC(2025, 0, 1), toFake: ["setTimeout", "clearTimeout", "Date"] });
+        let samples = 0;
+        let releaseTimedOutSample: (() => void) | undefined;
+        const manager = createPushManager([{
+            key: "DISK_USAGE",
+            url: "/node/data/disk_data",
+            visibleMs: 30,
+            hiddenMs: 60,
+            timeoutMs: 25,
+            fetch: (_, signal) => {
+                samples += 1;
+                if (samples !== 2) {return Promise.resolve({ sample: samples });}
+                return new Promise((resolve) => {
+                    signal.addEventListener("abort", () => {
+                        releaseTimedOutSample = () => { resolve({ sample: 2 }); };
+                    }, { once: true });
+                });
+            },
+        }]);
+        const first = new FakeSocket();
+        const second = new FakeSocket();
+        manager.pushHandler(first as unknown as Socket);
+        manager.pushHandler(second as unknown as Socket);
+        try {
+            first.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push" });
+            await clock.tickAsync(80);
+            expect(samples).to.equal(2);
+            expect(first.sent).to.have.length(2);
+            expect(first.sent[1]).to.deep.include({ success: false, stale: true, response: { sample: 1 } });
+            const [staleSampler] = manager.getSamplerMetrics();
+            expect(staleSampler).to.include({ stream: "DISK_USAGE", active: 1, inFlight: 1, failed: 1 });
+            expect(staleSampler.outcomes).to.deep.equal({ success: 1, error: 0, timeout: 1 });
+            expect(staleSampler.lastSuccessAt).to.be.greaterThan(0);
+
+            second.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push", hidden: true });
+            expect(second.sent[0]).to.deep.include({ success: false, stale: true, response: { sample: 1 } });
+            expect(samples).to.equal(2);
+            expect(releaseTimedOutSample).to.be.a("function");
+            releaseTimedOutSample?.();
+            await clock.tickAsync(0);
+            expect(first.sent[2]).to.deep.include({ success: true, response: { sample: 3 } });
+            expect(first.sent[2]).not.to.have.property("stale");
+            expect(manager.getSamplerMetrics()[0]).to.include({ inFlight: 0, failed: 0 });
+            expect(manager.getSamplerMetrics()[0].outcomes).to.deep.equal({ success: 2, error: 0, timeout: 1 });
+            expect(second.sent.every((message) => (message as { response: { sample: number } }).response.sample !== 2)).to.equal(true);
+        } finally {
+            first.emit(Constant.EVENT_DISCONNECT);
+            second.emit(Constant.EVENT_DISCONNECT);
+            clock.restore();
+        }
+    });
+});

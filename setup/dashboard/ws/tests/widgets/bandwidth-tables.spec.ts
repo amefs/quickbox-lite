@@ -5,7 +5,7 @@ import { expect } from "chai";
 import fs from "fs";
 import path from "path";
 
-import { bwTables } from "../../src/widgets/bandwidth-tables";
+import { bandwidthTablesData } from "../../src/services/system/bandwidth";
 
 const dumpsDir = path.join(process.cwd(), "dumps");
 
@@ -93,65 +93,48 @@ describe("widgets/bandwidth-tables", () => {
         }
     });
 
-    it("should render summary and hourly table by default", async () => {
-        const result = await bwTables(testIface, undefined);
-        expect(result).to.be.a("string");
-        expect(result).to.include("<table");
-        // The caption identifies which dataset was rendered; asserting only
-        // "<table" would pass for every page value.
-        expect(result).to.include("Recent hours");
+    it("should return summary and hourly table by default", async () => {
+        const result = await bandwidthTablesData(testIface, undefined);
+        expect(result.page).to.equal("h");
+        expect(result.summary.map((row) => row.label)).to.deep.equal(["hour", "day", "month", "all"]);
     });
 
-    it("should render hourly data table (page=h)", async () => {
-        const result = await bwTables(testIface, "h");
-        expect(result).to.include("Recent hours");
-        expect(result).to.include("PM");
+    it("should return hourly data table (page=h)", async () => {
+        const result = await bandwidthTablesData(testIface, "h");
+        expect(result.page).to.equal("h");
+        expect(result.detail.length).to.equal(2);
     });
 
-    it("should render daily data table (page=d)", async () => {
-        const result = await bwTables(testIface, "d");
-        expect(result).to.include("Last 30 days");
-        expect(result).to.not.include("Recent hours");
+    it("should return daily data table (page=d)", async () => {
+        const result = await bandwidthTablesData(testIface, "d");
+        expect(result.page).to.equal("d");
     });
 
-    it("should render monthly data table (page=m)", async () => {
-        const result = await bwTables(testIface, "m");
-        expect(result).to.include("Last 12 months");
-        expect(result).to.not.include("Last 30 days");
+    it("should return monthly data table (page=m)", async () => {
+        const result = await bandwidthTablesData(testIface, "m");
+        expect(result.page).to.equal("m");
     });
 
-    it("should render top days data table (page=t)", async () => {
-        const result = await bwTables(testIface, "t");
-        expect(result).to.include("Top 10 days");
-        expect(result).to.not.include("Last 12 months");
+    it("should return top days data table (page=t)", async () => {
+        const result = await bandwidthTablesData(testIface, "t");
+        expect(result.page).to.equal("t");
     });
 
     it("should handle missing interface data", async () => {
         if (fs.existsSync(dumpPath)) {
             fs.rmSync(dumpPath);
         }
-        const result = await bwTables("nonexistent-iface-bwtable", undefined);
-        expect(result).to.be.a("string");
-        // The blank dataset still renders the shell, but without any data rows.
-        expect(result).to.include("<table");
-        expect(result).to.not.include("label_even");
+        const result = await bandwidthTablesData("nonexistent-iface-bwtable", undefined);
+        expect(result.summary).to.deep.equal([]);
+        expect(result.detail).to.deep.equal([]);
     });
 
-    it("should include formatted sizes in output", async () => {
-        const result = await bwTables(testIface, "h");
-        expect(result).to.include("KB");
-    });
-
-    it("should render with even/odd row classes", async () => {
-        const result = await bwTables(testIface, "h");
-        expect(result).to.include("label_even");
-        expect(result).to.include("label_odd");
-    });
-
-    it("should render text-success and text-primary classes for tx/rx", async () => {
-        const result = await bwTables(testIface, "h");
-        expect(result).to.include("text-success");
-        expect(result).to.include("text-primary");
+    it("should include numeric byte and speed metrics in output", async () => {
+        const result = await bandwidthTablesData(testIface, "h");
+        expect(result.detail[0]?.rx).to.be.a("number");
+        expect(result.detail[0]?.tx).to.be.a("number");
+        expect(result.detail[0]?.rxAvg).to.be.a("number");
+        expect(result.detail[0]?.txAvg).to.be.a("number");
     });
 
     // A3: writeSummary divide-by-zero — created = today → ttime could be 0 at midnight
@@ -200,9 +183,9 @@ describe("widgets/bandwidth-tables", () => {
             ],
         };
         fs.writeFileSync(dumpPath, JSON.stringify(todayFixture), "utf8");
-        const result = await bwTables(testIface, undefined);
-        expect(result).to.be.a("string");
-        expect(result).to.not.include("Infinity");
-        expect(result).to.not.include("NaN");
+        const result = await bandwidthTablesData(testIface, undefined);
+        const serialized = JSON.stringify(result);
+        expect(serialized).to.not.include("Infinity");
+        expect(serialized).to.not.include("NaN");
     });
 });

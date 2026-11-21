@@ -2,13 +2,12 @@
 
 import { expect } from "chai";
 
-import da from "../../lang/lang_da.json";
-import de from "../../lang/lang_de.json";
-import en from "../../lang/lang_en.json";
-import es from "../../lang/lang_es.json";
-import fr from "../../lang/lang_fr.json";
-import zh from "../../lang/lang_zh-Hans-CN.json";
-import { I18n } from "../src/vendor/i18n";
+import da from "../../web/src/i18n/locales/lang_da.json";
+import de from "../../web/src/i18n/locales/lang_de.json";
+import en from "../../web/src/i18n/locales/lang_en.json";
+import es from "../../web/src/i18n/locales/lang_es.json";
+import fr from "../../web/src/i18n/locales/lang_fr.json";
+import zh from "../../web/src/i18n/locales/lang_zh-Hans-CN.json";
 
 const translations: Record<string, Record<string, string>> = { da, de, es, fr, zh };
 
@@ -26,9 +25,4 @@ describe("dashboard translations", () => {
             }
         });
     }
-
-    it("can fall back to English when a translation is missing", () => {
-        const i18n = new I18n({ en: { example: "Example" }, fr: {} }, { locale: "fr", enableFallback: true });
-        expect(i18n.t("example")).to.equal("Example");
-    });
 });

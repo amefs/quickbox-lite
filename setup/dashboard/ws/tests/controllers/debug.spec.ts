@@ -5,14 +5,27 @@ import { expect } from "chai";
 import request from "supertest";
 
 import { app } from "../../src/server";
+import type { DebugMetaPayload } from "../../src/shared/bootstrap-contract";
 
 describe("controllers/debug", () => {
-    it("should return the debug page shell", async () => {
+    it("should return the SPA shell on /debug", async () => {
         const res = await request(app).get("/debug");
 
         expect(res.status).to.equal(200);
         expect(res.text).to.include("<html");
-        expect(res.text).to.include("Debug Console");
+        expect(res.text).to.include('id="root"');
+    });
+
+    it("should return debug metadata JSON on /debug/meta", async () => {
+        const res = await request(app).get("/debug/meta");
+        const body = res.body as DebugMetaPayload;
+
+        expect(res.status).to.equal(200);
+        expect(body.basePath).to.equal("");
+        expect(["defaulted", "smoked"]).to.include(body.theme);
+        expect(body.endpoints).to.be.an("array");
+        expect(body.endpoints.length).to.be.greaterThan(0);
+        expect(body.packages).to.be.an("array");
     });
 
     it("should validate missing or empty debug node url", async () => {
@@ -24,8 +37,15 @@ describe("controllers/debug", () => {
     });
 
     it("should resolve valid widget urls", async () => {
-        const res = await request(app).get("/debug/node?url=/node/up");
+        const res = await request(app).get("/debug/node?url=/node/data/system_uptime");
 
         expect(res.status).to.equal(200);
+    });
+
+    it("should resolve the selected page from an absolute bandwidth URL", async () => {
+        const res = await request(app).get("/debug/node").query({ url: "http://localhost/node/data/bandwidth?page=d" });
+
+        expect(res.status).to.equal(200);
+        expect(res.body).to.have.property("page", "d");
     });
 });

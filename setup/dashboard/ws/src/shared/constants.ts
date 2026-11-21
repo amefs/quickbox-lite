@@ -2,11 +2,15 @@
 import { existsSync, readFileSync } from "fs";
 import path from "path";
 
+import { isMockMode, mockProfileName } from "../../mock/mode";
+import { getProfile } from "../../mock/data/profiles";
+
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export default class Constant {
     public static EVENT_CONNECTION = "connection";
     public static EVENT_DISCONNECT = "disconnect";
     public static EVENT_MESSAGE = "message";
+    public static EVENT_WS_SUBSCRIBE = "ws:subscribe";
     public static EVENT_EXEC = "exec";
     public static EVENT_SERVICE_ACTION = "service-action";
     public static EVENT_SERVICE_ACTION_RESULT = "service-action-result";
@@ -27,6 +31,12 @@ function getUsername() {
     try {
         const masterConfigPath = path.join(process.env.QUICKBOX_DASHBOARD_DB_DIR || "/srv/dashboard/db", "master.txt");
         if (!existsSync(masterConfigPath)) {
+            // Only a provisioned host has the dashboard user file, and this runs
+            // while the mock bootstrap is still installing its file patches, so
+            // mock mode reads the fixture user directly.
+            if (isMockMode()) {
+                return getProfile(mockProfileName()).username;
+            }
             console.error("Quickbox-Lite user info not found");
         } else {
             const content = readFileSync(masterConfigPath, { encoding: "utf8" });

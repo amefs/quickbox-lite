@@ -1,0 +1,225 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+
+/* Keep Ant Design styles scoped to the first migrated island. */
+.qb-service-control--defaulted {
+    --qb-switch-off: #d0d4e7;
+    --qb-switch-on: #2574ab;
+    --qb-switch-off-handle: #d0d4e7;
+    --qb-switch-on-handle: #2574ab;
+    --qb-switch-handle-background: #fff;
+}
+
+.qb-service-control--smoked {
+    --qb-switch-off: #333;
+    --qb-switch-on: #333;
+    --qb-switch-off-handle: #eb4549;
+    --qb-switch-on-handle: rgb(102, 204, 153);
+    --qb-switch-handle-background: #333;
+}
+
+.qb-service-control .table-responsive {
+    container-type: inline-size;
+}
+
+.qb-service-control .table > tbody > tr > td:first-child {
+    padding-inline-start: 12px;
+}
+
+.qb-service-control .table > thead > tr > th,
+.qb-service-control .table > tbody > tr > td:first-child {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.qb-service-control .qb-service-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.qb-service-control .qb-service-name > :first-child {
+    flex: none;
+}
+
+.qb-service-control .ant-btn.qb-service-restart {
+    box-sizing: border-box;
+    display: inline-block;
+    height: 23.5px;
+    padding: 3px 5px 2px;
+    border: 1px solid var(--qb-button-border);
+    border-radius: 2px;
+    color: var(--qb-button-color);
+    background: var(--qb-button-background);
+    box-shadow: none;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+.qb-service-control .ant-btn.qb-service-restart:hover,
+.qb-service-control .ant-btn.qb-service-restart:focus-visible {
+    border-color: var(--qb-button-hover-border);
+    color: var(--qb-button-hover-color);
+    background: var(--qb-button-hover-background);
+    box-shadow: none;
+}
+
+.qb-service-control .ant-btn.qb-service-restart:active {
+    border-color: var(--qb-button-hover-border);
+    color: var(--qb-button-hover-color);
+    background: var(--qb-button-hover-background);
+    box-shadow: none;
+}
+
+.qb-service-control .toggle-wrapper {
+    box-sizing: border-box;
+    display: inline-block;
+    width: 100px;
+    min-height: 31px;
+    margin-right: 5px;
+}
+
+@container (max-width: 480px) {
+    .qb-service-control .table {
+        table-layout: fixed;
+    }
+
+    .qb-service-control .table > thead > tr > th {
+        letter-spacing: normal;
+    }
+
+    .qb-service-control .table > thead > tr > th:nth-child(2) {
+        width: 28%;
+    }
+
+    .qb-service-control .table > thead > tr > th:last-child {
+        width: 110px;
+    }
+
+    .qb-service-control .ant-btn.qb-service-restart {
+        display: inline-flex;
+        gap: 3px;
+        max-inline-size: 100%;
+        height: auto;
+        min-height: 23.5px;
+        padding-inline: 3px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .qb-service-control .toggle-wrapper {
+        margin-right: 0;
+    }
+}
+
+.qb-service-control .qb-service-switch.ant-switch {
+    box-sizing: border-box;
+    width: 100px;
+    min-width: 100px;
+    height: 26px;
+    border-radius: 9999px;
+    background: var(--qb-switch-off);
+    box-shadow: none;
+    line-height: 26px;
+}
+
+.qb-service-control .qb-service-switch.ant-switch.ant-switch-checked {
+    background: var(--qb-switch-on);
+}
+
+#service_control_widget .qb-service-control .qb-service-switch.ant-switch:is(:hover, :active, :focus-visible) {
+    background: var(--qb-switch-off);
+}
+
+#service_control_widget .qb-service-control .qb-service-switch.ant-switch.ant-switch-checked:is(:hover, :active, :focus-visible) {
+    background: var(--qb-switch-on);
+}
+
+.qb-service-control .qb-service-switch.ant-switch .ant-switch-handle {
+    top: 0;
+    inset-inline-start: 0;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qb-service-control .qb-service-switch.ant-switch .ant-switch-loading-icon {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.qb-service-control .qb-service-switch.ant-switch.ant-switch-checked .ant-switch-handle {
+    inset-inline-start: calc(100% - 26px);
+}
+
+.qb-service-control .qb-service-switch.ant-switch .ant-switch-handle::before {
+    border: 3px solid var(--qb-switch-off-handle);
+    border-radius: 50%;
+    background: var(--qb-switch-handle-background);
+    box-shadow: none;
+}
+
+.qb-service-control .qb-service-switch.ant-switch.ant-switch-checked .ant-switch-handle::before {
+    border-color: var(--qb-switch-on-handle);
+}
+
+.qb-service-control .qb-service-switch.ant-switch .ant-switch-inner,
+.qb-service-control .qb-service-switch.ant-switch .ant-switch-inner-checked,
+.qb-service-control .qb-service-switch.ant-switch .ant-switch-inner-unchecked {
+    color: #fff;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 26px;
+    text-shadow: none;
+}
+
+/* Ant's unchecked label keeps a 22px overlap while the migrated track uses 26px line-height. */
+.qb-service-control .qb-service-switch.ant-switch .ant-switch-inner-unchecked {
+    margin-top: -26px;
+}
+
+.qb-service-control .qb-service-switch.ant-switch .ant-switch-inner-checked {
+    position: relative;
+    left: -1px;
+    color: rgba(255, 255, 255, .8);
+}
+
+.qb-service-tooltip-popup.qb-service-tooltip-popup,
+.qb-package-tooltip-popup.qb-package-tooltip-popup {
+    --ant-tooltip-arrow-background-color: #000;
+    max-width: 200px;
+    font-size: 12px;
+    opacity: .9;
+    filter: none;
+}
+
+.qb-service-tooltip-popup.qb-service-tooltip-popup .ant-tooltip-container,
+.qb-package-tooltip-popup.qb-package-tooltip-popup .ant-tooltip-container {
+    min-height: 0;
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: #fff;
+    background: #000;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: center;
+    box-shadow: none;
+}
+
+.qb-service-tooltip-popup.qb-service-tooltip-popup .ant-tooltip-arrow::before,
+.qb-package-tooltip-popup.qb-package-tooltip-popup .ant-tooltip-arrow::before {
+    background: #000;
+}

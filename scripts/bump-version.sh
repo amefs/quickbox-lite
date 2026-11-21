@@ -98,9 +98,12 @@ function _update_version() {
     # Only the first two version fields belong to this package; later fields
     # describe dependencies and must remain unchanged.
     _sed_in_place "1,10s|^([[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+(\"[[:space:]]*,?[[:space:]]*)$|\\1${VERSION}\\2|" setup/dashboard/ws/package-lock.json || return 1
+    _sed_in_place "s|^([[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+(\"[[:space:]]*,?[[:space:]]*)$|\\1${VERSION}\\2|" setup/dashboard/web/package.json || return 1
+    _sed_in_place "1,10s|^([[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+(\"[[:space:]]*,?[[:space:]]*)$|\\1${VERSION}\\2|" setup/dashboard/web/package-lock.json || return 1
     _run git add README.md README_zh.md setup/templates/motd/01-custom \
         setup/templates/bash_qb.template setup/dashboard/ws/package.json \
-        setup/dashboard/ws/package-lock.json || return 1
+        setup/dashboard/ws/package-lock.json setup/dashboard/web/package.json \
+        setup/dashboard/web/package-lock.json || return 1
 }
 
 function _commit_changes() {

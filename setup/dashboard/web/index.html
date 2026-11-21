@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="QuickBox Lite dashboard" />
+    <meta name="author" content="quickbox-lite" />
+    <title>Quickbox Dashboard</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/favicon/apple-touch-icon.png" />
+    <link rel="shortcut icon" href="/img/favicon/favicon.ico" type="image/ico" />
+    <link rel="icon" type="image/png" href="/img/favicon/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/img/favicon/favicon-16x16.png" sizes="16x16" />
+    <link rel="manifest" href="/img/favicon/manifest.json" />
+    <link rel="mask-icon" href="/img/favicon/safari-pinned-tab.svg" color="#5bbad5" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,600,600italic,700,700italic,300italic,300&amp;display=swap" media="print" onload="this.media='all'" />
+    <link rel="stylesheet" href="/css/dashboard.css" />
+    <link rel="stylesheet" href="/css/dashboard-foundation.css" />
+    <link id="qb-theme-stylesheet" rel="stylesheet" href="/css/dashboard-theme.css" />
+    <link rel="stylesheet" href="/css/service-control.css" />
+    <link rel="stylesheet" href="/css/package-management.css" />
+    <link rel="stylesheet" href="/css/system-response.css" />
+    <link rel="stylesheet" href="/css/dashboard-layout.css" />
+</head>
+<body class="body">
+    <script>
+        (function () {
+            var match = /(?:^|;\s*)quickbox_theme=(smoked|defaulted)(?:;|$)/.exec(document.cookie);
+            document.body.setAttribute("data-theme", match ? match[1] : "defaulted");
+        })();
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

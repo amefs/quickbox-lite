@@ -111,6 +111,8 @@ describe("vnstat utils", () => {
         expect(data.hour[0].tx).to.equal(1800);
         expect(data.day[0].rx).to.equal(86400);
         expect(data.month[0].tx).to.equal(86400);
+        // January has 31 days = 2,678,400 seconds. For a past month, diffTime is capped at 2,678,400s.
+        expect(data.month[0].rx_avg).to.equal(Math.round(172800 / (31 * 86400)) * 8);
         expect(data.top[0].tx).to.equal(2000);
         expect(data.summary.totalrx).to.equal(100000);
         expect(data.summary.totaltx).to.equal(200000);

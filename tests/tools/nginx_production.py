@@ -107,7 +107,7 @@ def run_case(nginx_binary, deny_health=False):
                     time.sleep(0.1)
             assert ready, "nginx listener did not become ready"
 
-            def http_code(path, auth=False, origin=None, websocket=False):
+            def http_code(path, auth=False, origin=None, websocket=False, port=nginx_port):
                 args = [
                     "curl",
                     "-q",
@@ -137,18 +137,21 @@ def run_case(nginx_binary, deny_health=False):
                         "-H",
                         "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==",
                     ]
-                args += [f"http://127.0.0.1:{nginx_port}" + path]
+                args += [f"http://127.0.0.1:{port}" + path]
                 # curl times out after observing an open WebSocket: status 101
                 # is still the expected transport handshake evidence.
                 return subprocess.run(args, capture_output=True, text=True).stdout
 
-            results = {}
+            results: dict[str, object] = {"metrics-direct": http_code("/metrics", port=node_port)}
+            assert results["metrics-direct"] == "200", results
             for path in ["/socket.io/", "/ws/socket.io/"]:
                 for transport, expected in [("polling", "200"), ("websocket", "101")]:
                     url = path + "?EIO=4&transport=" + transport
                     results[url] = http_code(url, True, f"http://127.0.0.1:{nginx_port}", transport == "websocket")
                     assert results[url] == expected, results
             for name, path, auth, origin, expected in [
+                ("metrics-proxy", "/metrics", True, None, "403"),
+                ("metrics-proxy-prefixed", "/ws/metrics", True, None, "403"),
                 ("authenticated", "/node/dashboard_config", True, None, "200"),
                 ("unauthenticated", "/node/dashboard_config", False, None, "401"),
                 ("cross-origin", "/socket.io/?EIO=4&transport=polling", True, "http://other.example", "403"),
