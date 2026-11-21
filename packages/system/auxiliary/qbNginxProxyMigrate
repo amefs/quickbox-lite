@@ -100,7 +100,7 @@ fi
 TS=$(date +%Y%m%d-%H%M%S)
 TMP=$(mktemp "${TARGET_DIR}/.proxy.conf.XXXXXX") || exit 1
 # Invoked indirectly by the EXIT trap.
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329
 cleanup_tmp() { [[ -f "${TMP}" ]] && rm -f "${TMP}"; }
 trap cleanup_tmp EXIT
 
