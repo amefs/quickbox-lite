@@ -3,6 +3,8 @@ import ReactDOMServer from "react-dom/server";
 
 import i18n from "../i18n";
 import { getInstalledPackagesWithServices, isServiceEnabled } from "./panels";
+import { renderServiceBadge } from "./service-status";
+import { getServiceSnapshot } from "./service-state";
 
 function renderServiceToggle(service: string, username: string) {
     const enabled = isServiceEnabled(service, username);
@@ -12,15 +14,16 @@ function renderServiceToggle(service: string, username: string) {
                 className={`${enabled ? "toggle-en" : "toggle-dis"} toggle-light primary`}
                 data-click-handler="serviceUpdate"
                 data-service={service}
-                data-operation={enabled ? "stop,disable" : "enable,restart"}
+                data-service-action={enabled ? "disable" : "enable"}
             ></div>
         </div>
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
-export async function serviceControl() {
+export async function serviceControl(includeCurrentStatus = false) {
     const packages = getInstalledPackagesWithServices();
+    const unknownStatus = renderServiceBadge({ value: null, observedAt: null, stale: true });
+    const currentStatus = includeCurrentStatus ? await getServiceSnapshot() : undefined;
 
     return ReactDOMServer.renderToString(
         <div className="panel panel-inverse" data-inner-id="panel-server-service-control">
@@ -41,7 +44,10 @@ export async function serviceControl() {
                             {packages.flatMap((pkg) => Object.entries(pkg.services ?? {}).map(([service, info]) => (
                                 <tr key={service}>
                                     <td>
-                                        <span id={`appstat_${service}`}></span>
+                                        <span
+                                            id={`appstat_${service}`}
+                                            dangerouslySetInnerHTML={{ __html: currentStatus?.[service] ? renderServiceBadge(currentStatus[service]) : unknownStatus }}
+                                        ></span>
                                         {" "}
                                         {info.name}
                                         {info.tooltips ? (
@@ -57,10 +63,10 @@ export async function serviceControl() {
                                         <button
                                             data-click-handler="serviceUpdate"
                                             data-service={service}
-                                            data-operation="enable,restart"
+                                            data-service-action="restart"
                                             className="btn btn-xs btn-default"
                                         >
-                                            <i className="fa fa-refresh text-info"></i> {i18n.t("REFRESH")}
+                                            <i className="fa fa-refresh text-info"></i> {i18n.t("RESTART_SERVICES")}
                                         </button>
                                     </td>
                                     <td className="text-center">{renderServiceToggle(service, info.username)}</td>

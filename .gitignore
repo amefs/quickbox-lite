@@ -62,3 +62,6 @@ localazy.keys.json
 !setup/dashboard/ws/src/vendor/
 
 __pycache__/
+
+# Downloaded runtime packages
+packages/rutorrent/

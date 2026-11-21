@@ -101,11 +101,19 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	echo "${APP_TITLE}" >/install/.install.lock
+	( set -o noclobber; echo "${APP_TITLE}" >/install/.install.lock ) || exit 1
+	lock_identity=$(stat -Lc '%d:%i' /install/.install.lock) || exit 1
+	trap '_clearInstallLock' EXIT
+}
+
+function _clearInstallLock() {
+	if [[ -n ${lock_identity:-} && $(stat -Lc '%d:%i' /install/.install.lock 2>/dev/null) == "$lock_identity" ]]; then
+		rm -f /install/.install.lock
+	fi
 }
 
 function _lockCleanup() {
-	rm -f /install/.install.lock
+	_clearInstallLock
 }
 
 function _updateInfo() {
@@ -431,7 +439,7 @@ RUCONF
 	SHELL=/bin/bash at now + 1 minute >>"${OUTTO}" 2>&1 <<EOF
 sleep 5;\
 /usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();';\
-systemctl restart php7.4-fpm;\
+systemctl restart php8.4-fpm;\
 nginx -s reload
 EOF
 	_success "${APP_TITLE} is now update to date."

@@ -72,7 +72,12 @@ function _error() {
 
 function _optional_failure() {
 	optional_failures+=("$*")
-	printf 'Warning: %s\n' "$*" >&2
+	# The progress gauge owns the terminal, so failures are listed after it closes.
+	if [[ -n ${optional_failure_file:-} ]]; then
+		printf '%s\n' "$*" >>"$optional_failure_file"
+	else
+		printf 'Warning: %s\n' "$*" >&2
+	fi
 	printf 'Warning: %s\n' "$*" >>"${OUTTO}" 2>/dev/null || true
 }
 
@@ -620,7 +625,7 @@ function _genadmin() {
 	systemd-tmpfiles /etc/tmpfiles.d/"${username}".conf --create >>"${OUTTO}" 2>&1
 	# setup sudoers
 	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureSudoers \
-		"${local_setup_template}sudoers.template"; then
+		"${local_setup_template}sudoers.template" >>"${OUTTO}" 2>&1; then
 		echo ">> Failed to install the dashboard sudoers policy" >>"${OUTTO}" 2>&1
 		exit 1
 	fi
@@ -659,7 +664,7 @@ function _askvsftpd() {
 }
 
 function _setvsftpd() {
-	apt-get -y install vsftpd >>"${OUTTO}" 2>&1
+	apt-get -y install vsftpd >>"${OUTTO}" 2>&1 || return 1
 	systemctl stop vsftpd >/dev/null 2>&1
 	cp ${local_setup_template}openssl.cnf.template /root/.openssl.cnf
 	openssl req -config /root/.openssl.cnf -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem >/dev/null 2>&1
@@ -1288,7 +1293,7 @@ function _insdashboard() {
 	# Gateway secret and injected header live in root-managed locations; the
 	# dashboard config below includes the generated snippet, so it must exist
 	# first.
-	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureWsGateway; then
+	if ! bash /usr/local/bin/quickbox/system/auxiliary/qbEnsureWsGateway >>"${OUTTO}" 2>&1; then
 		_errorcolor
 		echo -e "XXX\n00\nFailed to prepare the WS gateway secret\nXXX"
 		_defaultcolor
@@ -1654,10 +1659,11 @@ function _startinstall() {
 	_checkdistro || return 1
 	_checkovz || return 1
 	_checkkernel || return 1
-	local domain_check_failed=0
-	_check_domain_dns || domain_check_failed=1
+	# The DNS check only warns; the certificate request reports the real outcome.
+	_check_domain_dns || true
 	_init || return 1
 	local -a optional_failures=()
+	optional_failure_file=$(mktemp /tmp/quickbox-failures.XXXXXX) || return 1
 	# Skip locale regeneration if in generate config mode
 	_apply_locale || _optional_failure "System locale could not be configured"
 	_apply_timezone || _optional_failure "Timezone could not be configured"
@@ -1688,9 +1694,6 @@ function _startinstall() {
 		return 1
 	fi
 	{
-		if ((domain_check_failed)); then
-			_optional_failure "TLS domain does not resolve to this host: $lecert_domain"
-		fi
 		sleep 0.5
 		# change hostname
 		echo -e "XXX\n0\n$INFO_TEXT_PROGRESS_1\nXXX"
@@ -1798,7 +1801,7 @@ function _startinstall() {
 
 		# setup domain
 		echo -e "XXX\n95\n$INFO_TEXT_PROGRESS_12\nXXX"
-		if [[ $lecert_domain != "" ]] && [[ "$app_list" =~ "lecert" ]] && (( ! domain_check_failed )); then
+		if [[ $lecert_domain != "" ]] && [[ "$app_list" =~ "lecert" ]]; then
 			if bash "${local_setup_script}lecert.sh" "${OUTTO}" "$lecert_domain" >/dev/null 2>&1; then
 				echo -e "XXX\n97\n$INFO_TEXT_PROGRESS_12$INFO_TEXT_DONE\nXXX"
 			else
@@ -1822,12 +1825,16 @@ function _startinstall() {
 		echo -e "XXX\n100\n$INFO_TEXT_PROGRESS_14\nXXX"
 		sleep 0.5
 		if ((${#optional_failures[@]})); then
-			printf 'Installation completed with failures:\n' >&2
-			printf ' - %s\n' "${optional_failures[@]}" >&2
 			exit 2
 		fi
 	} | whiptail --title "$INFO_TITLE_PROGRESS" --gauge "$INFO_TEXT_PROGRESS_0" 8 64 0
 	local -a install_status=("${PIPESTATUS[@]}")
+	if [[ -s $optional_failure_file ]]; then
+		printf 'Installation completed with failures:\n' >&2
+		sed 's/^/ - /' "$optional_failure_file" >&2
+	fi
+	rm -f -- "$optional_failure_file"
+	optional_failure_file=""
 	if [[ $system_lock_owned == 1 && -f /install/.system.lock ]] &&
 		[[ $(cat /install/.system.lock 2>/dev/null) == "$$" ]]; then
 		rm -f /install/.system.lock || { _error "Could not remove the system installation marker."; return 1; }
@@ -2181,7 +2188,7 @@ function _validate_enum() {
 
 function _cleanup_config_temp_file() {
 	local temporary
-	for temporary in "$config_temp_file" "$config_output_temp_file"; do
+	for temporary in "$config_temp_file" "$config_output_temp_file" "${optional_failure_file:-}"; do
 		[[ -z $temporary ]] || rm -f -- "$temporary"
 	done
 	if [[ ${system_lock_owned:-0} == 1 && -f /install/.system.lock ]] &&
@@ -2304,14 +2311,35 @@ function _validate_domain() {
 	done
 }
 
+# Published at https://www.cloudflare.com/ips-v4.
+function _is_cloudflare_ip() {
+	local range net bits a b c d addr
+	[[ $1 =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]] || return 1
+	addr=$(( (10#${BASH_REMATCH[1]} << 24) | (10#${BASH_REMATCH[2]} << 16) | (10#${BASH_REMATCH[3]} << 8) | 10#${BASH_REMATCH[4]} ))
+	for range in 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 \
+		108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 \
+		162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22; do
+		IFS=. read -r a b c d <<<"${range%/*}"
+		net=$(( (a << 24) | (b << 16) | (c << 8) | d ))
+		bits=${range#*/}
+		(( (addr ^ net) >> (32 - bits) == 0 )) && return 0
+	done
+	return 1
+}
+
 function _check_domain_dns() {
 	local check_domain=$lecert_domain
 	[[ -z $check_domain ]] && return 0
 	_get_ip
-	local resolved_ip
-	resolved_ip=$(curl -fsS --connect-timeout 10 --max-time 30 -H 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$check_domain&type=A" | jq -r '.Answer[]? | select(.type == 1) | .data' | head -1)
-	if [[ -z $ip || $resolved_ip != "$ip" ]]; then
-		_error "Domain does not resolve to this installation host: $check_domain"
+	local resolved_ip resolved_ips
+	resolved_ips=$(curl -fsS --connect-timeout 10 --max-time 30 -H 'accept: application/dns-json' "https://cloudflare-dns.com/dns-query?name=$check_domain&type=A" | jq -r '.Answer[]? | select(.type == 1) | .data')
+	resolved_ip=$(head -1 <<<"$resolved_ips")
+	if [[ -n $ip && -n $resolved_ip ]] && grep -qxF "$ip" <<<"$resolved_ips"; then
+		:
+	elif _is_cloudflare_ip "$resolved_ip"; then
+		_info "Domain is behind the Cloudflare proxy: $check_domain"
+	else
+		_warning "Domain does not resolve to this installation host: $check_domain"
 		return 1
 	fi
 	[[ -n $hostname ]] || hostname=$check_domain

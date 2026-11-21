@@ -1,53 +1,31 @@
 import React from "react";
 import ReactDOMServer from "react-dom/server";
 
-import { serviceMap } from "../info";
-import { getProcessList, processExists, processExistsIn, systemdUnitActive } from "../utils/helpers";
+import i18n from "../i18n";
+import { getServiceHealth, getServiceSnapshot, type ServiceState } from "./service-state";
 
-export function renderServiceBadge(status: boolean) {
-    const val = status ? "running" : "disabled";
+export function renderServiceBadge(state: boolean | ServiceState, observedAt?: number | null, stale = false) {
+    const detail: ServiceState = typeof state === "boolean" ? { value: state, observedAt: observedAt ?? null, stale } : state;
+    const val = detail.value === null ? "unknown" : detail.value ? "running" : "disabled";
+    const stateLabel = detail.value === null ? "unknown" : detail.value ? "running" : "stopped";
+    const age = detail.observedAt ? i18n.t("SERVICE_STATUS_LAST_CONFIRMED", { time: new Date(detail.observedAt).toISOString() }) : i18n.t("SERVICE_STATUS_UNCONFIRMED");
+    const title = detail.stale ? `${age}; ${i18n.t("SERVICE_STATUS_STALE")}` : detail.value === null ? age : "";
     return ReactDOMServer.renderToString(
-        <span>
-            <span className={`badge badge-service-${val}-dot`}></span>
-            <span className={`badge badge-service-${val}-pulse`}></span>
+        <span title={title || undefined} aria-label={title || `${stateLabel} service`} data-observed-at={detail.observedAt ?? undefined}>
+            <span className={`badge badge-service-${val}-dot${detail.stale ? " badge-service-stale" : ""}`}></span>
+            <span className={`badge badge-service-${val}-pulse${detail.stale ? " badge-service-stale" : ""}`}></span>
         </span>,
     );
 }
 
-export async function serviceStatus(
-    service: string | undefined,
-    checkProcess = processExists,
-    checkSystemd = systemdUnitActive,
-) {
-    let status = false;
-
-    if (service !== undefined) {
-        const info = serviceMap.get(service);
-        if (info) {
-            if (info.systemdUnit) {
-                status = await checkSystemd(info.systemdUnit);
-            } else if (info.process) {
-                status = await checkProcess(info.process, info.username, info.params);
-            }
-        }
-    }
-
-    return renderServiceBadge(status);
+export async function serviceStatus(service: string | undefined) {
+    const state = service ? (await getServiceSnapshot())[service] : undefined;
+    return renderServiceBadge(state ?? { value: null, observedAt: null, stale: true });
 }
 
-export async function serviceStatusAll(checkSystemd = systemdUnitActive) {
-    const processList = await getProcessList();
-    const result: Record<string, string> = {};
-
-    for (const [service, info] of serviceMap.entries()) {
-        let status: boolean;
-        if (info.systemdUnit) {
-            status = await checkSystemd(info.systemdUnit);
-        } else {
-            status = processExistsIn(processList, info.process ?? "", info.username, info.params);
-        }
-        result[service] = renderServiceBadge(status);
-    }
-
-    return result;
+export async function serviceStatusAll() {
+    const { snapshot, health, retryAfterMs } = await getServiceHealth();
+    const badges: Record<string, string> = {};
+    for (const [service, state] of Object.entries(snapshot)) {badges[service] = renderServiceBadge(state);}
+    return { badges, health, retryAfterMs };
 }

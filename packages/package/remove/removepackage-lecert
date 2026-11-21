@@ -101,11 +101,19 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	echo "${APP_TITLE}" >/install/.install.lock
+	( set -o noclobber; echo "${APP_TITLE}" >/install/.install.lock ) || exit 1
+	lock_identity=$(stat -Lc '%d:%i' /install/.install.lock) || exit 1
+	trap '_clearInstallLock' EXIT
+}
+
+function _clearInstallLock() {
+	if [[ -n ${lock_identity:-} && $(stat -Lc '%d:%i' /install/.install.lock 2>/dev/null) == "$lock_identity" ]]; then
+		rm -f /install/.install.lock
+	fi
 }
 
 function _lockCleanup() {
-	rm -f /install/.install.lock
+	_clearInstallLock
 }
 
 function _removeInfo() {
@@ -144,7 +152,6 @@ function _removeApp() {
 	rm -rf /root/acme.sh
 	rm -rf /root/.acme.sh
 	# reset ssl setting
-	sock='php7.4-fpm'
 	cat >/etc/nginx/sites-enabled/default <<NGC
 server {
     listen 80 default_server;
@@ -195,13 +202,15 @@ server {
 NGC
 
 	# vsftpd
-	ftp_ip=$(cat /etc/vsftpd.conf | grep pasv_address | grep -Eo "[0-9.]+")
-	\cp -rf /etc/QuickBox/setup/templates/vsftpd/vsftpd.conf.template /etc/vsftpd.conf
-	sed -i 's/^\(pasv_min_port=\).*/\110090/' /etc/vsftpd.conf
-	sed -i 's/^\(pasv_max_port=\).*/\110100/' /etc/vsftpd.conf
-	echo "pasv_address=$ftp_ip" >>/etc/vsftpd.conf
+	if systemctl cat vsftpd.service >/dev/null 2>&1; then
+		ftp_ip=$(cat /etc/vsftpd.conf | grep pasv_address | grep -Eo "[0-9.]+")
+		\cp -rf /etc/QuickBox/setup/templates/vsftpd/vsftpd.conf.template /etc/vsftpd.conf
+		sed -i 's/^\(pasv_min_port=\).*/\110090/' /etc/vsftpd.conf
+		sed -i 's/^\(pasv_max_port=\).*/\110100/' /etc/vsftpd.conf
+		echo "pasv_address=$ftp_ip" >>/etc/vsftpd.conf
+		_execute "systemctl restart vsftpd"
+	fi
 
-	_execute "systemctl restart vsftpd"
 	_execute "nginx -s reload"
 	_success "${APP_TITLE} removed."
 }

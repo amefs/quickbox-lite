@@ -615,7 +615,7 @@ username=configuser; password=ExamplePass123; OUTTO=/dev/null
         assert events.read_text().splitlines() == ["lshell", "chpasswd"]
 
 
-def test_ftp_reports_service_start_status_and_continues_after_setup_errors():
+def test_ftp_requires_package_install_and_reports_service_start_status():
     with tempfile.TemporaryDirectory(prefix="quickbox-ftp-setup-") as temporary:
         root = Path(temporary)
         (root / "etc").mkdir()
@@ -632,13 +632,18 @@ sed(){ echo sed >>"$EVENTS"; return 9; }
 iptables(){ echo iptables >>"$EVENTS"; return 9; }
 systemctl(){ echo "systemctl $*" >>"$EVENTS"; [[ $FAIL_AT != start || $1 != start ]]; }
 ''' + ftp + "\n_setvsftpd\n"
-        for failure in ("", "apt", "openssl", "start"):
+        for failure in ("", "openssl", "start"):
             events.write_text("")
             result = run_bash(script, {"EVENTS": events, "FAIL_AT": failure})
             calls = events.read_text().splitlines()
             assert (result.returncode == 0) == (failure != "start"), (failure, calls, result.stderr)
             assert calls.count("sed") == 2 and "iptables" in calls
             assert "systemctl start vsftpd" in calls
+
+        events.write_text("")
+        result = run_bash(script, {"EVENTS": events, "FAIL_AT": "apt"})
+        assert result.returncode != 0
+        assert events.read_text().splitlines() == ["apt"]
 
 
 def test_nginx_config_and_ttyd_download_failures_are_reported():

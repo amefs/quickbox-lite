@@ -102,7 +102,15 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	echo "${APP_TITLE}" >/install/.install.lock
+	( set -o noclobber; echo "${APP_TITLE}" >/install/.install.lock ) || exit 1
+	lock_identity=$(stat -Lc '%d:%i' /install/.install.lock) || exit 1
+	trap '_clearInstallLock' EXIT
+}
+
+function _clearInstallLock() {
+	if [[ -n ${lock_identity:-} && $(stat -Lc '%d:%i' /install/.install.lock 2>/dev/null) == "$lock_identity" ]]; then
+		rm -f /install/.install.lock
+	fi
 }
 
 function _lockCleanup() {
@@ -110,7 +118,7 @@ function _lockCleanup() {
 
 
 Close this dialog box to refresh your browser" >>"${OUTTO}" 2>&1
-	rm -f /install/.install.lock
+	_clearInstallLock
 }
 
 function _installInfo() {
@@ -124,8 +132,8 @@ Please wait until the process is completed
 
 function _installAddSources() {
 	_info "Adding additional keys and sources ${APP_TITLE}..."
-	curl -fsSL https://downloads.plex.tv/plex-keys/PlexSign.key | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/plex.gpg >>"/dev/null" 2>&1
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/trusted.gpg.d/plex.gpg] http://downloads.plex.tv/repo/deb public main" | sudo tee /etc/apt/sources.list.d/plex.list >>"/dev/null" 2>&1
+	curl -fsSL https://downloads.plex.tv/plex-keys/PlexSign.v2.key | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/plexmediaserver.v2.gpg >>"/dev/null" 2>&1
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/trusted.gpg.d/plexmediaserver.v2.gpg] https://repo.plex.tv/deb/ public main" | sudo tee /etc/apt/sources.list.d/plex.list >>"/dev/null" 2>&1
 	_success "Keys and sources added."
 }
 

@@ -9,5 +9,6 @@ export const getOutputLog = (req: Request, res: Response) => {
     res.json(readOutputLog(
         parseQueryNumber(req.query.offset),
         parseQueryNumber(req.query.length),
+        typeof req.query.epoch === "string" ? req.query.epoch : undefined,
     ));
 };

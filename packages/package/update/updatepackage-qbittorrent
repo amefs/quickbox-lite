@@ -92,7 +92,6 @@ function _usage() {
 	echo -e "\nUsage: \n$(basename "$0") [-h] [-l logfile] [--qb]"
 	echo -e "\nOptions:\n"
 	echo "-l, --log <logfile>       specific log file"
-	echo "-s, --static              deprecated, the static build is the only path"
 	echo "--lt <version>            the Libtorrent version you want to install"
 	echo "--qb <version>            the qBittorrent version you want to install"
 	echo "--force                   force downgrade qBittorrent"
@@ -126,11 +125,19 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	echo "${APP_TITLE}" >/install/.install.lock
+	( set -o noclobber; echo "${APP_TITLE}" >/install/.install.lock ) || exit 1
+	lock_identity=$(stat -Lc '%d:%i' /install/.install.lock) || exit 1
+	trap '_clearInstallLock' EXIT
+}
+
+function _clearInstallLock() {
+	if [[ -n ${lock_identity:-} && $(stat -Lc '%d:%i' /install/.install.lock 2>/dev/null) == "$lock_identity" ]]; then
+		rm -f /install/.install.lock
+	fi
 }
 
 function _lockCleanup() {
-	rm -f /install/.install.lock
+	_clearInstallLock
 }
 
 function _installDepends() {
@@ -460,7 +467,7 @@ function _reconfigureAppv2() {
 ################################################################################
 # OPT GENERATOR
 ################################################################################
-if ! ARGS=$(getopt -a -o hsl: -l help,force,static,with-cf,with-sf,with-osdn,with-github,log:,qb:,lt: -- "$@"); then
+if ! ARGS=$(getopt -a -o hl: -l help,force,with-cf,with-sf,with-osdn,with-github,log:,qb:,lt: -- "$@"); then
 	_usage
 	exit 1
 fi
@@ -474,10 +481,6 @@ while true; do
 	-l | --log)
 		OUTTO="$2"
 		shift
-		;;
-	-s | --static)
-		# Accepted for compatibility; every update rebuilds the static binary.
-		_warning "--static is deprecated: the static build is the only update path"
 		;;
 	--force)
 		FORCE=1

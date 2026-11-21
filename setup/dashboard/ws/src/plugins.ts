@@ -8,7 +8,6 @@ export type PluginAction = "install" | "remove";
 export const rutorrentPlugins = [
     "_getdir",
     "_noty",
-    "_noty2",
     "_task",
     "autotools",
     "check_port",
@@ -57,7 +56,6 @@ export const rutorrentPlugins = [
     "tracklabels",
     "trafic",
     "unpack",
-    "uploadeta",
     "xmpp",
 ] as const;
 
@@ -69,20 +67,28 @@ export function isPluginAction(action: unknown): action is PluginAction {
     return action === "install" || action === "remove";
 }
 
-export function getRutorrentPlugins() {
+export interface RutorrentPlugin {
+    name: string;
+    label?: string;
+    installed: boolean;
+}
+
+export function getRutorrentPlugins(): RutorrentPlugin[] {
+    const isInstalled = (plugin: string) => existsSync(`/srv/rutorrent/plugins/${plugin}/plugin.info`);
     return rutorrentPlugins.map((plugin) => ({
         name: plugin,
-        installed: existsSync(`/srv/rutorrent/plugins/${plugin}/plugin.info`),
+        ...(plugin === "_noty" ? { label: "_noty / _noty2" } : {}),
+        installed: isInstalled(plugin) || (plugin === "_noty" && isInstalled("_noty2")),
     }));
 }
 
-export function applyRutorrentPluginAction(plugin: string, action: PluginAction) {
+export function applyRutorrentPluginAction(plugin: unknown, action: unknown) {
     return applyRutorrentPluginActionWithExecFile(plugin, action);
 }
 
 export function applyRutorrentPluginActionWithExecFile(
-    plugin: string,
-    action: PluginAction,
+    plugin: unknown,
+    action: unknown,
     runExecFile: typeof execFile = execFile,
 ) {
     if (!isRutorrentPlugin(plugin)) {

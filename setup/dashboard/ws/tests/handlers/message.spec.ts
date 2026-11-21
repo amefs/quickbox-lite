@@ -3,7 +3,7 @@
 import "mocha";
 import { expect } from "chai";
 
-import messageHandler, { resolveWidget } from "../../src/handlers/message";
+import messageHandler, { parseUrl, resolveWidget } from "../../src/handlers/message";
 import Constant from "../../src/shared/constants";
 
 describe("handlers/message", () => {
@@ -39,23 +39,33 @@ describe("handlers/message", () => {
         });
     });
 
-    describe("parseUrl (via resolveWidget)", () => {
-        it("should handle relative URLs", async () => {
-            try {
-                const result = await resolveWidget("/node/up");
-                expect(result).to.be.a("string");
-            } catch {
-                // May fail due to si.time() in test env, but parseUrl should work
-            }
+    describe("parseUrl", () => {
+        it("should parse relative URLs", () => {
+            expect(parseUrl("/node/up")).to.deep.equal({ pathname: "/node/up", args: {} });
+            expect(parseUrl("/node/bw_tables?page=d")).to.deep.equal({
+                pathname: "/node/bw_tables",
+                args: { page: "d" },
+            });
         });
 
-        it("should handle absolute URLs", async () => {
-            try {
-                const result = await resolveWidget("http://localhost/node/up");
-                expect(result).to.be.a("string");
-            } catch {
-                // Expected in test env
-            }
+        it("should parse absolute URLs down to the pathname", () => {
+            expect(parseUrl("http://localhost/node/up")).to.deep.equal({ pathname: "/node/up", args: {} });
+            expect(parseUrl("https://example.test/node/up?locale=zh")).to.deep.equal({
+                pathname: "/node/up",
+                args: { locale: "zh" },
+            });
+        });
+
+        it("should reject malformed URLs", () => {
+            expect(() => parseUrl("http://[")).to.throw("Invalid widget URL");
+        });
+
+        it("should resolve a widget for relative and absolute URLs alike", async () => {
+            const relative = await resolveWidget("/node/up");
+            const absolute = await resolveWidget("http://localhost/node/up");
+            expect(relative).to.be.a("string");
+            expect((relative as string).length).to.be.greaterThan(0);
+            expect(absolute).to.equal(relative);
         });
     });
 
@@ -175,13 +185,22 @@ describe("handlers/message", () => {
 
     // C7: page validation test (via resolveWidget)
     describe("C7 — bw_tables page validation", () => {
-        it("should handle invalid page value gracefully via resolveWidget", async () => {
-            try {
-                const result = await resolveWidget("/node/bw_tables?page=x");
-                // Invalid page should fall through to undefined (default = hourly)
-                expect(result).to.be.a("string");
-            } catch {
-                // May fail in test env due to missing vnstat data, that's ok
+        it("should fall back to the hourly table for an invalid page value", async () => {
+            const invalid = await resolveWidget("/node/bw_tables?page=x");
+            const hourly = await resolveWidget("/node/bw_tables?page=h");
+            expect(invalid).to.equal(hourly);
+            expect(invalid).to.include("Recent hours");
+        });
+
+        it("should render the table that matches each page value", async () => {
+            const pages: [string, string][] = [
+                ["d", "Last 30 days"],
+                ["m", "Last 12 months"],
+                ["t", "Top 10 days"],
+            ];
+            for (const [page, caption] of pages) {
+                const result = await resolveWidget(`/node/bw_tables?page=${page}`);
+                expect(result).to.include(caption);
             }
         });
     });
@@ -189,19 +208,19 @@ describe("handlers/message", () => {
     // B1: SSRF prevention — no default proxy, explicit routes only
     describe("B1 — route allowlist", () => {
         it("should resolve /widgets/service_status same as /node/service_status", async () => {
-            try {
-                const nodeResult = await resolveWidget("/node/service_status?service=nginx");
-                const widgetResult = await resolveWidget("/widgets/service_status?service=nginx");
-                expect(widgetResult).to.equal(nodeResult);
-            } catch {
-                // Expected in test env if serviceMap not populated
-            }
+            const nodeResult = await resolveWidget("/node/service_status?service=nginx");
+            const widgetResult = await resolveWidget("/widgets/service_status?service=nginx");
+            expect(widgetResult).to.equal(nodeResult);
+            expect(nodeResult).to.be.a("string");
+            expect((nodeResult as string).length).to.be.greaterThan(0);
         });
 
         it("should return a batch service status object for /node/service_status_all", async () => {
             const result = await resolveWidget("/node/service_status_all");
             expect(result).to.be.an("object");
-            expect(result).to.have.property("irssi");
+            const batch = result as { badges: Record<string, string>; health: string; retryAfterMs: number };
+            expect(batch).to.have.keys("badges", "health", "retryAfterMs");
+            expect(batch.badges).to.have.property("irssi");
         });
 
         it("should resolve /widgets/service_control same as /node/service_control", async () => {
@@ -216,13 +235,14 @@ describe("handlers/message", () => {
             expect(widgetResult).to.equal(nodeResult);
         });
 
-        it("should return an object with content, start, end and size for /db/output.log", async () => {
+        it("should return an object with content, start, end, size and epoch for /db/output.log", async () => {
             const result = await resolveWidget("/db/output.log");
             expect(result).to.be.an("object");
             expect(result).to.have.property("content");
             expect(result).to.have.property("start");
             expect(result).to.have.property("end");
             expect(result).to.have.property("size");
+            expect(result).to.have.property("epoch");
         });
 
         it("should support offset parameter for /db/output.log", async () => {
@@ -248,6 +268,44 @@ describe("handlers/message", () => {
             } catch (err) {
                 expect((err as Error).message).to.include("Unknown widget route");
             }
+        });
+    });
+
+    describe("malformed URL and sanitized errors", () => {
+        it("should reject a malformed absolute URL without throwing out of the handler", (done) => {
+            const mockClient = {
+                id: "client-malformed-url",
+                on(event: string, cb: (p: unknown) => Promise<void>) {
+                    if (event === Constant.EVENT_MESSAGE) {
+                        setTimeout(() => void cb({ key: "x", url: "http://[" }), 0);
+                    }
+                },
+                send(data: Record<string, unknown>) {
+                    expect(data.success).to.equal(false);
+                    expect(data.message).to.equal("Widget render failed");
+                    expect(data.pathName).to.equal("");
+                    done();
+                },
+            };
+            messageHandler(mockClient as never);
+        });
+
+        it("should not echo internal route details to the client", (done) => {
+            const mockClient = {
+                id: "client-unknown-route",
+                on(event: string, cb: (p: unknown) => Promise<void>) {
+                    if (event === Constant.EVENT_MESSAGE) {
+                        setTimeout(() => void cb({ key: "x", url: "/etc/passwd" }), 0);
+                    }
+                },
+                send(data: Record<string, unknown>) {
+                    expect(data.success).to.equal(false);
+                    expect(data.message).to.equal("Widget render failed");
+                    expect(String(data.message)).to.not.include("/etc/passwd");
+                    done();
+                },
+            };
+            messageHandler(mockClient as never);
         });
     });
 
