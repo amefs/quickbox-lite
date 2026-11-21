@@ -19,7 +19,7 @@ export interface ServiceControlIslandProps {
     pendingById?: Record<string, boolean>;
     commandsDisabled: boolean;
     loading?: boolean;
-    onRefresh?: (serviceId: string) => void;
+    onRestart?: (serviceId: string) => void;
     onEnabledChange?: (serviceId: string, enabled: boolean) => void;
 }
 
@@ -39,7 +39,7 @@ function ServiceBadge({ status }: { status: ServiceState | undefined }) {
     );
 }
 
-export function ServiceControlIsland({ rows, theme, statusById, pendingById = {}, commandsDisabled, loading = false, onRefresh, onEnabledChange }: ServiceControlIslandProps) {
+export function ServiceControlIsland({ rows, theme, statusById, pendingById = {}, commandsDisabled, loading = false, onRestart, onEnabledChange }: ServiceControlIslandProps) {
     const { t } = useTranslation();
     return (
         <ConfigProvider theme={getAntdThemeConfig(theme, { borderRadius: 2, fontFamily: "inherit" })}>
@@ -71,33 +71,36 @@ export function ServiceControlIsland({ rows, theme, statusById, pendingById = {}
                                 )) : rows.map((row) => (
                                     <tr key={row.id}>
                                         <td>
-                                            <span id={`appstat_${row.id}`}><ServiceBadge status={statusById[row.id]} /></span>
-                                            {" "}
-                                            {row.name}
-                                            {row.tooltip ? (
-                                                <>
-                                                    {" "}
-                                                    <Tooltip
-                                                        title={row.tooltip}
-                                                        placement="right"
-                                                        classNames={{ root: "qb-service-tooltip-popup" }}
-                                                    >
-                                                        <span className="qb-service-tooltip" data-placement="right">
-                                                            {row.tooltipIcon === "usb" ? <UsbOutlined aria-hidden="true" /> : <InfoCircleOutlined aria-hidden="true" />}
-                                                        </span>
-                                                    </Tooltip>
-                                                </>
-                                            ) : null}
+                                            <div className="qb-service-name">
+                                                <span id={`appstat_${row.id}`}><ServiceBadge status={statusById[row.id]} /></span>
+                                                <span>
+                                                    {row.name}
+                                                    {row.tooltip ? (
+                                                        <>
+                                                            {" "}
+                                                            <Tooltip
+                                                                title={row.tooltip}
+                                                                placement="right"
+                                                                classNames={{ root: "qb-service-tooltip-popup" }}
+                                                            >
+                                                                <span className="qb-service-tooltip" data-placement="right">
+                                                                    {row.tooltipIcon === "usb" ? <UsbOutlined aria-hidden="true" /> : <InfoCircleOutlined aria-hidden="true" />}
+                                                                </span>
+                                                            </Tooltip>
+                                                        </>
+                                                    ) : null}
+                                                </span>
+                                            </div>
                                         </td>
-                                        <td className="text-center">
+                                        <td className="text-center" title={row.enabledAtBoot ? undefined : t("SERVICE_ACTION_REASON_NOT_ENABLED")}>
                                             <Button
                                                 type="default"
                                                 size="small"
-                                                className="btn btn-xs btn-default qb-service-refresh"
-                                                disabled={commandsDisabled || pendingById[row.id]}
-                                                onClick={() => onRefresh?.(row.id)}
+                                                className="btn btn-xs btn-default qb-service-restart"
+                                                disabled={commandsDisabled || pendingById[row.id] || !row.enabledAtBoot}
+                                                onClick={() => onRestart?.(row.id)}
                                             >
-                                                <SyncOutlined className="text-info" spin={pendingById[row.id]} aria-hidden="true" /> {t("REFRESH")}
+                                                <SyncOutlined className="text-info" spin={pendingById[row.id]} aria-hidden="true" /> {t("RESTART_SERVICES")}
                                             </Button>
                                         </td>
                                         <td className="text-center">

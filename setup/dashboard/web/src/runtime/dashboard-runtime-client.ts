@@ -5,16 +5,28 @@ import { io, type Socket } from "socket.io-client";
 
 import type { DashboardBootstrapPayload, WsPushMode } from "../../../ws/src/shared/bootstrap-contract";
 import {
+    isServiceActionResult,
+    isServiceKey,
+    type ServiceActionRequest,
+} from "../../../ws/src/shared/service-control-contract";
+import {
     DASHBOARD_STREAMS,
     DISK_DATA_URL,
     OUTPUT_LOG_URL,
     RAM_STATS_DATA_URL,
     SYSTEM_LOAD_DATA_URL,
     SYSTEM_STATIC_DATA_URL,
-    buildStreamUrl,
     normalizeBandwidthPage,
+    type BandwidthPage,
 } from "../../../ws/src/shared/widget-streams";
-import type { WsMessageEnvelope } from "../../../ws/src/shared/ws-message";
+import {
+    isWsExecResult,
+    parseWsMessageEnvelope,
+    type WidgetArgs,
+    type WsSubscribeOptions,
+    type WsWidgetRequest,
+    type WsWidgetResponse,
+} from "../../../ws/src/shared/ws-message";
 import i18n, { setLocale } from "../i18n";
 import { dataIslandBridges } from "./data-slots";
 import { getServiceControlBridge } from "./service-control-client";
@@ -23,35 +35,22 @@ import { systemResponseActions } from "./system-response-client";
 interface StatusTask {
     key: string;
     url: string;
-    urlTemplate?: string;
     id?: string;
     bootstrap?: boolean;
     time: number;
-    before?: (task: StatusTask) => boolean;
-    override?: (data: unknown, response: WsMessageResponse, request?: StatusTaskRequest) => void;
-}
-
-interface StatusTaskRequest extends StatusTask {
-    requestId: string;
-    locale: string;
+    getArgs?: () => WidgetArgs | null;
+    override?: (data: unknown) => void;
 }
 
 interface PendingRequestEntry {
-    request: StatusTaskRequest;
+    request: WsWidgetRequest;
     task: StatusTask;
     timeoutId: ReturnType<typeof setTimeout>;
 }
 
-interface WsMessageResponse extends Partial<WsMessageEnvelope> {
-    meta?: { protocolVersion?: number };
-}
-
-interface ExecResponse {
-    success?: boolean;
-    message?: string;
-    stdout?: string;
-    stderr?: string;
-    cmd?: string;
+interface ClientCommandPayloads {
+    exec: string;
+    "service-action": ServiceActionRequest;
 }
 
 interface RuntimeGlobals {
@@ -290,7 +289,7 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
         reportConnectionRetry(true);
     });
 
-    function emitCommand(event: "exec" | "service-action", payload: unknown): boolean {
+    function emitCommand<E extends keyof ClientCommandPayloads>(event: E, payload: ClientCommandPayloads[E]): boolean {
         if (!socket.connected) {return false;}
         socket.emit(event, payload);
         return true;
@@ -302,7 +301,7 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
         setCommandConnection(true);
     });
 
-    function getBandwidthPage(): string {
+    function getBandwidthPage(): BandwidthPage {
         try {
             return normalizeBandwidthPage(localStorage.getItem("bw_tables:page"));
         } catch {
@@ -318,7 +317,7 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
             mode: wsPushMode,
             bandwidthPage: getBandwidthPage(),
             hidden: document.hidden,
-        });
+        } satisfies WsSubscribeOptions);
     }
 
     getServiceControlBridge()?.bindTransport({
@@ -337,7 +336,9 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
     });
 
     socket.on("service-action-result", (response: unknown) => {
-        getServiceControlBridge()?.onActionResult(response);
+        if (isServiceActionResult(response)) {
+            getServiceControlBridge()?.onActionResult(response);
+        }
     });
 
     let widgetWriteSource: Record<string, string> = {};
@@ -399,17 +400,11 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
             .map((stream): StatusTask => ({
                 key: stream.key,
                 url: stream.url,
-                ...(stream.urlTemplate ? { urlTemplate: stream.urlTemplate } : {}),
                 ...(stream.elementId ? { id: stream.elementId } : {}),
                 bootstrap: Boolean(stream.bootstrap),
                 time: stream.activeVisibleMs ?? stream.visibleMs,
                 ...(stream.param === "bandwidthPage"
-                    ? {
-                        before: (task: StatusTask) => {
-                            task.url = buildStreamUrl(stream, getBandwidthPage());
-                            return true;
-                        },
-                    }
+                    ? { getArgs: () => ({ page: getBandwidthPage() }) }
                     : {}),
             }));
 
@@ -420,21 +415,12 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
                 url: OUTPUT_LOG_URL,
                 id: "#sshoutput",
                 time: 2000,
-                before: (task) => {
+                getArgs: () => {
                     if (!systemResponseActions.isOpen()) {
-                        return false;
+                        return null;
                     }
-                    const cursor = systemResponseActions.getOutputCursor();
-                    const requestLength = 65536;
-                    if (cursor.end >= 0) {
-                        task.url = `${OUTPUT_LOG_URL}?offset=${cursor.end}&length=${requestLength}`;
-                    } else {
-                        task.url = `${OUTPUT_LOG_URL}?length=${requestLength}`;
-                    }
-                    if (cursor.epoch !== undefined) {
-                        task.url += `&epoch=${encodeURIComponent(cursor.epoch)}`;
-                    }
-                    return true;
+                    const { end, epoch } = systemResponseActions.getOutputCursor();
+                    return { offset: end >= 0 ? end : undefined, length: 65536, epoch };
                 },
                 override: (data) => {
                     systemResponseActions.onMessage(data);
@@ -487,27 +473,39 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
             }
         }
 
+        function buildSshOutputUrl(args: WidgetArgs | undefined): string {
+            if (!args) {
+                return OUTPUT_LOG_URL;
+            }
+            const params = new URLSearchParams();
+            if (args.offset !== undefined) {
+                params.set("offset", String(args.offset));
+            }
+            if (args.length !== undefined) {
+                params.set("length", String(args.length));
+            }
+            if (args.epoch !== undefined) {
+                params.set("epoch", args.epoch);
+            }
+            const query = params.toString();
+            return query ? `${OUTPUT_LOG_URL}?${query}` : OUTPUT_LOG_URL;
+        }
+
         function queueTask(task: StatusTask, delay: number) {
             setTimeout(() => {
                 if (stoppedKeys[task.key] || !socket.connected) {
                     return;
                 }
-                const request: StatusTaskRequest = {
-                    ...task,
-                    requestId: "",
-                    locale: window.quickboxLocale || "en",
-                };
-                if (request.before && !request.before(request)) {
+                const args = task.getArgs?.();
+                if (args === null || (task.id && !document.querySelector(task.id))) {
                     return;
                 }
-                if (request.id && !document.querySelector(request.id)) {
-                    return;
-                }
-                const pendingRequestId = pendingRequestByKey.get(request.key);
+                const pendingRequestId = pendingRequestByKey.get(task.key);
                 if (pendingRequestId && pendingRequests.has(pendingRequestId)) {
                     return;
                 }
-                request.requestId = `${request.key}:${++requestSeq}`;
+                const url = task.key === "SSH_OUTPUT" ? buildSshOutputUrl(args) : task.url;
+                const request: WsWidgetRequest = { type: "request", key: task.key, url, args, requestId: `${task.key}:${++requestSeq}` };
                 const timeoutId = setTimeout(() => {
                     if (pendingRequests.has(request.requestId)) {
                         console.warn(`[ws] request timed out: ${request.requestId}`);
@@ -519,7 +517,6 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
                 }, pendingRequestTimeoutMs);
                 pendingRequests.set(request.requestId, { request, task, timeoutId });
                 pendingRequestByKey.set(request.key, request.requestId);
-                request.locale = window.quickboxLocale || "en";
                 socket.send(request);
             }, delay);
         }
@@ -558,29 +555,26 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
             getServiceControlBridge()?.onConnected(serviceStatusDelay);
         }
 
-        function isPushResponse(response: WsMessageResponse): boolean {
-            return response.push === true && wsPushMode === "push";
-        }
-
         function isCorrelatedResponse(
             task: StatusTask,
-            response: WsMessageResponse,
-            request: StatusTaskRequest | undefined,
+            response: WsWidgetResponse,
+            request: WsWidgetRequest | undefined,
         ): boolean {
-            if (isPushResponse(response)) {
-                return response.key === task.key &&
-                    (task.key !== "BANDWIDTH" || response.url === buildStreamUrl(task, getBandwidthPage()));
+            if (response.type === "push") {
+                return response.key === task.key && response.url === task.url &&
+                    (task.key !== "BANDWIDTH" || response.args?.page === getBandwidthPage());
             }
             return Boolean(
                 request && response.key === task.key &&
-                response.url === request.url && response.requestId === request.requestId,
+                response.url === request.url &&
+                (response.requestId === request.requestId || (task.key === "SSH_OUTPUT" && response.requestId === "")),
             );
         }
 
         function dispatchIslandMessage(
             task: StatusTask,
-            response: WsMessageResponse,
-            request: StatusTaskRequest | undefined,
+            response: WsWidgetResponse,
+            request: WsWidgetRequest | undefined,
         ): boolean {
             const islandHandlers: Partial<Record<string, () => boolean>> = {
                 PMC: () => dataIslandBridges.packageManagement.onMessage(response.response),
@@ -609,34 +603,46 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
             return true;
         }
 
-        function recordTaskFailure(failedKey: string, response: WsMessageResponse) {
+        function recordTaskFailure(failedKey: string, response: WsWidgetResponse) {
             errorCountByKey[failedKey] = (errorCountByKey[failedKey] || 0) + 1;
             console.error("[ws] request failed,", response);
-            if (!isPushResponse(response) && errorCountByKey[failedKey] > 32 && !stoppedKeys[failedKey]) {
+            if (response.type === "reply" && errorCountByKey[failedKey] > 32 && !stoppedKeys[failedKey]) {
                 stoppedKeys[failedKey] = true;
                 console.warn(`[ws] stopping updates for ${failedKey}`);
                 systemResponseActions.notifyWarning("QuickBox", `Stopped status updates for ${failedKey}`);
             }
         }
 
-        socket.on("message", (response: WsMessageResponse) => {
-            const isServicePush = isPushResponse(response) &&
-                (response.key === "SERVICE_CONTROL" || response.key === "SERVICE_STATUS_ALL");
-            if (isServicePush || response.meta?.protocolVersion === 2) {
+        socket.on("message", (rawResponse: unknown) => {
+            const response = parseWsMessageEnvelope(rawResponse);
+            if (!response) {
+                return;
+            }
+            if (response.type === "protocol-error") {
+                console.error("[ws] invalid request:", response.message);
+                return;
+            }
+            if (response.type === "push" && wsPushMode !== "push") {
+                return;
+            }
+            if (isServiceKey(response.key)) {
                 getServiceControlBridge()?.onMessage(response);
                 return;
             }
-            const pending = response.requestId ? pendingRequests.get(response.requestId) : undefined;
-            if (response.requestId && !pending) {
+            const replyRequestId = response.type === "reply"
+                ? (response.requestId || (response.key === "SSH_OUTPUT" ? pendingRequestByKey.get("SSH_OUTPUT") : undefined))
+                : undefined;
+            const pending = replyRequestId ? pendingRequests.get(replyRequestId) : undefined;
+            if (response.type === "reply" && !pending) {
                 return;
             }
             const request = pending?.request;
-            const task = pending?.task ?? (response.key ? taskMapping.get(response.key) : undefined);
-            if (response.requestId) {
-                clearPendingRequestById(response.requestId);
+            const task = pending?.task ?? taskMapping.get(response.key);
+            if (replyRequestId) {
+                clearPendingRequestById(replyRequestId);
             }
             if (!response.success) {
-                if (task && isPushResponse(response) && response.stale) {
+                if (task && response.type === "push" && response.stale) {
                     dispatchIslandMessage(task, response, request);
                 }
                 recordTaskFailure(task?.key || response.key || "unknown", response);
@@ -652,8 +658,8 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
             if (errorCountByKey[task.key]) {
                 errorCountByKey[task.key] = Math.max(0, errorCountByKey[task.key] - 1);
             }
-            if (task.override) {
-                task.override.call(task, response.response, response, request);
+            if (task.override && isCorrelatedResponse(task, response, request)) {
+                task.override(response.response);
                 return;
             }
             console.warn("[ws] response has no dashboard handler,", response);
@@ -739,19 +745,23 @@ export function initDashboardRuntime(onConnectionRetry: (retry: BackendRetryStat
         }
     }
 
-    socket.on("exec", (response: ExecResponse | undefined) => {
+    socket.on("exec", (response: unknown) => {
         inflightExecCount = Math.max(0, inflightExecCount - 1);
-        if (response && response.success === false) {
+        if (!isWsExecResult(response)) {
+            maybeReloadAfterExec();
+            return;
+        }
+        if (!response.success) {
             const rawOutput = response.stdout || response.stderr || "";
             systemResponseActions.showAlert({
-                message: response.message || "",
-                command: response.cmd || "",
+                message: response.message,
+                command: response.cmd,
                 ...(rawOutput ? { output: rawOutput, outputIsAnsi: true } : {}),
             });
             maybeReloadAfterExec();
             return;
         }
-        if (response && response.cmd && (response.cmd.startsWith("systemctl") || response.cmd.startsWith("box:lang"))) {
+        if (response.cmd.startsWith("systemctl") || response.cmd.startsWith("box:lang")) {
             reloadAfterExec = true;
         }
         maybeReloadAfterExec();

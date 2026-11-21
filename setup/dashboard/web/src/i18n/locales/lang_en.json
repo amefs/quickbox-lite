@@ -254,5 +254,6 @@
   "SERVICE_ACTION_REASON_TIMEOUT": "command timed out",
   "SERVICE_ACTION_REASON_BUSY": "too many commands in progress",
   "SERVICE_ACTION_REASON_INVALID": "invalid service action",
+  "SERVICE_ACTION_REASON_NOT_ENABLED": "enable this service before restarting it",
   "SERVICE_ACTION_REASON_UNKNOWN": "service action failed"
 }

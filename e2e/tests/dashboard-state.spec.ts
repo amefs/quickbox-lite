@@ -24,21 +24,15 @@ interface TableState {
 }
 
 interface ServiceStatusRequestFixture {
-    protocolVersion: 2;
     key: "SERVICE_STATUS_ALL";
     url: string;
     requestId: string;
-    locale: string;
-    generation: number;
 }
 
 interface ServiceControlRequestFixture {
-    protocolVersion: 2;
     key: "SERVICE_CONTROL";
     url: string;
     requestId: string;
-    locale: string;
-    generation: number;
 }
 
 interface NetworkRequestFixture {
@@ -208,21 +202,15 @@ function makeServiceStatusResponse(
     request: ServiceStatusRequestFixture,
     status: "error" | "success",
 ): Record<string, unknown> {
-    const meta = {
-        protocolVersion: request.protocolVersion,
-        key: request.key,
-        url: request.url,
-        requestId: request.requestId,
-        locale: request.locale,
-        generation: request.generation,
-    };
     if (status === "error") {
-        return { meta, status, error: { code: "FIXTURE_FAILURE", message: "fixture failure" } };
+        return { ...request, type: "reply", success: false, message: "fixture failure", response: "" };
     }
     return {
-        meta,
-        status,
-        data: {
+        ...request,
+        type: "reply",
+        success: true,
+        message: "",
+        response: {
             states: { rtorrent: { value: false, observedAt: Date.now(), stale: false } },
             health: "ok",
             retryAfterMs: 0,
@@ -257,7 +245,7 @@ test.describe("service status recovery", () => {
         const firstRequest = await readServiceStatusRequest(page, 0);
         const firstFailureAt = Date.now();
         await deliverSocketMessage(page, makeServiceStatusResponse(firstRequest, "error"));
-        // A failed V2 status request cools down for five seconds before retry.
+        // A failed status request cools down for five seconds before retry.
         await expect.poll(() => page.evaluate(() => (window as unknown as { __serviceStatusRequests: unknown[] }).__serviceStatusRequests.length), { timeout: 12000 }).toBe(2);
         expect(Date.now() - firstFailureAt).toBeGreaterThanOrEqual(4500);
 
@@ -320,16 +308,11 @@ test.describe("service status recovery", () => {
         await expect.poll(() => page.evaluate(() => (window as any).__serviceStatusRequests.length)).toBe(1);
         const request = await readServiceStatusRequest(page, 0);
         await deliverSocketMessage(page, {
-            meta: {
-                protocolVersion: request.protocolVersion,
-                key: request.key,
-                url: request.url,
-                requestId: request.requestId,
-                locale: request.locale,
-                generation: request.generation,
-            },
-            status: "success",
-            data: {
+            ...request,
+            type: "reply",
+            success: true,
+            message: "",
+            response: {
                 states: { rtorrent: { value: false, observedAt: Date.now(), stale: false } },
                 health: "degraded",
                 retryAfterMs: 120_000,
@@ -357,13 +340,13 @@ test.describe("service status recovery", () => {
 
         for (let index = 0; index < 32; index += 1) {
             const request = await page.evaluate((requestIndex) => (window as unknown as { __networkRequests: NetworkRequestFixture[] }).__networkRequests[requestIndex], index);
-            await deliverSocketMessage(page, { key: request.key, url: request.url, requestId: request.requestId, success: false });
+            await deliverSocketMessage(page, { ...request, type: "reply", success: false, message: "fixture failure", response: "" });
             await page.clock.fastForward(1_000);
             await expect.poll(() => page.evaluate(() => (window as unknown as { __networkRequests: NetworkRequestFixture[] }).__networkRequests.length)).toBe(index + 2);
         }
 
         const stoppedRequest = await page.evaluate(() => (window as unknown as { __networkRequests: NetworkRequestFixture[] }).__networkRequests[32]);
-        await deliverSocketMessage(page, { key: stoppedRequest.key, url: stoppedRequest.url, requestId: stoppedRequest.requestId, success: false });
+        await deliverSocketMessage(page, { ...stoppedRequest, type: "reply", success: false, message: "fixture failure", response: "" });
         await page.evaluate(() => {
             const socket = (window as unknown as { socket: { listeners: (event: string) => unknown[] } }).socket;
             for (const listener of socket.listeners("connect")) {
@@ -427,22 +410,17 @@ test.describe("service action confirmation", () => {
             return rows;
         });
         await deliverSocketMessage(page, {
-            meta: {
-                protocolVersion: request.protocolVersion,
-                key: request.key,
-                url: request.url,
-                requestId: request.requestId,
-                locale: request.locale,
-                generation: request.generation,
-            },
-            status: "success",
-            data: { rows: changedControlRows },
+            ...request,
+            type: "reply",
+            success: true,
+            message: "",
+            response: { rows: changedControlRows },
         });
         await expect(toggle).toHaveAttribute("aria-checked", "true");
 
         await page.evaluate((payload) => {
             const bridge = (window as any).quickboxServiceIsland;
-            const base = { ...payload, success: true, message: "Service action completed", stdout: "", stderr: "" };
+            const base = { ...payload, success: true, message: "Service action completed", completedOperations: [], stdout: "", stderr: "" };
             bridge.onActionResult({ ...base, phase: "action-complete" });
             bridge.onActionResult({
                 ...base,

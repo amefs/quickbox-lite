@@ -10,6 +10,7 @@ import sinon from "sinon";
 import { app } from "../../src/server";
 import type { DashboardBootstrapPayload } from "../../src/shared/bootstrap-contract";
 import Constant from "../../src/shared/constants";
+import { BANDWIDTH_DATA_URL } from "../../src/shared/widget-streams";
 import {
     createPushManager,
     getActiveSamplerCount,
@@ -58,21 +59,11 @@ describe("socket/push", () => {
         await new Promise((resolve) => setTimeout(resolve, 650));
 
         expect(fake.sent.length).to.be.greaterThan(0);
-        const hasPushV1 = fake.sent.some((msg) => {
-            const record = msg as { push?: boolean; key?: string; success?: boolean };
-            return record.push === true && record.success === true && typeof record.key === "string";
-        });
         const hasPushServiceStatus = fake.sent.some((msg) => {
-            const record = msg as { push?: boolean; key?: string; success?: boolean };
-            return record.push === true && record.success === true && record.key === "SERVICE_STATUS_ALL";
+            const record = msg as { type?: string; key?: string; success?: boolean };
+            return record.type === "push" && record.success === true && record.key === "SERVICE_STATUS_ALL";
         });
-        const hasV2Meta = fake.sent.some((msg) => {
-            const record = msg as { meta?: { protocolVersion?: number } };
-            return record.meta?.protocolVersion === 2;
-        });
-        expect(hasPushV1).to.equal(true);
         expect(hasPushServiceStatus).to.equal(true);
-        expect(hasV2Meta).to.equal(false);
 
         const beforeNotify = fake.sent.length;
         notifyPushSubscribers(["TASK_STATUS"]);
@@ -138,10 +129,10 @@ describe("socket/push", () => {
             },
             {
                 key: "BANDWIDTH",
-                url: "/node/data/bandwidth",
+                url: BANDWIDTH_DATA_URL,
                 visibleMs: 60000,
                 hiddenMs: 180000,
-                paramKey: (state) => state.bandwidthPage,
+                param: "bandwidthPage",
                 fetch: (page) => {
                     bandwidthFetches += 1;
                     return Promise.resolve({ page, count: bandwidthFetches });
@@ -161,8 +152,9 @@ describe("socket/push", () => {
         fake.emit(Constant.EVENT_WS_SUBSCRIBE, { mode: "push", bandwidthPage: "h" });
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        const keys = fake.sent.map((msg) => (msg as { key?: string }).key);
-        expect(keys).to.deep.equal(["BANDWIDTH"]);
+        expect(fake.sent).to.have.lengthOf(1);
+        expect(fake.sent[0]).to.deep.include({ key: "BANDWIDTH", url: BANDWIDTH_DATA_URL, args: { page: "h" }, type: "push" });
+        expect(fake.sent[0]).not.to.have.property("pathName");
         expect(otherFetches).to.equal(1);
         expect(bandwidthFetches).to.equal(2);
 
@@ -214,7 +206,7 @@ describe("socket/push", () => {
         const specs: PushSpec[] = [
             {
                 key: "SERVICE_STATUS_ALL",
-                url: "/node/v2/service_status_all",
+                url: "/node/data/service_status_all",
                 visibleMs: 60000,
                 hiddenMs: 120000,
                 dedupe: true,
@@ -259,7 +251,7 @@ describe("socket/push", () => {
         const specs: PushSpec[] = [
             {
                 key: "SERVICE_STATUS_ALL",
-                url: "/node/v2/service_status_all",
+                url: "/node/data/service_status_all",
                 visibleMs: 60000,
                 hiddenMs: 120000,
                 dedupe: true,
@@ -285,7 +277,7 @@ describe("socket/push", () => {
         await new Promise((resolve) => setTimeout(resolve, 30));
         expect(fake.sent.length).to.equal(2);
         expect(fake.sent[1]).to.include({
-            push: true,
+            type: "push",
             success: false,
             key: "SERVICE_STATUS_ALL",
         });

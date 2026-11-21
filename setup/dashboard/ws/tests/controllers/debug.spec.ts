@@ -41,4 +41,11 @@ describe("controllers/debug", () => {
 
         expect(res.status).to.equal(200);
     });
+
+    it("should resolve the selected page from an absolute bandwidth URL", async () => {
+        const res = await request(app).get("/debug/node").query({ url: "http://localhost/node/data/bandwidth?page=d" });
+
+        expect(res.status).to.equal(200);
+        expect(res.body).to.have.property("page", "d");
+    });
 });

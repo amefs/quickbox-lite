@@ -276,13 +276,13 @@ test.describe("Package Management Centre", () => {
 test.describe("Service Control", () => {
     test("should display service control table with services", async ({ page }, testInfo) => {
         await setMockProfile(page, "all-running");
-        await page.goto("/");
+        await page.goto("/?locale=zh");
         const sc = page.locator("#service_control_widget");
         await expect(sc.locator("table")).toBeVisible({ timeout: 15_000 });
 
         // Should have service rows
         const rows = sc.locator("table tbody tr");
-        expect(await rows.count()).toBeGreaterThan(0);
+        await expect(rows.first().getByRole("button", { name: "重启服务", exact: true })).toBeVisible();
         await snap(page, testInfo, "service-control-table");
     });
 
@@ -296,6 +296,39 @@ test.describe("Service Control", () => {
         const toggles = sc.locator('[role="switch"]');
         expect(await toggles.count()).toBeGreaterThan(0);
         await snap(page, testInfo, "service-toggles");
+    });
+
+    test("restart cannot start a disabled File Browser service", async ({ page }) => {
+        await setMockProfile(page, "all-running");
+        await page.goto("/?locale=zh");
+        const row = page.locator("#service_control_widget").getByRole("row", { name: /File Browser/ });
+        const toggle = row.getByRole("switch", { name: "File Browser" });
+        const restart = row.getByRole("button", { name: "重启服务" });
+        await expect(toggle).toBeChecked();
+        await expect(restart).toBeEnabled();
+        await toggle.click();
+        await expect(toggle).not.toBeChecked();
+        await expect(toggle).toBeEnabled();
+        await expect(restart).toBeDisabled();
+        await expect(row.locator(".badge-service-disabled-dot")).toBeVisible();
+
+        const result = await page.evaluate(() => new Promise<unknown>(resolve => {
+            const { socket } = window as unknown as { socket: {
+                once: (event: string, listener: (payload: unknown) => void) => void;
+                emit: (event: string, payload: Record<string, string>) => void;
+            } };
+            socket.once("service-action-result", resolve);
+            socket.emit("service-action", { requestId: "disabled-restart", service: "filebrowser", action: "restart" });
+        }));
+        expect(result).toMatchObject({
+            requestId: "disabled-restart",
+            phase: "rejected",
+            success: false,
+            message: "Service is not enabled",
+            completedOperations: [],
+        });
+        await expect(row.locator(".badge-service-disabled-dot")).toBeVisible();
+        await expect(toggle).not.toBeChecked();
     });
 
     test("should show different service states across profiles", async ({ page }, testInfo) => {

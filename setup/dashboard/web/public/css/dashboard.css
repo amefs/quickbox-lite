@@ -408,7 +408,6 @@ body[data-theme="smoked"] [data-inner-id="panel-server-load"] .panel-body p {
     max-height: none;
     overflow: auto;
     overscroll-behavior: contain;
-    background: rgba(0, 0, 0, 0.4);
 }
 #sysResponse .sysout {
     color: rgb(83, 223, 131);

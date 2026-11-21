@@ -15,7 +15,7 @@ import { readOutputLog } from "../services/output-log";
 import { runningTaskData } from "../services/packages/running-task";
 import { getServiceControlRows } from "../services/service/control";
 import { getPackageManagementStateData } from "../services/packages/pmc";
-import { parseServiceRequestV2, type ServiceRequestV2 } from "../shared/service-control-contract";
+import { isServiceKey, SERVICE_STREAM_URLS } from "../shared/service-control-contract";
 import {
     BANDWIDTH_DATA_URL,
     DISK_DATA_URL,
@@ -28,50 +28,22 @@ import {
     SYSTEM_LOAD_DATA_URL,
     SYSTEM_UPTIME_DATA_URL,
     TASK_STATUS_DATA_URL,
+    VALID_BANDWIDTH_PAGES,
+    type BandwidthPage,
 } from "../shared/widget-streams";
-import { createWsMessageEnvelope } from "../shared/ws-message";
+import {
+    isWsWidgetRequest,
+    parseLegacySshOutputRequest,
+    parseOutputLogQuery,
+    type WidgetArgs,
+    type WsProtocolError,
+    type WsWidgetReply,
+} from "../shared/ws-message";
 
-interface Payload {
-    key: string;
-    url: string;
-    requestId?: string;
-}
+type WidgetHandler = (args: WidgetArgs, signal?: AbortSignal) => Promise<string | object> | string | object;
 
-export const parseUrl = (url: string) => {
-    let parsed: URL;
-    try {
-        if (url.toLowerCase().startsWith("http")) {
-            parsed = new URL(url);
-        } else {
-            parsed = new URL(url, "http://localhost");
-        }
-    } catch {
-        throw new Error("Invalid widget URL");
-    }
-    const pathname = parsed.pathname;
-    const args: Record<string, string> = {};
-    parsed.searchParams.forEach((value, key) => {
-        args[key] = value;
-    });
-    return {
-        pathname,
-        args,
-    };
-};
-
-type WidgetHandler = (args: Record<string, string>, signal?: AbortSignal) => Promise<string | object> | string | object;
-
-const validBandwidthPages = ["h", "d", "m", "t"] as const;
-type BandwidthPage = typeof validBandwidthPages[number];
-
-function parseBandwidthPage(args: Record<string, string>): BandwidthPage | undefined {
-    const page = args["page"];
-    return validBandwidthPages.includes(page as BandwidthPage) ? page as BandwidthPage : undefined;
-}
-
-function parseLogPosition(value: string | undefined) {
-    const parsed = value ? Number.parseInt(value, 10) : undefined;
-    return Number.isNaN(parsed) ? undefined : parsed;
+function parseBandwidthPage(page?: string): BandwidthPage | undefined {
+    return VALID_BANDWIDTH_PAGES.includes(page as BandwidthPage) ? page as BandwidthPage : undefined;
 }
 
 const widgetHandlers: Partial<Record<string, WidgetHandler>> = {
@@ -80,104 +52,83 @@ const widgetHandlers: Partial<Record<string, WidgetHandler>> = {
     [SYSTEM_UPTIME_DATA_URL]: () => getUptimeParts(),
     [DISK_DATA_URL]: (_, signal) => diskDataData(signal),
     [RAM_STATS_DATA_URL]: () => ramStatsData(),
-    [BANDWIDTH_DATA_URL]: (args, signal) => bandwidthTablesData(getIfaceConfig(), parseBandwidthPage(args), signal),
+    [BANDWIDTH_DATA_URL]: ({ page }, signal) => bandwidthTablesData(getIfaceConfig(), parseBandwidthPage(page), signal),
     [TASK_STATUS_DATA_URL]: () => Promise.resolve(runningTaskData()),
     [PACKAGE_MANAGEMENT_DATA_URL]: () => getPackageManagementStateData(),
     [SERVICE_CONTROL_URL]: () => ({ rows: getServiceControlRows() }),
     [SERVICE_STATUS_ALL_URL]: () => serviceStatusAllData(),
-    [OUTPUT_LOG_URL]: (args) => readOutputLog(
-        parseLogPosition(args["offset"]),
-        parseLogPosition(args["length"]),
-        args["epoch"],
-    ),
+    [OUTPUT_LOG_URL]: ({ offset, length, epoch }) => readOutputLog(offset, length, epoch),
 };
 
-export const resolveWidget = async (url: string, signal?: AbortSignal): Promise<string|object> => {
-    const req = parseUrl(url);
-    const handler = widgetHandlers[req.pathname];
-    if (!handler) {
-        throw new Error(`Unknown widget route: ${req.pathname}`);
+export const resolveWidget = async (url: string, args: WidgetArgs = {}, signal?: AbortSignal): Promise<string|object> => {
+    const handler = Object.hasOwn(widgetHandlers, url) ? widgetHandlers[url] : undefined;
+    if (handler) {
+        return await handler(args, signal);
     }
-    return await handler(req.args, signal);
-};
-
-const isValidPayload = (payload: unknown): payload is Payload => {
-    return payload !== null && typeof payload === "object" &&
-        "key" in payload && typeof (payload as Payload).key === "string" &&
-        "url" in payload && typeof (payload as Payload).url === "string";
-};
-
-const isRecord = (payload: unknown): payload is Record<string, unknown> =>
-    payload !== null && typeof payload === "object" && !Array.isArray(payload);
-
-const messageServiceV2 = async (request: ServiceRequestV2, client: Socket) => {
-    const meta = {
-        protocolVersion: 2 as const,
-        key: request.key,
-        url: request.url,
-        requestId: request.requestId,
-        locale: request.locale,
-        generation: request.generation,
-    };
-    try {
-        if (request.key === "SERVICE_CONTROL") {
-            const rows = getServiceControlRows();
-            client.send(rows.length === 0
-                ? { meta, status: "empty" as const, data: { rows: [] as [] } }
-                : { meta, status: "success" as const, data: { rows } });
-        } else {
-            client.send({
-                meta,
-                status: "success" as const,
-                data: await serviceStatusAllData(),
-            });
-        }
-    } catch {
-        const isControl = request.key === "SERVICE_CONTROL";
-        client.send({
-            meta,
-            status: "error",
-            error: {
-                code: isControl ? "SERVICE_CONTROL_UNAVAILABLE" : "SERVICE_STATUS_UNAVAILABLE",
-                message: isControl ? "Service control data unavailable." : "Service status unavailable.",
-            },
-        });
+    const outputLogArgs = parseOutputLogQuery(url);
+    if (outputLogArgs) {
+        return readOutputLog(
+            args.offset ?? outputLogArgs.offset,
+            args.length ?? outputLogArgs.length,
+            args.epoch ?? outputLogArgs.epoch,
+        );
     }
+    throw new Error(`Unknown widget route: ${url}`);
 };
 
 const messageHandler = async (payload: unknown, client: Socket) => {
-    if (isRecord(payload) && Object.hasOwn(payload, "protocolVersion")) {
-        const request = parseServiceRequestV2(payload);
-        if (request) {
-            await messageServiceV2(request, client);
+    const legacySshOutput = parseLegacySshOutputRequest(payload);
+    if (legacySshOutput) {
+        let response: string | object = "";
+        let success = true;
+        let message = "";
+        try {
+            response = readOutputLog(
+                legacySshOutput.args.offset,
+                legacySshOutput.args.length,
+                legacySshOutput.args.epoch,
+            );
+        } catch (error) {
+            console.error("[quickbox-ws] widget render failed", legacySshOutput.url, error);
+            message = "Widget render failed";
+            success = false;
+        } finally {
+            client.send({
+                type: "reply",
+                key: legacySshOutput.key,
+                ...(legacySshOutput.requestId !== undefined ? { requestId: legacySshOutput.requestId } : {}),
+                url: legacySshOutput.url,
+                pathName: OUTPUT_LOG_URL,
+                success,
+                message,
+                response,
+            });
         }
         return;
     }
-    if (!isValidPayload(payload)) {
-        client.send(createWsMessageEnvelope({ key: "", url: "", pathName: "", success: false, message: "Invalid payload", response: "" }));
+    if (!isWsWidgetRequest(payload) || (isServiceKey(payload.key) && payload.url !== SERVICE_STREAM_URLS[payload.key])) {
+        client.send({ type: "protocol-error", message: "Invalid payload" } satisfies WsProtocolError);
         return;
     }
-    let pathName = "";
     let response: string | object = "";
     let success = true;
     let message = "";
     try {
-        pathName = parseUrl(payload.url).pathname;
-        response = await resolveWidget(payload.url);
+        response = await resolveWidget(payload.url, payload.args);
     } catch (error) {
         console.error("[quickbox-ws] widget render failed", payload.url, error);
         message = "Widget render failed";
         success = false;
     } finally {
-        client.send(createWsMessageEnvelope({
+        client.send({
+            type: "reply",
             key: payload.key,
             requestId: payload.requestId,
             url: payload.url,
-            pathName,
             success,
             message,
             response,
-        }));
+        } satisfies WsWidgetReply);
     }
 };
 

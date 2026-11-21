@@ -233,7 +233,13 @@ export async function getServiceSnapshot(): Promise<ServiceSnapshot> {
     return out;
 }
 
-export async function getServiceHealth() {
+import type { ServiceStatusAllData } from "../../shared/service-control-contract";
+
+export async function getServiceHealth(): Promise<{
+    snapshot: ServiceSnapshot;
+    health: ServiceStatusAllData["health"];
+    retryAfterMs: number;
+}> {
     const snapshot = await getServiceSnapshot();
     const states = Object.values(snapshot);
     const unknown = states.some(s => s.value === null);

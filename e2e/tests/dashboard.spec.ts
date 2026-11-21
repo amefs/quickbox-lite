@@ -215,9 +215,9 @@ test.describe("Widget Rendering", () => {
 
 // ── Bandwidth page switch ───────────────────────────────────
 
-test.describe("Bandwidth Page", () => {
-    test("switching the page refreshes the widget without reloading", async ({ page }) => {
-        await page.goto("/");
+for (const mode of ["push", "poll"]) {
+    test(`switching the bandwidth page refreshes the widget without reloading (${mode})`, async ({ page }) => {
+        await page.goto(`/?pushMode=${mode}`);
         const bwTables = page.locator("#bw_tables");
         const pageTable = bwTables.locator("table").nth(1);
         // Wait for the SPA bootstrap to mount the bandwidth tables before
@@ -233,8 +233,7 @@ test.describe("Bandwidth Page", () => {
         const documentId = await page.evaluate(() => performance.timeOrigin);
 
         // The options live in the header panel's "configure" tab, which is not
-        // open: click the element itself so the assertion covers the handler and
-        // the polling path instead of the panel's visibility.
+        // open: click the element itself to exercise the page change handler.
         await page.evaluate(() => {
             const options = Array.from(document.querySelectorAll("#node-bw-page-options div")) as HTMLElement[];
             // dashboardBandwidthPages order: t, h, d, m — "d" is the third one.
@@ -252,7 +251,7 @@ test.describe("Bandwidth Page", () => {
         // scroll position and every other widget survive the switch.
         expect(await page.evaluate(() => performance.timeOrigin)).toBe(documentId);
     });
-});
+}
 
 // ── Service status across profiles ──────────────────────────
 

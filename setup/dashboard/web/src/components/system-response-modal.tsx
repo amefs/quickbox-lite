@@ -103,19 +103,11 @@ export function SystemResponseModal({ snapshot, theme = "defaulted", onClose, on
                     body: "ps qb-system-response-body",
                     footer: "qb-system-response-footer",
                 }}
-                styles={{
-                    container: { background: "rgba(0, 0, 0, 0.6)", border: "2px solid rgba(0, 0, 0, 0.2)" },
-                    header: { background: "rgba(0, 0, 0, 0.4)", border: 0 },
-                    title: { color: "#fff", fontSize: 15, fontWeight: 600 },
-                    body: { background: "rgba(0, 0, 0, 0.4)", padding: 16, overflow: "hidden" },
-                    footer: { background: "rgba(0, 0, 0, 0.4)", border: 0 },
-                }}
                 footer={(
                     <Button
                         id="sysResponseCloseAction"
-                        danger
-                        size="small"
-                        className="btn btn-xs btn-danger"
+                        type="primary"
+                        className="btn btn-primary"
                         onClick={onCloseRefresh}
                     >
                         {t("CLOSE_REFRESH")}

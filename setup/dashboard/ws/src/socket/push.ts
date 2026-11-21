@@ -6,32 +6,28 @@ import Constant from "../shared/constants";
 import type { WsPushMode } from "../shared/bootstrap-contract";
 import {
     DASHBOARD_STREAMS,
-    buildStreamUrl,
     normalizeBandwidthPage,
     type BandwidthPage,
     type DashboardStreamConfig,
 } from "../shared/widget-streams";
-import { createWsMessageEnvelope } from "../shared/ws-message";
+import {
+    parseWsSubscribeOptions,
+    type WsSubscribeOptions,
+    type WsWidgetPush,
+} from "../shared/ws-message";
 import { resolveWidget } from "./message";
 
-export type { BandwidthPage };
-
-export interface WsSubscribeOptions {
-    mode?: WsPushMode;
-    bandwidthPage?: BandwidthPage;
-    hidden?: boolean;
-}
+export type { BandwidthPage, WsSubscribeOptions };
 
 export interface PushSpec {
     key: string;
     url: string;
-    urlTemplate?: string;
     visibleMs: number;
     activeVisibleMs?: number;
     hiddenMs: number;
     dedupe?: boolean;
-    paramKey?: (state: ClientPushState) => string;
-    fetch?: (param: string, signal: AbortSignal) => Promise<unknown>;
+    param?: DashboardStreamConfig["param"];
+    fetch?: (page: BandwidthPage | undefined, signal: AbortSignal) => Promise<unknown>;
     timeoutMs?: number;
     fingerprint?: (data: unknown) => string;
 }
@@ -63,7 +59,7 @@ interface SharedSampler {
     id: string;
     spec: PushSpec;
     stats: SampleStats;
-    param: string;
+    args?: { page: BandwidthPage };
     subscribers: Set<ClientPushState>;
     timer?: ReturnType<typeof setTimeout>;
     nextScheduledAt: number;
@@ -110,18 +106,13 @@ const STREAM_FINGERPRINTS: Partial<Record<DashboardStreamConfig["key"], (data: u
 const PUSH_SPECS: PushSpec[] = DASHBOARD_STREAMS.map((stream) => ({
     key: stream.key,
     url: stream.url,
-    urlTemplate: stream.urlTemplate,
     visibleMs: stream.visibleMs,
     activeVisibleMs: stream.activeVisibleMs,
     hiddenMs: stream.hiddenMs,
     dedupe: stream.dedupe,
-    ...(stream.param === "bandwidthPage" ? { paramKey: (state: ClientPushState) => state.bandwidthPage } : {}),
+    param: stream.param,
     ...(STREAM_FINGERPRINTS[stream.key] ? { fingerprint: STREAM_FINGERPRINTS[stream.key] } : {}),
 }));
-
-function getSamplerId(spec: PushSpec, param: string): string {
-    return `${spec.key}:${param}`;
-}
 
 function resolveSamplerIntervalMs(sampler: SharedSampler): number {
     const anyVisible = Array.from(sampler.subscribers).some((sub) => !sub.hidden);
@@ -134,29 +125,24 @@ function resolveSamplerIntervalMs(sampler: SharedSampler): number {
     return sampler.spec.visibleMs;
 }
 
-function buildPushUrl(spec: PushSpec, param: string): string {
-    return buildStreamUrl(spec, param);
-}
-
 function sendPushPayload(
     state: ClientPushState,
-    spec: PushSpec,
-    param: string,
+    sampler: SharedSampler,
     data: unknown,
     success = true,
     message = "",
     stale = false,
 ): void {
-    state.client.send(createWsMessageEnvelope({
-        push: true,
-        key: spec.key,
-        url: buildPushUrl(spec, param),
-        pathName: spec.url,
+    state.client.send({
+        type: "push",
+        key: sampler.spec.key,
+        url: sampler.spec.url,
+        ...(sampler.args !== undefined ? { args: sampler.args } : {}),
         success,
         message,
         response: data,
-        stale,
-    }));
+        ...(stale ? { stale: true as const } : {}),
+    } satisfies WsWidgetPush);
 }
 
 function deliverToSubscriber(
@@ -184,7 +170,7 @@ function deliverToSubscriber(
         }
     }
     state.lastSentAt.set(sampler.spec.key, now);
-    sendPushPayload(state, sampler.spec, sampler.param, data);
+    sendPushPayload(state, sampler, data);
 }
 
 function deliverErrorToSubscriber(state: ClientPushState, sampler: SharedSampler, now: number, force = false): void {
@@ -200,7 +186,7 @@ function deliverErrorToSubscriber(state: ClientPushState, sampler: SharedSampler
     }
     state.lastSentAt.set(sampler.spec.key, now);
     const stale = sampler.lastData !== undefined;
-    sendPushPayload(state, sampler.spec, sampler.param, sampler.lastData ?? "", false, "Widget render failed", stale);
+    sendPushPayload(state, sampler, sampler.lastData ?? "", false, "Widget render failed", stale);
 }
 
 export interface PushManager {
@@ -264,8 +250,8 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
             try {
                 controller.signal.throwIfAborted();
                 const data = sampler.spec.fetch
-                    ? await sampler.spec.fetch(sampler.param, controller.signal)
-                    : await resolveWidget(buildPushUrl(sampler.spec, sampler.param), controller.signal);
+                    ? await sampler.spec.fetch(sampler.args?.page, controller.signal)
+                    : await resolveWidget(sampler.spec.url, sampler.args, controller.signal);
                 if (controller.signal.aborted) {return;}
                 if (sampler.subscribers.size === 0) {
                     return;
@@ -355,8 +341,8 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
         let staleScheduleIndex = 0;
 
         streams.forEach(({ spec, stats }, index) => {
-            const param = spec.paramKey ? spec.paramKey(state) : "";
-            const id = getSamplerId(spec, param);
+            const page = spec.param === "bandwidthPage" ? state.bandwidthPage : undefined;
+            const id = `${spec.key}:${page ?? ""}`;
             desiredIds.add(id);
 
             let sampler = samplers.get(id);
@@ -366,7 +352,7 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
                     id,
                     spec,
                     stats,
-                    param,
+                    args: page === undefined ? undefined : { page },
                     subscribers: new Set(),
                     nextScheduledAt: 0,
                     pendingForce: false,
@@ -477,9 +463,7 @@ export function createPushManager(specs: PushSpec[] = PUSH_SPECS): PushManager {
         };
 
         client.on(Constant.EVENT_WS_SUBSCRIBE, (rawOptions: unknown) => {
-            const opts = rawOptions && typeof rawOptions === "object"
-                ? (rawOptions as WsSubscribeOptions)
-                : {};
+            const opts = parseWsSubscribeOptions(rawOptions);
             const nextMode: WsPushMode = opts.mode === "poll" ? "poll" : "push";
             const prevBandwidthPage = state.bandwidthPage;
             const prevHidden = state.hidden;

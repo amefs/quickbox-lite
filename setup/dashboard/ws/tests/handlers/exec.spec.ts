@@ -148,7 +148,7 @@ describe("handlers/exec", () => {
                 responses.push(response);
             });
             try {
-                client.emit(Constant.EVENT_SERVICE_ACTION, { requestId: "restart", service: "deluged", action: "restart" });
+                client.emit(Constant.EVENT_SERVICE_ACTION, { requestId: "enable", service: "deluged", action: "enable" });
                 await clock.tickAsync(0);
                 expect(responses).to.have.length(1);
                 expect(responses[0]).to.have.property("phase", "action-complete");
