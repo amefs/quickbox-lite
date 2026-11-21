@@ -439,7 +439,7 @@ RUCONF
 	SHELL=/bin/bash at now + 1 minute >>"${OUTTO}" 2>&1 <<EOF
 sleep 5;\
 /usr/local/bin/quickbox/system/auxiliary/php-fpm-cli -r 'opcache_reset();';\
-systemctl restart php7.4-fpm;\
+systemctl restart php8.4-fpm;\
 nginx -s reload
 EOF
 	_success "${APP_TITLE} is now update to date."
