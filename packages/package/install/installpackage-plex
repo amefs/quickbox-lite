@@ -124,8 +124,8 @@ Please wait until the process is completed
 
 function _installAddSources() {
 	_info "Adding additional keys and sources ${APP_TITLE}..."
-	curl -fsSL https://downloads.plex.tv/plex-keys/PlexSign.key | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/plex.gpg >>"/dev/null" 2>&1
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/trusted.gpg.d/plex.gpg] http://downloads.plex.tv/repo/deb public main" | sudo tee /etc/apt/sources.list.d/plex.list >>"/dev/null" 2>&1
+	curl -fsSL https://downloads.plex.tv/plex-keys/PlexSign.v2.key | sudo gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/plexmediaserver.v2.gpg >>"/dev/null" 2>&1
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/trusted.gpg.d/plexmediaserver.v2.gpg] https://repo.plex.tv/deb/ public main" | sudo tee /etc/apt/sources.list.d/plex.list >>"/dev/null" 2>&1
 	_success "Keys and sources added."
 }
 
