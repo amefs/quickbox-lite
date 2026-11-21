@@ -523,6 +523,9 @@ th {
 }
 
 body[data-theme] .ant-btn.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     box-shadow: none;
     outline: none;
     outline-color: currentColor;
@@ -657,15 +660,19 @@ body[data-theme] .ant-btn.btn:is(.btn-primary, .btn-success, .btn-danger, .btn-i
 }
 
 .progress-bar {
+    position: relative;
     float: left;
     width: 0;
     height: 100%;
+    overflow: hidden;
     font-size: 11px;
     line-height: 17px;
     color: #fff;
     background-color: #2574ab;
     text-align: center;
-    transition: width .6s ease;
+    /* Widgets drive the fill with scaleX() so the fill animation stays composited. */
+    transform-origin: left center;
+    transition: transform .6s ease;
 }
 
 .progress-bar-success { background-color: #4daf7c; }
@@ -673,10 +680,17 @@ body[data-theme] .ant-btn.btn:is(.btn-primary, .btn-success, .btn-danger, .btn-i
 .progress-bar-warning { background-color: #e6ad5c; }
 .progress-bar-danger { background-color: #d9534f; }
 
-.progress-striped .progress-bar,
-.progress-bar-striped {
+.progress-striped .progress-bar::after,
+.progress-bar-striped::after {
+    content: "";
+    position: absolute;
+    inset: 0;
     background-image: linear-gradient(45deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
     background-size: 40px 40px;
+    /* The bar box is scaled by the fill ratio; undo that on the hatch so it keeps its 40px/45deg shape. */
+    transform: scaleX(var(--qb-progress-hatch-scale, 1));
+    transform-origin: left center;
+    transition: transform .6s ease;
 }
 
 .badge {

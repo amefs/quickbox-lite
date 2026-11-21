@@ -72,9 +72,14 @@ function normalizeMemoryStats(payload: MemoryStatsPayload): Omit<MemoryStatsData
 
 function Progress({ data, labelKey }: { data: MemoryProgress; labelKey: string } | { data: null; labelKey?: string }) {
     const { t } = useTranslation();
+    const barStyle = data ? {
+        "width": "100%",
+        "transform": `scaleX(${data.percent / 100})`,
+        "--qb-progress-hatch-scale": data.percent > 0 ? 100 / data.percent : 1,
+    } as React.CSSProperties : undefined;
     return (
         <div className="progress progress-striped">
-            {data ? <div style={{ width: `${data.percent}%` }} aria-label={t(labelKey)} aria-valuemax={100} aria-valuemin={0} aria-valuenow={data.percent} role="progressbar" className={`progress-bar ${data.colorClass}`}>
+            {data ? <div style={barStyle} aria-label={t(labelKey)} aria-valuemax={100} aria-valuemin={0} aria-valuenow={data.percent} role="progressbar" className={`progress-bar ${data.colorClass}`}>
                 <span className="sr-only">{data.percent}% {t("USED")}</span>
             </div> : <div className="qb-skeleton" style={{ height: "100%" }} />}
         </div>
