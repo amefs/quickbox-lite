@@ -7,6 +7,7 @@ import i18n, { VALID_LOCALES } from "./i18n";
 import { serviceMap } from "./info";
 import { serializeJsonForScript } from "./utils/html";
 import { DashboardMenu, type DashboardMenuState } from "./widgets/menu";
+import { RutorrentPluginList } from "./widgets/plugin-list";
 import { RemovalModals } from "./widgets/removal-modals";
 import {
     NetworkInterfacePlaceholder,
@@ -103,6 +104,10 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
             serviceStatusUnconfirmed: i18n.t("SERVICE_STATUS_UNCONFIRMED"),
             serviceStatusStale: i18n.t("SERVICE_STATUS_STALE"),
             serviceStatusLastConfirmedTemplate: i18n.t("SERVICE_STATUS_LAST_CONFIRMED", { time: "__SERVICE_STATUS_TIME__" }),
+            pluginInstalled: i18n.t("INSTALLED"),
+            pluginUninstalled: i18n.t("UNINSTALLED"),
+            pluginInstalling: i18n.t("INSTALLING"),
+            pluginUninstalling: i18n.t("UNINSTALLING"),
         },
     };
 
@@ -262,8 +267,16 @@ export function DashboardPage({ basePath, socketUpgrade = true, locale, menuStat
                                     </ul>
                                 </div>
                                 <div className="tab-pane" id="plugins">
-                                    <h5 className="sidebar-title">ruTorrent Plugins</h5>
-                                    <ul id="node-plugin-list" className="nav nav-pills nav-stacked nav-quirk"></ul>
+                                    <h5 className="sidebar-title">{i18n.t("PLUGIN_MENU")}</h5>
+                                    <ul className="nav nav-pills nav-stacked nav-quirk">
+                                        <li className="nav-parent nav-active">
+                                            <a href="#"><i className="fa fa-puzzle-piece"></i> <span>{i18n.t("PLUGINS")}</span></a>
+                                            <ul id="node-plugin-list" className="children">
+                                                <li className="info-quote"><p className="info-quote">{i18n.t("PMENU_NOTICE_TXT")}</p></li>
+                                                <RutorrentPluginList plugins={menuState.rutorrentPlugins} />
+                                            </ul>
+                                        </li>
+                                    </ul>
                                 </div>
                                 <div className="tab-pane" id="help">
                                     <h5 className="sidebar-title">{i18n.t("QUICK_SYSTEM_TIPS")}</h5>
