@@ -152,7 +152,6 @@ function _removeApp() {
 	rm -rf /root/acme.sh
 	rm -rf /root/.acme.sh
 	# reset ssl setting
-	sock='php7.4-fpm'
 	cat >/etc/nginx/sites-enabled/default <<NGC
 server {
     listen 80 default_server;
