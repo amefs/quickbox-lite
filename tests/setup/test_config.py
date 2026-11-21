@@ -376,14 +376,19 @@ def test_wrapper_rejects_only_actual_generation_options_before_setup():
 
 
 def test_dns_validation_is_retained_for_installation_host():
-    for resolved, expected in (("192.0.2.10", 0), ("192.0.2.11", 1), ("", 1)):
-        script = function("_check_domain_dns") + '''
+    cases = (
+        (["192.0.2.10"], 0), (["198.51.100.7", "192.0.2.10"], 0), (["104.21.74.166", "172.67.204.73"], 0),
+        (["192.0.2.11"], 1), (["104.15.255.255"], 1), ([], 1),
+    )
+    for resolved, expected in cases:
+        script = function("_is_cloudflare_ip") + "\n" + function("_check_domain_dns") + '''
 _get_ip(){ ip=192.0.2.10; }
-_error(){ :; }
+_info(){ :; }
+_warning(){ :; }
 curl(){ printf '%s' "$DNS_RESPONSE"; }
 _check_domain_dns
 '''
-        answer = [{"type": 1, "data": resolved}] if resolved else []
+        answer = [{"type": 1, "data": address} for address in resolved]
         env = dict(os.environ, domain="box.example", lecert_domain="box.example", hostname="",
                    DNS_RESPONSE=json.dumps({"Answer": answer}))
         result = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True, timeout=5)

@@ -8,6 +8,7 @@ exclude =
     .venv,
     .tox,
     .nox,
+    .uv-cache,
     .mypy_cache,
     .pytest_cache,
     .ruff_cache,
