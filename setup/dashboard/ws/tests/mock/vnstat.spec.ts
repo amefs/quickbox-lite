@@ -3,7 +3,7 @@
 import "mocha";
 import { expect } from "chai";
 
-import { mockVnstatInterface } from "../../src/testing/mock-vnstat";
+import { mockVnstatInterface } from "../../mock/vnstat";
 
 describe("mock vnstat dump paths", () => {
     it("recognizes the path produced by path.join", () => {

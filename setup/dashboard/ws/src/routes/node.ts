@@ -15,7 +15,7 @@ import { systemStaticInfoWithProviders } from "../services/system/cpu";
 import { diskDataData } from "../services/system/disk";
 import { systemLoadData } from "../services/system/load";
 import { ramStatsData } from "../services/system/memory";
-import { isTestMode } from "../testing";
+import { isMockMode, MOCK_BRANCHES } from "../../mock";
 
 const parseThemeBody = (body: unknown): string | undefined => {
     if (body === null || typeof body !== "object" || !("theme" in body)) {
@@ -96,8 +96,8 @@ export function createNodeRouter(runExecFile: typeof childProcess.execFile): Rou
     router.get("/dashboard_config", getDashboardConfig);
 
     router.get("/branches", (_req: Request, res: Response) => {
-        if (isTestMode()) {
-            res.json({ branches: ["master", "development"] });
+        if (isMockMode()) {
+            res.json({ branches: MOCK_BRANCHES });
             return;
         }
         const repo = path.resolve(process.env.QUICKBOX_REPO_ROOT || "/etc/QuickBox");

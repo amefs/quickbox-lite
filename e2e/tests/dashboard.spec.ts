@@ -158,8 +158,11 @@ test.describe("WebSocket Connection", () => {
         await page.goto("/");
         const cpuload = page.locator("#cpuload");
         await expect(cpuload).not.toBeEmpty({ timeout: 15_000 });
-        // Mock loadavg: [1.52, 1.34, 1.21]
-        await expect(cpuload).toContainText("1.52");
+        // The profile fluctuates around [1.52, 1.34, 1.21]; the one-minute
+        // average swings the widest, so assert it stays inside that envelope.
+        const [oneMinute] = (await cpuload.innerText()).replace(/\s+/g, " ").trim().split(" ").map(Number);
+        expect(oneMinute).toBeGreaterThan(1.52 * 0.5);
+        expect(oneMinute).toBeLessThan(1.52 * 1.5);
     });
 });
 

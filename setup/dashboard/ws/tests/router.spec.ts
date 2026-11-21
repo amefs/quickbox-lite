@@ -147,7 +147,7 @@ describe("router — HTTP routes", () => {
 
         it("should return 403 for non-localhost requests via X-Forwarded-For", async () => {
             // app.set("trust proxy", "loopback") causes X-Forwarded-For to override req.ip
-            // and isTestMode() is false in normal Mocha runs (MOCK_ENABLED not set)
+            // and isMockMode() is false in normal Mocha runs (QUICKBOX_ENV unset)
             const res = await request(app)
                 .get("/set?lang=en")
                 .set("X-Forwarded-For", "203.0.113.1");

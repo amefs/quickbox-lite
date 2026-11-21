@@ -2,9 +2,13 @@
 
 /* eslint-disable camelcase */
 /**
- * Mock profiles for E2E testing.
- * Each profile defines a simulated system state (processes, memory, disk, network, etc.)
- * that the mock adapter injects when NODE_ENV=test and MOCK_PROFILE is set.
+ * Fixture profiles for development and E2E runs: the simulated hosts plus the
+ * lookup that hands one to the adapter.
+ *
+ * Each profile describes a whole simulated host (processes, memory, disks,
+ * network, services, torrents, vnstat traffic). `mock/adapter.ts` instantiates
+ * one when `--env=mock` is selected (see `mock/mode.ts`). Keeping the fixtures
+ * here, outside `src/`, keeps business modules free of sample host state.
  */
 
 export interface MockProcess {
@@ -57,6 +61,9 @@ export interface MockProfile {
     disks: MockDisk[];
     networkInterfaces: MockNetworkInterface[];
     loadavg: [number, number, number];
+    /** Baseline receive/transmit rate of the primary interface, bytes per second. */
+    rxPerSecond?: number;
+    txPerSecond?: number;
     uptime: number;
     cpuModel: string;
     cpuCount: number;
@@ -75,6 +82,30 @@ export interface MockProfile {
     /** vnstat dump data (JSON string), keyed by interface name */
     vnstatData?: Record<string, string>;
 }
+
+/**
+ * Host identity every fixture reports. Profiles describe what differs between
+ * simulated hosts (memory, services, traffic); these are the single values the
+ * dashboard renders but a fixture never varies, so they live here instead of
+ * inside the patching code.
+ */
+export const MOCK_HOST = {
+    ipv4: "10.0.0.2",
+    ipv4Subnet: "255.255.255.0",
+    mac: "00:11:22:33:44:55",
+    mtu: 1500,
+    linkSpeedMbps: 1000,
+    rxPerSecond: 100 * 1024,
+    txPerSecond: 50 * 1024,
+    timezone: "UTC",
+    timezoneName: "Coordinated Universal Time",
+    cpuManufacturer: "Intel",
+    cpuSpeedGhz: 2.4,
+    processStartedAt: "2026-01-01 00:00:00",
+};
+
+/** Branches the fixture repository advertises to the branch switcher. */
+export const MOCK_BRANCHES = ["master", "development"];
 
 const GB = 1024 * 1024 * 1024;
 const MB = 1024 * 1024;
@@ -123,6 +154,8 @@ export const allRunning: MockProfile = {
     networkInterfaces: [
         { iface: "eth0", operstate: "up", rx_bytes: 1234567890, tx_bytes: 987654321 },
     ],
+    rxPerSecond: 2.6 * MB,
+    txPerSecond: 0.9 * MB,
     loadavg: [1.52, 1.34, 1.21],
     uptime: 86400 * 15 + 3600 * 7 + 60 * 23, // 15 days 7 hours 23 minutes
     cpuModel: "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz",
@@ -251,6 +284,8 @@ export const partialRunning: MockProfile = {
     networkInterfaces: [
         { iface: "eth0", operstate: "up", rx_bytes: 2147483648, tx_bytes: 805306368 },
     ],
+    rxPerSecond: 380 * 1024,
+    txPerSecond: 140 * 1024,
     loadavg: [0.82, 0.74, 0.69],
     uptime: 86400 * 6 + 3600 * 11 + 60 * 17,
     lockFiles: [
@@ -355,12 +390,16 @@ export const emptySystem: MockProfile = {
     disks: [
         { fs: "/dev/sda1", type: "ext4", size: 100 * GB, used: 15 * GB, available: 85 * GB, use: 15, mount: "/" },
     ],
+    rxPerSecond: 8 * 1024,
+    txPerSecond: 3 * 1024,
     loadavg: [0.05, 0.03, 0.01],
     uptime: 3600 * 2 + 60 * 5, // 2 hours 5 minutes
     lockFiles: [],
     enabledServices: [],
     torrentDirs: {},
 };
+
+export const DEFAULT_PROFILE = "all-running";
 
 const profiles: Record<string, MockProfile> = {
     "installing": {
@@ -386,7 +425,10 @@ const profiles: Record<string, MockProfile> = {
     "empty-system": emptySystem,
 };
 
-export function getProfile(name?: string): MockProfile {
-    const profileName = name || process.env.MOCK_PROFILE || "all-running";
-    return profiles[profileName] ?? allRunning;
+export function getProfile(name: string = DEFAULT_PROFILE): MockProfile {
+    if (!Object.hasOwn(profiles, name)) {
+        console.warn(`[mock] unknown profile "${name}", falling back to "${DEFAULT_PROFILE}" (known: ${Object.keys(profiles).join(", ")})`);
+        return profiles[DEFAULT_PROFILE];
+    }
+    return profiles[name];
 }

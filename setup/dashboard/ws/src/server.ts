@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import "./testing/bootstrap";
+import "../mock/bootstrap";
 
 import express from "express";
 import http from "http";
@@ -13,11 +13,25 @@ import logHandler from "./socket/log";
 import messageHandler from "./socket/message";
 import pushHandler from "./socket/push";
 import execHandler from "./socket/exec";
-import { isTestMode } from "./testing";
 import { createAppRouter } from "./routes";
+import { ENV_VARIABLE, isMockMode, runtimeMode } from "../mock";
 
 const FATAL_EXIT_GRACE_MS = 1000;
 let fatalExitStarted = false;
+
+/** Announces the resolved data source, including a refused mock request. */
+function reportRuntimeMode(): void {
+    const mode = runtimeMode();
+    if (mode.env === "mock") {
+        console.log(`Mock data enabled, profile: ${mode.profile} (POST /test/profile to switch)`);
+        return;
+    }
+    if (mode.vetoed) {
+        console.error(`[quickbox-ws] ${ENV_VARIABLE}=mock ignored while NODE_ENV=production; serving this host's real data`);
+    } else if (mode.invalid !== undefined) {
+        console.error(`[quickbox-ws] unknown ${ENV_VARIABLE}="${mode.invalid}", expected "prod" or "mock[:<profile>]"; serving this host's real data`);
+    }
+}
 
 /**
  * Records a fatal condition and leaves the process promptly and non-zero.
@@ -76,7 +90,7 @@ for (const socketServer of [io, wsPathIo]) {
 
 app.use(createAppRouter({
     dashboardDir,
-    skinsDir: isTestMode() ? process.env.QUICKBOX_TEST_SKINS_DIR : undefined,
+    skinsDir: isMockMode() ? process.env.QUICKBOX_TEST_SKINS_DIR : undefined,
     authMiddleware: gatewayAuthMiddleware,
     socketServers: [io, wsPathIo],
     isHealthy: () => !fatalExitStarted,
@@ -84,7 +98,8 @@ app.use(createAppRouter({
 
 export { app, server };
 
-if (process.env.NODE_ENV !== "test" || process.env.MOCK_ENABLED === "1") {
+if (process.env.NODE_ENV !== "test" || isMockMode()) {
+    reportRuntimeMode();
     if (assertProductionAuth() !== null) {
         process.exit(1);
     }
@@ -101,8 +116,5 @@ if (process.env.NODE_ENV !== "test" || process.env.MOCK_ENABLED === "1") {
     });
     server.listen(port, host, () => {
         console.log(`Quickbox-ws running on http://${host}:${port} ...`);
-        if (isTestMode()) {
-            console.log(`Mock mode enabled, profile: ${process.env.MOCK_PROFILE || "all-running"}`);
-        }
     });
 }

@@ -1,22 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * Mock adapter: manages the active mock profile for testing.
+ * Mock adapter: manages the active fixture profile.
  * All module-level patching is handled by bootstrap.ts — this
  * module only provides profile lifecycle management.
  */
 
-import { getPackage, serviceMap } from "../services/packages/info";
-import commandConfig from "../../config/commands.json";
-import { username } from "../shared/constants";
-import { type MockProcess, type MockProfile, getProfile } from "./mock-profiles";
+import { getPackage, serviceMap } from "../src/services/packages/info";
+import commandConfig from "../config/commands.json";
+import { username } from "../src/shared/constants";
+import { isMockMode, mockProfileName } from "./mode";
+import { type MockProcess, type MockProfile, getProfile } from "./data/profiles";
+import { resetFluctuation } from "./fluctuation";
 
 let activeProfile: MockProfile | null = null;
 let nextMockPid = 5000;
-
-export function isTestMode(): boolean {
-    return process.env.NODE_ENV === "test" && process.env.MOCK_ENABLED === "1";
-}
 
 function cloneProfile(profile: MockProfile): MockProfile {
     return {
@@ -38,13 +36,14 @@ function cloneProfile(profile: MockProfile): MockProfile {
 
 export function getActiveProfile(): MockProfile {
     if (!activeProfile) {
-        activeProfile = cloneProfile(getProfile());
+        activeProfile = cloneProfile(getProfile(mockProfileName()));
     }
     return activeProfile;
 }
 
 export function setActiveProfile(profileName: string) {
     activeProfile = cloneProfile(getProfile(profileName));
+    resetFluctuation();
 }
 
 function addUnique<T>(list: T[], value: T) {
@@ -210,7 +209,7 @@ export function runBoxCommand(operation: string, target: string) {
 }
 
 export function runMockCommand(payload: string): boolean | undefined {
-    if (!isTestMode()) {
+    if (!isMockMode()) {
         return undefined;
     }
     const [command = "", operation = "", target = ""] = payload.split(":").map(value => value.trim());

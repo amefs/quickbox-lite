@@ -82,8 +82,10 @@ test.describe("WS Debug Console", () => {
         await page.goto(`${WS_BASE_URL}/debug`);
         await page.locator("[data-url='/node/data/system_load']").click();
         await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).not.toEqual("");
-        // Mock loadavg: "1.52 1.34 1.21"
-        await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 }).toContain("1.52 1.34 1.21");
+        // The profile fluctuates around "1.52 1.34 1.21", so only the shape of
+        // the three two-decimal averages is stable.
+        await expect.poll(() => getRenderedWidgetText(page), { timeout: 10_000 })
+            .toMatch(/\d+\.\d{2}\s+\d+\.\d{2}\s+\d+\.\d{2}/);
     });
 
     test("should fetch RAM stats widget via debug console", async ({ page }) => {
@@ -159,10 +161,12 @@ test.describe("WS API Endpoints", () => {
         });
         expect(response.ok()).toBeTruthy();
 
-        // Load data reflects empty system (loadavg 0.05)
+        // Load data reflects an empty system: no processes, and a load average
+        // that drifts around the fixture's 0.05 instead of sitting on it.
         const loadResponse = await page.request.get(`${WS_BASE_URL}/debug/node?url=/node/data/system_load`);
-        const loadText = await loadResponse.text();
-        expect(loadText).toContain("0.05");
+        const load = await loadResponse.json() as { loadavg: number[]; processes: number };
+        expect(load.processes).toBe(0);
+        expect(load.loadavg[0]).toBeLessThan(0.1);
 
         // Switch back
         response = await page.request.post(`${WS_BASE_URL}/test/profile`, {
