@@ -64,7 +64,7 @@ function createExecFileRecorder() {
         if (callback) {
             callback(null, "", "");
         }
-        return {} as childProcess.ChildProcess;
+        return {} as unknown as childProcess.ChildProcess;
     }) as typeof childProcess.execFile;
 
     return { calls, execFile };
