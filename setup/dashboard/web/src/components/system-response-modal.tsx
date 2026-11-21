@@ -107,7 +107,6 @@ export function SystemResponseModal({ snapshot, theme = "defaulted", onClose, on
                     <Button
                         id="sysResponseCloseAction"
                         type="primary"
-                        className="btn btn-primary"
                         onClick={onCloseRefresh}
                     >
                         {t("CLOSE_REFRESH")}

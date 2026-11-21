@@ -76,7 +76,7 @@ function FileSystemRow({ data }: { data: DiskFileSystemRow | null }) {
                     </p>
                     <br />
                     <div className="progress">
-                        {data ? <div style={{ width: `${data.percent}%` }} aria-label={`${t("DISK_SPACE")}: ${data.mount}`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={data.percent} role="progressbar" className={`progress-bar ${data.progressClass}`}>
+                        {data ? <div style={{ width: "100%", transform: `scaleX(${data.percent / 100})` }} aria-label={`${t("DISK_SPACE")}: ${data.mount}`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={data.percent} role="progressbar" className={`progress-bar ${data.progressClass}`}>
                             <span className="sr-only">{data.percent}% {t("USED")}</span>
                         </div> : <div className="qb-skeleton" style={{ height: "100%" }} />}
                     </div>
