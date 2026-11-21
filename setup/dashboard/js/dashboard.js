@@ -216,6 +216,83 @@
     window.jQuery(".tooltips").tooltip();
   }
 
+  let pluginActionPending = false;
+
+  function applyRutorrentPluginAction(toggle, plugin, action) {
+    if (pluginActionPending) { return; }
+    pluginActionPending = true;
+    let $ = window.jQuery;
+    if ($ && $.fn && $.fn.toggles) {
+      $(toggle).addClass("disabled").toggles(action === "install");
+    }
+    fetch(window.quickboxApiBase + "/node/plugin", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plugin, action })
+    }).then(function (response) {
+      if (!response.ok) { throw new Error("Failed to apply plugin action"); }
+      // Plugin state is rendered by the server, so reload to pick it up.
+      location.reload();
+    }).catch(function (error) {
+      pluginActionPending = false;
+      if ($ && $.fn && $.fn.toggles) {
+        $(toggle).removeClass("disabled").toggles(action !== "install");
+      }
+      console.warn("[ws] failed to apply plugin action", error);
+      showAlert("Failed to apply plugin action: " + plugin);
+    });
+  }
+
+  function initializePluginToggles(attempt) {
+    let $ = window.jQuery;
+    if (!$ || !$.fn || !$.fn.toggles) {
+      // toggles.min.js loads after this bundle; retry until it is parsed.
+      if (attempt < 20) {
+        window.setTimeout(function () { initializePluginToggles(attempt + 1); }, 100);
+      }
+      return;
+    }
+    let messages = window.quickboxMessages;
+    $("#node-plugin-list .toggle-pen").toggles({
+      on: true,
+      height: 16,
+      width: 90,
+      click: false,
+      drag: false,
+      text: {
+        on: messages.pluginInstalled,
+        off: messages.pluginUninstalling
+      }
+    });
+    $("#node-plugin-list .toggle-pdis").toggles({
+      on: false,
+      height: 16,
+      width: 90,
+      click: false,
+      drag: false,
+      text: {
+        on: messages.pluginInstalling,
+        off: messages.pluginUninstalled
+      }
+    });
+  }
+
+  function initializePluginList() {
+    let list = document.getElementById("node-plugin-list");
+    if (!list) { return; }
+    list.addEventListener("click", function (event) {
+      let target = event.target;
+      if (!target || typeof target.closest !== "function") { return; }
+      // Plugin names are plain labels; only the toggle performs an action.
+      if (target.closest("a")) { event.preventDefault(); }
+      let toggle = target.closest("[data-plugin-action]");
+      if (!toggle) { return; }
+      applyRutorrentPluginAction(toggle, toggle.dataset.plugin, toggle.dataset.pluginAction);
+    });
+    initializePluginToggles(0);
+  }
+
   function capturePackageTableState(task) {
     let $ = window.jQuery;
     if (!$ || !$.fn || !$.fn.DataTable || !$.fn.DataTable.isDataTable("#dataTable1")) {
@@ -1360,6 +1437,7 @@
       window.jQuery(function ($) {
         $(".tooltips").tooltip({ container: "body" });
         initializeServiceToggles();
+        initializePluginList();
         initializePackageTable();
       });
     }

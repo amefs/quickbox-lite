@@ -3,10 +3,25 @@
 import "mocha";
 import { expect } from "chai";
 import childProcess from "child_process";
+import { existsSync } from "fs";
+import path from "path";
 
-import { applyRutorrentPluginActionWithExecFile } from "../src/plugins";
+import { applyRutorrentPluginActionWithExecFile, getRutorrentPlugins } from "../src/plugins";
 
 describe("plugins", () => {
+    it("only lists plugin actions shipped by the repository", () => {
+        const plugins = getRutorrentPlugins();
+        const scripts = path.resolve(__dirname, "../../../../packages/plugin");
+        for (const { name } of plugins) {
+            for (const action of ["install", "remove"]) {
+                const script = path.join(scripts, action, `${action}plugin-${name}`);
+                expect(existsSync(script), script).to.equal(true);
+            }
+        }
+        expect(plugins.find(({ name }) => name === "_noty")?.label).to.equal("_noty / _noty2");
+        expect(plugins.map(({ name }) => name)).not.to.include.members(["_noty2", "uploadeta"]);
+    });
+
     it("should execute an allowlisted ruTorrent plugin action", async () => {
         const calls: unknown[][] = [];
         const execFileStub = ((...args: unknown[]) => {
