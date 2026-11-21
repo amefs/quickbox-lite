@@ -95,15 +95,19 @@ function _lockCheck() {
 }
 
 function _setLock() {
-	if ! (set -o noclobber && echo "${APP_TITLE}" >/install/.install.lock) 2>/dev/null; then
-		_error "Another package process is running."
-		exit 1
+	( set -o noclobber; echo "${APP_TITLE}" >/install/.install.lock ) || exit 1
+	lock_identity=$(stat -Lc '%d:%i' /install/.install.lock) || exit 1
+	trap '_clearInstallLock' EXIT
+}
+
+function _clearInstallLock() {
+	if [[ -n ${lock_identity:-} && $(stat -Lc '%d:%i' /install/.install.lock 2>/dev/null) == "$lock_identity" ]]; then
+		rm -f /install/.install.lock
 	fi
-	trap '_lockCleanup' EXIT
 }
 
 function _lockCleanup() {
-	rm -f /install/.install.lock
+	_clearInstallLock
 }
 
 function _updateInfo() {
@@ -154,3 +158,4 @@ _lockCheck
 _setLock
 _updateInfo
 _updateApp
+_lockCleanup

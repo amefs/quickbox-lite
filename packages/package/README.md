@@ -181,9 +181,16 @@ usage example and description in `_usage` as well.
 
 `_usage` lives in `SCRIPT FUNCTIONS`; the other required lifecycle functions live
 in the function section of their action. `_lockCheck` inspects the global
-operation lock and the package's own preconditions, `_setLock` writes the global
-operation lock, and `_lockCleanup` removes it or calls an existing
-`_clearInstallLock` to do so. `_installAppLock` must create the package install
+operation lock and the package's own preconditions. `_setLock` creates the global
+operation lock with `noclobber` so another process's marker is not overwritten,
+records its device and inode with GNU `stat`, and registers `_clearInstallLock`
+as an `EXIT` trap. `_clearInstallLock` removes the marker only when its device
+and inode still match the acquired lock. `_lockCleanup` keeps any completion
+message and calls `_clearInstallLock`; scripts using only the trap may omit it.
+The trap also releases the marker on early shell exits without reporting success,
+but cannot run after `SIGKILL` or power loss. The identity check and removal are
+not atomic, and failure to record the identity before registering the trap can
+leave a marker behind. `_installAppLock` must create the package install
 marker and `_removeAppLock` must remove it; an empty success helper does not
 count as lock handling. When `APP_LOCK` is declared, install/remove/update must
 use the same expression. The main process may add conditionals as a package
