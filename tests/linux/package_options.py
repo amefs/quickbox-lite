@@ -60,16 +60,15 @@ class PackageOptionContract(unittest.TestCase):
                 self.assertIn("usage", result.stdout)
                 self.assertNotIn("parsed", result.stdout)
 
-    def test_deprecated_static_flag_still_parses(self):
+    def test_static_flag_is_rejected(self):
         for action in ("install", "update"):
             path = PACKAGE / action / (action + "package-qbittorrent")
             for flag in ("-s", "--static"):
                 with self.subTest(script=path.name, flag=flag):
                     result = run_options(path, flag)
-                    self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertIn("parsed", result.stdout)
-                    self.assertIn("deprecated", result.stdout)
-                    self.assertIn("warning:", result.stdout)
+                    self.assertEqual(result.returncode, 1, result.stderr)
+                    self.assertIn("usage", result.stdout)
+                    self.assertNotIn("parsed", result.stdout)
 
     def test_value_options_still_consume_their_argument(self):
         for action in ("install", "update"):
