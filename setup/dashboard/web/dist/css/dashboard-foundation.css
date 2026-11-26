@@ -15,6 +15,7 @@
 :root,
 :host,
 body[data-theme="defaulted"] {
+    --qb-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --qb-page-background: #d3d6dc;
     --qb-page-color: #696c74;
     --qb-heading-color: #262b36;
@@ -112,6 +113,13 @@ textarea {
     margin: 0;
     color: inherit;
     font: inherit;
+}
+
+code,
+kbd,
+pre,
+samp {
+    font-family: var(--qb-font-mono);
 }
 
 button,

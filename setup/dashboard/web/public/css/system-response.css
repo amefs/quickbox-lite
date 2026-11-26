@@ -51,8 +51,12 @@
 #sysResponse .sysout {
     margin: 0;
     color: rgb(83, 223, 131);
+    font-family: var(--qb-font-mono);
+    font-size: 12px;
+    line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 #sysResponseCloseAction {
@@ -102,6 +106,7 @@
     border-radius: 3px;
     background: rgba(0, 0, 0, 0.05);
     color: #c7254e;
+    font-family: var(--qb-font-mono);
     font-size: 12px;
     white-space: pre-wrap;
     word-break: break-all;
@@ -126,6 +131,7 @@
     border-radius: 4px;
     background: #f5f5f5;
     color: #333;
+    font-family: var(--qb-font-mono);
     font-size: 12px;
     line-height: 1.45;
     white-space: pre-wrap;
